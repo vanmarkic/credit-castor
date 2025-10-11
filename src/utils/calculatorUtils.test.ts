@@ -272,13 +272,14 @@ describe('Calculator Utils', () => {
   });
 
   describe('calculatePurchaseShare', () => {
-    it('should calculate purchase share for single unit', () => {
-      const result = calculatePurchaseShare(112, 1377.12, 1);
+    it('should calculate purchase share based on total surface', () => {
+      const result = calculatePurchaseShare(112, 1377.12);
       expect(result).toBeCloseTo(154237.44, 2);
     });
 
-    it('should calculate purchase share for multiple units', () => {
-      const result = calculatePurchaseShare(112, 1377.12, 2);
+    it('should calculate purchase share for total surface (multiple units scenario)', () => {
+      // When buying multiple units, user enters TOTAL surface (e.g., 224m² for 2x112m²)
+      const result = calculatePurchaseShare(224, 1377.12);
       expect(result).toBeCloseTo(308474.88, 2);
     });
   });
@@ -348,6 +349,35 @@ describe('Calculator Utils', () => {
       // If only cascoPerM2 is provided but parachevementsPerM2 is undefined, don't use custom rates
       const result = calculateCascoAndParachevements(1, 112, unitDetails, 2000, undefined);
       expect(result).toEqual({ casco: 178080, parachevements: 56000 });
+    });
+
+    it('should respect cascoSqm and parachevementsSqm when provided', () => {
+      // Test with default rates and custom sqm
+      const result = calculateCascoAndParachevements(99, 100, {}, undefined, undefined, 70, 60);
+      // Default rates: 1590 for casco, 500 for parachevements
+      expect(result).toEqual({ casco: 111300, parachevements: 30000 });
+    });
+
+    it('should respect cascoSqm and parachevementsSqm with unit details', () => {
+      // Test with unit details and custom sqm
+      const result = calculateCascoAndParachevements(1, 112, unitDetails, undefined, undefined, 80, 80);
+      // Unit 1 rates: 178080/112 = 1590€/m², 56000/112 = 500€/m²
+      // Expected: 80 × 1590 = 127200, 80 × 500 = 40000
+      expect(result).toEqual({ casco: 127200, parachevements: 40000 });
+    });
+
+    it('should respect cascoSqm and parachevementsSqm with custom rates', () => {
+      // Test with custom rates per m² and custom sqm
+      const result = calculateCascoAndParachevements(1, 100, {}, 2000, 700, 75, 75);
+      // Expected: 75 × 2000 = 150000, 75 × 700 = 52500
+      expect(result).toEqual({ casco: 150000, parachevements: 52500 });
+    });
+
+    it('should use full surface when sqm parameters are not provided', () => {
+      // Ensure backward compatibility - when sqm not specified, use full surface
+      const result = calculateCascoAndParachevements(99, 100, {}, undefined, undefined, undefined, undefined);
+      // Default rates with full surface: 100 × 1590 = 159000, 100 × 500 = 50000
+      expect(result).toEqual({ casco: 159000, parachevements: 50000 });
     });
   });
 
@@ -451,6 +481,203 @@ describe('Calculator Utils', () => {
   });
 
   describe('calculateAll - Integration', () => {
+    it('should allow participants to specify sqm for casco and parachèvement renovations', () => {
+      // Test case: A participant buys 100 sqm total, but only wants to fully renovate:
+      // - 60 sqm with both CASCO and parachèvement (full renovation)
+      // - The remaining 40 sqm are not renovated (no construction costs)
+      const participants: Participant[] = [
+        {
+          name: 'Participant 1',
+          capitalApporte: 100000,
+          notaryFeesRate: 12.5,
+          unitId: 1,
+          surface: 100,
+          interestRate: 4.5,
+          durationYears: 25,
+          quantity: 1,
+          cascoSqm: 60,  // Only 60 sqm will get CASCO renovation
+          parachevementsSqm: 60,  // Same 60 sqm will also get parachèvements
+        },
+      ];
+
+      const projectParams: ProjectParams = {
+        totalPurchase: 200000,
+        mesuresConservatoires: 20000,
+        demolition: 40000,
+        infrastructures: 90000,
+        etudesPreparatoires: 59820,
+        fraisEtudesPreparatoires: 27320,
+        fraisGeneraux3ans: 0,
+        batimentFondationConservatoire: 43700,
+        batimentFondationComplete: 269200,
+        batimentCoproConservatoire: 56000,
+      };
+
+      const scenario: Scenario = {
+        constructionCostChange: 0,
+        infrastructureReduction: 0,
+        purchasePriceReduction: 0,
+      };
+
+      const unitDetails: UnitDetails = {};
+
+      const results = calculateAll(participants, projectParams, scenario, unitDetails);
+
+      // Default rates: CASCO = 1590 €/m², parachèvements = 500 €/m²
+      // Expected: 60m² × 1590€ = 95,400€ for CASCO
+      //          60m² × 500€ = 30,000€ for parachèvements
+      const p1 = results.participantBreakdown[0];
+      expect(p1.casco).toBe(95400);
+      expect(p1.parachevements).toBe(30000);
+    });
+
+    it('should allow different sqm values for casco vs parachèvements', () => {
+      // Test case: A participant may want different areas renovated with CASCO vs parachèvements
+      // e.g., 80 sqm CASCO but only 50 sqm parachèvements
+      const participants: Participant[] = [
+        {
+          name: 'Participant 1',
+          capitalApporte: 100000,
+          notaryFeesRate: 12.5,
+          unitId: 1,
+          surface: 100,
+          interestRate: 4.5,
+          durationYears: 25,
+          quantity: 1,
+          cascoSqm: 80,  // 80 sqm will get CASCO renovation
+          parachevementsSqm: 50,  // Only 50 sqm will get parachèvements
+        },
+      ];
+
+      const projectParams: ProjectParams = {
+        totalPurchase: 200000,
+        mesuresConservatoires: 20000,
+        demolition: 40000,
+        infrastructures: 90000,
+        etudesPreparatoires: 59820,
+        fraisEtudesPreparatoires: 27320,
+        fraisGeneraux3ans: 0,
+        batimentFondationConservatoire: 43700,
+        batimentFondationComplete: 269200,
+        batimentCoproConservatoire: 56000,
+      };
+
+      const scenario: Scenario = {
+        constructionCostChange: 0,
+        infrastructureReduction: 0,
+        purchasePriceReduction: 0,
+      };
+
+      const unitDetails: UnitDetails = {};
+
+      const results = calculateAll(participants, projectParams, scenario, unitDetails);
+
+      // Expected: 80m² × 1590€ = 127,200€ for CASCO
+      //          50m² × 500€ = 25,000€ for parachèvements
+      const p1 = results.participantBreakdown[0];
+      expect(p1.casco).toBe(127200);
+      expect(p1.parachevements).toBe(25000);
+    });
+
+    it('should work with unit details and custom sqm values', () => {
+      // Test that custom sqm works with predefined unit details
+      const participants: Participant[] = [
+        {
+          name: 'Participant 1',
+          capitalApporte: 50000,
+          notaryFeesRate: 12.5,
+          unitId: 1,
+          surface: 112,
+          interestRate: 4.5,
+          durationYears: 25,
+          quantity: 1,
+          cascoSqm: 80,  // Only renovate 80 sqm instead of full 112 sqm
+          parachevementsSqm: 80,
+        },
+      ];
+
+      const projectParams: ProjectParams = {
+        totalPurchase: 200000,
+        mesuresConservatoires: 20000,
+        demolition: 40000,
+        infrastructures: 90000,
+        etudesPreparatoires: 59820,
+        fraisEtudesPreparatoires: 27320,
+        fraisGeneraux3ans: 0,
+        batimentFondationConservatoire: 43700,
+        batimentFondationComplete: 269200,
+        batimentCoproConservatoire: 56000,
+      };
+
+      const scenario: Scenario = {
+        constructionCostChange: 0,
+        infrastructureReduction: 0,
+        purchasePriceReduction: 0,
+      };
+
+      const unitDetails: UnitDetails = {
+        1: { casco: 178080, parachevements: 56000 },
+      };
+
+      const results = calculateAll(participants, projectParams, scenario, unitDetails);
+
+      // Unit 1 has: casco: 178080 for 112m², parachevements: 56000 for 112m²
+      // Rate per m²: 178080/112 = 1590€/m², 56000/112 = 500€/m²
+      // Expected for 80m²: 80 × 1590 = 127,200€ for CASCO, 80 × 500 = 40,000€ for parachèvements
+      const p1 = results.participantBreakdown[0];
+      expect(p1.casco).toBe(127200);
+      expect(p1.parachevements).toBe(40000);
+    });
+
+    it('should work with custom per-m² rates and custom sqm values', () => {
+      // Test that custom sqm works with custom per-m² rates
+      const participants: Participant[] = [
+        {
+          name: 'Participant 1',
+          capitalApporte: 100000,
+          notaryFeesRate: 12.5,
+          unitId: 1,
+          surface: 100,
+          interestRate: 4.5,
+          durationYears: 25,
+          quantity: 1,
+          cascoPerM2: 2000,
+          parachevementsPerM2: 700,
+          cascoSqm: 75,  // Only renovate 75 sqm
+          parachevementsSqm: 75,
+        },
+      ];
+
+      const projectParams: ProjectParams = {
+        totalPurchase: 200000,
+        mesuresConservatoires: 20000,
+        demolition: 40000,
+        infrastructures: 90000,
+        etudesPreparatoires: 59820,
+        fraisEtudesPreparatoires: 27320,
+        fraisGeneraux3ans: 0,
+        batimentFondationConservatoire: 43700,
+        batimentFondationComplete: 269200,
+        batimentCoproConservatoire: 56000,
+      };
+
+      const scenario: Scenario = {
+        constructionCostChange: 0,
+        infrastructureReduction: 0,
+        purchasePriceReduction: 0,
+      };
+
+      const unitDetails: UnitDetails = {};
+
+      const results = calculateAll(participants, projectParams, scenario, unitDetails);
+
+      // Expected: 75m² × 2000€ = 150,000€ for CASCO
+      //          75m² × 700€ = 52,500€ for parachèvements
+      const p1 = results.participantBreakdown[0];
+      expect(p1.casco).toBe(150000);
+      expect(p1.parachevements).toBe(52500);
+    });
+
     it('should calculate all values correctly for default scenario', () => {
       const participants: Participant[] = [
         { name: 'Manuela/Dragan', capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, surface: 112, interestRate: 4.5, durationYears: 25, quantity: 1 },
@@ -637,6 +864,146 @@ describe('Calculator Utils', () => {
       const travauxCommunsPerUnit = 184450;
       expect(p1.constructionCost).toBe(180000 + 60000 + travauxCommunsPerUnit);
       expect(p2.constructionCost).toBe(240000 + 84000 + travauxCommunsPerUnit);
+    });
+
+    it('should produce identical results with and without explicit sqm values (backward compatibility)', () => {
+      // Test that omitting sqm values produces the same result as explicitly setting them to full surface
+      const participants1: Participant[] = [
+        { name: 'Manuela/Dragan', capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, surface: 112, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'Cathy/Jim', capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, surface: 134, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'Annabelle/Colin', capitalApporte: 200000, notaryFeesRate: 12.5, unitId: 5, surface: 118, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'Julie/Séverin', capitalApporte: 70000, notaryFeesRate: 12.5, unitId: 6, surface: 108, interestRate: 4.5, durationYears: 25, quantity: 1 },
+      ];
+
+      // Same participants but with explicit sqm values set to full surface
+      const participants2: Participant[] = [
+        { name: 'Manuela/Dragan', capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, surface: 112, interestRate: 4.5, durationYears: 25, quantity: 1, cascoSqm: 112, parachevementsSqm: 112 },
+        { name: 'Cathy/Jim', capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, surface: 134, interestRate: 4.5, durationYears: 25, quantity: 1, cascoSqm: 134, parachevementsSqm: 134 },
+        { name: 'Annabelle/Colin', capitalApporte: 200000, notaryFeesRate: 12.5, unitId: 5, surface: 118, interestRate: 4.5, durationYears: 25, quantity: 1, cascoSqm: 118, parachevementsSqm: 118 },
+        { name: 'Julie/Séverin', capitalApporte: 70000, notaryFeesRate: 12.5, unitId: 6, surface: 108, interestRate: 4.5, durationYears: 25, quantity: 1, cascoSqm: 108, parachevementsSqm: 108 },
+      ];
+
+      const projectParams: ProjectParams = {
+        totalPurchase: 650000,
+        mesuresConservatoires: 20000,
+        demolition: 40000,
+        infrastructures: 90000,
+        etudesPreparatoires: 59820,
+        fraisEtudesPreparatoires: 27320,
+        fraisGeneraux3ans: 136825.63,
+        batimentFondationConservatoire: 43700,
+        batimentFondationComplete: 269200,
+        batimentCoproConservatoire: 56000,
+      };
+
+      const scenario: Scenario = {
+        constructionCostChange: 0,
+        infrastructureReduction: 0,
+        purchasePriceReduction: 0,
+      };
+
+      const unitDetails: UnitDetails = {
+        1: { casco: 178080, parachevements: 56000 },
+        3: { casco: 213060, parachevements: 67000 },
+        5: { casco: 187620, parachevements: 59000 },
+        6: { casco: 171720, parachevements: 54000 },
+      };
+
+      const results1 = calculateAll(participants1, projectParams, scenario, unitDetails);
+      const results2 = calculateAll(participants2, projectParams, scenario, unitDetails);
+
+      // Verify all totals are identical
+      expect(results1.totalSurface).toBe(results2.totalSurface);
+      expect(results1.pricePerM2).toBe(results2.pricePerM2);
+      expect(results1.sharedCosts).toBe(results2.sharedCosts);
+      expect(results1.sharedPerPerson).toBe(results2.sharedPerPerson);
+
+      // Verify each participant's calculations are identical
+      for (let i = 0; i < participants1.length; i++) {
+        const p1 = results1.participantBreakdown[i];
+        const p2 = results2.participantBreakdown[i];
+
+        expect(p1.casco).toBe(p2.casco);
+        expect(p1.parachevements).toBe(p2.parachevements);
+        expect(p1.constructionCost).toBe(p2.constructionCost);
+        expect(p1.totalCost).toBe(p2.totalCost);
+        expect(p1.loanNeeded).toBe(p2.loanNeeded);
+        expect(p1.monthlyPayment).toBeCloseTo(p2.monthlyPayment, 2);
+        expect(p1.totalInterest).toBeCloseTo(p2.totalInterest, 2);
+      }
+
+      // Verify all totals match
+      expect(results1.totals.purchase).toBe(results2.totals.purchase);
+      expect(results1.totals.totalNotaryFees).toBe(results2.totals.totalNotaryFees);
+      expect(results1.totals.construction).toBe(results2.totals.construction);
+      expect(results1.totals.shared).toBe(results2.totals.shared);
+      expect(results1.totals.total).toBe(results2.totals.total);
+      expect(results1.totals.capitalTotal).toBe(results2.totals.capitalTotal);
+      expect(results1.totals.totalLoansNeeded).toBeCloseTo(results2.totals.totalLoansNeeded, 2);
+    });
+
+    it('should produce different results when using partial sqm renovation vs full renovation', () => {
+      // Test that using partial sqm produces lower costs than full renovation
+      const participantsFullRenovation: Participant[] = [
+        { name: 'Test User', capitalApporte: 100000, notaryFeesRate: 12.5, unitId: 1, surface: 100, interestRate: 4.5, durationYears: 25, quantity: 1 },
+      ];
+
+      const participantsPartialRenovation: Participant[] = [
+        { name: 'Test User', capitalApporte: 100000, notaryFeesRate: 12.5, unitId: 1, surface: 100, interestRate: 4.5, durationYears: 25, quantity: 1, cascoSqm: 60, parachevementsSqm: 60 },
+      ];
+
+      const projectParams: ProjectParams = {
+        totalPurchase: 200000,
+        mesuresConservatoires: 20000,
+        demolition: 40000,
+        infrastructures: 90000,
+        etudesPreparatoires: 59820,
+        fraisEtudesPreparatoires: 27320,
+        fraisGeneraux3ans: 0,
+        batimentFondationConservatoire: 43700,
+        batimentFondationComplete: 269200,
+        batimentCoproConservatoire: 56000,
+      };
+
+      const scenario: Scenario = {
+        constructionCostChange: 0,
+        infrastructureReduction: 0,
+        purchasePriceReduction: 0,
+      };
+
+      const unitDetails: UnitDetails = {};
+
+      const fullResults = calculateAll(participantsFullRenovation, projectParams, scenario, unitDetails);
+      const partialResults = calculateAll(participantsPartialRenovation, projectParams, scenario, unitDetails);
+
+      const fullP = fullResults.participantBreakdown[0];
+      const partialP = partialResults.participantBreakdown[0];
+
+      // Purchase costs should be the same (buying same surface)
+      expect(fullP.purchaseShare).toBe(partialP.purchaseShare);
+      expect(fullP.notaryFees).toBe(partialP.notaryFees);
+
+      // Construction costs should be lower with partial renovation
+      // Full: 100m² × (1590 + 500) = 209,000 + travaux communs
+      // Partial: 60m² × (1590 + 500) = 125,400 + travaux communs
+      expect(fullP.casco).toBe(159000); // 100 × 1590
+      expect(partialP.casco).toBe(95400); // 60 × 1590
+      expect(fullP.parachevements).toBe(50000); // 100 × 500
+      expect(partialP.parachevements).toBe(30000); // 60 × 500
+
+      // Total construction cost should be lower for partial
+      expect(partialP.constructionCost).toBeLessThan(fullP.constructionCost);
+
+      // Total cost should be lower for partial
+      expect(partialP.totalCost).toBeLessThan(fullP.totalCost);
+
+      // Loan needed should be lower for partial (assuming same capital)
+      expect(partialP.loanNeeded).toBeLessThan(fullP.loanNeeded);
+
+      // Calculate exact savings
+      const constructionSavings = fullP.constructionCost - partialP.constructionCost;
+      const expectedSavings = (159000 - 95400) + (50000 - 30000); // 63,600 + 20,000 = 83,600
+      expect(constructionSavings).toBe(expectedSavings);
     });
 
     it('should prioritize custom rates over unit details in calculateAll', () => {

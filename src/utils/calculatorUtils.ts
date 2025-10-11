@@ -14,6 +14,8 @@ export interface Participant {
   quantity: number;
   cascoPerM2?: number; // Optional custom CASCO price per m² (default: 1590)
   parachevementsPerM2?: number; // Optional custom parachèvements price per m² (default: 500)
+  cascoSqm?: number; // Optional: how many sqm will be renovated with CASCO (default: full surface)
+  parachevementsSqm?: number; // Optional: how many sqm will be renovated with parachèvements (default: full surface)
 }
 
 export interface ProjectParams {
@@ -164,7 +166,9 @@ export function calculateFraisGeneraux3ans(
       participant.surface,
       unitDetails,
       participant.cascoPerM2,
-      participant.parachevementsPerM2
+      participant.parachevementsPerM2,
+      participant.cascoSqm,
+      participant.parachevementsSqm
     );
     totalCasco += casco * participant.quantity;
   }
@@ -205,13 +209,13 @@ export function calculateFraisGeneraux3ans(
 
 /**
  * Calculate purchase share for a participant based on surface
+ * Note: surface represents TOTAL surface, not per unit
  */
 export function calculatePurchaseShare(
   surface: number,
-  pricePerM2: number,
-  quantity: number = 1
+  pricePerM2: number
 ): number {
-  return surface * pricePerM2 * quantity;
+  return surface * pricePerM2;
 }
 
 /**
@@ -232,28 +236,38 @@ export function calculateCascoAndParachevements(
   surface: number,
   unitDetails: UnitDetails,
   cascoPerM2?: number,
-  parachevementsPerM2?: number
+  parachevementsPerM2?: number,
+  cascoSqm?: number,
+  parachevementsSqm?: number
 ): { casco: number; parachevements: number } {
+  // Determine the actual sqm to be used for calculations
+  const actualCascoSqm = cascoSqm !== undefined ? cascoSqm : surface;
+  const actualParachevementsSqm = parachevementsSqm !== undefined ? parachevementsSqm : surface;
+
   // If custom rates are provided, use them
   if (cascoPerM2 !== undefined && parachevementsPerM2 !== undefined) {
     return {
-      casco: surface * cascoPerM2,
-      parachevements: surface * parachevementsPerM2,
+      casco: actualCascoSqm * cascoPerM2,
+      parachevements: actualParachevementsSqm * parachevementsPerM2,
     };
   }
 
-  // If unit details exist, use them
+  // If unit details exist, we need to calculate based on sqm instead of using fixed values
   if (unitDetails[unitId]) {
+    // Calculate rate per m² from the unit details
+    const unitCascoPerM2 = unitDetails[unitId].casco / surface;
+    const unitParachevementsPerM2 = unitDetails[unitId].parachevements / surface;
+
     return {
-      casco: unitDetails[unitId].casco,
-      parachevements: unitDetails[unitId].parachevements,
+      casco: actualCascoSqm * unitCascoPerM2,
+      parachevements: actualParachevementsSqm * unitParachevementsPerM2,
     };
   }
 
   // Default calculation if unit not in details
   return {
-    casco: surface * 1590,
-    parachevements: surface * 500,
+    casco: actualCascoSqm * 1590,
+    parachevements: actualParachevementsSqm * 500,
   };
 }
 
@@ -374,18 +388,23 @@ export function calculateAll(
       p.surface,
       unitDetails,
       p.cascoPerM2,
-      p.parachevementsPerM2
+      p.parachevementsPerM2,
+      p.cascoSqm,
+      p.parachevementsSqm
     );
 
     const quantity = p.quantity || 1;
-    const purchaseShare = calculatePurchaseShare(p.surface, pricePerM2, quantity);
+    const purchaseShare = calculatePurchaseShare(p.surface, pricePerM2);
     const notaryFees = calculateNotaryFees(purchaseShare, p.notaryFeesRate);
 
-    const constructionCostPerUnit =
-      (casco * (1 + scenario.constructionCostChange / 100)) +
-      (parachevements * (1 + scenario.constructionCostChange / 100)) +
-      travauxCommunsPerUnit;
-    const constructionCost = constructionCostPerUnit * quantity;
+    // Since surface is TOTAL, casco and parachevements are already for total surface
+    // Only multiply travauxCommunsPerUnit by quantity (shared building costs per unit)
+    const cascoTotal = casco * (1 + scenario.constructionCostChange / 100);
+    const parachevementsTotal = parachevements * (1 + scenario.constructionCostChange / 100);
+    const travauxCommunsTotal = travauxCommunsPerUnit * quantity;
+
+    const constructionCost = cascoTotal + parachevementsTotal + travauxCommunsTotal;
+    const constructionCostPerUnit = constructionCost / quantity;
 
     const totalCost = purchaseShare + notaryFees + constructionCost + sharedPerPerson;
     const loanNeeded = calculateLoanAmount(totalCost, p.capitalApporte);

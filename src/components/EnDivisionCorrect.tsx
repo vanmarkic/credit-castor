@@ -80,7 +80,7 @@ export default function EnDivisionCorrect() {
     return stored ? stored.participants : DEFAULT_PARTICIPANTS;
   });
 
-  const [expandedConstruction, setExpandedConstruction] = useState<{[key: number]: boolean}>({});
+  const [expandedParticipants, setExpandedParticipants] = useState<{[key: number]: boolean}>({});
 
   const participantRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -200,6 +200,18 @@ export default function EnDivisionCorrect() {
   const updateParachevementsPerM2 = (index, value) => {
     const newParticipants = [...participants];
     newParticipants[index].parachevementsPerM2 = value;
+    setParticipants(newParticipants);
+  };
+
+  const updateCascoSqm = (index, value) => {
+    const newParticipants = [...participants];
+    newParticipants[index].cascoSqm = value;
+    setParticipants(newParticipants);
+  };
+
+  const updateParachevementsSqm = (index, value) => {
+    const newParticipants = [...participants];
+    newParticipants[index].parachevementsSqm = value;
     setParticipants(newParticipants);
   };
 
@@ -631,76 +643,114 @@ export default function EnDivisionCorrect() {
           </div>
           
           <div className="space-y-6">
-            {calculations.participantBreakdown.map((p, idx) => (
+            {calculations.participantBreakdown.map((p, idx) => {
+              const isExpanded = expandedParticipants[idx];
+
+              return (
               <div
                 key={idx}
                 ref={(el) => { participantRefs.current[idx] = el; }}
-                className="border border-gray-300 rounded-xl p-6 bg-white shadow-sm hover:shadow-md transition-shadow">
+                className="border border-gray-300 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow">
 
-                {/* Header: Identity & Summary */}
-                <div className="flex justify-between items-start pb-4 mb-4 border-b border-gray-200">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <input
-                        type="text"
-                        value={p.name}
-                        onChange={(e) => updateParticipantName(idx, e.target.value)}
-                        className="text-xl font-bold text-gray-900 bg-transparent border-b-2 border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none px-1 py-1"
-                        placeholder="Nom du participant"
-                      />
-                      {participants.length > 1 && (
+                {/* Always Visible Header */}
+                <div className="p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <input
+                          type="text"
+                          value={p.name}
+                          onChange={(e) => updateParticipantName(idx, e.target.value)}
+                          className="text-xl font-bold text-gray-900 bg-transparent border-b-2 border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none px-1 py-1"
+                          placeholder="Nom du participant"
+                        />
+                        {participants.length > 1 && (
+                          <button
+                            onClick={() => removeParticipant(idx)}
+                            className="text-red-600 hover:text-red-700 text-xs font-medium px-2 py-1 rounded border border-red-300 hover:bg-red-50 transition-colors"
+                          >
+                            Retirer
+                          </button>
+                        )}
                         <button
-                          onClick={() => removeParticipant(idx)}
-                          className="text-red-600 hover:text-red-700 text-xs font-medium px-2 py-1 rounded border border-red-300 hover:bg-red-50 transition-colors"
+                          onClick={() => setExpandedParticipants(prev => ({...prev, [idx]: !prev[idx]}))}
+                          className="ml-auto text-gray-600 hover:text-gray-800 text-sm font-medium px-3 py-1 rounded border border-gray-300 hover:bg-gray-50 transition-colors flex items-center gap-2"
                         >
-                          Retirer
+                          {isExpanded ? (
+                            <>
+                              <ChevronUp className="w-4 h-4" />
+                              Réduire
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="w-4 h-4" />
+                              Détails
+                            </>
+                          )}
                         </button>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <span className="flex items-center gap-1">
-                        <span className="text-gray-400">Unité</span>
-                        <span className="font-medium text-blue-600">{p.unitId}</span>
-                      </span>
-                      <span className="text-gray-300">•</span>
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="number"
-                          step="1"
-                          min="1"
-                          value={p.quantity}
-                          onChange={(e) => updateQuantity(idx, parseInt(e.target.value) || 1)}
-                          className="w-12 px-2 py-0.5 text-sm font-medium border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-center"
-                        />
-                        <span>{p.quantity > 1 ? 'unités' : 'unité'}</span>
                       </div>
-                      <span className="text-gray-300">•</span>
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="number"
-                          step="1"
-                          value={p.surface}
-                          onChange={(e) => updateParticipantSurface(idx, parseFloat(e.target.value) || 0)}
-                          className="w-16 px-2 py-0.5 text-sm font-medium border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-center"
-                        />
-                        <span>m²</span>
-                        <span className="text-gray-400">× {formatCurrency(p.pricePerM2)}</span>
+                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <span className="flex items-center gap-1">
+                          <span className="text-gray-400">Unité</span>
+                          <span className="font-medium text-blue-600">{p.unitId}</span>
+                        </span>
+                        <span className="text-gray-300">•</span>
+                        <span>{p.surface}m²</span>
+                        <span className="text-gray-300">•</span>
+                        <span>{p.quantity} {p.quantity > 1 ? 'unités' : 'unité'}</span>
                       </div>
                     </div>
                   </div>
-                  <div className="text-right ml-4">
-                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Coût Total</p>
-                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(p.totalCost)}</p>
-                    {p.quantity > 1 && (
-                      <p className="text-xs text-gray-500 mt-1">{formatCurrency(p.totalCost / p.quantity)} / unité</p>
-                    )}
+
+                  {/* Key Financial Metrics - Always Visible */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                      <p className="text-xs text-gray-500 mb-1">Coût Total</p>
+                      <p className="text-lg font-bold text-gray-900">{formatCurrency(p.totalCost)}</p>
+                    </div>
+                    <div className="bg-green-50 rounded-lg p-3 border border-green-300">
+                      <p className="text-xs text-gray-600 mb-1">Capital apporté</p>
+                      <p className="text-lg font-bold text-green-700">{formatCurrency(p.capitalApporte)}</p>
+                    </div>
+                    <div className="bg-red-50 rounded-lg p-3 border border-red-300">
+                      <p className="text-xs text-gray-600 mb-1">Emprunt</p>
+                      <p className="text-lg font-bold text-red-700">{formatCurrency(p.loanNeeded)}</p>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 border border-gray-200">
+                      <p className="text-xs text-gray-500 mb-1">Mensualité</p>
+                      <p className="text-lg font-bold text-red-600">{formatCurrency(p.monthlyPayment)}</p>
+                    </div>
                   </div>
                 </div>
 
-                {/* Configuration Section */}
+                {/* Expandable Details */}
+                {isExpanded && (
+                  <div className="px-6 pb-6 border-t border-gray-200 pt-4">{/* Configuration Section */}
                 <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Configuration</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Surface totale (m²)</label>
+                      <input
+                        type="number"
+                        step="1"
+                        value={p.surface}
+                        onChange={(e) => updateParticipantSurface(idx, parseFloat(e.target.value) || 0)}
+                        className="w-full px-3 py-2 font-medium border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Total pour {p.quantity} {p.quantity > 1 ? 'unités' : 'unité'}</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Quantité</label>
+                      <input
+                        type="number"
+                        step="1"
+                        min="1"
+                        value={p.quantity}
+                        onChange={(e) => updateQuantity(idx, parseInt(e.target.value) || 1)}
+                        className="w-full px-3 py-2 font-medium border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white"
+                      />
+                    </div>
                     <div>
                       <label className="block text-xs text-gray-600 mb-1">Capital apporté</label>
                       <input
@@ -776,7 +826,7 @@ export default function EnDivisionCorrect() {
                     <div className="bg-white rounded-lg p-3 border border-gray-200">
                       <p className="text-xs text-gray-500 mb-1">Part d'achat</p>
                       <p className="text-base font-bold text-gray-900">{formatCurrency(p.purchaseShare)}</p>
-                      <p className="text-xs text-blue-600 mt-0.5">{p.surface * p.quantity}m²</p>
+                      <p className="text-xs text-blue-600 mt-0.5">{p.surface}m²</p>
                     </div>
 
                     <div className="bg-white rounded-lg p-3 border border-gray-200">
@@ -804,56 +854,71 @@ export default function EnDivisionCorrect() {
                     </div>
                   </div>
                 </div>
-                
-                {/* Construction Detail - Collapsible */}
-                <div className="mb-4">
-                  <button
-                    onClick={() => setExpandedConstruction(prev => ({...prev, [idx]: !prev[idx]}))}
-                    className="w-full flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-                  >
-                    <span className="text-xs text-gray-600 uppercase tracking-wide font-semibold">Détail Construction</span>
-                    {expandedConstruction[idx] ? (
-                      <ChevronUp className="w-4 h-4 text-gray-400" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4 text-gray-400" />
-                    )}
-                  </button>
 
-                  {expandedConstruction[idx] && (
-                    <div className="mt-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <div className="bg-white p-3 rounded-lg border border-gray-200">
-                          <label className="block text-xs text-gray-500 mb-1">CASCO (gros œuvre) - Prix/m²</label>
-                          <input
-                            type="number"
-                            step="10"
-                            value={participants[idx].cascoPerM2}
-                            onChange={(e) => updateCascoPerM2(idx, parseFloat(e.target.value) || 0)}
-                            className="w-full px-3 py-2 text-sm font-semibold border border-gray-300 rounded-lg focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none mb-2"
-                          />
-                          <p className="text-xs text-gray-500">Total: <span className="font-bold text-gray-900">{formatCurrency(p.casco)}</span></p>
-                          <p className="text-xs text-gray-400">{p.surface}m² × {participants[idx].cascoPerM2}€/m²</p>
-                        </div>
-                        <div className="bg-white p-3 rounded-lg border border-gray-200">
-                          <label className="block text-xs text-gray-500 mb-1">Parachèvements - Prix/m²</label>
-                          <input
-                            type="number"
-                            step="10"
-                            value={participants[idx].parachevementsPerM2}
-                            onChange={(e) => updateParachevementsPerM2(idx, parseFloat(e.target.value) || 0)}
-                            className="w-full px-3 py-2 text-sm font-semibold border border-gray-300 rounded-lg focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none mb-2"
-                          />
-                          <p className="text-xs text-gray-500">Total: <span className="font-bold text-gray-900">{formatCurrency(p.parachevements)}</span></p>
-                          <p className="text-xs text-gray-400">{p.surface}m² × {participants[idx].parachevementsPerM2}€/m²</p>
-                        </div>
-                        <div className="bg-white p-3 rounded-lg border border-purple-200">
-                          <p className="text-xs text-gray-500 mb-1">Travaux communs</p>
-                          <p className="text-lg font-bold text-purple-700 mt-2">{formatCurrency(p.travauxCommunsPerUnit)}</p>
-                          <p className="text-xs text-purple-500 mt-1">Quote-part fixe (÷{participants.length})</p>
-                        </div>
-                      </div>
+                {/* Construction Detail - Always Visible */}
+                <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Détail Construction</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                    <div className="bg-white p-3 rounded-lg border border-gray-200">
+                      <label className="block text-xs text-gray-500 mb-1">CASCO (gros œuvre) - Prix/m²</label>
+                      <input
+                        type="number"
+                        step="10"
+                        value={participants[idx].cascoPerM2}
+                        onChange={(e) => updateCascoPerM2(idx, parseFloat(e.target.value) || 0)}
+                        className="w-full px-3 py-2 text-sm font-semibold border border-gray-300 rounded-lg focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none mb-2"
+                      />
+                      <p className="text-xs text-gray-500">Total: <span className="font-bold text-gray-900">{formatCurrency(p.casco)}</span></p>
+                      <p className="text-xs text-gray-400">{participants[idx].cascoSqm || p.surface}m² × {participants[idx].cascoPerM2}€/m²</p>
                     </div>
-                  )}
+                    <div className="bg-white p-3 rounded-lg border border-gray-200">
+                      <label className="block text-xs text-gray-500 mb-1">Parachèvements - Prix/m²</label>
+                      <input
+                        type="number"
+                        step="10"
+                        value={participants[idx].parachevementsPerM2}
+                        onChange={(e) => updateParachevementsPerM2(idx, parseFloat(e.target.value) || 0)}
+                        className="w-full px-3 py-2 text-sm font-semibold border border-gray-300 rounded-lg focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none mb-2"
+                      />
+                      <p className="text-xs text-gray-500">Total: <span className="font-bold text-gray-900">{formatCurrency(p.parachevements)}</span></p>
+                      <p className="text-xs text-gray-400">{participants[idx].parachevementsSqm || p.surface}m² × {participants[idx].parachevementsPerM2}€/m²</p>
+                    </div>
+                    <div className="bg-white p-3 rounded-lg border border-purple-200">
+                      <p className="text-xs text-gray-500 mb-1">Travaux communs</p>
+                      <p className="text-lg font-bold text-purple-700 mt-2">{formatCurrency(p.travauxCommunsPerUnit)}</p>
+                      <p className="text-xs text-purple-500 mt-1">Quote-part fixe (÷{participants.length})</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                      <label className="block text-xs text-blue-700 font-medium mb-1">Surface à rénover CASCO (m²)</label>
+                      <input
+                        type="number"
+                        step="1"
+                        min="0"
+                        max={p.surface}
+                        value={participants[idx].cascoSqm || p.surface}
+                        onChange={(e) => updateCascoSqm(idx, parseFloat(e.target.value) || undefined)}
+                        className="w-full px-3 py-2 text-sm font-semibold border border-blue-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                        placeholder={`${p.surface}m² (total)`}
+                      />
+                      <p className="text-xs text-blue-600 mt-1">Surface totale: {p.surface}m²</p>
+                    </div>
+                    <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                      <label className="block text-xs text-blue-700 font-medium mb-1">Surface à rénover Parachèvements (m²)</label>
+                      <input
+                        type="number"
+                        step="1"
+                        min="0"
+                        max={p.surface}
+                        value={participants[idx].parachevementsSqm || p.surface}
+                        onChange={(e) => updateParachevementsSqm(idx, parseFloat(e.target.value) || undefined)}
+                        className="w-full px-3 py-2 text-sm font-semibold border border-blue-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                        placeholder={`${p.surface}m² (total)`}
+                      />
+                      <p className="text-xs text-blue-600 mt-1">Surface totale: {p.surface}m²</p>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Financing Result */}
@@ -884,8 +949,11 @@ export default function EnDivisionCorrect() {
                     </div>
                   </div>
                 </div>
+                  </div>
+                )}
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
