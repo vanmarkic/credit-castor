@@ -22,6 +22,7 @@ export interface ProjectParams {
   etudesPreparatoires: number;
   fraisEtudesPreparatoires: number;
   fraisGeneraux3ans: number;
+  fraisGenerauxRate?: number; // Percentage rate for calculating fraisGeneraux3ans (default: 10.1%)
   batimentFondationConservatoire: number;
   batimentFondationComplete: number;
   batimentCoproConservatoire: number;
@@ -139,6 +140,38 @@ export function calculateTravauxCommunsPerUnit(
 ): number {
   const total = calculateTotalTravauxCommuns(projectParams);
   return total / numberOfParticipants;
+}
+
+/**
+ * Calculate frais généraux 3 ans as a percentage of total construction costs
+ * Total construction = sum of all unit CASCO + parachevements + common building works
+ */
+export function calculateFraisGeneraux3ans(
+  participants: Participant[],
+  projectParams: ProjectParams,
+  unitDetails: UnitDetails
+): number {
+  const DEFAULT_RATE = 10.1; // Default percentage rate
+  const rate = projectParams.fraisGenerauxRate ?? DEFAULT_RATE;
+
+  // Calculate total construction costs for all units
+  let totalConstructionCosts = 0;
+
+  // Sum up CASCO and parachevements for all participants
+  for (const participant of participants) {
+    const { casco, parachevements } = calculateCascoAndParachevements(
+      participant.unitId,
+      participant.surface,
+      unitDetails
+    );
+    totalConstructionCosts += casco + parachevements;
+  }
+
+  // Add common building works
+  totalConstructionCosts += calculateTotalTravauxCommuns(projectParams);
+
+  // Apply percentage rate
+  return totalConstructionCosts * (rate / 100);
 }
 
 /**
@@ -271,8 +304,21 @@ export function calculateAll(
     scenario.purchasePriceReduction
   );
 
-  const sharedCosts = calculateSharedCosts(
+  // Calculate fraisGeneraux3ans dynamically based on construction costs
+  const dynamicFraisGeneraux3ans = calculateFraisGeneraux3ans(
+    participants,
     projectParams,
+    unitDetails
+  );
+
+  // Create updated projectParams with dynamic fraisGeneraux3ans
+  const updatedProjectParams = {
+    ...projectParams,
+    fraisGeneraux3ans: dynamicFraisGeneraux3ans,
+  };
+
+  const sharedCosts = calculateSharedCosts(
+    updatedProjectParams,
     scenario.infrastructureReduction
   );
   const sharedPerPerson = sharedCosts / participants.length;

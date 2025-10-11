@@ -13,6 +13,7 @@ import {
   calculateMonthlyPayment,
   calculateTotalInterest,
   calculateFinancingRatio,
+  calculateFraisGeneraux3ans,
   calculateAll,
   type Participant,
   type ProjectParams,
@@ -56,6 +57,102 @@ describe('Calculator Utils', () => {
       ];
       const result = calculateTotalSurface(participants);
       expect(result).toBe(100);
+    });
+  });
+
+  describe('calculateFraisGeneraux3ans', () => {
+    const unitDetails: UnitDetails = {
+      1: { casco: 178080, parachevements: 56000 },
+      3: { casco: 213060, parachevements: 67000 },
+      5: { casco: 187620, parachevements: 59000 },
+      6: { casco: 171720, parachevements: 54000 },
+    };
+
+    const projectParams: ProjectParams = {
+      totalPurchase: 650000,
+      mesuresConservatoires: 20000,
+      demolition: 40000,
+      infrastructures: 90000,
+      etudesPreparatoires: 59820,
+      fraisEtudesPreparatoires: 27320,
+      fraisGeneraux3ans: 0, // Not used when calculating dynamically
+      fraisGenerauxRate: 10.1,
+      batimentFondationConservatoire: 43700,
+      batimentFondationComplete: 269200,
+      batimentCoproConservatoire: 56000,
+    };
+
+    it('should calculate frais généraux as 10.1% of total construction costs by default', () => {
+      const participants: Participant[] = [
+        { name: 'A', surface: 112, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'B', surface: 134, capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'C', surface: 118, capitalApporte: 200000, notaryFeesRate: 12.5, unitId: 5, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'D', surface: 108, capitalApporte: 70000, notaryFeesRate: 12.5, unitId: 6, interestRate: 4.5, durationYears: 25, quantity: 1 },
+      ];
+
+      // Total construction = (178080+56000) + (213060+67000) + (187620+59000) + (171720+54000) + (43700+269200+56000)
+      // = 234080 + 280060 + 246620 + 225720 + 368900 = 1,355,380
+      // 10.1% of 1,355,380 = 136,893.38
+      const result = calculateFraisGeneraux3ans(participants, projectParams, unitDetails);
+      expect(result).toBeCloseTo(136893.38, 2);
+    });
+
+    it('should calculate frais généraux with custom rate', () => {
+      const participants: Participant[] = [
+        { name: 'A', surface: 112, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'B', surface: 134, capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, interestRate: 4.5, durationYears: 25, quantity: 1 },
+      ];
+
+      const customParams = {
+        ...projectParams,
+        fraisGenerauxRate: 15,
+      };
+
+      const unitDetailsSubset: UnitDetails = {
+        1: { casco: 178080, parachevements: 56000 },
+        3: { casco: 213060, parachevements: 67000 },
+      };
+
+      // Total construction = 234080 + 280060 + 368900 = 883,040
+      // 15% of 883,040 = 132,456
+      const result = calculateFraisGeneraux3ans(participants, customParams, unitDetailsSubset);
+      expect(result).toBeCloseTo(132456, 2);
+    });
+
+    it('should handle single participant', () => {
+      const participants: Participant[] = [
+        { name: 'A', surface: 112, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
+      ];
+
+      const singleUnitDetails: UnitDetails = {
+        1: { casco: 178080, parachevements: 56000 },
+      };
+
+      // Total construction = 234080 + 368900 = 602,980
+      // 10.1% of 602,980 = 60,901.0
+      const result = calculateFraisGeneraux3ans(participants, projectParams, singleUnitDetails);
+      expect(result).toBeCloseTo(60900.98, 2);
+    });
+
+    it('should use default rate if not specified', () => {
+      const participants: Participant[] = [
+        { name: 'A', surface: 112, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
+      ];
+
+      const paramsNoRate = {
+        ...projectParams,
+        fraisGenerauxRate: undefined,
+      };
+
+      const singleUnitDetails: UnitDetails = {
+        1: { casco: 178080, parachevements: 56000 },
+      };
+
+      // Should default to 10.1%
+      // Total construction = 602,980
+      // 10.1% = 60,900.98
+      const result = calculateFraisGeneraux3ans(participants, paramsNoRate, singleUnitDetails);
+      expect(result).toBeCloseTo(60900.98, 2);
     });
   });
 
@@ -336,8 +433,10 @@ describe('Calculator Utils', () => {
       // Verify totals
       expect(results.totalSurface).toBe(472);
       expect(results.pricePerM2).toBeCloseTo(1377.12, 2);
-      expect(results.sharedCosts).toBeCloseTo(373965.63, 2);
-      expect(results.sharedPerPerson).toBeCloseTo(93491.41, 2);
+      // Dynamic fraisGeneraux3ans = 10.1% of 1,355,380 = 136,893.38 (instead of static 136,825.63)
+      // New shared costs = 20000 + 40000 + 90000 + 59820 + 27320 + 136893.38 = 374,033.38
+      expect(results.sharedCosts).toBeCloseTo(374033.38, 2);
+      expect(results.sharedPerPerson).toBeCloseTo(93508.345, 2);
 
       // Verify global totals
       expect(results.totals.purchase).toBe(650000);
@@ -352,9 +451,11 @@ describe('Calculator Utils', () => {
       expect(p1.purchaseShare).toBeCloseTo(154237.29, 1);
       expect(p1.notaryFees).toBeCloseTo(19279.66, 1);
       expect(p1.constructionCost).toBe(326305);
-      expect(p1.totalCost).toBeCloseTo(593313.36, 1);
-      expect(p1.loanNeeded).toBeCloseTo(543313.36, 1);
-      expect(p1.monthlyPayment).toBeCloseTo(3019.91, 1);
+      // totalCost = purchaseShare + notaryFees + constructionCost + sharedPerPerson
+      // = 154237.29 + 19279.66 + 326305 + 93508.35 = 593,330.30 (was 593,313.36)
+      expect(p1.totalCost).toBeCloseTo(593330.30, 1);
+      expect(p1.loanNeeded).toBeCloseTo(543330.30, 1);
+      expect(p1.monthlyPayment).toBeCloseTo(3020.01, 1);
 
       // Verify total cost matches sum of components
       const expectedTotalCost = results.totals.purchase +
@@ -404,7 +505,9 @@ describe('Calculator Utils', () => {
       expect(results.totals.purchase).toBe(585000);
 
       // Infrastructure should be reduced by 20%
-      expect(results.sharedCosts).toBeCloseTo(355965.63, 2);
+      // Dynamic fraisGeneraux3ans = 10.1% of 1,355,380 = 136,893.38
+      // Shared costs = 20000 + 40000 + (90000*0.8) + 59820 + 27320 + 136893.38 = 356,033.38
+      expect(results.sharedCosts).toBeCloseTo(356033.38, 2);
 
       // Construction cost should include +15%
       const p1 = results.participantBreakdown[0];

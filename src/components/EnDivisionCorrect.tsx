@@ -59,7 +59,8 @@ export default function EnDivisionCorrect() {
     infrastructures: 90000,
     etudesPreparatoires: 59820,
     fraisEtudesPreparatoires: 27320,
-    fraisGeneraux3ans: 136825.63,
+    fraisGeneraux3ans: 0, // Will be calculated dynamically
+    fraisGenerauxRate: 10.1, // Percentage rate for calculating fraisGeneraux3ans
     batimentFondationConservatoire: 43700,
     batimentFondationComplete: 269200,
     batimentCoproConservatoire: 56000
@@ -270,14 +271,36 @@ export default function EnDivisionCorrect() {
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-1">Frais Généraux 3 ans</label>
-                <input
-                  type="number"
-                  step="1000"
-                  value={projectParams.fraisGeneraux3ans}
-                  onChange={(e) => setProjectParams({...projectParams, fraisGeneraux3ans: parseFloat(e.target.value) || 0})}
-                  className="w-full px-3 py-2 text-sm border-2 border-yellow-300 rounded-lg focus:border-yellow-500 focus:outline-none"
-                />
+                <label className="block text-xs text-gray-600 mb-1">
+                  Frais Généraux 3 ans (Taux: {projectParams.fraisGenerauxRate}%)
+                </label>
+                <div className="space-y-2">
+                  <input
+                    type="range"
+                    min="0"
+                    max="20"
+                    step="0.1"
+                    value={projectParams.fraisGenerauxRate}
+                    onChange={(e) => setProjectParams({...projectParams, fraisGenerauxRate: parseFloat(e.target.value)})}
+                    className="w-full"
+                  />
+                  <div className="flex items-center justify-between gap-2">
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="20"
+                      value={projectParams.fraisGenerauxRate}
+                      onChange={(e) => setProjectParams({...projectParams, fraisGenerauxRate: parseFloat(e.target.value) || 0})}
+                      className="w-20 px-2 py-1 text-sm font-bold border-2 border-yellow-300 rounded-lg focus:border-yellow-500 focus:outline-none"
+                    />
+                    <span className="text-xs text-gray-600">%</span>
+                    <span className="text-xs text-gray-600 flex-1">= {formatCurrency(calculations.sharedCosts - (projectParams.mesuresConservatoires + projectParams.demolition + projectParams.infrastructures * (1 - scenario.infrastructureReduction / 100) + projectParams.etudesPreparatoires + projectParams.fraisEtudesPreparatoires))}</span>
+                  </div>
+                  <p className="text-xs text-gray-500 italic">
+                    Calculé sur {formatCurrency(calculations.totals.construction + calculations.totals.totalTravauxCommuns)} de construction
+                  </p>
+                </div>
               </div>
             </div>
             <div className="mt-3 p-3 bg-yellow-100 rounded-lg border-2 border-yellow-400">
