@@ -6,7 +6,6 @@ dist/
 .astro/
 
 # environment
-.env
 .env.local
 
 # logs
