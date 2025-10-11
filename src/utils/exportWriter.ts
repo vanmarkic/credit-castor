@@ -66,6 +66,11 @@ export class XlsxWriter implements ExportWriter {
     wb.sheets.forEach(sheet => {
       const ws: XLSX.WorkSheet = {};
 
+      // Track min/max rows and columns for !ref
+      let minRow = Infinity;
+      let maxRow = -Infinity;
+      const colSet = new Set<string>();
+
       // Add cells
       sheet.cells.forEach(cell => {
         const cellRef = `${cell.col}${cell.row}`;
@@ -79,7 +84,20 @@ export class XlsxWriter implements ExportWriter {
             ws[cellRef] = { t: 's', v: value };
           }
         }
+
+        // Track bounds
+        minRow = Math.min(minRow, cell.row);
+        maxRow = Math.max(maxRow, cell.row);
+        colSet.add(cell.col);
       });
+
+      // Set the range (!ref) - CRITICAL for Excel to display data
+      if (sheet.cells.length > 0) {
+        const cols = Array.from(colSet).sort();
+        const minCol = cols[0];
+        const maxCol = cols[cols.length - 1];
+        ws['!ref'] = `${minCol}${minRow}:${maxCol}${maxRow}`;
+      }
 
       // Set column widths
       if (sheet.columnWidths && sheet.columnWidths.length > 0) {

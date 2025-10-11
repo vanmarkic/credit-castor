@@ -2,7 +2,7 @@
 
 ## Code Quality & Best Practices
 - apply the boy scout rule - leave the codebase cleaner than you found it
-- always check PWD at the start of your response and make sure you are in the right directory
+- if something isn't found in the terminal, check PWD and make sure you are in the right directory
 - aim at a good ratio of LOCs over features/bugs solved, apply the concept to dependencies as well
 - always try to improve existing code instead of adding new code
 - always try to remove code instead of adding new code

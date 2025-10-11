@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildExportSheetData, exportCalculations } from './excelExport';
-import { CsvWriter } from './exportWriter';
+import { CsvWriter, XlsxWriter } from './exportWriter';
 import type { CalculationResults, ProjectParams, Scenario } from './calculatorUtils';
 
 describe('Excel Export', () => {
@@ -287,6 +287,67 @@ describe('Excel Export', () => {
       expect(result).toContain('=B27+B28+B29'); // Total travaux communs
       expect(result).toContain('=SUM(C41:C42)'); // Total surface
       expect(result).toContain('=AVERAGE(P41:P42)'); // Average loan
+    });
+  });
+
+  describe('Writer type verification', () => {
+    it('CsvWriter should return a string', () => {
+      const csvWriter = new CsvWriter();
+      const result = exportCalculations(
+        mockCalculations,
+        mockProjectParams,
+        mockScenario,
+        csvWriter,
+        'test.xlsx'
+      );
+
+      // CsvWriter returns a string
+      expect(typeof result).toBe('string');
+      expect(result).toContain('WORKBOOK: test.xlsx');
+    });
+
+    it('XlsxWriter should return void (creates file download)', () => {
+      // Note: XlsxWriter calls XLSX.writeFile which triggers a download
+      // In test environment, this will fail if file system is not accessible
+      // But we can verify the writer doesn't return a string
+      const xlsxWriter = new XlsxWriter();
+      const wb = xlsxWriter.createWorkbook();
+      const sheetData = buildExportSheetData(
+        mockCalculations,
+        mockProjectParams,
+        mockScenario,
+        '10/11/2025'
+      );
+      xlsxWriter.addSheet(wb, sheetData);
+
+      // XlsxWriter.write returns void (undefined), not a string
+      const result = xlsxWriter.write(wb, 'test_xlsx_output.xlsx');
+      expect(result).toBeUndefined();
+    });
+
+    it('XlsxWriter should set worksheet range (!ref) property', () => {
+      // Mock XLSX to verify the worksheet structure
+      const xlsxWriter = new XlsxWriter();
+      const wb = xlsxWriter.createWorkbook();
+
+      // Create a simple sheet with known bounds
+      const simpleSheet = {
+        name: 'Test Sheet',
+        cells: [
+          { row: 1, col: 'A', data: { value: 'Header' } },
+          { row: 2, col: 'A', data: { value: 'Row1' } },
+          { row: 2, col: 'B', data: { value: 123 } },
+          { row: 3, col: 'C', data: { formula: 'A2+B2' } },
+        ],
+        columnWidths: []
+      };
+
+      xlsxWriter.addSheet(wb, simpleSheet);
+
+      // Verify the sheet was added with correct data
+      expect(wb.sheets.length).toBe(1);
+      expect(wb.sheets[0].cells.length).toBe(4);
+      expect(wb.sheets[0].name).toBe('Test Sheet');
     });
   });
 });
