@@ -308,7 +308,7 @@ export default function EnDivisionCorrect() {
           <div className="flex items-center gap-4 mb-4">
             <Building2 className="w-12 h-12 text-blue-600" />
             <div>
-              <h1 className="text-4xl font-bold text-gray-800">Achat en Division - 4 Unités</h1>
+              <h1 className="text-4xl font-bold text-gray-800">Achat en Division - Acte 1</h1>
               <p className="text-gray-600">Wallonie, Belgique • Prix d'achat €650,000</p>
             </div>
           </div>

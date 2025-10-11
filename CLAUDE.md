@@ -1,5 +1,4 @@
-# Do's
-
+# 
 ## Code Quality & Best Practices
 - apply the boy scout rule - leave the codebase cleaner than you found it
 - if something isn't found in the terminal, check PWD and make sure you are in the right directory
