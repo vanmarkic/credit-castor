@@ -6,10 +6,10 @@ import { XlsxWriter } from '../utils/exportWriter';
 
 export default function EnDivisionCorrect() {
   const [participants, setParticipants] = useState([
-    { name: 'Manuela/Dragan', capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, surface: 112, interestRate: 4.5, durationYears: 25, quantity: 1 },
-    { name: 'Cathy/Jim', capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, surface: 134, interestRate: 4.5, durationYears: 25, quantity: 1 },
-    { name: 'Annabelle/Colin', capitalApporte: 200000, notaryFeesRate: 12.5, unitId: 5, surface: 118, interestRate: 4.5, durationYears: 25, quantity: 1 },
-    { name: 'Julie/Séverin', capitalApporte: 70000, notaryFeesRate: 12.5, unitId: 6, surface: 108, interestRate: 4.5, durationYears: 25, quantity: 1 }
+    { name: 'Manuela/Dragan', capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, surface: 112, interestRate: 4.5, durationYears: 25, quantity: 1, cascoPerM2: 1590, parachevementsPerM2: 500 },
+    { name: 'Cathy/Jim', capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, surface: 134, interestRate: 4.5, durationYears: 25, quantity: 1, cascoPerM2: 1590, parachevementsPerM2: 500 },
+    { name: 'Annabelle/Colin', capitalApporte: 200000, notaryFeesRate: 12.5, unitId: 5, surface: 118, interestRate: 4.5, durationYears: 25, quantity: 1, cascoPerM2: 1590, parachevementsPerM2: 500 },
+    { name: 'Julie/Séverin', capitalApporte: 70000, notaryFeesRate: 12.5, unitId: 6, surface: 108, interestRate: 4.5, durationYears: 25, quantity: 1, cascoPerM2: 1590, parachevementsPerM2: 500 }
   ]);
 
   const addParticipant = () => {
@@ -22,7 +22,9 @@ export default function EnDivisionCorrect() {
       surface: 100,
       interestRate: 4.5,
       durationYears: 25,
-      quantity: 1
+      quantity: 1,
+      cascoPerM2: 1590,
+      parachevementsPerM2: 500
     }]);
   };
 
@@ -60,16 +62,11 @@ export default function EnDivisionCorrect() {
     etudesPreparatoires: 59820,
     fraisEtudesPreparatoires: 27320,
     fraisGeneraux3ans: 0, // Will be calculated dynamically
-    fraisGenerauxRate: 10.1, // Percentage rate for calculating fraisGeneraux3ans
     batimentFondationConservatoire: 43700,
     batimentFondationComplete: 269200,
     batimentCoproConservatoire: 56000
   });
 
-  const [loanParams, setLoanParams] = useState({
-    interestRate: 4.5,
-    durationYears: 25
-  });
 
   const [scenario, setScenario] = useState({
     constructionCostChange: 0,
@@ -116,6 +113,18 @@ export default function EnDivisionCorrect() {
   const updateQuantity = (index, value) => {
     const newParticipants = [...participants];
     newParticipants[index].quantity = Math.max(1, value);
+    setParticipants(newParticipants);
+  };
+
+  const updateCascoPerM2 = (index, value) => {
+    const newParticipants = [...participants];
+    newParticipants[index].cascoPerM2 = value;
+    setParticipants(newParticipants);
+  };
+
+  const updateParachevementsPerM2 = (index, value) => {
+    const newParticipants = [...participants];
+    newParticipants[index].parachevementsPerM2 = value;
     setParticipants(newParticipants);
   };
 
@@ -271,34 +280,17 @@ export default function EnDivisionCorrect() {
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-1">
-                  Frais Généraux 3 ans (Taux: {projectParams.fraisGenerauxRate}%)
-                </label>
-                <div className="space-y-2">
-                  <input
-                    type="range"
-                    min="0"
-                    max="20"
-                    step="0.1"
-                    value={projectParams.fraisGenerauxRate}
-                    onChange={(e) => setProjectParams({...projectParams, fraisGenerauxRate: parseFloat(e.target.value)})}
-                    className="w-full"
-                  />
-                  <div className="flex items-center justify-between gap-2">
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      max="20"
-                      value={projectParams.fraisGenerauxRate}
-                      onChange={(e) => setProjectParams({...projectParams, fraisGenerauxRate: parseFloat(e.target.value) || 0})}
-                      className="w-20 px-2 py-1 text-sm font-bold border-2 border-yellow-300 rounded-lg focus:border-yellow-500 focus:outline-none"
-                    />
-                    <span className="text-xs text-gray-600">%</span>
-                    <span className="text-xs text-gray-600 flex-1">= {formatCurrency(calculations.sharedCosts - (projectParams.mesuresConservatoires + projectParams.demolition + projectParams.infrastructures * (1 - scenario.infrastructureReduction / 100) + projectParams.etudesPreparatoires + projectParams.fraisEtudesPreparatoires))}</span>
+                <label className="block text-xs text-gray-600 mb-1">Frais Généraux étalés sur3 ans</label>
+                <div className="bg-blue-50 p-3 rounded-lg border-2 border-blue-200">
+                  <p className="text-xl font-bold text-blue-700">
+                    {formatCurrency(calculations.sharedCosts - (projectParams.mesuresConservatoires + projectParams.demolition + projectParams.infrastructures * (1 - scenario.infrastructureReduction / 100) + projectParams.etudesPreparatoires + projectParams.fraisEtudesPreparatoires))}
+                  </p>
+                  <div className="text-xs text-gray-600 mt-2 space-y-1">
+                    <p>• Honoraires (15% × 30% CASCO)</p>
+                    <p>• Frais récurrents × 3 ans</p>
                   </div>
-                  <p className="text-xs text-gray-500 italic">
-                    Calculé sur {formatCurrency(calculations.totals.construction + calculations.totals.totalTravauxCommuns)} de construction
+                  <p className="text-xs text-gray-500 italic mt-2">
+                    Calculé automatiquement sur la base des coûts de construction
                   </p>
                 </div>
               </div>
@@ -585,21 +577,35 @@ export default function EnDivisionCorrect() {
                 </div>
                 
                 <div className="mb-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
-                  <p className="text-xs font-semibold text-purple-800 mb-2">🔨 Détail Construction:</p>
-                  <div className="grid grid-cols-3 gap-3 text-xs">
-                    <div className="bg-white p-2 rounded">
-                      <p className="text-gray-600">CASCO (gros œuvre)</p>
-                      <p className="font-bold text-purple-700">{formatCurrency(p.casco)}</p>
-                      <p className="text-gray-500">{(p.casco / p.surface).toFixed(0)}€/m²</p>
+                  <p className="text-xs font-semibold text-purple-800 mb-3">🔨 Détail Construction:</p>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-white p-3 rounded">
+                      <label className="block text-xs text-gray-600 mb-1">CASCO (gros œuvre) - Prix/m²</label>
+                      <input
+                        type="number"
+                        step="10"
+                        value={participants[idx].cascoPerM2}
+                        onChange={(e) => updateCascoPerM2(idx, parseFloat(e.target.value) || 0)}
+                        className="w-full px-3 py-2 text-sm font-bold border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none mb-2"
+                      />
+                      <p className="text-xs text-gray-500">Total: <span className="font-bold text-purple-700">{formatCurrency(p.casco)}</span></p>
+                      <p className="text-xs text-gray-400">{p.surface}m² × {participants[idx].cascoPerM2}€/m²</p>
                     </div>
-                    <div className="bg-white p-2 rounded">
-                      <p className="text-gray-600">Parachèvements</p>
-                      <p className="font-bold text-purple-700">{formatCurrency(p.parachevements)}</p>
-                      <p className="text-gray-500">{(p.parachevements / p.surface).toFixed(0)}€/m²</p>
+                    <div className="bg-white p-3 rounded">
+                      <label className="block text-xs text-gray-600 mb-1">Parachèvements - Prix/m²</label>
+                      <input
+                        type="number"
+                        step="10"
+                        value={participants[idx].parachevementsPerM2}
+                        onChange={(e) => updateParachevementsPerM2(idx, parseFloat(e.target.value) || 0)}
+                        className="w-full px-3 py-2 text-sm font-bold border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none mb-2"
+                      />
+                      <p className="text-xs text-gray-500">Total: <span className="font-bold text-purple-700">{formatCurrency(p.parachevements)}</span></p>
+                      <p className="text-xs text-gray-400">{p.surface}m² × {participants[idx].parachevementsPerM2}€/m²</p>
                     </div>
-                    <div className="bg-white p-2 rounded">
-                      <p className="text-gray-600">Travaux communs</p>
-                      <p className="font-bold text-purple-700">{formatCurrency(p.travauxCommunsPerUnit)}</p>
+                    <div className="bg-white p-3 rounded flex flex-col justify-center">
+                      <p className="text-xs text-gray-600 mb-1">Travaux communs</p>
+                      <p className="text-lg font-bold text-purple-700">{formatCurrency(p.travauxCommunsPerUnit)}</p>
                       <p className="text-xs text-gray-500">Quote-part fixe (÷{participants.length})</p>
                     </div>
                   </div>

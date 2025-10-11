@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Calculator, Users, DollarSign, Home, Building2, Wallet, TrendingUp, Download } from 'lucide-react';
+import  { useState, useMemo } from 'react';
+import { Calculator, Users, DollarSign, Home, Building2, Wallet, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 export default function EnDivisionCorrect() {
@@ -24,7 +24,7 @@ export default function EnDivisionCorrect() {
     }]);
   };
 
-  const removeParticipant = (index) => {
+  const removeParticipant = (index:number) => {
     if (participants.length > 1) {
       const newParticipants = participants.filter((_, i) => i !== index);
       setParticipants(newParticipants);

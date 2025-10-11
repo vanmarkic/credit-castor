@@ -12,6 +12,8 @@ export interface Participant {
   interestRate: number;
   durationYears: number;
   quantity: number;
+  cascoPerM2?: number; // Optional custom CASCO price per m² (default: 1590)
+  parachevementsPerM2?: number; // Optional custom parachèvements price per m² (default: 500)
 }
 
 export interface ProjectParams {
@@ -22,7 +24,6 @@ export interface ProjectParams {
   etudesPreparatoires: number;
   fraisEtudesPreparatoires: number;
   fraisGeneraux3ans: number;
-  fraisGenerauxRate?: number; // Percentage rate for calculating fraisGeneraux3ans (default: 10.1%)
   batimentFondationConservatoire: number;
   batimentFondationComplete: number;
   batimentCoproConservatoire: number;
@@ -143,35 +144,63 @@ export function calculateTravauxCommunsPerUnit(
 }
 
 /**
- * Calculate frais généraux 3 ans as a percentage of total construction costs
- * Total construction = sum of all unit CASCO + parachevements + common building works
+ * Calculate frais généraux 3 ans based on the Excel formula:
+ * Honoraires = Total CASCO × 15% × 30% (professional fees)
+ * Plus recurring costs over 3 years
+ *
+ * From Excel: FRAIS GENERAUX sheet, cell C13: ='PRIX TRAVAUX'!E14*0.15*0.3
  */
 export function calculateFraisGeneraux3ans(
   participants: Participant[],
   projectParams: ProjectParams,
   unitDetails: UnitDetails
 ): number {
-  const DEFAULT_RATE = 10.1; // Default percentage rate
-  const rate = projectParams.fraisGenerauxRate ?? DEFAULT_RATE;
+  // Calculate total CASCO costs (not including parachevements or common works)
+  let totalCasco = 0;
 
-  // Calculate total construction costs for all units
-  let totalConstructionCosts = 0;
-
-  // Sum up CASCO and parachevements for all participants
   for (const participant of participants) {
-    const { casco, parachevements } = calculateCascoAndParachevements(
+    const { casco } = calculateCascoAndParachevements(
       participant.unitId,
       participant.surface,
-      unitDetails
+      unitDetails,
+      participant.cascoPerM2,
+      participant.parachevementsPerM2
     );
-    totalConstructionCosts += casco + parachevements;
+    totalCasco += casco * participant.quantity;
   }
 
-  // Add common building works
-  totalConstructionCosts += calculateTotalTravauxCommuns(projectParams);
+  // Add common building works CASCO
+  totalCasco += calculateTotalTravauxCommuns(projectParams);
 
-  // Apply percentage rate
-  return totalConstructionCosts * (rate / 100);
+  // Calculate Honoraires (professional fees) = Total CASCO × 15% × 30%
+  // This represents architects, stability experts, study offices, PEB, etc.
+  const honoraires = totalCasco * 0.15 * 0.30;
+
+  // Recurring yearly costs
+  const precompteImmobilier = 388.38;
+  const comptable = 1000;
+  const podioAbonnement = 600;
+  const assuranceBatiment = 2000;
+  const fraisReservation = 2000;
+  const imprevus = 2000;
+
+  // One-time costs (year 1 only)
+  const fraisDossierCredit = 500;
+  const fraisGestionCredit = 45;
+
+  // Total recurring costs for 3 years
+  const recurringYearly = precompteImmobilier + comptable + podioAbonnement +
+                          assuranceBatiment + fraisReservation + imprevus;
+  const recurringTotal = recurringYearly * 3;
+
+  // One-time costs
+  const oneTimeCosts = fraisDossierCredit + fraisGestionCredit;
+
+  // Honoraires split over 3 years
+  // (but counted as total in the calculation)
+
+  // Total Frais Généraux 3 ans
+  return honoraires + recurringTotal + oneTimeCosts;
 }
 
 /**
@@ -201,8 +230,19 @@ export function calculateNotaryFees(
 export function calculateCascoAndParachevements(
   unitId: number,
   surface: number,
-  unitDetails: UnitDetails
+  unitDetails: UnitDetails,
+  cascoPerM2?: number,
+  parachevementsPerM2?: number
 ): { casco: number; parachevements: number } {
+  // If custom rates are provided, use them
+  if (cascoPerM2 !== undefined && parachevementsPerM2 !== undefined) {
+    return {
+      casco: surface * cascoPerM2,
+      parachevements: surface * parachevementsPerM2,
+    };
+  }
+
+  // If unit details exist, use them
   if (unitDetails[unitId]) {
     return {
       casco: unitDetails[unitId].casco,
@@ -332,7 +372,9 @@ export function calculateAll(
     const { casco, parachevements } = calculateCascoAndParachevements(
       p.unitId,
       p.surface,
-      unitDetails
+      unitDetails,
+      p.cascoPerM2,
+      p.parachevementsPerM2
     );
 
     const quantity = p.quantity || 1;
