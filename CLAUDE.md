@@ -10,6 +10,9 @@
 - solve underlying causes rather than symptoms
 - detect code smell, where some code that works is actually a patch for a deeper issue
 - look for root causes
+- break down large files into smaller ones
+- break down large functions into smaller ones
+- use meaningful names for variables and functions
 
 ## Test Driven Development
 - apply Test Driven Development
