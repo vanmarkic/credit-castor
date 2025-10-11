@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Calculator, Users, DollarSign, Home, Building2, Wallet, Download, Upload, RotateCcw, Save } from 'lucide-react';
+import { Calculator, Users, DollarSign, Home, Building2, Wallet, Download, Upload, RotateCcw, Save, ChevronDown, ChevronUp } from 'lucide-react';
 import { calculateAll } from '../utils/calculatorUtils';
 import { exportCalculations } from '../utils/excelExport';
 import { XlsxWriter } from '../utils/exportWriter';
@@ -79,6 +79,8 @@ export default function EnDivisionCorrect() {
     const stored = loadFromLocalStorage();
     return stored ? stored.participants : DEFAULT_PARTICIPANTS;
   });
+
+  const [expandedConstruction, setExpandedConstruction] = useState<{[key: number]: boolean}>({});
 
   const participantRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -299,42 +301,42 @@ export default function EnDivisionCorrect() {
             </div>
           </div>
 
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-300 rounded-lg p-6 mb-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <Save className="w-5 h-5 text-blue-600" />
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-5 mb-6">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <Save className="w-4 h-4 text-gray-600" />
               Gestion des Scénarios
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               <button
                 onClick={downloadScenario}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md"
+                className="bg-white hover:bg-gray-50 text-gray-700 font-medium px-3 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 border border-gray-300 text-sm"
               >
-                <Download className="w-5 h-5" />
-                Télécharger le scénario
+                <Download className="w-4 h-4" />
+                Télécharger
               </button>
 
               <button
                 onClick={loadScenario}
-                className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md"
+                className="bg-white hover:bg-gray-50 text-gray-700 font-medium px-3 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 border border-gray-300 text-sm"
               >
-                <Upload className="w-5 h-5" />
-                Charger un scénario
+                <Upload className="w-4 h-4" />
+                Charger
               </button>
 
               <button
                 onClick={resetToDefaults}
-                className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-4 py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md"
+                className="bg-white hover:bg-gray-50 text-gray-700 font-medium px-3 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 border border-gray-300 text-sm"
               >
-                <RotateCcw className="w-5 h-5" />
-                Réinitialiser complètement
+                <RotateCcw className="w-4 h-4" />
+                Réinitialiser
               </button>
 
               <button
                 onClick={exportToExcel}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 border border-blue-600 text-sm"
               >
-                <Download className="w-5 h-5" />
-                Exporter Excel
+                <Download className="w-4 h-4" />
+                Excel
               </button>
             </div>
 
@@ -346,8 +348,8 @@ export default function EnDivisionCorrect() {
               style={{ display: 'none' }}
             />
 
-            <p className="text-xs text-gray-600 mt-3 text-center">
-              💾 Toutes les modifications sont automatiquement sauvegardées et rechargées à la prochaine visite
+            <p className="text-xs text-gray-500 mt-3 text-center">
+              Sauvegarde automatique activée
             </p>
           </div>
 
@@ -359,142 +361,142 @@ export default function EnDivisionCorrect() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200">
-              <Users className="w-8 h-8 text-blue-600 mb-2" />
-              <p className="text-sm text-gray-600">Participants</p>
-              <p className="text-3xl font-bold text-gray-800">{participants.length}</p>
+            <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+              <Users className="w-6 h-6 text-blue-500 mb-2" />
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Participants</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{participants.length}</p>
             </div>
 
-            <div className="bg-green-50 rounded-lg p-4 border-2 border-green-200">
-              <Home className="w-8 h-8 text-green-600 mb-2" />
-              <p className="text-sm text-gray-600">Surface</p>
-              <p className="text-3xl font-bold text-gray-800">{calculations.totalSurface}m²</p>
+            <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+              <Home className="w-6 h-6 text-blue-500 mb-2" />
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Surface</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{calculations.totalSurface}m²</p>
             </div>
 
-            <div className="bg-purple-50 rounded-lg p-4 border-2 border-purple-200">
-              <DollarSign className="w-8 h-8 text-purple-600 mb-2" />
-              <p className="text-sm text-gray-600">Coût Total</p>
-              <p className="text-2xl font-bold text-gray-800">{formatCurrency(calculations.totals.total)}</p>
+            <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+              <DollarSign className="w-6 h-6 text-gray-500 mb-2" />
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Coût Total</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(calculations.totals.total)}</p>
             </div>
 
-            <div className="bg-orange-50 rounded-lg p-4 border-2 border-orange-200">
-              <Wallet className="w-8 h-8 text-orange-600 mb-2" />
-              <p className="text-sm text-gray-600">Capital Total</p>
-              <p className="text-2xl font-bold text-gray-800">{formatCurrency(calculations.totals.capitalTotal)}</p>
+            <div className="bg-white rounded-lg p-4 border border-green-300 shadow-sm">
+              <Wallet className="w-6 h-6 text-green-600 mb-2" />
+              <p className="text-xs text-gray-500 uppercase tracking-wide">Capital Total</p>
+              <p className="text-2xl font-bold text-green-700 mt-1">{formatCurrency(calculations.totals.capitalTotal)}</p>
             </div>
 
-            <div className="bg-red-50 rounded-lg p-4 border-2 border-red-200">
-              <Calculator className="w-8 h-8 text-red-600 mb-2" />
-              <p className="text-sm text-gray-600">À Emprunter</p>
-              <p className="text-2xl font-bold text-gray-800">{formatCurrency(calculations.totals.totalLoansNeeded)}</p>
+            <div className="bg-white rounded-lg p-4 border border-red-300 shadow-sm">
+              <Calculator className="w-6 h-6 text-red-600 mb-2" />
+              <p className="text-xs text-gray-500 uppercase tracking-wide">À Emprunter</p>
+              <p className="text-2xl font-bold text-red-700 mt-1">{formatCurrency(calculations.totals.totalLoansNeeded)}</p>
             </div>
           </div>
         </div>
 
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">Décomposition des Coûts</h2>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-sm text-gray-600">Achat Total</p>
-              <p className="text-xl font-bold text-gray-800">{formatCurrency(calculations.totals.purchase)}</p>
-              <p className="text-xs text-gray-500 mt-1">{formatCurrency(calculations.pricePerM2)}/m²</p>
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Décomposition des Coûts</h2>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="p-3 bg-white rounded-lg border border-gray-200">
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Achat Total</p>
+              <p className="text-lg font-bold text-gray-900">{formatCurrency(calculations.totals.purchase)}</p>
+              <p className="text-xs text-blue-600 mt-1">{formatCurrency(calculations.pricePerM2)}/m²</p>
             </div>
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600">Frais de Notaire</p>
-              <p className="text-xl font-bold text-gray-800">{formatCurrency(calculations.totals.totalNotaryFees)}</p>
-              <p className="text-xs text-gray-500 mt-1">taux individuels</p>
+            <div className="p-3 bg-white rounded-lg border border-gray-200">
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Frais de Notaire</p>
+              <p className="text-lg font-bold text-gray-900">{formatCurrency(calculations.totals.totalNotaryFees)}</p>
+              <p className="text-xs text-gray-400 mt-1">taux individuels</p>
             </div>
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600">Construction</p>
-              <p className="text-xl font-bold text-gray-800">{formatCurrency(calculations.totals.construction)}</p>
+            <div className="p-3 bg-white rounded-lg border border-gray-200">
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Construction</p>
+              <p className="text-lg font-bold text-gray-900">{formatCurrency(calculations.totals.construction)}</p>
             </div>
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600">Quote-part Infrastr.</p>
-              <p className="text-xl font-bold text-gray-800">{formatCurrency(calculations.sharedCosts)}</p>
-              <p className="text-xs text-gray-500 mt-1">{formatCurrency(calculations.sharedPerPerson)}/pers</p>
+            <div className="p-3 bg-white rounded-lg border border-purple-200">
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Quote-part Infrastr.</p>
+              <p className="text-lg font-bold text-purple-700">{formatCurrency(calculations.sharedCosts)}</p>
+              <p className="text-xs text-purple-500 mt-1">{formatCurrency(calculations.sharedPerPerson)}/pers</p>
             </div>
-            <div className="p-4 bg-green-100 rounded-lg border-2 border-green-300">
-              <p className="text-sm text-gray-600 font-semibold">TOTAL</p>
-              <p className="text-xl font-bold text-green-600">{formatCurrency(calculations.totals.total)}</p>
+            <div className="p-3 bg-gray-50 rounded-lg border border-gray-300">
+              <p className="text-xs text-gray-600 uppercase tracking-wide mb-1 font-semibold">TOTAL</p>
+              <p className="text-lg font-bold text-gray-900">{formatCurrency(calculations.totals.total)}</p>
             </div>
           </div>
 
-          <div className="mt-6 p-4 bg-yellow-50 border-2 border-yellow-200 rounded-lg">
-            <h3 className="font-semibold text-gray-800 mb-3">📋 Détail Quote-part (infrastructures extérieures):</h3>
+          <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+            <h3 className="text-sm font-semibold text-gray-800 mb-2">Détail Quote-part (infrastructures extérieures)</h3>
             <p className="text-xs text-gray-600 mb-3">
               Les bâtiments communs (€368,900) sont dans "Construction" pour éviter le double comptage.
             </p>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs text-gray-600 mb-1">Mesures conservatoires</label>
+                <label className="block text-xs text-gray-500 mb-1">Mesures conservatoires</label>
                 <input
                   type="number"
                   step="1000"
                   value={projectParams.mesuresConservatoires}
                   onChange={(e) => setProjectParams({...projectParams, mesuresConservatoires: parseFloat(e.target.value) || 0})}
-                  className="w-full px-3 py-2 text-sm border-2 border-yellow-300 rounded-lg focus:border-yellow-500 focus:outline-none"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white"
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-1">Démolition</label>
+                <label className="block text-xs text-gray-500 mb-1">Démolition</label>
                 <input
                   type="number"
                   step="1000"
                   value={projectParams.demolition}
                   onChange={(e) => setProjectParams({...projectParams, demolition: parseFloat(e.target.value) || 0})}
-                  className="w-full px-3 py-2 text-sm border-2 border-yellow-300 rounded-lg focus:border-yellow-500 focus:outline-none"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white"
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-1">Infrastructures</label>
+                <label className="block text-xs text-gray-500 mb-1">Infrastructures</label>
                 <input
                   type="number"
                   step="1000"
                   value={projectParams.infrastructures}
                   onChange={(e) => setProjectParams({...projectParams, infrastructures: parseFloat(e.target.value) || 0})}
-                  className="w-full px-3 py-2 text-sm border-2 border-yellow-300 rounded-lg focus:border-yellow-500 focus:outline-none"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white"
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-1">Études préparatoires</label>
+                <label className="block text-xs text-gray-500 mb-1">Études préparatoires</label>
                 <input
                   type="number"
                   step="1000"
                   value={projectParams.etudesPreparatoires}
                   onChange={(e) => setProjectParams({...projectParams, etudesPreparatoires: parseFloat(e.target.value) || 0})}
-                  className="w-full px-3 py-2 text-sm border-2 border-yellow-300 rounded-lg focus:border-yellow-500 focus:outline-none"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white"
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-1">Frais Études préparatoires</label>
+                <label className="block text-xs text-gray-500 mb-1">Frais Études préparatoires</label>
                 <input
                   type="number"
                   step="1000"
                   value={projectParams.fraisEtudesPreparatoires}
                   onChange={(e) => setProjectParams({...projectParams, fraisEtudesPreparatoires: parseFloat(e.target.value) || 0})}
-                  className="w-full px-3 py-2 text-sm border-2 border-yellow-300 rounded-lg focus:border-yellow-500 focus:outline-none"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white"
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-1">Frais Généraux étalés sur3 ans</label>
-                <div className="bg-blue-50 p-3 rounded-lg border-2 border-blue-200">
-                  <p className="text-xl font-bold text-blue-700">
+                <label className="block text-xs text-gray-500 mb-1">Frais Généraux étalés sur 3 ans</label>
+                <div className="bg-white p-3 rounded-lg border border-gray-300">
+                  <p className="text-base font-bold text-purple-700">
                     {formatCurrency(calculations.sharedCosts - (projectParams.mesuresConservatoires + projectParams.demolition + projectParams.infrastructures * (1 - scenario.infrastructureReduction / 100) + projectParams.etudesPreparatoires + projectParams.fraisEtudesPreparatoires))}
                   </p>
-                  <div className="text-xs text-gray-600 mt-2 space-y-1">
+                  <div className="text-xs text-gray-500 mt-1 space-y-0.5">
                     <p>• Honoraires (15% × 30% CASCO)</p>
                     <p>• Frais récurrents × 3 ans</p>
                   </div>
-                  <p className="text-xs text-gray-500 italic mt-2">
-                    Calculé automatiquement sur la base des coûts de construction
+                  <p className="text-xs text-gray-400 italic mt-1">
+                    Calculé automatiquement
                   </p>
                 </div>
               </div>
             </div>
-            <div className="mt-3 p-3 bg-yellow-100 rounded-lg border-2 border-yellow-400">
+            <div className="mt-3 p-3 bg-purple-100 rounded-lg border border-purple-300">
               <div className="flex justify-between items-center">
                 <p className="text-sm font-semibold text-gray-700">Total quote-part:</p>
-                <p className="text-xl font-bold text-yellow-700">{formatCurrency(calculations.sharedCosts)}</p>
+                <p className="text-lg font-bold text-purple-800">{formatCurrency(calculations.sharedCosts)}</p>
               </div>
               <p className="text-xs text-gray-600 mt-1">
                 {formatCurrency(calculations.sharedPerPerson)} par personne
@@ -502,50 +504,50 @@ export default function EnDivisionCorrect() {
             </div>
           </div>
 
-          <div className="mt-4 p-4 bg-purple-50 border-2 border-purple-200 rounded-lg">
-            <h3 className="font-semibold text-gray-800 mb-3">🏢 Travaux Communs (€{calculations.totals.totalTravauxCommuns.toLocaleString()} total):</h3>
+          <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+            <h3 className="text-sm font-semibold text-gray-800 mb-2">Travaux Communs</h3>
             <p className="text-xs text-gray-600 mb-3">
-              Ces coûts sont divisés par {participants.length} {participants.length > 1 ? 'unités' : 'unité'} = {formatCurrency(calculations.totals.travauxCommunsPerUnit)} par personne
+              Total: €{calculations.totals.totalTravauxCommuns.toLocaleString()} divisé par {participants.length} {participants.length > 1 ? 'unités' : 'unité'} = {formatCurrency(calculations.totals.travauxCommunsPerUnit)} par personne
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs text-gray-600 mb-1">Bâtiment fondation (conservatoire)</label>
+                <label className="block text-xs text-gray-500 mb-1">Bâtiment fondation (conservatoire)</label>
                 <input
                   type="number"
                   step="1000"
                   value={projectParams.batimentFondationConservatoire}
                   onChange={(e) => setProjectParams({...projectParams, batimentFondationConservatoire: parseFloat(e.target.value) || 0})}
-                  className="w-full px-3 py-2 text-sm border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white"
                 />
-                <p className="text-xs text-gray-500 mt-1">200€/m² × 218.5m²</p>
+                <p className="text-xs text-gray-400 mt-1">200€/m² × 218.5m²</p>
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-1">Bâtiment fondation (complète)</label>
+                <label className="block text-xs text-gray-500 mb-1">Bâtiment fondation (complète)</label>
                 <input
                   type="number"
                   step="1000"
                   value={projectParams.batimentFondationComplete}
                   onChange={(e) => setProjectParams({...projectParams, batimentFondationComplete: parseFloat(e.target.value) || 0})}
-                  className="w-full px-3 py-2 text-sm border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white"
                 />
-                <p className="text-xs text-gray-500 mt-1">800€/m² × 336.5m²</p>
+                <p className="text-xs text-gray-400 mt-1">800€/m² × 336.5m²</p>
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-1">Bâtiment copro (conservatoire)</label>
+                <label className="block text-xs text-gray-500 mb-1">Bâtiment copro (conservatoire)</label>
                 <input
                   type="number"
                   step="1000"
                   value={projectParams.batimentCoproConservatoire}
                   onChange={(e) => setProjectParams({...projectParams, batimentCoproConservatoire: parseFloat(e.target.value) || 0})}
-                  className="w-full px-3 py-2 text-sm border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white"
                 />
-                <p className="text-xs text-gray-500 mt-1">200€/m² × 280m²</p>
+                <p className="text-xs text-gray-400 mt-1">200€/m² × 280m²</p>
               </div>
             </div>
-            <div className="mt-3 p-3 bg-purple-100 rounded-lg border-2 border-purple-400">
+            <div className="mt-3 p-3 bg-purple-100 rounded-lg border border-purple-300">
               <div className="flex justify-between items-center">
                 <p className="text-sm font-semibold text-gray-700">Total travaux communs:</p>
-                <p className="text-xl font-bold text-purple-700">{formatCurrency(calculations.totals.totalTravauxCommuns)}</p>
+                <p className="text-lg font-bold text-purple-800">{formatCurrency(calculations.totals.totalTravauxCommuns)}</p>
               </div>
               <p className="text-xs text-gray-600 mt-1">
                 {formatCurrency(calculations.totals.travauxCommunsPerUnit)} par unité (÷{participants.length})
@@ -633,79 +635,88 @@ export default function EnDivisionCorrect() {
               <div
                 key={idx}
                 ref={(el) => { participantRefs.current[idx] = el; }}
-                className="border-2 border-blue-200 rounded-lg p-6 bg-gradient-to-r from-white to-blue-50">
-                <div className="flex justify-between items-start mb-4">
+                className="border border-gray-300 rounded-xl p-6 bg-white shadow-sm hover:shadow-md transition-shadow">
+
+                {/* Header: Identity & Summary */}
+                <div className="flex justify-between items-start pb-4 mb-4 border-b border-gray-200">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <input
                         type="text"
                         value={p.name}
                         onChange={(e) => updateParticipantName(idx, e.target.value)}
-                        className="text-2xl font-bold text-gray-800 bg-transparent border-b-2 border-transparent hover:border-blue-300 focus:border-blue-500 focus:outline-none px-2 py-1"
+                        className="text-xl font-bold text-gray-900 bg-transparent border-b-2 border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none px-1 py-1"
                         placeholder="Nom du participant"
                       />
                       {participants.length > 1 && (
                         <button
                           onClick={() => removeParticipant(idx)}
-                          className="text-red-600 hover:text-red-800 text-sm font-semibold px-3 py-1 rounded border-2 border-red-300 hover:border-red-500 transition-colors"
+                          className="text-red-600 hover:text-red-700 text-xs font-medium px-2 py-1 rounded border border-red-300 hover:bg-red-50 transition-colors"
                         >
                           Retirer
                         </button>
                       )}
                     </div>
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm text-gray-600">Unité {p.unitId} •</p>
+                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                      <span className="flex items-center gap-1">
+                        <span className="text-gray-400">Unité</span>
+                        <span className="font-medium text-blue-600">{p.unitId}</span>
+                      </span>
+                      <span className="text-gray-300">•</span>
+                      <div className="flex items-center gap-1">
                         <input
                           type="number"
                           step="1"
                           min="1"
                           value={p.quantity}
                           onChange={(e) => updateQuantity(idx, parseInt(e.target.value) || 1)}
-                          className="w-16 px-2 py-1 text-sm font-semibold border-2 border-blue-300 rounded focus:border-blue-500 focus:outline-none"
+                          className="w-12 px-2 py-0.5 text-sm font-medium border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-center"
                         />
-                        <p className="text-sm text-gray-600">{p.quantity > 1 ? 'unités' : 'unité'} •</p>
+                        <span>{p.quantity > 1 ? 'unités' : 'unité'}</span>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <span className="text-gray-300">•</span>
+                      <div className="flex items-center gap-1">
                         <input
                           type="number"
                           step="1"
                           value={p.surface}
                           onChange={(e) => updateParticipantSurface(idx, parseFloat(e.target.value) || 0)}
-                          className="w-20 px-2 py-1 text-sm font-semibold border-2 border-gray-300 rounded focus:border-blue-500 focus:outline-none"
+                          className="w-16 px-2 py-0.5 text-sm font-medium border border-gray-300 rounded focus:border-blue-500 focus:outline-none text-center"
                         />
-                        <p className="text-sm text-gray-600">m²/unité • {formatCurrency(p.pricePerM2)}/m²</p>
+                        <span>m²</span>
+                        <span className="text-gray-400">× {formatCurrency(p.pricePerM2)}</span>
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-600">Coût Total {p.quantity > 1 ? `(${p.quantity} unités)` : ''}</p>
-                    <p className="text-3xl font-bold text-gray-800">{formatCurrency(p.totalCost)}</p>
+                  <div className="text-right ml-4">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Coût Total</p>
+                    <p className="text-2xl font-bold text-gray-900">{formatCurrency(p.totalCost)}</p>
                     {p.quantity > 1 && (
-                      <p className="text-sm text-gray-500 mt-1">{formatCurrency(p.totalCost / p.quantity)}/unité</p>
+                      <p className="text-xs text-gray-500 mt-1">{formatCurrency(p.totalCost / p.quantity)} / unité</p>
                     )}
                   </div>
                 </div>
 
-                <div className="mb-4 p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border-2 border-green-200">
-                  <p className="text-sm font-semibold text-gray-700 mb-3">⚙️ Configuration:</p>
+                {/* Configuration Section */}
+                <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Configuration</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs text-gray-600 mb-1">Capital apporté (€)</label>
+                      <label className="block text-xs text-gray-600 mb-1">Capital apporté</label>
                       <input
                         type="number"
                         step="10000"
                         value={p.capitalApporte}
                         onChange={(e) => updateCapital(idx, parseFloat(e.target.value) || 0)}
-                        className="w-full px-4 py-2 text-lg font-bold border-2 border-green-300 rounded-lg focus:border-green-500 focus:outline-none"
+                        className="w-full px-3 py-2 text-base font-semibold border border-green-300 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none bg-white text-green-700"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-600 mb-2">Frais de notaire</label>
-                      <div className="flex items-center gap-3 mb-2">
-                        <label className="flex items-center gap-2 cursor-pointer px-4 py-2 border-2 rounded-lg transition-colors hover:bg-orange-50" style={{
-                          borderColor: p.notaryFeesRate === 3 ? '#fb923c' : '#e5e7eb',
-                          backgroundColor: p.notaryFeesRate === 3 ? '#fff7ed' : 'white'
+                      <label className="block text-xs text-gray-600 mb-1">Frais de notaire</label>
+                      <div className="flex items-center gap-2 mb-1">
+                        <label className="flex items-center gap-1.5 cursor-pointer px-3 py-2 border rounded-lg transition-colors hover:bg-gray-100" style={{
+                          borderColor: p.notaryFeesRate === 3 ? '#9ca3af' : '#e5e7eb',
+                          backgroundColor: p.notaryFeesRate === 3 ? '#f3f4f6' : 'white'
                         }}>
                           <input
                             type="radio"
@@ -713,13 +724,13 @@ export default function EnDivisionCorrect() {
                             value="3"
                             checked={p.notaryFeesRate === 3}
                             onChange={(e) => updateNotaryRate(idx, parseFloat(e.target.value))}
-                            className="w-4 h-4 accent-orange-600"
+                            className="w-4 h-4"
                           />
-                          <span className="font-bold text-gray-700">3%</span>
+                          <span className="font-medium text-gray-700 text-sm">3%</span>
                         </label>
-                        <label className="flex items-center gap-2 cursor-pointer px-4 py-2 border-2 rounded-lg transition-colors hover:bg-orange-50" style={{
-                          borderColor: p.notaryFeesRate === 12.5 ? '#fb923c' : '#e5e7eb',
-                          backgroundColor: p.notaryFeesRate === 12.5 ? '#fff7ed' : 'white'
+                        <label className="flex items-center gap-1.5 cursor-pointer px-3 py-2 border rounded-lg transition-colors hover:bg-gray-100" style={{
+                          borderColor: p.notaryFeesRate === 12.5 ? '#9ca3af' : '#e5e7eb',
+                          backgroundColor: p.notaryFeesRate === 12.5 ? '#f3f4f6' : 'white'
                         }}>
                           <input
                             type="radio"
@@ -727,12 +738,12 @@ export default function EnDivisionCorrect() {
                             value="12.5"
                             checked={p.notaryFeesRate === 12.5}
                             onChange={(e) => updateNotaryRate(idx, parseFloat(e.target.value))}
-                            className="w-4 h-4 accent-orange-600"
+                            className="w-4 h-4"
                           />
-                          <span className="font-bold text-gray-700">12.5%</span>
+                          <span className="font-medium text-gray-700 text-sm">12.5%</span>
                         </label>
                       </div>
-                      <div className="text-sm font-bold text-orange-600">
+                      <div className="text-sm text-gray-600">
                         = {formatCurrency(p.notaryFees)}
                       </div>
                     </div>
@@ -743,7 +754,7 @@ export default function EnDivisionCorrect() {
                         step="0.1"
                         value={p.interestRate}
                         onChange={(e) => updateInterestRate(idx, parseFloat(e.target.value) || 0)}
-                        className="w-full px-4 py-2 font-bold border-2 border-blue-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                        className="w-full px-3 py-2 font-medium border border-gray-300 rounded-lg focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none bg-white"
                       />
                     </div>
                     <div>
@@ -752,109 +763,124 @@ export default function EnDivisionCorrect() {
                         type="number"
                         value={p.durationYears}
                         onChange={(e) => updateDuration(idx, parseInt(e.target.value) || 0)}
-                        className="w-full px-4 py-2 font-bold border-2 border-blue-300 rounded-lg focus:border-blue-500 focus:outline-none"
+                        className="w-full px-3 py-2 font-medium border border-gray-300 rounded-lg focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none bg-white"
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
-                  <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-                    <p className="text-xs text-gray-600 mb-1">Part d'achat</p>
-                    <p className="text-lg font-bold text-blue-600">{formatCurrency(p.purchaseShare)}</p>
-                    <p className="text-xs text-gray-500">{p.surface * p.quantity}m² total</p>
-                    {p.quantity > 1 && (
-                      <p className="text-xs text-gray-400">{formatCurrency(p.purchaseShare / p.quantity)}/unité</p>
-                    )}
-                  </div>
+                {/* Cost Breakdown */}
+                <div className="mb-4">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Décomposition des Coûts</p>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                    <div className="bg-white rounded-lg p-3 border border-gray-200">
+                      <p className="text-xs text-gray-500 mb-1">Part d'achat</p>
+                      <p className="text-base font-bold text-gray-900">{formatCurrency(p.purchaseShare)}</p>
+                      <p className="text-xs text-blue-600 mt-0.5">{p.surface * p.quantity}m²</p>
+                    </div>
 
-                  <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-                    <p className="text-xs text-gray-600 mb-1">Frais notaire</p>
-                    <p className="text-lg font-bold text-orange-600">{formatCurrency(p.notaryFees)}</p>
-                    <p className="text-xs text-gray-500">{p.notaryFeesRate}%</p>
-                    {p.quantity > 1 && (
-                      <p className="text-xs text-gray-400">{formatCurrency(p.notaryFees / p.quantity)}/unité</p>
-                    )}
-                  </div>
+                    <div className="bg-white rounded-lg p-3 border border-gray-200">
+                      <p className="text-xs text-gray-500 mb-1">Frais notaire</p>
+                      <p className="text-base font-bold text-gray-900">{formatCurrency(p.notaryFees)}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{p.notaryFeesRate}%</p>
+                    </div>
 
-                  <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-                    <p className="text-xs text-gray-600 mb-1">Construction</p>
-                    <p className="text-lg font-bold text-purple-600">{formatCurrency(p.constructionCost)}</p>
-                    {p.quantity > 1 && (
-                      <p className="text-xs text-gray-400">{formatCurrency(p.constructionCostPerUnit)}/unité</p>
-                    )}
-                  </div>
+                    <div className="bg-white rounded-lg p-3 border border-gray-200">
+                      <p className="text-xs text-gray-500 mb-1">Construction</p>
+                      <p className="text-base font-bold text-gray-900">{formatCurrency(p.constructionCost)}</p>
+                      {p.quantity > 1 && (
+                        <p className="text-xs text-gray-400 mt-0.5">{formatCurrency(p.constructionCostPerUnit)}/u</p>
+                      )}
+                    </div>
 
-                  <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
-                    <p className="text-xs text-gray-600 mb-1">Quote-part</p>
-                    <p className="text-lg font-bold text-gray-600">{formatCurrency(p.sharedCosts)}</p>
-                  </div>
+                    <div className="bg-white rounded-lg p-3 border border-purple-200">
+                      <p className="text-xs text-gray-500 mb-1">Quote-part</p>
+                      <p className="text-base font-bold text-purple-700">{formatCurrency(p.sharedCosts)}</p>
+                    </div>
 
-                  <div className="bg-green-50 rounded-lg p-4 shadow-sm border-2 border-green-300">
-                    <p className="text-xs text-gray-600 mb-1">Capital apporté</p>
-                    <p className="text-lg font-bold text-green-600">{formatCurrency(p.capitalApporte)}</p>
+                    <div className="bg-green-50 rounded-lg p-3 border border-green-300">
+                      <p className="text-xs text-gray-600 mb-1">Capital apporté</p>
+                      <p className="text-base font-bold text-green-700">{formatCurrency(p.capitalApporte)}</p>
+                    </div>
                   </div>
                 </div>
                 
-                <div className="mb-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
-                  <p className="text-xs font-semibold text-purple-800 mb-3">🔨 Détail Construction:</p>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="bg-white p-3 rounded">
-                      <label className="block text-xs text-gray-600 mb-1">CASCO (gros œuvre) - Prix/m²</label>
-                      <input
-                        type="number"
-                        step="10"
-                        value={participants[idx].cascoPerM2}
-                        onChange={(e) => updateCascoPerM2(idx, parseFloat(e.target.value) || 0)}
-                        className="w-full px-3 py-2 text-sm font-bold border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none mb-2"
-                      />
-                      <p className="text-xs text-gray-500">Total: <span className="font-bold text-purple-700">{formatCurrency(p.casco)}</span></p>
-                      <p className="text-xs text-gray-400">{p.surface}m² × {participants[idx].cascoPerM2}€/m²</p>
+                {/* Construction Detail - Collapsible */}
+                <div className="mb-4">
+                  <button
+                    onClick={() => setExpandedConstruction(prev => ({...prev, [idx]: !prev[idx]}))}
+                    className="w-full flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-xs text-gray-600 uppercase tracking-wide font-semibold">Détail Construction</span>
+                    {expandedConstruction[idx] ? (
+                      <ChevronUp className="w-4 h-4 text-gray-400" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-gray-400" />
+                    )}
+                  </button>
+
+                  {expandedConstruction[idx] && (
+                    <div className="mt-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="bg-white p-3 rounded-lg border border-gray-200">
+                          <label className="block text-xs text-gray-500 mb-1">CASCO (gros œuvre) - Prix/m²</label>
+                          <input
+                            type="number"
+                            step="10"
+                            value={participants[idx].cascoPerM2}
+                            onChange={(e) => updateCascoPerM2(idx, parseFloat(e.target.value) || 0)}
+                            className="w-full px-3 py-2 text-sm font-semibold border border-gray-300 rounded-lg focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none mb-2"
+                          />
+                          <p className="text-xs text-gray-500">Total: <span className="font-bold text-gray-900">{formatCurrency(p.casco)}</span></p>
+                          <p className="text-xs text-gray-400">{p.surface}m² × {participants[idx].cascoPerM2}€/m²</p>
+                        </div>
+                        <div className="bg-white p-3 rounded-lg border border-gray-200">
+                          <label className="block text-xs text-gray-500 mb-1">Parachèvements - Prix/m²</label>
+                          <input
+                            type="number"
+                            step="10"
+                            value={participants[idx].parachevementsPerM2}
+                            onChange={(e) => updateParachevementsPerM2(idx, parseFloat(e.target.value) || 0)}
+                            className="w-full px-3 py-2 text-sm font-semibold border border-gray-300 rounded-lg focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none mb-2"
+                          />
+                          <p className="text-xs text-gray-500">Total: <span className="font-bold text-gray-900">{formatCurrency(p.parachevements)}</span></p>
+                          <p className="text-xs text-gray-400">{p.surface}m² × {participants[idx].parachevementsPerM2}€/m²</p>
+                        </div>
+                        <div className="bg-white p-3 rounded-lg border border-purple-200">
+                          <p className="text-xs text-gray-500 mb-1">Travaux communs</p>
+                          <p className="text-lg font-bold text-purple-700 mt-2">{formatCurrency(p.travauxCommunsPerUnit)}</p>
+                          <p className="text-xs text-purple-500 mt-1">Quote-part fixe (÷{participants.length})</p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="bg-white p-3 rounded">
-                      <label className="block text-xs text-gray-600 mb-1">Parachèvements - Prix/m²</label>
-                      <input
-                        type="number"
-                        step="10"
-                        value={participants[idx].parachevementsPerM2}
-                        onChange={(e) => updateParachevementsPerM2(idx, parseFloat(e.target.value) || 0)}
-                        className="w-full px-3 py-2 text-sm font-bold border-2 border-purple-300 rounded-lg focus:border-purple-500 focus:outline-none mb-2"
-                      />
-                      <p className="text-xs text-gray-500">Total: <span className="font-bold text-purple-700">{formatCurrency(p.parachevements)}</span></p>
-                      <p className="text-xs text-gray-400">{p.surface}m² × {participants[idx].parachevementsPerM2}€/m²</p>
-                    </div>
-                    <div className="bg-white p-3 rounded">
-                      <p className="text-xs text-gray-600 mb-1">Travaux communs</p>
-                      <p className="text-lg font-bold text-purple-700">{formatCurrency(p.travauxCommunsPerUnit)}</p>
-                      <p className="text-xs text-gray-500">Quote-part fixe (÷{participants.length})</p>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
-                <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-lg p-6 border-2 border-red-300">
+                {/* Financing Result */}
+                <div className="bg-red-50 rounded-lg p-5 border border-red-200">
                   <div className="flex justify-between items-center mb-4">
                     <div>
-                      <h4 className="text-xl font-bold text-gray-800">💰 Emprunt Nécessaire</h4>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Emprunt Nécessaire</p>
                       <p className="text-sm text-gray-600">{p.financingRatio.toFixed(1)}% du coût à financer</p>
                     </div>
-                    <p className="text-4xl font-bold text-red-600">{formatCurrency(p.loanNeeded)}</p>
+                    <p className="text-3xl font-bold text-red-700">{formatCurrency(p.loanNeeded)}</p>
                   </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t-2 border-red-200">
-                    <div className="bg-white rounded-lg p-3 shadow-sm">
-                      <p className="text-xs text-gray-600 mb-1">Mensualité</p>
-                      <p className="text-2xl font-bold text-orange-600">{formatCurrency(p.monthlyPayment)}</p>
-                      <p className="text-xs text-gray-500">{p.durationYears} ans @ {p.interestRate}%</p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-red-200">
+                    <div className="bg-white rounded-lg p-3 border border-gray-200">
+                      <p className="text-xs text-gray-500 mb-1">Mensualité</p>
+                      <p className="text-lg font-bold text-red-600">{formatCurrency(p.monthlyPayment)}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{p.durationYears} ans @ {p.interestRate}%</p>
                     </div>
-                    
-                    <div className="bg-white rounded-lg p-3 shadow-sm">
-                      <p className="text-xs text-gray-600 mb-1">Total Remboursé</p>
-                      <p className="text-2xl font-bold text-gray-700">{formatCurrency(p.totalRepayment)}</p>
+
+                    <div className="bg-white rounded-lg p-3 border border-gray-200">
+                      <p className="text-xs text-gray-500 mb-1">Total Remboursé</p>
+                      <p className="text-lg font-bold text-gray-900">{formatCurrency(p.totalRepayment)}</p>
                     </div>
-                    
-                    <div className="bg-white rounded-lg p-3 shadow-sm">
-                      <p className="text-xs text-gray-600 mb-1">Coût Crédit</p>
-                      <p className="text-2xl font-bold text-red-600">{formatCurrency(p.totalInterest)}</p>
+
+                    <div className="bg-white rounded-lg p-3 border border-red-200">
+                      <p className="text-xs text-gray-500 mb-1">Coût Crédit</p>
+                      <p className="text-lg font-bold text-red-700">{formatCurrency(p.totalInterest)}</p>
                     </div>
                   </div>
                 </div>
@@ -863,80 +889,76 @@ export default function EnDivisionCorrect() {
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg p-8 text-white">
-          <h2 className="text-3xl font-bold mb-6">📊 Synthèse Globale</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-            <div className="bg-white/10 rounded-lg p-6 backdrop-blur">
-              <h3 className="text-xl font-semibold mb-4">Projet</h3>
-              <ul className="space-y-2">
-                <li className="flex justify-between">
-                  <span>Coût total:</span>
-                  <span className="font-bold">{formatCurrency(calculations.totals.total)}</span>
-                </li>
-                <li className="flex justify-between">
-                  <span>Capital total:</span>
-                  <span className="font-bold">{formatCurrency(calculations.totals.capitalTotal)}</span>
-                </li>
-                <li className="flex justify-between border-t border-white/30 pt-2">
-                  <span>Total emprunts:</span>
-                  <span className="font-bold text-yellow-300">{formatCurrency(calculations.totals.totalLoansNeeded)}</span>
-                </li>
-              </ul>
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h2 className="text-xl font-bold text-gray-800 mb-4">Synthèse Globale</h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <h3 className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Projet</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Coût total:</span>
+                  <span className="font-bold text-gray-900">{formatCurrency(calculations.totals.total)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Capital total:</span>
+                  <span className="font-bold text-green-700">{formatCurrency(calculations.totals.capitalTotal)}</span>
+                </div>
+                <div className="flex justify-between pt-2 border-t border-gray-300">
+                  <span className="text-gray-600">Total emprunts:</span>
+                  <span className="font-bold text-red-700">{formatCurrency(calculations.totals.totalLoansNeeded)}</span>
+                </div>
+              </div>
             </div>
 
-            <div className="bg-white/10 rounded-lg p-6 backdrop-blur">
-              <h3 className="text-xl font-semibold mb-4">Moyennes</h3>
-              <ul className="space-y-2">
-                <li className="flex justify-between">
-                  <span>Coût/personne:</span>
-                  <span className="font-bold">{formatCurrency(calculations.totals.total / participants.length)}</span>
-                </li>
-                <li className="flex justify-between">
-                  <span>Capital moyen:</span>
-                  <span className="font-bold">{formatCurrency(calculations.totals.averageCapital)}</span>
-                </li>
-                <li className="flex justify-between">
-                  <span>Emprunt moyen:</span>
-                  <span className="font-bold">{formatCurrency(calculations.totals.averageLoan)}</span>
-                </li>
-              </ul>
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <h3 className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Moyennes</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Coût/personne:</span>
+                  <span className="font-bold text-gray-900">{formatCurrency(calculations.totals.total / participants.length)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Capital moyen:</span>
+                  <span className="font-bold text-green-700">{formatCurrency(calculations.totals.averageCapital)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Emprunt moyen:</span>
+                  <span className="font-bold text-red-700">{formatCurrency(calculations.totals.averageLoan)}</span>
+                </div>
+              </div>
             </div>
 
-            <div className="bg-white/10 rounded-lg p-6 backdrop-blur">
-              <h3 className="text-xl font-semibold mb-4">Fourchettes</h3>
-              <ul className="space-y-2">
-                <li className="flex justify-between">
-                  <span>Emprunt min:</span>
-                  <span className="font-bold">{formatCurrency(Math.min(...calculations.participantBreakdown.map(p => p.loanNeeded)))}</span>
-                </li>
-                <li className="flex justify-between">
-                  <span>Emprunt max:</span>
-                  <span className="font-bold">{formatCurrency(Math.max(...calculations.participantBreakdown.map(p => p.loanNeeded)))}</span>
-                </li>
-                <li className="flex justify-between">
-                  <span>Écart:</span>
-                  <span className="font-bold">{formatCurrency(Math.max(...calculations.participantBreakdown.map(p => p.loanNeeded)) - Math.min(...calculations.participantBreakdown.map(p => p.loanNeeded)))}</span>
-                </li>
-              </ul>
+            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <h3 className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Fourchettes</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Emprunt min:</span>
+                  <span className="font-bold text-gray-900">{formatCurrency(Math.min(...calculations.participantBreakdown.map(p => p.loanNeeded)))}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Emprunt max:</span>
+                  <span className="font-bold text-gray-900">{formatCurrency(Math.max(...calculations.participantBreakdown.map(p => p.loanNeeded)))}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Écart:</span>
+                  <span className="font-bold text-gray-900">{formatCurrency(Math.max(...calculations.participantBreakdown.map(p => p.loanNeeded)) - Math.min(...calculations.participantBreakdown.map(p => p.loanNeeded)))}</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="bg-white/10 rounded-lg p-6 backdrop-blur">
-            <h4 className="text-lg font-semibold mb-3">💡 Leviers d'Optimisation:</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <ul className="space-y-2">
-                <li>→ Négocier prix d'achat (-10% = €65K économisés)</li>
-                <li>→ Réduire coûts construction (value engineering)</li>
-                <li>→ Optimiser infrastructures (phaser les travaux)</li>
-                <li>→ Augmenter capital apporté si possible</li>
-              </ul>
-              <ul className="space-y-2">
-                <li>→ Subventions rénovation Wallonie</li>
-                <li>→ Auto-construction partielle</li>
-                <li>→ Négocier meilleur taux d'intérêt</li>
-                <li>→ Vendre une 5ème unité en pré-construction</li>
-              </ul>
+          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+            <h4 className="text-sm font-semibold text-gray-800 mb-3">Leviers d'Optimisation</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm text-gray-700">
+              <div>• Négocier prix d'achat (-10% = €65K économisés)</div>
+              <div>• Subventions rénovation Wallonie</div>
+              <div>• Réduire coûts construction (value engineering)</div>
+              <div>• Auto-construction partielle</div>
+              <div>• Optimiser infrastructures (phaser les travaux)</div>
+              <div>• Négocier meilleur taux d'intérêt</div>
+              <div>• Augmenter capital apporté si possible</div>
+              <div>• Vendre une 5ème unité en pré-construction</div>
             </div>
           </div>
         </div>
