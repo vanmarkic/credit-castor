@@ -1,16 +1,86 @@
-import React, { useState, useMemo } from 'react';
-import { Calculator, Users, DollarSign, Home, Building2, Wallet, TrendingUp, Download } from 'lucide-react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { Calculator, Users, DollarSign, Home, Building2, Wallet, Download, Upload, RotateCcw, Save } from 'lucide-react';
 import { calculateAll } from '../utils/calculatorUtils';
 import { exportCalculations } from '../utils/excelExport';
 import { XlsxWriter } from '../utils/exportWriter';
 
+// Default values for reset functionality
+const DEFAULT_PARTICIPANTS = [
+  { name: 'Manuela/Dragan', capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, surface: 112, interestRate: 4.5, durationYears: 25, quantity: 1, cascoPerM2: 1590, parachevementsPerM2: 500 },
+  { name: 'Cathy/Jim', capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, surface: 134, interestRate: 4.5, durationYears: 25, quantity: 1, cascoPerM2: 1590, parachevementsPerM2: 500 },
+  { name: 'Annabelle/Colin', capitalApporte: 200000, notaryFeesRate: 12.5, unitId: 5, surface: 118, interestRate: 4.5, durationYears: 25, quantity: 1, cascoPerM2: 1590, parachevementsPerM2: 500 },
+  { name: 'Julie/Séverin', capitalApporte: 70000, notaryFeesRate: 12.5, unitId: 6, surface: 108, interestRate: 4.5, durationYears: 25, quantity: 1, cascoPerM2: 1590, parachevementsPerM2: 500 }
+];
+
+const DEFAULT_PROJECT_PARAMS = {
+  totalPurchase: 650000,
+  mesuresConservatoires: 20000,
+  demolition: 40000,
+  infrastructures: 90000,
+  etudesPreparatoires: 59820,
+  fraisEtudesPreparatoires: 27320,
+  fraisGeneraux3ans: 0,
+  batimentFondationConservatoire: 43700,
+  batimentFondationComplete: 269200,
+  batimentCoproConservatoire: 56000
+};
+
+const DEFAULT_SCENARIO = {
+  constructionCostChange: 0,
+  infrastructureReduction: 0,
+  purchasePriceReduction: 0
+};
+
+const STORAGE_KEY = 'credit-castor-scenario';
+
+// LocalStorage utilities
+const saveToLocalStorage = (participants: any[], projectParams: any, scenario: any) => {
+  try {
+    const data = {
+      version: 1,
+      timestamp: new Date().toISOString(),
+      participants,
+      projectParams,
+      scenario
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (error) {
+    console.error('Failed to save to localStorage:', error);
+  }
+};
+
+const loadFromLocalStorage = () => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const data = JSON.parse(stored);
+      return {
+        participants: data.participants || DEFAULT_PARTICIPANTS,
+        projectParams: data.projectParams || DEFAULT_PROJECT_PARAMS,
+        scenario: data.scenario || DEFAULT_SCENARIO
+      };
+    }
+  } catch (error) {
+    console.error('Failed to load from localStorage:', error);
+  }
+  return null;
+};
+
+const clearLocalStorage = () => {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (error) {
+    console.error('Failed to clear localStorage:', error);
+  }
+};
+
 export default function EnDivisionCorrect() {
-  const [participants, setParticipants] = useState([
-    { name: 'Manuela/Dragan', capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, surface: 112, interestRate: 4.5, durationYears: 25, quantity: 1, cascoPerM2: 1590, parachevementsPerM2: 500 },
-    { name: 'Cathy/Jim', capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, surface: 134, interestRate: 4.5, durationYears: 25, quantity: 1, cascoPerM2: 1590, parachevementsPerM2: 500 },
-    { name: 'Annabelle/Colin', capitalApporte: 200000, notaryFeesRate: 12.5, unitId: 5, surface: 118, interestRate: 4.5, durationYears: 25, quantity: 1, cascoPerM2: 1590, parachevementsPerM2: 500 },
-    { name: 'Julie/Séverin', capitalApporte: 70000, notaryFeesRate: 12.5, unitId: 6, surface: 108, interestRate: 4.5, durationYears: 25, quantity: 1, cascoPerM2: 1590, parachevementsPerM2: 500 }
-  ]);
+  const [participants, setParticipants] = useState(() => {
+    const stored = loadFromLocalStorage();
+    return stored ? stored.participants : DEFAULT_PARTICIPANTS;
+  });
+
+  const participantRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const addParticipant = () => {
     const newId = Math.max(...participants.map(p => p.unitId), 0) + 1;
@@ -26,6 +96,14 @@ export default function EnDivisionCorrect() {
       cascoPerM2: 1590,
       parachevementsPerM2: 500
     }]);
+
+    // Scroll to the newly added participant (will be at the last index after state update)
+    setTimeout(() => {
+      const newIndex = participants.length; // This will be the index of the newly added participant
+      if (participantRefs.current[newIndex]) {
+        participantRefs.current[newIndex].scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 50);
   };
 
   const removeParticipant = (index) => {
@@ -54,25 +132,20 @@ export default function EnDivisionCorrect() {
     6: { casco: 171720, parachevements: 54000 }
   };
 
-  const [projectParams, setProjectParams] = useState({
-    totalPurchase: 650000,
-    mesuresConservatoires: 20000,
-    demolition: 40000,
-    infrastructures: 90000,
-    etudesPreparatoires: 59820,
-    fraisEtudesPreparatoires: 27320,
-    fraisGeneraux3ans: 0, // Will be calculated dynamically
-    batimentFondationConservatoire: 43700,
-    batimentFondationComplete: 269200,
-    batimentCoproConservatoire: 56000
+  const [projectParams, setProjectParams] = useState(() => {
+    const stored = loadFromLocalStorage();
+    return stored ? stored.projectParams : DEFAULT_PROJECT_PARAMS;
   });
 
-
-  const [scenario, setScenario] = useState({
-    constructionCostChange: 0,
-    infrastructureReduction: 0,
-    purchasePriceReduction: 0
+  const [scenario, setScenario] = useState(() => {
+    const stored = loadFromLocalStorage();
+    return stored ? stored.scenario : DEFAULT_SCENARIO;
   });
+
+  // Auto-save to localStorage whenever state changes
+  useEffect(() => {
+    saveToLocalStorage(participants, projectParams, scenario);
+  }, [participants, projectParams, scenario]);
 
   const calculations = useMemo(() => {
     return calculateAll(participants, projectParams, scenario, unitDetails);
@@ -133,31 +206,154 @@ export default function EnDivisionCorrect() {
     exportCalculations(calculations, projectParams, scenario, writer);
   };
 
+  // Download scenario as JSON file
+  const downloadScenario = () => {
+    const data = {
+      version: 1,
+      timestamp: new Date().toISOString(),
+      participants,
+      projectParams,
+      scenario
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10);
+    const timeStr = now.toTimeString().slice(0, 5).replace(':', '-');
+    link.download = `scenario_${dateStr}_${timeStr}.json`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  // Load scenario from JSON file
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const loadScenario = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const data = JSON.parse(content);
+
+        // Validate the data structure
+        if (!data.participants || !data.projectParams || !data.scenario) {
+          alert('Fichier invalide: structure de données manquante');
+          return;
+        }
+
+        // Load the data
+        setParticipants(data.participants);
+        setProjectParams(data.projectParams);
+        setScenario(data.scenario);
+
+        alert('Scénario chargé avec succès!');
+      } catch (error) {
+        console.error('Error loading scenario:', error);
+        alert('Erreur lors du chargement du fichier. Vérifiez que le fichier est valide.');
+      }
+    };
+
+    reader.readAsText(file);
+
+    // Reset the input so the same file can be loaded again
+    if (event.target) {
+      event.target.value = '';
+    }
+  };
+
+  // Reset to defaults
+  const resetToDefaults = () => {
+    if (confirm('Êtes-vous sûr de vouloir réinitialiser complètement? Toutes les données seront perdues.')) {
+      clearLocalStorage();
+      setParticipants(DEFAULT_PARTICIPANTS);
+      setProjectParams(DEFAULT_PROJECT_PARAMS);
+      setScenario(DEFAULT_SCENARIO);
+      alert('Données réinitialisées aux valeurs par défaut.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-100 p-6">
       <div className="max-w-7xl mx-auto">
-        
+
         <div className="bg-white rounded-xl shadow-2xl p-8 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <Building2 className="w-12 h-12 text-blue-600" />
-              <div>
-                <h1 className="text-4xl font-bold text-gray-800">Achat en Division - 4 Unités</h1>
-                <p className="text-gray-600">Wallonie, Belgique • Prix d'achat €650,000</p>
-              </div>
+          <div className="flex items-center gap-4 mb-4">
+            <Building2 className="w-12 h-12 text-blue-600" />
+            <div>
+              <h1 className="text-4xl font-bold text-gray-800">Achat en Division - 4 Unités</h1>
+              <p className="text-gray-600">Wallonie, Belgique • Prix d'achat €650,000</p>
             </div>
-            <button
-              onClick={exportToExcel}
-              className="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors flex items-center gap-2 shadow-lg"
-            >
-              <Download className="w-5 h-5" />
-              Exporter Excel
-            </button>
+          </div>
+
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-300 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <Save className="w-5 h-5 text-blue-600" />
+              Gestion des Scénarios
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <button
+                onClick={downloadScenario}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md"
+              >
+                <Download className="w-5 h-5" />
+                Télécharger le scénario
+              </button>
+
+              <button
+                onClick={loadScenario}
+                className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md"
+              >
+                <Upload className="w-5 h-5" />
+                Charger un scénario
+              </button>
+
+              <button
+                onClick={resetToDefaults}
+                className="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-4 py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md"
+              >
+                <RotateCcw className="w-5 h-5" />
+                Réinitialiser complètement
+              </button>
+
+              <button
+                onClick={exportToExcel}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md"
+              >
+                <Download className="w-5 h-5" />
+                Exporter Excel
+              </button>
+            </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleFileUpload}
+              style={{ display: 'none' }}
+            />
+
+            <p className="text-xs text-gray-600 mt-3 text-center">
+              💾 Toutes les modifications sont automatiquement sauvegardées et rechargées à la prochaine visite
+            </p>
           </div>
 
           <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6">
             <p className="text-sm text-blue-800">
-              <strong>📐 Principe:</strong> L'achat est fonction des m² (€{calculations.pricePerM2.toFixed(2)}/m²). 
+              <strong>📐 Principe:</strong> L'achat est fonction des m² (€{calculations.pricePerM2.toFixed(2)}/m²).
               Le capital apporté est indépendant de la taille du logement.
             </p>
           </div>
@@ -434,7 +630,10 @@ export default function EnDivisionCorrect() {
           
           <div className="space-y-6">
             {calculations.participantBreakdown.map((p, idx) => (
-              <div key={idx} className="border-2 border-blue-200 rounded-lg p-6 bg-gradient-to-r from-white to-blue-50">
+              <div
+                key={idx}
+                ref={(el) => { participantRefs.current[idx] = el; }}
+                className="border-2 border-blue-200 rounded-lg p-6 bg-gradient-to-r from-white to-blue-50">
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
@@ -502,18 +701,39 @@ export default function EnDivisionCorrect() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-gray-600 mb-1">Frais de notaire (%)</label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          step="0.5"
-                          value={p.notaryFeesRate}
-                          onChange={(e) => updateNotaryRate(idx, parseFloat(e.target.value) || 0)}
-                          className="flex-1 px-4 py-2 font-bold border-2 border-orange-300 rounded-lg focus:border-orange-500 focus:outline-none"
-                        />
-                        <span className="text-sm font-bold text-orange-600">
-                          = {formatCurrency(p.notaryFees)}
-                        </span>
+                      <label className="block text-xs text-gray-600 mb-2">Frais de notaire</label>
+                      <div className="flex items-center gap-3 mb-2">
+                        <label className="flex items-center gap-2 cursor-pointer px-4 py-2 border-2 rounded-lg transition-colors hover:bg-orange-50" style={{
+                          borderColor: p.notaryFeesRate === 3 ? '#fb923c' : '#e5e7eb',
+                          backgroundColor: p.notaryFeesRate === 3 ? '#fff7ed' : 'white'
+                        }}>
+                          <input
+                            type="radio"
+                            name={`notaryRate-${idx}`}
+                            value="3"
+                            checked={p.notaryFeesRate === 3}
+                            onChange={(e) => updateNotaryRate(idx, parseFloat(e.target.value))}
+                            className="w-4 h-4 accent-orange-600"
+                          />
+                          <span className="font-bold text-gray-700">3%</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer px-4 py-2 border-2 rounded-lg transition-colors hover:bg-orange-50" style={{
+                          borderColor: p.notaryFeesRate === 12.5 ? '#fb923c' : '#e5e7eb',
+                          backgroundColor: p.notaryFeesRate === 12.5 ? '#fff7ed' : 'white'
+                        }}>
+                          <input
+                            type="radio"
+                            name={`notaryRate-${idx}`}
+                            value="12.5"
+                            checked={p.notaryFeesRate === 12.5}
+                            onChange={(e) => updateNotaryRate(idx, parseFloat(e.target.value))}
+                            className="w-4 h-4 accent-orange-600"
+                          />
+                          <span className="font-bold text-gray-700">12.5%</span>
+                        </label>
+                      </div>
+                      <div className="text-sm font-bold text-orange-600">
+                        = {formatCurrency(p.notaryFees)}
                       </div>
                     </div>
                     <div>
@@ -603,7 +823,7 @@ export default function EnDivisionCorrect() {
                       <p className="text-xs text-gray-500">Total: <span className="font-bold text-purple-700">{formatCurrency(p.parachevements)}</span></p>
                       <p className="text-xs text-gray-400">{p.surface}m² × {participants[idx].parachevementsPerM2}€/m²</p>
                     </div>
-                    <div className="bg-white p-3 rounded flex flex-col justify-center">
+                    <div className="bg-white p-3 rounded">
                       <p className="text-xs text-gray-600 mb-1">Travaux communs</p>
                       <p className="text-lg font-bold text-purple-700">{formatCurrency(p.travauxCommunsPerUnit)}</p>
                       <p className="text-xs text-gray-500">Quote-part fixe (÷{participants.length})</p>

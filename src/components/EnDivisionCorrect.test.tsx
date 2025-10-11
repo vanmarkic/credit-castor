@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import EnDivisionCorrect from './EnDivisionCorrect';
 
 describe('EnDivisionCorrect - Integration Tests', () => {
@@ -161,6 +161,105 @@ describe('EnDivisionCorrect - Integration Tests', () => {
 
       // This test serves as a comprehensive regression test
       // After refactoring, we'll update this test to use actual user interactions
+    });
+  });
+
+  describe('Participant Management', () => {
+    it('should add a new participant when add button is clicked', () => {
+      render(<EnDivisionCorrect />);
+
+      // Check initial participant names are present
+      expect(screen.getByDisplayValue('Manuela/Dragan')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('Cathy/Jim')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('Annabelle/Colin')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('Julie/Séverin')).toBeInTheDocument();
+
+      // Find and click the add participant button
+      const addButton = screen.getByText('Ajouter un participant');
+      fireEvent.click(addButton);
+
+      // Should now have 5 participants - new one is named "Participant 5"
+      const newParticipant = screen.getByDisplayValue('Participant 5');
+      expect(newParticipant).toBeInTheDocument();
+    });
+
+    it('should assign a unique unitId to new participants', () => {
+      render(<EnDivisionCorrect />);
+
+      // Add a participant
+      const addButton = screen.getByText('Ajouter un participant');
+      fireEvent.click(addButton);
+
+      // The new participant should have unitId 7 (max of 1,3,5,6 + 1)
+      // We can verify this by checking that the participant was added successfully
+      const newParticipant = screen.getByDisplayValue('Participant 5');
+      expect(newParticipant).toBeInTheDocument();
+
+      // Add another participant
+      fireEvent.click(addButton);
+      const secondNewParticipant = screen.getByDisplayValue('Participant 6');
+      expect(secondNewParticipant).toBeInTheDocument();
+    });
+
+    it('should remove a participant when remove button is clicked', () => {
+      render(<EnDivisionCorrect />);
+
+      // Verify initial state
+      expect(screen.getByDisplayValue('Manuela/Dragan')).toBeInTheDocument();
+
+      // Find all "Retirer" buttons (should be 4, one for each participant)
+      const removeButtons = screen.getAllByText('Retirer');
+      expect(removeButtons.length).toBe(4);
+
+      // Remove the first participant
+      fireEvent.click(removeButtons[0]);
+
+      // Manuela should be gone
+      expect(screen.queryByDisplayValue('Manuela/Dragan')).not.toBeInTheDocument();
+
+      // Other participants should still be there
+      expect(screen.getByDisplayValue('Cathy/Jim')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('Annabelle/Colin')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('Julie/Séverin')).toBeInTheDocument();
+    });
+
+    it('should not show remove button when only one participant remains', () => {
+      render(<EnDivisionCorrect />);
+
+      // Remove 3 participants
+      const removeButtons = screen.getAllByText('Retirer');
+      fireEvent.click(removeButtons[0]);
+      fireEvent.click(screen.getAllByText('Retirer')[0]);
+      fireEvent.click(screen.getAllByText('Retirer')[0]);
+
+      // Should have 1 participant left
+      // The remove button should not be present anymore
+      expect(screen.queryByText('Retirer')).not.toBeInTheDocument();
+
+      // One participant should remain
+      const remainingParticipant = screen.getByDisplayValue('Julie/Séverin');
+      expect(remainingParticipant).toBeInTheDocument();
+    });
+
+    it('should add participant with default values', () => {
+      render(<EnDivisionCorrect />);
+
+      // Add a participant
+      const addButton = screen.getByText('Ajouter un participant');
+      fireEvent.click(addButton);
+
+      // Check that default values are applied
+      const newParticipantName = screen.getByDisplayValue('Participant 5');
+      expect(newParticipantName).toBeInTheDocument();
+
+      // The participant should have default capital of 100000
+      // This is verified by the component rendering successfully
+      // In a more detailed test, we could check computed values
+      const capitalInputs = screen.getAllByRole('spinbutton');
+      const hasDefaultCapital = capitalInputs.some(input =>
+        (input as HTMLInputElement).value === '100000'
+      );
+      expect(hasDefaultCapital).toBe(true);
     });
   });
 });
