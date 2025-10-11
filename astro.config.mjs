@@ -4,6 +4,8 @@ import tailwind from '@astrojs/tailwind';
 
 // https://astro.build/config
 export default defineConfig({
+  site: 'https://vanmarkic.github.io',
+  base: '/credit-castor',
   integrations: [
     react(),
     tailwind({
