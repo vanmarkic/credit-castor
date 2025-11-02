@@ -82,31 +82,12 @@ const saveToLocalStorage = (participants: any[], projectParams: any, scenario: a
   }
 };
 
-const loadFromLocalStorage = () => {
+export const loadFromLocalStorage = () => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const data = JSON.parse(stored);
-
-      // Migration: If no globalCascoPerM2, use first participant's value or default
-      if (data.projectParams && !data.projectParams.globalCascoPerM2) {
-        data.projectParams.globalCascoPerM2 =
-          data.participants?.[0]?.cascoPerM2 || 1590;
-      }
-
-      // Clean up old participant cascoPerM2 fields
-      if (data.participants) {
-        data.participants = data.participants.map((p: any) => {
-          const { cascoPerM2, ...rest } = p;
-          return rest;
-        });
-      }
-
-      return {
-        participants: data.participants || DEFAULT_PARTICIPANTS,
-        projectParams: data.projectParams || DEFAULT_PROJECT_PARAMS,
-        scenario: data.scenario || DEFAULT_SCENARIO
-      };
+      return migrateScenarioData(data);
     }
   } catch (error) {
     console.error('Failed to load from localStorage:', error);

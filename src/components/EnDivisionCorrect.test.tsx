@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import EnDivisionCorrect, { migrateScenarioData, DEFAULT_PARTICIPANTS } from './EnDivisionCorrect';
+import EnDivisionCorrect, { migrateScenarioData, DEFAULT_PARTICIPANTS, loadFromLocalStorage } from './EnDivisionCorrect';
 
 describe('EnDivisionCorrect - Integration Tests', () => {
   describe('Default Initial State', () => {
@@ -339,6 +339,28 @@ describe('EnDivisionCorrect - Integration Tests', () => {
 
       expect(result.participants).toEqual(DEFAULT_PARTICIPANTS);
       expect(result.projectParams.globalCascoPerM2).toBe(1590);
+    });
+  });
+
+  describe('loadFromLocalStorage', () => {
+    it('uses migration function for v1.0.2 data', () => {
+      // Mock localStorage with v1.0.2 data
+      const oldData = {
+        participants: [{ name: 'A', cascoPerM2: 1800, parachevementsPerM2: 500, surface: 100, unitId: 1, capitalApporte: 50000, notaryFeesRate: 12.5, interestRate: 4.5, durationYears: 25, quantity: 1 }],
+        projectParams: { totalPurchase: 650000 },
+        scenario: { constructionCostChange: 0, infrastructureReduction: 0, purchasePriceReduction: 0 }
+      };
+
+      global.localStorage.setItem('credit-castor-scenario', JSON.stringify(oldData));
+
+      const result = loadFromLocalStorage();
+
+      expect(result?.projectParams.globalCascoPerM2).toBe(1800);
+      expect(result?.participants[0]).not.toHaveProperty('cascoPerM2');
+      expect(result?.participants[0].parachevementsPerM2).toBe(500);
+
+      // Cleanup
+      global.localStorage.clear();
     });
   });
 });
