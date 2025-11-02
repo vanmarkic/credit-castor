@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Calculator, Users, DollarSign, Home, Building2, Wallet, Download, Upload, RotateCcw, Save, ChevronDown, ChevronUp } from 'lucide-react';
-import { calculateAll } from '../utils/calculatorUtils';
+import { calculateAll, type Participant } from '../utils/calculatorUtils';
 import { exportCalculations } from '../utils/excelExport';
 import { XlsxWriter } from '../utils/exportWriter';
 
@@ -55,6 +55,21 @@ const loadFromLocalStorage = () => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const data = JSON.parse(stored);
+
+      // Migration: If no globalCascoPerM2, use first participant's value or default
+      if (data.projectParams && !data.projectParams.globalCascoPerM2) {
+        data.projectParams.globalCascoPerM2 =
+          data.participants?.[0]?.cascoPerM2 || 1590;
+      }
+
+      // Clean up old participant cascoPerM2 fields
+      if (data.participants) {
+        data.participants = data.participants.map((p: any) => {
+          const { cascoPerM2, ...rest } = p;
+          return rest;
+        });
+      }
+
       return {
         participants: data.participants || DEFAULT_PARTICIPANTS,
         projectParams: data.projectParams || DEFAULT_PROJECT_PARAMS,
