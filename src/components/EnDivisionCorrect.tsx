@@ -571,61 +571,91 @@ export default function EnDivisionCorrect() {
 
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-6">🎛️ Scénarios d'Optimisation</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Réduction Prix d'Achat (%)
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="20"
-                value={scenario.purchasePriceReduction}
-                onChange={(e) => setScenario({...scenario, purchasePriceReduction: parseFloat(e.target.value)})}
-                className="w-full"
-              />
-              <div className="flex justify-between text-sm text-gray-600 mt-1">
-                <span>0%</span>
-                <span className="font-bold">{scenario.purchasePriceReduction}%</span>
-                <span>20%</span>
+
+          {/* NEW: Global Construction Rates */}
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h3 className="text-sm font-semibold text-gray-800 mb-3">Taux de Base</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-gray-600 mb-2">
+                  Prix CASCO (gros œuvre) - Global
+                </label>
+                <input
+                  type="number"
+                  step="10"
+                  value={projectParams.globalCascoPerM2}
+                  onChange={(e) => setProjectParams({
+                    ...projectParams,
+                    globalCascoPerM2: parseFloat(e.target.value) || 1590
+                  })}
+                  className="w-full px-4 py-3 text-lg font-semibold border border-blue-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white"
+                />
+                <p className="text-xs text-blue-600 mt-1">
+                  Appliqué à tous les participants
+                </p>
               </div>
             </div>
+          </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Variation Coûts Construction (%)
-              </label>
-              <input
-                type="range"
-                min="-30"
-                max="30"
-                value={scenario.constructionCostChange}
-                onChange={(e) => setScenario({...scenario, constructionCostChange: parseFloat(e.target.value)})}
-                className="w-full"
-              />
-              <div className="flex justify-between text-sm text-gray-600 mt-1">
-                <span>-30%</span>
-                <span className="font-bold">{scenario.constructionCostChange}%</span>
-                <span>+30%</span>
+          {/* Existing variation sliders - wrapped in subsection */}
+          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+            <h3 className="text-sm font-semibold text-gray-800 mb-3">Variations en %</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Réduction Prix d'Achat (%)
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="20"
+                  value={scenario.purchasePriceReduction}
+                  onChange={(e) => setScenario({...scenario, purchasePriceReduction: parseFloat(e.target.value)})}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-sm text-gray-600 mt-1">
+                  <span>0%</span>
+                  <span className="font-bold">{scenario.purchasePriceReduction}%</span>
+                  <span>20%</span>
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Réduction Infrastructures (%)
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="50"
-                value={scenario.infrastructureReduction}
-                onChange={(e) => setScenario({...scenario, infrastructureReduction: parseFloat(e.target.value)})}
-                className="w-full"
-              />
-              <div className="flex justify-between text-sm text-gray-600 mt-1">
-                <span>0%</span>
-                <span className="font-bold">{scenario.infrastructureReduction}%</span>
-                <span>50%</span>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Variation Coûts Construction (%)
+                </label>
+                <input
+                  type="range"
+                  min="-30"
+                  max="30"
+                  value={scenario.constructionCostChange}
+                  onChange={(e) => setScenario({...scenario, constructionCostChange: parseFloat(e.target.value)})}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-sm text-gray-600 mt-1">
+                  <span>-30%</span>
+                  <span className="font-bold">{scenario.constructionCostChange}%</span>
+                  <span>+30%</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Réduction Infrastructures (%)
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="50"
+                  value={scenario.infrastructureReduction}
+                  onChange={(e) => setScenario({...scenario, infrastructureReduction: parseFloat(e.target.value)})}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-sm text-gray-600 mt-1">
+                  <span>0%</span>
+                  <span className="font-bold">{scenario.infrastructureReduction}%</span>
+                  <span>50%</span>
+                </div>
               </div>
             </div>
           </div>
