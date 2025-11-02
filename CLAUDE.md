@@ -114,3 +114,13 @@ credit-castor/
 - **Small commits**: Commit after each logical unit of work
 - **Run tests after changes**: Always verify with `npm run test:run`
 - **Check TypeScript**: Run `npx tsc --noEmit` to catch type errors
+
+### Data Migration
+
+When making breaking changes to data structures:
+- Extract migration logic into pure, testable functions
+- Apply migrations to all data loading paths (localStorage, file uploads, API calls)
+- Write comprehensive unit tests for edge cases
+- Document migration in docs/development/
+- Create test fixtures with old format
+- Manual testing checklist before release
