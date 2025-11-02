@@ -87,6 +87,7 @@ describe('Excel Export', () => {
     batimentFondationConservatoire: 43700,
     batimentFondationComplete: 269200,
     batimentCoproConservatoire: 56000,
+    globalCascoPerM2: 1590
   };
 
   const mockScenario: Scenario = {
@@ -255,7 +256,7 @@ describe('Excel Export', () => {
       );
 
       // Verify key sections exist in correct order
-      const lines = result.split('\n') as string[];
+      const lines = (result || '').split('\n');
 
       // Find section indices
       const headerIdx = lines.findIndex(l => l.includes('ACHAT EN DIVISION'));

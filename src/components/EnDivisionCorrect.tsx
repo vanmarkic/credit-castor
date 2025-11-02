@@ -6,10 +6,10 @@ import { XlsxWriter } from '../utils/exportWriter';
 
 // Default values for reset functionality
 const DEFAULT_PARTICIPANTS = [
-  { name: 'Manuela/Dragan', capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, surface: 112, interestRate: 4.5, durationYears: 25, quantity: 1, cascoPerM2: 1590, parachevementsPerM2: 500 },
-  { name: 'Cathy/Jim', capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, surface: 134, interestRate: 4.5, durationYears: 25, quantity: 1, cascoPerM2: 1590, parachevementsPerM2: 500 },
-  { name: 'Annabelle/Colin', capitalApporte: 200000, notaryFeesRate: 12.5, unitId: 5, surface: 118, interestRate: 4.5, durationYears: 25, quantity: 1, cascoPerM2: 1590, parachevementsPerM2: 500 },
-  { name: 'Julie/Séverin', capitalApporte: 70000, notaryFeesRate: 12.5, unitId: 6, surface: 108, interestRate: 4.5, durationYears: 25, quantity: 1, cascoPerM2: 1590, parachevementsPerM2: 500 }
+  { name: 'Manuela/Dragan', capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, surface: 112, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500 },
+  { name: 'Cathy/Jim', capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, surface: 134, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500 },
+  { name: 'Annabelle/Colin', capitalApporte: 200000, notaryFeesRate: 12.5, unitId: 5, surface: 118, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500 },
+  { name: 'Julie/Séverin', capitalApporte: 70000, notaryFeesRate: 12.5, unitId: 6, surface: 108, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500 }
 ];
 
 const DEFAULT_PROJECT_PARAMS = {
@@ -22,7 +22,8 @@ const DEFAULT_PROJECT_PARAMS = {
   fraisGeneraux3ans: 0,
   batimentFondationConservatoire: 43700,
   batimentFondationComplete: 269200,
-  batimentCoproConservatoire: 56000
+  batimentCoproConservatoire: 56000,
+  globalCascoPerM2: 1590
 };
 
 const DEFAULT_SCENARIO = {
@@ -54,6 +55,21 @@ const loadFromLocalStorage = () => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const data = JSON.parse(stored);
+
+      // Migration: If no globalCascoPerM2, use first participant's value or default
+      if (data.projectParams && !data.projectParams.globalCascoPerM2) {
+        data.projectParams.globalCascoPerM2 =
+          data.participants?.[0]?.cascoPerM2 || 1590;
+      }
+
+      // Clean up old participant cascoPerM2 fields
+      if (data.participants) {
+        data.participants = data.participants.map((p: any) => {
+          const { cascoPerM2, ...rest } = p;
+          return rest;
+        });
+      }
+
       return {
         participants: data.participants || DEFAULT_PARTICIPANTS,
         projectParams: data.projectParams || DEFAULT_PROJECT_PARAMS,
@@ -85,7 +101,7 @@ export default function EnDivisionCorrect() {
   const participantRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const addParticipant = () => {
-    const newId = Math.max(...participants.map(p => p.unitId), 0) + 1;
+    const newId = Math.max(...participants.map((p: any) => p.unitId), 0) + 1;
     setParticipants([...participants, {
       name: 'Participant ' + (participants.length + 1),
       capitalApporte: 100000,
@@ -95,7 +111,6 @@ export default function EnDivisionCorrect() {
       interestRate: 4.5,
       durationYears: 25,
       quantity: 1,
-      cascoPerM2: 1590,
       parachevementsPerM2: 500
     }]);
 
@@ -108,20 +123,20 @@ export default function EnDivisionCorrect() {
     }, 50);
   };
 
-  const removeParticipant = (index) => {
+  const removeParticipant = (index: number) => {
     if (participants.length > 1) {
-      const newParticipants = participants.filter((_, i) => i !== index);
+      const newParticipants = participants.filter((_: any, i: number) => i !== index);
       setParticipants(newParticipants);
     }
   };
 
-  const updateParticipantName = (index, name) => {
+  const updateParticipantName = (index: number, name: string) => {
     const newParticipants = [...participants];
     newParticipants[index].name = name;
     setParticipants(newParticipants);
   };
 
-  const updateParticipantSurface = (index, surface) => {
+  const updateParticipantSurface = (index: number, surface: number) => {
     const newParticipants = [...participants];
     newParticipants[index].surface = surface;
     setParticipants(newParticipants);
@@ -153,63 +168,57 @@ export default function EnDivisionCorrect() {
     return calculateAll(participants, projectParams, scenario, unitDetails);
   }, [participants, projectParams, scenario]);
 
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('fr-FR', { 
-      style: 'currency', 
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
       currency: 'EUR',
-      maximumFractionDigits: 0 
+      maximumFractionDigits: 0
     }).format(value);
   };
 
-  const updateCapital = (index, value) => {
+  const updateCapital = (index: number, value: number) => {
     const newParticipants = [...participants];
     newParticipants[index].capitalApporte = value;
     setParticipants(newParticipants);
   };
 
-  const updateNotaryRate = (index, value) => {
+  const updateNotaryRate = (index: number, value: number) => {
     const newParticipants = [...participants];
     newParticipants[index].notaryFeesRate = value;
     setParticipants(newParticipants);
   };
 
-  const updateInterestRate = (index, value) => {
+  const updateInterestRate = (index: number, value: number) => {
     const newParticipants = [...participants];
     newParticipants[index].interestRate = value;
     setParticipants(newParticipants);
   };
 
-  const updateDuration = (index, value) => {
+  const updateDuration = (index: number, value: number) => {
     const newParticipants = [...participants];
     newParticipants[index].durationYears = value;
     setParticipants(newParticipants);
   };
 
-  const updateQuantity = (index, value) => {
+  const updateQuantity = (index: number, value: number) => {
     const newParticipants = [...participants];
     newParticipants[index].quantity = Math.max(1, value);
     setParticipants(newParticipants);
   };
 
-  const updateCascoPerM2 = (index, value) => {
-    const newParticipants = [...participants];
-    newParticipants[index].cascoPerM2 = value;
-    setParticipants(newParticipants);
-  };
-
-  const updateParachevementsPerM2 = (index, value) => {
+  const updateParachevementsPerM2 = (index: number, value: number) => {
     const newParticipants = [...participants];
     newParticipants[index].parachevementsPerM2 = value;
     setParticipants(newParticipants);
   };
 
-  const updateCascoSqm = (index, value) => {
+  const updateCascoSqm = (index: number, value: number | undefined) => {
     const newParticipants = [...participants];
     newParticipants[index].cascoSqm = value;
     setParticipants(newParticipants);
   };
 
-  const updateParachevementsSqm = (index, value) => {
+  const updateParachevementsSqm = (index: number, value: number | undefined) => {
     const newParticipants = [...participants];
     newParticipants[index].parachevementsSqm = value;
     setParticipants(newParticipants);
@@ -570,61 +579,91 @@ export default function EnDivisionCorrect() {
 
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <h2 className="text-2xl font-bold text-gray-800 mb-6">🎛️ Scénarios d'Optimisation</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Réduction Prix d'Achat (%)
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="20"
-                value={scenario.purchasePriceReduction}
-                onChange={(e) => setScenario({...scenario, purchasePriceReduction: parseFloat(e.target.value)})}
-                className="w-full"
-              />
-              <div className="flex justify-between text-sm text-gray-600 mt-1">
-                <span>0%</span>
-                <span className="font-bold">{scenario.purchasePriceReduction}%</span>
-                <span>20%</span>
+
+          {/* NEW: Global Construction Rates */}
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h3 className="text-sm font-semibold text-gray-800 mb-3">Taux de Base</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-gray-600 mb-2">
+                  Prix CASCO (gros œuvre) - Prix/m² - Global
+                </label>
+                <input
+                  type="number"
+                  step="10"
+                  value={projectParams.globalCascoPerM2}
+                  onChange={(e) => setProjectParams({
+                    ...projectParams,
+                    globalCascoPerM2: parseFloat(e.target.value) || 1590
+                  })}
+                  className="w-full px-4 py-3 text-lg font-semibold border border-blue-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white"
+                />
+                <p className="text-xs text-blue-600 mt-1">
+                  Appliqué à tous les participants
+                </p>
               </div>
             </div>
+          </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Variation Coûts Construction (%)
-              </label>
-              <input
-                type="range"
-                min="-30"
-                max="30"
-                value={scenario.constructionCostChange}
-                onChange={(e) => setScenario({...scenario, constructionCostChange: parseFloat(e.target.value)})}
-                className="w-full"
-              />
-              <div className="flex justify-between text-sm text-gray-600 mt-1">
-                <span>-30%</span>
-                <span className="font-bold">{scenario.constructionCostChange}%</span>
-                <span>+30%</span>
+          {/* Existing variation sliders - wrapped in subsection */}
+          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+            <h3 className="text-sm font-semibold text-gray-800 mb-3">Variations en %</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Réduction Prix d'Achat (%)
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="20"
+                  value={scenario.purchasePriceReduction}
+                  onChange={(e) => setScenario({...scenario, purchasePriceReduction: parseFloat(e.target.value)})}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-sm text-gray-600 mt-1">
+                  <span>0%</span>
+                  <span className="font-bold">{scenario.purchasePriceReduction}%</span>
+                  <span>20%</span>
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Réduction Infrastructures (%)
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="50"
-                value={scenario.infrastructureReduction}
-                onChange={(e) => setScenario({...scenario, infrastructureReduction: parseFloat(e.target.value)})}
-                className="w-full"
-              />
-              <div className="flex justify-between text-sm text-gray-600 mt-1">
-                <span>0%</span>
-                <span className="font-bold">{scenario.infrastructureReduction}%</span>
-                <span>50%</span>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Variation Coûts Construction (%)
+                </label>
+                <input
+                  type="range"
+                  min="-30"
+                  max="30"
+                  value={scenario.constructionCostChange}
+                  onChange={(e) => setScenario({...scenario, constructionCostChange: parseFloat(e.target.value)})}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-sm text-gray-600 mt-1">
+                  <span>-30%</span>
+                  <span className="font-bold">{scenario.constructionCostChange}%</span>
+                  <span>+30%</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Réduction Infrastructures (%)
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="50"
+                  value={scenario.infrastructureReduction}
+                  onChange={(e) => setScenario({...scenario, infrastructureReduction: parseFloat(e.target.value)})}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-sm text-gray-600 mt-1">
+                  <span>0%</span>
+                  <span className="font-bold">{scenario.infrastructureReduction}%</span>
+                  <span>50%</span>
+                </div>
               </div>
             </div>
           </div>
@@ -855,22 +894,20 @@ export default function EnDivisionCorrect() {
                   </div>
                 </div>
 
-                {/* Construction Detail - Always Visible */}
+                {/* Construction Detail */}
                 <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Détail Construction</p>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                    {/* CASCO - Display only (not editable) */}
                     <div className="bg-white p-3 rounded-lg border border-gray-200">
-                      <label className="block text-xs text-gray-500 mb-1">CASCO (gros œuvre) - Prix/m²</label>
-                      <input
-                        type="number"
-                        step="10"
-                        value={participants[idx].cascoPerM2}
-                        onChange={(e) => updateCascoPerM2(idx, parseFloat(e.target.value) || 0)}
-                        className="w-full px-3 py-2 text-sm font-semibold border border-gray-300 rounded-lg focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none mb-2"
-                      />
-                      <p className="text-xs text-gray-500">Total: <span className="font-bold text-gray-900">{formatCurrency(p.casco)}</span></p>
-                      <p className="text-xs text-gray-400">{participants[idx].cascoSqm || p.surface}m² × {participants[idx].cascoPerM2}€/m²</p>
+                      <p className="text-xs text-gray-500 mb-1">CASCO (gros œuvre)</p>
+                      <p className="text-lg font-bold text-gray-900">{formatCurrency(p.casco)}</p>
+                      <p className="text-xs text-gray-400">
+                        {participants[idx].cascoSqm || p.surface}m² × {projectParams.globalCascoPerM2}€/m² (global)
+                      </p>
                     </div>
+
+                    {/* Parachèvements - Editable */}
                     <div className="bg-white p-3 rounded-lg border border-gray-200">
                       <label className="block text-xs text-gray-500 mb-1">Parachèvements - Prix/m²</label>
                       <input
@@ -883,6 +920,8 @@ export default function EnDivisionCorrect() {
                       <p className="text-xs text-gray-500">Total: <span className="font-bold text-gray-900">{formatCurrency(p.parachevements)}</span></p>
                       <p className="text-xs text-gray-400">{participants[idx].parachevementsSqm || p.surface}m² × {participants[idx].parachevementsPerM2}€/m²</p>
                     </div>
+
+                    {/* Travaux communs - unchanged */}
                     <div className="bg-white p-3 rounded-lg border border-purple-200">
                       <p className="text-xs text-gray-500 mb-1">Travaux communs</p>
                       <p className="text-lg font-bold text-purple-700 mt-2">{formatCurrency(p.travauxCommunsPerUnit)}</p>

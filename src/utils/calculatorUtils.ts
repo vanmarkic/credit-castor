@@ -12,10 +12,10 @@ export interface Participant {
   interestRate: number;
   durationYears: number;
   quantity: number;
-  cascoPerM2?: number; // Optional custom CASCO price per m² (default: 1590)
-  parachevementsPerM2?: number; // Optional custom parachèvements price per m² (default: 500)
-  cascoSqm?: number; // Optional: how many sqm will be renovated with CASCO (default: full surface)
-  parachevementsSqm?: number; // Optional: how many sqm will be renovated with parachèvements (default: full surface)
+  // cascoPerM2?: number; // REMOVED
+  parachevementsPerM2?: number;
+  cascoSqm?: number;
+  parachevementsSqm?: number;
 }
 
 export interface ProjectParams {
@@ -29,6 +29,7 @@ export interface ProjectParams {
   batimentFondationConservatoire: number;
   batimentFondationComplete: number;
   batimentCoproConservatoire: number;
+  globalCascoPerM2: number;
 }
 
 export interface Scenario {
@@ -165,7 +166,7 @@ export function calculateFraisGeneraux3ans(
       participant.unitId,
       participant.surface,
       unitDetails,
-      participant.cascoPerM2,
+      projectParams.globalCascoPerM2,
       participant.parachevementsPerM2,
       participant.cascoSqm,
       participant.parachevementsSqm
@@ -235,40 +236,29 @@ export function calculateCascoAndParachevements(
   unitId: number,
   surface: number,
   unitDetails: UnitDetails,
-  cascoPerM2?: number,
+  globalCascoPerM2: number,
   parachevementsPerM2?: number,
   cascoSqm?: number,
   parachevementsSqm?: number
 ): { casco: number; parachevements: number } {
-  // Determine the actual sqm to be used for calculations
   const actualCascoSqm = cascoSqm !== undefined ? cascoSqm : surface;
   const actualParachevementsSqm = parachevementsSqm !== undefined ? parachevementsSqm : surface;
 
-  // If custom rates are provided, use them
-  if (cascoPerM2 !== undefined && parachevementsPerM2 !== undefined) {
-    return {
-      casco: actualCascoSqm * cascoPerM2,
-      parachevements: actualParachevementsSqm * parachevementsPerM2,
-    };
-  }
+  // CASCO: Always use global rate
+  const casco = actualCascoSqm * globalCascoPerM2;
 
-  // If unit details exist, we need to calculate based on sqm instead of using fixed values
-  if (unitDetails[unitId]) {
-    // Calculate rate per m² from the unit details
-    const unitCascoPerM2 = unitDetails[unitId].casco / surface;
+  // Parachevements: Use participant-specific rate or fallback
+  let parachevements: number;
+  if (parachevementsPerM2 !== undefined) {
+    parachevements = actualParachevementsSqm * parachevementsPerM2;
+  } else if (unitDetails[unitId]) {
     const unitParachevementsPerM2 = unitDetails[unitId].parachevements / surface;
-
-    return {
-      casco: actualCascoSqm * unitCascoPerM2,
-      parachevements: actualParachevementsSqm * unitParachevementsPerM2,
-    };
+    parachevements = actualParachevementsSqm * unitParachevementsPerM2;
+  } else {
+    parachevements = actualParachevementsSqm * 500;
   }
 
-  // Default calculation if unit not in details
-  return {
-    casco: actualCascoSqm * 1590,
-    parachevements: actualParachevementsSqm * 500,
-  };
+  return { casco, parachevements };
 }
 
 /**
@@ -387,7 +377,7 @@ export function calculateAll(
       p.unitId,
       p.surface,
       unitDetails,
-      p.cascoPerM2,
+      projectParams.globalCascoPerM2,
       p.parachevementsPerM2,
       p.cascoSqm,
       p.parachevementsSqm
