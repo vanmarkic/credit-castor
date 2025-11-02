@@ -79,6 +79,7 @@ describe('Calculator Utils', () => {
       batimentFondationConservatoire: 43700,
       batimentFondationComplete: 269200,
       batimentCoproConservatoire: 56000,
+      globalCascoPerM2: 1590
     };
 
     it('should calculate frais généraux based on Excel formula (Honoraires + recurring costs)', () => {
@@ -149,6 +150,7 @@ describe('Calculator Utils', () => {
 
       const testParams: ProjectParams = {
         ...projectParams,
+        globalCascoPerM2: 1000, // 100m² × 1000€/m² = 100,000
         batimentFondationConservatoire: 50000,
         batimentFondationComplete: 200000,
         batimentCoproConservatoire: 50000,
@@ -157,6 +159,8 @@ describe('Calculator Utils', () => {
       const result = calculateFraisGeneraux3ans(participants, testParams, unitDetails);
 
       // Break down expected result:
+      // Participant CASCO: 100m² × 1000€/m² = 100,000
+      // Common works CASCO: 50,000 + 200,000 + 50,000 = 300,000
       const totalCasco = 100000 + 50000 + 200000 + 50000; // 400,000
       const honoraires = totalCasco * 0.15 * 0.30; // 400,000 × 0.045 = 18,000
 
@@ -196,6 +200,7 @@ describe('Calculator Utils', () => {
       batimentFondationConservatoire: 43700,
       batimentFondationComplete: 269200,
       batimentCoproConservatoire: 56000,
+      globalCascoPerM2: 1590
     };
 
     it('should calculate shared costs without reduction', () => {
@@ -229,6 +234,7 @@ describe('Calculator Utils', () => {
         batimentFondationConservatoire: 43700,
         batimentFondationComplete: 269200,
         batimentCoproConservatoire: 56000,
+        globalCascoPerM2: 1590
       };
       const result = calculateTotalTravauxCommuns(projectParams);
       expect(result).toBe(368900);
@@ -248,6 +254,7 @@ describe('Calculator Utils', () => {
         batimentFondationConservatoire: 43700,
         batimentFondationComplete: 269200,
         batimentCoproConservatoire: 56000,
+        globalCascoPerM2: 1590
       };
       const result = calculateTravauxCommunsPerUnit(projectParams, 4);
       expect(result).toBe(92225);
@@ -265,6 +272,7 @@ describe('Calculator Utils', () => {
         batimentFondationConservatoire: 43700,
         batimentFondationComplete: 269200,
         batimentCoproConservatoire: 56000,
+        globalCascoPerM2: 1590
       };
       const result = calculateTravauxCommunsPerUnit(projectParams, 3);
       expect(result).toBeCloseTo(122966.67, 2);
@@ -307,19 +315,19 @@ describe('Calculator Utils', () => {
     };
 
     it('should return predefined values for known unit', () => {
-      const result = calculateCascoAndParachevements(1, 112, unitDetails);
+      const result = calculateCascoAndParachevements(1, 112, unitDetails, 1590);
       expect(result).toEqual({ casco: 178080, parachevements: 56000 });
     });
 
     it('should calculate default values for unknown unit', () => {
-      const result = calculateCascoAndParachevements(99, 100, unitDetails);
+      const result = calculateCascoAndParachevements(99, 100, unitDetails, 1590);
       expect(result).toEqual({ casco: 159000, parachevements: 50000 });
     });
 
     it('should handle all predefined units', () => {
-      expect(calculateCascoAndParachevements(3, 134, unitDetails)).toEqual({ casco: 213060, parachevements: 67000 });
-      expect(calculateCascoAndParachevements(5, 118, unitDetails)).toEqual({ casco: 187620, parachevements: 59000 });
-      expect(calculateCascoAndParachevements(6, 108, unitDetails)).toEqual({ casco: 171720, parachevements: 54000 });
+      expect(calculateCascoAndParachevements(3, 134, unitDetails, 1590)).toEqual({ casco: 213060, parachevements: 67000 });
+      expect(calculateCascoAndParachevements(5, 118, unitDetails, 1590)).toEqual({ casco: 187620, parachevements: 59000 });
+      expect(calculateCascoAndParachevements(6, 108, unitDetails, 1590)).toEqual({ casco: 171720, parachevements: 54000 });
     });
 
     it('should use custom rates when provided', () => {
@@ -340,27 +348,27 @@ describe('Calculator Utils', () => {
       expect(result).toEqual({ casco: 255000, parachevements: 82500 });
     });
 
-    it('should use unit details when custom rates are undefined', () => {
-      const result = calculateCascoAndParachevements(1, 112, unitDetails, undefined, undefined);
+    it('should use global CASCO rate and unit details for parachevements', () => {
+      const result = calculateCascoAndParachevements(1, 112, unitDetails, 1590, undefined);
       expect(result).toEqual({ casco: 178080, parachevements: 56000 });
     });
 
-    it('should fall back to unit details when only one custom rate is provided', () => {
-      // If only cascoPerM2 is provided but parachevementsPerM2 is undefined, don't use custom rates
+    it('should use global CASCO rate even when parachevements rate is undefined', () => {
+      // CASCO always uses global rate, parachevements falls back to unit details
       const result = calculateCascoAndParachevements(1, 112, unitDetails, 2000, undefined);
-      expect(result).toEqual({ casco: 178080, parachevements: 56000 });
+      expect(result).toEqual({ casco: 224000, parachevements: 56000 }); // 112 * 2000 = 224000
     });
 
     it('should respect cascoSqm and parachevementsSqm when provided', () => {
-      // Test with default rates and custom sqm
-      const result = calculateCascoAndParachevements(99, 100, {}, undefined, undefined, 70, 60);
-      // Default rates: 1590 for casco, 500 for parachevements
+      // Test with global rate and custom sqm
+      const result = calculateCascoAndParachevements(99, 100, {}, 1590, undefined, 70, 60);
+      // 70 * 1590 = 111300 for casco, 60 * 500 = 30000 for parachevements (default)
       expect(result).toEqual({ casco: 111300, parachevements: 30000 });
     });
 
     it('should respect cascoSqm and parachevementsSqm with unit details', () => {
       // Test with unit details and custom sqm
-      const result = calculateCascoAndParachevements(1, 112, unitDetails, undefined, undefined, 80, 80);
+      const result = calculateCascoAndParachevements(1, 112, unitDetails, 1590, undefined, 80, 80);
       // Unit 1 rates: 178080/112 = 1590€/m², 56000/112 = 500€/m²
       // Expected: 80 × 1590 = 127200, 80 × 500 = 40000
       expect(result).toEqual({ casco: 127200, parachevements: 40000 });
@@ -375,8 +383,8 @@ describe('Calculator Utils', () => {
 
     it('should use full surface when sqm parameters are not provided', () => {
       // Ensure backward compatibility - when sqm not specified, use full surface
-      const result = calculateCascoAndParachevements(99, 100, {}, undefined, undefined, undefined, undefined);
-      // Default rates with full surface: 100 × 1590 = 159000, 100 × 500 = 50000
+      const result = calculateCascoAndParachevements(99, 100, {}, 1590, undefined, undefined, undefined);
+      // Global rate with full surface: 100 × 1590 = 159000, 100 × 500 = 50000 (default parachevements)
       expect(result).toEqual({ casco: 159000, parachevements: 50000 });
     });
   });
@@ -511,6 +519,7 @@ describe('Calculator Utils', () => {
         batimentFondationConservatoire: 43700,
         batimentFondationComplete: 269200,
         batimentCoproConservatoire: 56000,
+        globalCascoPerM2: 1590
       };
 
       const scenario: Scenario = {
@@ -560,6 +569,7 @@ describe('Calculator Utils', () => {
         batimentFondationConservatoire: 43700,
         batimentFondationComplete: 269200,
         batimentCoproConservatoire: 56000,
+        globalCascoPerM2: 1590
       };
 
       const scenario: Scenario = {
@@ -607,6 +617,7 @@ describe('Calculator Utils', () => {
         batimentFondationConservatoire: 43700,
         batimentFondationComplete: 269200,
         batimentCoproConservatoire: 56000,
+        globalCascoPerM2: 1590
       };
 
       const scenario: Scenario = {
@@ -629,8 +640,8 @@ describe('Calculator Utils', () => {
       expect(p1.parachevements).toBe(40000);
     });
 
-    it('should work with custom per-m² rates and custom sqm values', () => {
-      // Test that custom sqm works with custom per-m² rates
+    it('should work with global CASCO rate, custom parachevements rate, and custom sqm values', () => {
+      // Test that custom sqm works with global CASCO and custom parachevements per-m² rate
       const participants: Participant[] = [
         {
           name: 'Participant 1',
@@ -641,7 +652,6 @@ describe('Calculator Utils', () => {
           interestRate: 4.5,
           durationYears: 25,
           quantity: 1,
-          cascoPerM2: 2000,
           parachevementsPerM2: 700,
           cascoSqm: 75,  // Only renovate 75 sqm
           parachevementsSqm: 75,
@@ -659,6 +669,7 @@ describe('Calculator Utils', () => {
         batimentFondationConservatoire: 43700,
         batimentFondationComplete: 269200,
         batimentCoproConservatoire: 56000,
+        globalCascoPerM2: 1590
       };
 
       const scenario: Scenario = {
@@ -671,10 +682,10 @@ describe('Calculator Utils', () => {
 
       const results = calculateAll(participants, projectParams, scenario, unitDetails);
 
-      // Expected: 75m² × 2000€ = 150,000€ for CASCO
+      // Expected: 75m² × 1590€ (global) = 119,250€ for CASCO
       //          75m² × 700€ = 52,500€ for parachèvements
       const p1 = results.participantBreakdown[0];
-      expect(p1.casco).toBe(150000);
+      expect(p1.casco).toBe(119250);
       expect(p1.parachevements).toBe(52500);
     });
 
@@ -697,6 +708,7 @@ describe('Calculator Utils', () => {
         batimentFondationConservatoire: 43700,
         batimentFondationComplete: 269200,
         batimentCoproConservatoire: 56000,
+        globalCascoPerM2: 1590
       };
 
       const scenario: Scenario = {
@@ -768,6 +780,7 @@ describe('Calculator Utils', () => {
         batimentFondationConservatoire: 43700,
         batimentFondationComplete: 269200,
         batimentCoproConservatoire: 56000,
+        globalCascoPerM2: 1590
       };
 
       const scenario: Scenario = {
@@ -798,7 +811,7 @@ describe('Calculator Utils', () => {
       expect(p1.constructionCost).toBeCloseTo(361417, 1);
     });
 
-    it('should use custom cascoPerM2 and parachevementsPerM2 rates from participants', () => {
+    it('should use global CASCO rate and custom parachevementsPerM2 rates from participants', () => {
       const participants: Participant[] = [
         {
           name: 'Participant 1',
@@ -809,7 +822,6 @@ describe('Calculator Utils', () => {
           interestRate: 4.5,
           durationYears: 25,
           quantity: 1,
-          cascoPerM2: 1800,
           parachevementsPerM2: 600
         },
         {
@@ -821,7 +833,6 @@ describe('Calculator Utils', () => {
           interestRate: 4.5,
           durationYears: 25,
           quantity: 1,
-          cascoPerM2: 2000,
           parachevementsPerM2: 700
         },
       ];
@@ -837,6 +848,7 @@ describe('Calculator Utils', () => {
         batimentFondationConservatoire: 43700,
         batimentFondationComplete: 269200,
         batimentCoproConservatoire: 56000,
+        globalCascoPerM2: 1590
       };
 
       const scenario: Scenario = {
@@ -849,21 +861,21 @@ describe('Calculator Utils', () => {
 
       const results = calculateAll(participants, projectParams, scenario, unitDetails);
 
-      // Verify participant 1 uses custom rates: 100m² × 1800€ = 180000, 100m² × 600€ = 60000
+      // Verify participant 1: 100m² × 1590€ (global) = 159000, 100m² × 600€ = 60000
       const p1 = results.participantBreakdown[0];
-      expect(p1.casco).toBe(180000);
+      expect(p1.casco).toBe(159000);
       expect(p1.parachevements).toBe(60000);
 
-      // Verify participant 2 uses custom rates: 120m² × 2000€ = 240000, 120m² × 700€ = 84000
+      // Verify participant 2: 120m² × 1590€ (global) = 190800, 120m² × 700€ = 84000
       const p2 = results.participantBreakdown[1];
-      expect(p2.casco).toBe(240000);
+      expect(p2.casco).toBe(190800);
       expect(p2.parachevements).toBe(84000);
 
-      // Verify construction costs are calculated correctly with custom rates
+      // Verify construction costs are calculated correctly
       // travauxCommunsPerUnit = (43700 + 269200 + 56000) / 2 participants = 184450
       const travauxCommunsPerUnit = 184450;
-      expect(p1.constructionCost).toBe(180000 + 60000 + travauxCommunsPerUnit);
-      expect(p2.constructionCost).toBe(240000 + 84000 + travauxCommunsPerUnit);
+      expect(p1.constructionCost).toBe(159000 + 60000 + travauxCommunsPerUnit);
+      expect(p2.constructionCost).toBe(190800 + 84000 + travauxCommunsPerUnit);
     });
 
     it('should produce identical results with and without explicit sqm values (backward compatibility)', () => {
@@ -894,6 +906,7 @@ describe('Calculator Utils', () => {
         batimentFondationConservatoire: 43700,
         batimentFondationComplete: 269200,
         batimentCoproConservatoire: 56000,
+        globalCascoPerM2: 1590
       };
 
       const scenario: Scenario = {
@@ -963,6 +976,7 @@ describe('Calculator Utils', () => {
         batimentFondationConservatoire: 43700,
         batimentFondationComplete: 269200,
         batimentCoproConservatoire: 56000,
+        globalCascoPerM2: 1590
       };
 
       const scenario: Scenario = {
@@ -1006,7 +1020,7 @@ describe('Calculator Utils', () => {
       expect(constructionSavings).toBe(expectedSavings);
     });
 
-    it('should prioritize custom rates over unit details in calculateAll', () => {
+    it('should use global CASCO rate and prioritize custom parachevements over unit details', () => {
       const participants: Participant[] = [
         {
           name: 'Participant 1',
@@ -1017,7 +1031,6 @@ describe('Calculator Utils', () => {
           interestRate: 4.5,
           durationYears: 25,
           quantity: 1,
-          cascoPerM2: 2000,
           parachevementsPerM2: 700
         },
       ];
@@ -1033,6 +1046,7 @@ describe('Calculator Utils', () => {
         batimentFondationConservatoire: 43700,
         batimentFondationComplete: 269200,
         batimentCoproConservatoire: 56000,
+        globalCascoPerM2: 1590
       };
 
       const scenario: Scenario = {
@@ -1048,10 +1062,10 @@ describe('Calculator Utils', () => {
 
       const results = calculateAll(participants, projectParams, scenario, unitDetails);
 
-      // Should use custom rates (112m² × 2000€ = 224000, 112m² × 700€ = 78400)
-      // NOT unit details (casco: 178080, parachevements: 56000)
+      // CASCO uses global rate: 112m² × 1590€ = 178080
+      // Parachevements uses custom rate: 112m² × 700€ = 78400 (NOT unit details 56000)
       const p1 = results.participantBreakdown[0];
-      expect(p1.casco).toBe(224000);
+      expect(p1.casco).toBe(178080);
       expect(p1.parachevements).toBe(78400);
     });
   });

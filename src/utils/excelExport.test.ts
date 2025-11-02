@@ -87,6 +87,7 @@ describe('Excel Export', () => {
     batimentFondationConservatoire: 43700,
     batimentFondationComplete: 269200,
     batimentCoproConservatoire: 56000,
+    globalCascoPerM2: 1590
   };
 
   const mockScenario: Scenario = {

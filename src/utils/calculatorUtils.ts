@@ -166,7 +166,7 @@ export function calculateFraisGeneraux3ans(
       participant.unitId,
       participant.surface,
       unitDetails,
-      participant.cascoPerM2,
+      projectParams.globalCascoPerM2,
       participant.parachevementsPerM2,
       participant.cascoSqm,
       participant.parachevementsSqm
@@ -377,7 +377,7 @@ export function calculateAll(
       p.unitId,
       p.surface,
       unitDetails,
-      p.cascoPerM2,
+      projectParams.globalCascoPerM2,
       p.parachevementsPerM2,
       p.cascoSqm,
       p.parachevementsSqm
