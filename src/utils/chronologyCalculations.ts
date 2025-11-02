@@ -7,13 +7,15 @@
  * - Projections derived by replaying events
  */
 
-import type { Participant } from './calculatorUtils';
+import { calculateAll } from './calculatorUtils';
+import type { Participant, UnitDetails } from './calculatorUtils';
 import type {
   DomainEvent,
   InitialPurchaseEvent,
   NewcomerJoinsEvent,
   HiddenLotRevealedEvent,
   ProjectionState,
+  PhaseProjection,
   Transaction,
   ParticipantDetails
 } from '../types/timeline';
@@ -251,6 +253,131 @@ function convertToParticipant(details: ParticipantDetails): Participant {
     parachevementsPerM2: details.parachevementsPerM2,
     cascoSqm: details.cascoSqm,
     parachevementsSqm: details.parachevementsSqm
+  };
+}
+
+// ============================================
+// Timeline Projection
+// ============================================
+
+/**
+ * Project timeline events into phase views
+ *
+ * This is the core function that replays events to compute phases.
+ * Each phase is a complete snapshot of the co-ownership state.
+ *
+ * @param events - Chronological list of domain events
+ * @param unitDetails - Unit configurations for calculations
+ * @returns Array of phase projections
+ */
+export function projectTimeline(
+  events: DomainEvent[],
+  unitDetails: UnitDetails
+): PhaseProjection[] {
+  // Empty events = empty timeline
+  if (events.length === 0) {
+    return [];
+  }
+
+  // Validate: must start with INITIAL_PURCHASE
+  const initialEvent = events[0];
+  if (initialEvent.type !== 'INITIAL_PURCHASE') {
+    throw new Error('Timeline must start with INITIAL_PURCHASE event');
+  }
+
+  // Initialize state
+  let state: ProjectionState = createInitialState();
+
+  // Apply initial event
+  state = applyEvent(state, initialEvent);
+
+  // Create Phase 0
+  const phases: PhaseProjection[] = [
+    createPhaseProjection(state, 0, initialEvent.date, unitDetails, initialEvent)
+  ];
+
+  // Apply remaining events, creating new phase for each
+  for (let i = 1; i < events.length; i++) {
+    const event = events[i];
+
+    // Apply event to state
+    state = applyEvent(state, event);
+
+    // Calculate duration of previous phase
+    const prevPhase = phases[phases.length - 1];
+    const durationMs = event.date.getTime() - prevPhase.startDate.getTime();
+    const durationMonths = Math.round(durationMs / (1000 * 60 * 60 * 24 * 30.44));
+
+    prevPhase.durationMonths = durationMonths;
+    prevPhase.endDate = event.date;
+
+    // Create new phase
+    phases.push(
+      createPhaseProjection(state, i, event.date, unitDetails, event)
+    );
+  }
+
+  return phases;
+}
+
+/**
+ * Create a phase projection from current state
+ *
+ * Calls calculateAll() to get financial snapshot,
+ * then wraps it with phase metadata.
+ */
+function createPhaseProjection(
+  state: ProjectionState,
+  phaseNumber: number,
+  startDate: Date,
+  unitDetails: UnitDetails,
+  triggeringEvent: DomainEvent
+): PhaseProjection {
+  // Reuse existing calculation engine
+  const snapshot = calculateAll(
+    state.participants,
+    state.projectParams,
+    state.scenario,
+    unitDetails
+  );
+
+  // TODO: Calculate cash flows (will implement in next phase)
+  const participantCashFlows = new Map();
+  const coproproprieteCashFlow = {
+    monthlyRecurring: {
+      loanPayments: 0,
+      commonAreaMaintenance: 0,
+      insurance: 0,
+      accountingFees: 0,
+      totalMonthly: 0
+    },
+    phaseSummary: {
+      durationMonths: 0,
+      totalRecurring: 0,
+      transitionNet: 0,
+      phaseNetCashImpact: 0
+    },
+    balanceSheet: {
+      cashReserve: state.copropropriete.cashReserve,
+      lotsOwnedValue: 0,
+      outstandingLoans: 0,
+      netWorth: state.copropropriete.cashReserve
+    }
+  };
+
+  return {
+    phaseNumber,
+    startDate,
+    endDate: undefined, // Set by next event
+    durationMonths: undefined,
+    participants: state.participants,
+    copropropriete: state.copropropriete,
+    projectParams: state.projectParams,
+    scenario: state.scenario,
+    snapshot,
+    participantCashFlows,
+    coproproprieteCashFlow,
+    triggeringEvent
   };
 }
 

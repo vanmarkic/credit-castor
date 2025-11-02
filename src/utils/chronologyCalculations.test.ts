@@ -9,6 +9,7 @@ import { describe, it, expect } from 'vitest';
 import {
   applyEvent,
   createInitialState,
+  projectTimeline,
   type ProjectionState
 } from './chronologyCalculations';
 import type {
@@ -69,6 +70,43 @@ function createTestInitialPurchaseEvent(): InitialPurchaseEvent {
     copropropriete: {
       name: 'Copropriété Ferme du Temple',
       hiddenLots: [5, 6] // Two lots held collectively
+    }
+  };
+}
+
+function createNewcomerJoinsEvent(): NewcomerJoinsEvent {
+  return {
+    id: 'evt_002',
+    type: 'NEWCOMER_JOINS',
+    date: new Date('2027-01-20T14:30:00Z'),
+    buyer: {
+      name: 'Emma',
+      surface: 134,
+      unitId: 2,
+      capitalApporte: 40000,
+      notaryFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      parachevementsPerM2: 500
+    },
+    acquisition: {
+      from: 'Buyer B',
+      lotId: 2,
+      purchasePrice: 165000,
+      breakdown: {
+        basePrice: 143000,
+        indexation: 5720,
+        carryingCostRecovery: 10800,
+        feesRecovery: 5480,
+        renovations: 0
+      }
+    },
+    notaryFees: 20625,
+    financing: {
+      capitalApporte: 40000,
+      loanAmount: 145625,
+      interestRate: 4.5,
+      durationYears: 25
     }
   };
 }
@@ -202,43 +240,6 @@ describe('applyInitialPurchase', () => {
 // ============================================
 
 describe('applyNewcomerJoins', () => {
-  function createNewcomerJoinsEvent(): NewcomerJoinsEvent {
-    return {
-      id: 'evt_002',
-      type: 'NEWCOMER_JOINS',
-      date: new Date('2027-01-20T14:30:00Z'),
-      buyer: {
-        name: 'Emma',
-        surface: 134,
-        unitId: 2,
-        capitalApporte: 40000,
-        notaryFeesRate: 12.5,
-        interestRate: 4.5,
-        durationYears: 25,
-        parachevementsPerM2: 500
-      },
-      acquisition: {
-        from: 'Buyer B',
-        lotId: 2,
-        purchasePrice: 165000,
-        breakdown: {
-          basePrice: 143000,
-          indexation: 5720,
-          carryingCostRecovery: 10800,
-          feesRecovery: 5480,
-          renovations: 0
-        }
-      },
-      notaryFees: 20625,
-      financing: {
-        capitalApporte: 40000,
-        loanAmount: 145625,
-        interestRate: 4.5,
-        durationYears: 25
-      }
-    };
-  }
-
   it('should add newcomer as full participant', () => {
     // Start with state after initial purchase
     const initialState = createInitialState();
@@ -347,5 +348,184 @@ describe('applyNewcomerJoins', () => {
     const finalState = applyEvent(stateAfterInit, newcomerEvent);
 
     expect(finalState.currentDate).toEqual(new Date('2027-01-20T14:30:00Z'));
+  });
+});
+
+// ============================================
+// projectTimeline Tests
+// ============================================
+
+describe('projectTimeline', () => {
+  const unitDetails = {
+    1: { casco: 178080, parachevements: 56000 },
+    2: { casco: 213060, parachevements: 67000 }
+  };
+
+  it('should return empty array for empty events', () => {
+    const phases = projectTimeline([], unitDetails);
+    expect(phases).toEqual([]);
+  });
+
+  it('should throw error if first event is not INITIAL_PURCHASE', () => {
+    const invalidEvents = [createNewcomerJoinsEvent()];
+
+    expect(() => projectTimeline(invalidEvents, unitDetails)).toThrow(
+      'Timeline must start with INITIAL_PURCHASE event'
+    );
+  });
+
+  it('should create phase 0 from INITIAL_PURCHASE event', () => {
+    const events = [createTestInitialPurchaseEvent()];
+
+    const phases = projectTimeline(events, unitDetails);
+
+    expect(phases).toHaveLength(1);
+    expect(phases[0].phaseNumber).toBe(0);
+    expect(phases[0].startDate).toEqual(new Date('2025-01-15T10:00:00Z'));
+    expect(phases[0].participants).toHaveLength(2);
+  });
+
+  it('should call calculateAll for phase snapshot', () => {
+    const events = [createTestInitialPurchaseEvent()];
+
+    const phases = projectTimeline(events, unitDetails);
+
+    // Check that snapshot has the structure from calculateAll
+    expect(phases[0].snapshot).toBeDefined();
+    expect(phases[0].snapshot).toHaveProperty('totalSurface');
+    expect(phases[0].snapshot).toHaveProperty('pricePerM2');
+    expect(phases[0].snapshot).toHaveProperty('participantBreakdown');
+    expect(phases[0].snapshot).toHaveProperty('totals');
+  });
+
+  it('should create phase 1 when NEWCOMER_JOINS', () => {
+    const events = [
+      createTestInitialPurchaseEvent(),
+      createNewcomerJoinsEvent()
+    ];
+
+    const phases = projectTimeline(events, unitDetails);
+
+    expect(phases).toHaveLength(2);
+    expect(phases[0].phaseNumber).toBe(0);
+    expect(phases[1].phaseNumber).toBe(1);
+    expect(phases[1].participants).toHaveLength(3); // Added Emma
+  });
+
+  it('should calculate phase duration from event dates', () => {
+    const events = [
+      createTestInitialPurchaseEvent(), // 2025-01-15
+      createNewcomerJoinsEvent()         // 2027-01-20
+    ];
+
+    const phases = projectTimeline(events, unitDetails);
+
+    // Phase 0 duration: 2025-01-15 to 2027-01-20 = ~24 months
+    expect(phases[0].durationMonths).toBeGreaterThan(23);
+    expect(phases[0].durationMonths).toBeLessThan(26);
+    expect(phases[0].endDate).toEqual(new Date('2027-01-20T14:30:00Z'));
+  });
+
+  it('should leave final phase without endDate', () => {
+    const events = [
+      createTestInitialPurchaseEvent(),
+      createNewcomerJoinsEvent()
+    ];
+
+    const phases = projectTimeline(events, unitDetails);
+
+    expect(phases[0].endDate).toBeDefined();
+    expect(phases[1].endDate).toBeUndefined(); // Final phase ongoing
+    expect(phases[1].durationMonths).toBeUndefined();
+  });
+
+  it('should store triggering event in phase', () => {
+    const events = [
+      createTestInitialPurchaseEvent(),
+      createNewcomerJoinsEvent()
+    ];
+
+    const phases = projectTimeline(events, unitDetails);
+
+    expect(phases[0].triggeringEvent?.type).toBe('INITIAL_PURCHASE');
+    expect(phases[1].triggeringEvent?.type).toBe('NEWCOMER_JOINS');
+  });
+
+  it('should handle multiple phase transitions', () => {
+
+    // Create third event
+    const thirdEvent: NewcomerJoinsEvent = {
+      id: 'evt_003',
+      type: 'NEWCOMER_JOINS',
+      date: new Date('2030-05-10T10:00:00Z'),
+      buyer: {
+        name: 'Tom',
+        surface: 100,
+        unitId: 3,
+        capitalApporte: 60000,
+        notaryFeesRate: 12.5,
+        interestRate: 4.5,
+        durationYears: 25,
+        parachevementsPerM2: 500
+      },
+      acquisition: {
+        from: 'Buyer A',
+        lotId: 3,
+        purchasePrice: 180000,
+        breakdown: {
+          basePrice: 150000,
+          indexation: 15000,
+          carryingCostRecovery: 10000,
+          feesRecovery: 5000,
+          renovations: 0
+        }
+      },
+      notaryFees: 22500,
+      financing: {
+        capitalApporte: 60000,
+        loanAmount: 142500,
+        interestRate: 4.5,
+        durationYears: 25
+      }
+    };
+
+    const events = [
+      createTestInitialPurchaseEvent(),
+      createNewcomerJoinsEvent(),
+      thirdEvent
+    ];
+
+    const phases = projectTimeline(events, unitDetails);
+
+    expect(phases).toHaveLength(3);
+    expect(phases[0].participants).toHaveLength(2);
+    expect(phases[1].participants).toHaveLength(3);
+    expect(phases[2].participants).toHaveLength(4);
+  });
+
+  it('should maintain transaction history across phases', () => {
+    const events = [
+      createTestInitialPurchaseEvent(),
+      createNewcomerJoinsEvent()
+    ];
+
+    const phases = projectTimeline(events, unitDetails);
+
+    // Phase 0: no transactions
+    // Phase 1: LOT_SALE + NOTARY_FEES transactions
+    expect(phases[1].snapshot.participantBreakdown.find(p => p.name === 'Emma')).toBeDefined();
+  });
+
+  it('should recalculate everything for each phase', () => {
+    const events = [
+      createTestInitialPurchaseEvent(),
+      createNewcomerJoinsEvent()
+    ];
+
+    const phases = projectTimeline(events, unitDetails);
+
+    // Each phase should have fresh calculations
+    expect(phases[0].snapshot.totalSurface).toBe(246); // 112 + 134
+    expect(phases[1].snapshot.totalSurface).toBe(380); // 112 + 134 + 134 (Emma)
   });
 });
