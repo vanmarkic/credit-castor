@@ -1074,5 +1074,35 @@ describe('Calculator Utils', () => {
 
       expect(projectParams.globalCascoPerM2).toBe(1590);
     });
+
+    it('calculateCascoAndParachevements uses globalCascoPerM2', () => {
+      const result = calculateCascoAndParachevements(
+        1, // unitId
+        100, // surface
+        {}, // unitDetails (empty)
+        2000, // globalCascoPerM2
+        600, // parachevementsPerM2
+        undefined, // cascoSqm
+        undefined  // parachevementsSqm
+      );
+
+      expect(result.casco).toBe(200000); // 100m² × 2000€/m²
+      expect(result.parachevements).toBe(60000); // 100m² × 600€/m²
+    });
+
+    it('calculateCascoAndParachevements respects custom cascoSqm', () => {
+      const result = calculateCascoAndParachevements(
+        1,
+        100, // total surface
+        {},
+        2000, // globalCascoPerM2
+        600,
+        50, // only renovate 50m² with CASCO
+        undefined
+      );
+
+      expect(result.casco).toBe(100000); // 50m² × 2000€/m²
+      expect(result.parachevements).toBe(60000); // 100m² × 600€/m²
+    });
   });
 });
