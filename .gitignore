@@ -21,3 +21,6 @@ yarn-debug.log*
 
 # Excel exports
 *.xlsx
+
+# Git worktrees
+.worktrees/
