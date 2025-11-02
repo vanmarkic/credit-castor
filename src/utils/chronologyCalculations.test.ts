@@ -13,7 +13,10 @@ import {
 } from './chronologyCalculations';
 import type {
   InitialPurchaseEvent,
-  NewcomerJoinsEvent
+  NewcomerJoinsEvent,
+  PortageSettlementEvent,
+  CoproTakesLoanEvent,
+  ParticipantExitsEvent
 } from '../types/timeline';
 
 // ============================================
@@ -751,5 +754,309 @@ describe('Copropriété Cash Flows', () => {
     expect(coproCashFlow.phaseSummary.totalRecurring).toBe(
       coproCashFlow.monthlyRecurring.totalMonthly * coproCashFlow.phaseSummary.durationMonths
     );
+  });
+});
+
+// ============================================
+// applyPortageSettlement Tests
+// ============================================
+
+describe('applyPortageSettlement', () => {
+  function createPortageSettlementEvent(): PortageSettlementEvent {
+    return {
+      id: 'evt_portage_001',
+      type: 'PORTAGE_SETTLEMENT',
+      date: new Date('2027-06-15T10:00:00Z'),
+      seller: 'Buyer B',
+      buyer: 'Buyer A',
+      lotId: 3,
+      carryingPeriodMonths: 24,
+      carryingCosts: {
+        monthlyInterest: 348.75,
+        monthlyTax: 32.37,
+        monthlyInsurance: 166.67,
+        totalCarried: 13147
+      },
+      saleProceeds: 172649,
+      netPosition: 159502 // saleProceeds - totalCarried
+    };
+  }
+
+  it('should reduce seller lot count if quantity > 1', () => {
+    // Setup: Buyer B has 2 lots (carrying one for portage)
+    const initialState = createInitialState();
+    const initialEvent = createTestInitialPurchaseEvent();
+    let state = applyEvent(initialState, initialEvent);
+
+    // Manually set Buyer B to have 2 lots
+    state = {
+      ...state,
+      participants: state.participants.map(p =>
+        p.name === 'Buyer B' ? { ...p, quantity: 2 } : p
+      )
+    };
+
+    // Apply portage settlement
+    const portageEvent = createPortageSettlementEvent();
+    const finalState = applyEvent(state, portageEvent);
+
+    const buyerB = finalState.participants.find(p => p.name === 'Buyer B');
+    expect(buyerB!.quantity).toBe(1); // Reduced from 2 to 1
+  });
+
+  it('should record LOT_SALE transaction', () => {
+    const initialState = createInitialState();
+    const initialEvent = createTestInitialPurchaseEvent();
+    let state = applyEvent(initialState, initialEvent);
+
+    state = {
+      ...state,
+      participants: state.participants.map(p =>
+        p.name === 'Buyer B' ? { ...p, quantity: 2 } : p
+      )
+    };
+
+    const portageEvent = createPortageSettlementEvent();
+    const finalState = applyEvent(state, portageEvent);
+
+    const lotSaleTx = finalState.transactionHistory.find(
+      tx => tx.type === 'LOT_SALE' && tx.from === 'Buyer B' && tx.to === 'Buyer A'
+    );
+
+    expect(lotSaleTx).toBeDefined();
+    expect(lotSaleTx!.amount).toBe(172649);
+    expect(lotSaleTx!.date).toEqual(new Date('2027-06-15T10:00:00Z'));
+  });
+
+  it('should include carrying costs in transaction metadata', () => {
+    const initialState = createInitialState();
+    const initialEvent = createTestInitialPurchaseEvent();
+    let state = applyEvent(initialState, initialEvent);
+
+    state = {
+      ...state,
+      participants: state.participants.map(p =>
+        p.name === 'Buyer B' ? { ...p, quantity: 2 } : p
+      )
+    };
+
+    const portageEvent = createPortageSettlementEvent();
+    const finalState = applyEvent(state, portageEvent);
+
+    const lotSaleTx = finalState.transactionHistory.find(
+      tx => tx.type === 'LOT_SALE' && tx.from === 'Buyer B'
+    );
+
+    expect(lotSaleTx!.metadata).toBeDefined();
+    expect(lotSaleTx!.metadata!.carryingCosts).toBe(13147);
+    expect(lotSaleTx!.metadata!.carryingPeriodMonths).toBe(24);
+    expect(lotSaleTx!.metadata!.netPosition).toBe(159502);
+  });
+
+  it('should update current date', () => {
+    const initialState = createInitialState();
+    const initialEvent = createTestInitialPurchaseEvent();
+    let state = applyEvent(initialState, initialEvent);
+
+    state = {
+      ...state,
+      participants: state.participants.map(p =>
+        p.name === 'Buyer B' ? { ...p, quantity: 2 } : p
+      )
+    };
+
+    const portageEvent = createPortageSettlementEvent();
+    const finalState = applyEvent(state, portageEvent);
+
+    expect(finalState.currentDate).toEqual(new Date('2027-06-15T10:00:00Z'));
+  });
+});
+
+// ============================================
+// applyCoproTakesLoan Tests
+// ============================================
+
+describe('applyCoproTakesLoan', () => {
+  function createCoproTakesLoanEvent(): CoproTakesLoanEvent {
+    return {
+      id: 'evt_loan_001',
+      type: 'COPRO_TAKES_LOAN',
+      date: new Date('2026-03-01T10:00:00Z'),
+      loanAmount: 50000,
+      purpose: 'Emergency roof repairs',
+      interestRate: 3.5,
+      durationYears: 10,
+      monthlyPayment: 493.31
+    };
+  }
+
+  it('should add loan to copropriete loans array', () => {
+    const initialState = createInitialState();
+    const initialEvent = createTestInitialPurchaseEvent();
+    const state = applyEvent(initialState, initialEvent);
+
+    const loanEvent = createCoproTakesLoanEvent();
+    const finalState = applyEvent(state, loanEvent);
+
+    expect(finalState.copropropriete.loans).toHaveLength(1);
+    const loan = finalState.copropropriete.loans[0];
+    expect(loan.amount).toBe(50000);
+    expect(loan.purpose).toBe('Emergency roof repairs');
+    expect(loan.interestRate).toBe(3.5);
+    expect(loan.durationYears).toBe(10);
+    expect(loan.monthlyPayment).toBe(493.31);
+    expect(loan.remainingBalance).toBe(50000);
+  });
+
+  it('should update copro monthly loan payments', () => {
+    const initialState = createInitialState();
+    const initialEvent = createTestInitialPurchaseEvent();
+    const state = applyEvent(initialState, initialEvent);
+
+    const loanEvent = createCoproTakesLoanEvent();
+    const finalState = applyEvent(state, loanEvent);
+
+    expect(finalState.copropropriete.monthlyObligations.loanPayments).toBe(493.31);
+  });
+
+  it('should accumulate monthly payments for multiple loans', () => {
+    const initialState = createInitialState();
+    const initialEvent = createTestInitialPurchaseEvent();
+    let state = applyEvent(initialState, initialEvent);
+
+    // First loan
+    const loan1 = createCoproTakesLoanEvent();
+    state = applyEvent(state, loan1);
+
+    // Second loan
+    const loan2: CoproTakesLoanEvent = {
+      id: 'evt_loan_002',
+      type: 'COPRO_TAKES_LOAN',
+      date: new Date('2027-01-01T10:00:00Z'),
+      loanAmount: 30000,
+      purpose: 'Facade renovation',
+      interestRate: 4.0,
+      durationYears: 8,
+      monthlyPayment: 363.78
+    };
+    state = applyEvent(state, loan2);
+
+    expect(state.copropropriete.loans).toHaveLength(2);
+    expect(state.copropropriete.monthlyObligations.loanPayments).toBe(493.31 + 363.78);
+  });
+
+  it('should update current date', () => {
+    const initialState = createInitialState();
+    const initialEvent = createTestInitialPurchaseEvent();
+    const state = applyEvent(initialState, initialEvent);
+
+    const loanEvent = createCoproTakesLoanEvent();
+    const finalState = applyEvent(state, loanEvent);
+
+    expect(finalState.currentDate).toEqual(new Date('2026-03-01T10:00:00Z'));
+  });
+});
+
+// ============================================
+// applyParticipantExits Tests
+// ============================================
+
+describe('applyParticipantExits', () => {
+  function createParticipantExitsEvent(buyerType: 'NEWCOMER' | 'EXISTING_PARTICIPANT' | 'COPRO' = 'COPRO'): ParticipantExitsEvent {
+    return {
+      id: 'evt_exit_001',
+      type: 'PARTICIPANT_EXITS',
+      date: new Date('2028-01-15T10:00:00Z'),
+      participant: 'Buyer A',
+      lotId: 1,
+      buyerType,
+      buyerName: buyerType === 'NEWCOMER' ? 'New Buyer' : buyerType === 'EXISTING_PARTICIPANT' ? 'Buyer B' : undefined,
+      salePrice: 200000
+    };
+  }
+
+  it('should remove participant if they have only 1 lot', () => {
+    const initialState = createInitialState();
+    const initialEvent = createTestInitialPurchaseEvent();
+    const state = applyEvent(initialState, initialEvent);
+
+    const exitEvent = createParticipantExitsEvent('COPRO');
+    const finalState = applyEvent(state, exitEvent);
+
+    // Buyer A should be removed
+    const buyerA = finalState.participants.find(p => p.name === 'Buyer A');
+    expect(buyerA).toBeUndefined();
+    expect(finalState.participants).toHaveLength(1); // Only Buyer B remains
+  });
+
+  it('should reduce participant lot count if they have multiple lots', () => {
+    const initialState = createInitialState();
+    const initialEvent = createTestInitialPurchaseEvent();
+    let state = applyEvent(initialState, initialEvent);
+
+    // Manually set Buyer A to have 2 lots
+    state = {
+      ...state,
+      participants: state.participants.map(p =>
+        p.name === 'Buyer A' ? { ...p, quantity: 2 } : p
+      )
+    };
+
+    const exitEvent = createParticipantExitsEvent('COPRO');
+    const finalState = applyEvent(state, exitEvent);
+
+    const buyerA = finalState.participants.find(p => p.name === 'Buyer A');
+    expect(buyerA!.quantity).toBe(1); // Reduced from 2 to 1
+  });
+
+  it('should add lot to copro when buyerType is COPRO', () => {
+    const initialState = createInitialState();
+    const initialEvent = createTestInitialPurchaseEvent();
+    const state = applyEvent(initialState, initialEvent);
+
+    const exitEvent = createParticipantExitsEvent('COPRO');
+    const finalState = applyEvent(state, exitEvent);
+
+    expect(finalState.copropropriete.lotsOwned).toContain(1);
+  });
+
+  it('should increase existing participant lot count when buyerType is EXISTING_PARTICIPANT', () => {
+    const initialState = createInitialState();
+    const initialEvent = createTestInitialPurchaseEvent();
+    const state = applyEvent(initialState, initialEvent);
+
+    const exitEvent = createParticipantExitsEvent('EXISTING_PARTICIPANT');
+    const finalState = applyEvent(state, exitEvent);
+
+    const buyerB = finalState.participants.find(p => p.name === 'Buyer B');
+    expect(buyerB!.quantity).toBe(2); // Increased from 1 to 2
+  });
+
+  it('should record LOT_SALE transaction', () => {
+    const initialState = createInitialState();
+    const initialEvent = createTestInitialPurchaseEvent();
+    const state = applyEvent(initialState, initialEvent);
+
+    const exitEvent = createParticipantExitsEvent('COPRO');
+    const finalState = applyEvent(state, exitEvent);
+
+    const lotSaleTx = finalState.transactionHistory.find(
+      tx => tx.type === 'LOT_SALE' && tx.from === 'Buyer A'
+    );
+
+    expect(lotSaleTx).toBeDefined();
+    expect(lotSaleTx!.amount).toBe(200000);
+    expect(lotSaleTx!.to).toBe('COPRO');
+  });
+
+  it('should update current date', () => {
+    const initialState = createInitialState();
+    const initialEvent = createTestInitialPurchaseEvent();
+    const state = applyEvent(initialState, initialEvent);
+
+    const exitEvent = createParticipantExitsEvent('COPRO');
+    const finalState = applyEvent(state, exitEvent);
+
+    expect(finalState.currentDate).toEqual(new Date('2028-01-15T10:00:00Z'));
   });
 });

@@ -14,6 +14,10 @@ import type {
   InitialPurchaseEvent,
   NewcomerJoinsEvent,
   HiddenLotRevealedEvent,
+  PortageSettlementEvent,
+  CoproTakesLoanEvent,
+  ParticipantExitsEvent,
+  Loan,
   ProjectionState,
   PhaseProjection,
   Transaction,
@@ -84,10 +88,13 @@ export function applyEvent(
       return applyHiddenLotRevealed(state, event);
 
     case 'PORTAGE_SETTLEMENT':
+      return applyPortageSettlement(state, event);
+
     case 'COPRO_TAKES_LOAN':
+      return applyCoproTakesLoan(state, event);
+
     case 'PARTICIPANT_EXITS':
-      // TODO: Implement these handlers
-      return state;
+      return applyParticipantExits(state, event);
 
     default:
       // Exhaustive check (TypeScript will error if case missed)
@@ -232,6 +239,141 @@ function applyHiddenLotRevealed(
       },
       ...redistributionTxs
     ]
+  };
+}
+
+/**
+ * Apply PORTAGE_SETTLEMENT event
+ * Participant carrying lot for portage sells it to buyer
+ */
+function applyPortageSettlement(
+  state: ProjectionState,
+  event: PortageSettlementEvent
+): ProjectionState {
+  // 1. Update seller's lot count (reduce by 1 if carrying multiple)
+  const updatedParticipants = state.participants.map(p => {
+    if (p.name === event.seller && p.quantity > 1) {
+      return { ...p, quantity: p.quantity - 1 };
+    }
+    return p;
+  });
+
+  // 2. Record transaction
+  const transaction: Transaction = {
+    type: 'LOT_SALE',
+    from: event.seller,
+    to: event.buyer,
+    amount: event.saleProceeds,
+    date: event.date,
+    metadata: {
+      carryingCosts: event.carryingCosts.totalCarried,
+      carryingPeriodMonths: event.carryingPeriodMonths,
+      netPosition: event.netPosition
+    }
+  };
+
+  return {
+    ...state,
+    currentDate: event.date,
+    participants: updatedParticipants,
+    transactionHistory: [...state.transactionHistory, transaction]
+  };
+}
+
+/**
+ * Apply COPRO_TAKES_LOAN event
+ * Copropriété takes out a loan for collective expenses
+ */
+function applyCoproTakesLoan(
+  state: ProjectionState,
+  event: CoproTakesLoanEvent
+): ProjectionState {
+  // 1. Create new loan
+  const newLoan: Loan = {
+    id: event.id,
+    amount: event.loanAmount,
+    purpose: event.purpose,
+    interestRate: event.interestRate,
+    durationYears: event.durationYears,
+    monthlyPayment: event.monthlyPayment,
+    remainingBalance: event.loanAmount,
+    startDate: event.date
+  };
+
+  // 2. Update copropriété with new loan
+  const updatedCopro = {
+    ...state.copropropriete,
+    loans: [...state.copropropriete.loans, newLoan],
+    monthlyObligations: {
+      ...state.copropropriete.monthlyObligations,
+      loanPayments: state.copropropriete.monthlyObligations.loanPayments + event.monthlyPayment
+    }
+  };
+
+  return {
+    ...state,
+    currentDate: event.date,
+    copropropriete: updatedCopro
+  };
+}
+
+/**
+ * Apply PARTICIPANT_EXITS event
+ * Participant exits by selling their lot
+ */
+function applyParticipantExits(
+  state: ProjectionState,
+  event: ParticipantExitsEvent
+): ProjectionState {
+  // 1. Update or remove exiting participant
+  let updatedParticipants = state.participants;
+  const exitingParticipant = state.participants.find(p => p.name === event.participant);
+
+  if (exitingParticipant) {
+    if (exitingParticipant.quantity > 1) {
+      // Reduce lot count
+      updatedParticipants = state.participants.map(p =>
+        p.name === event.participant ? { ...p, quantity: p.quantity - 1 } : p
+      );
+    } else {
+      // Remove participant entirely
+      updatedParticipants = state.participants.filter(p => p.name !== event.participant);
+    }
+  }
+
+  // 2. Handle buyer based on type
+  let updatedCopro = state.copropropriete;
+
+  if (event.buyerType === 'COPRO') {
+    // Copro acquires the lot
+    updatedCopro = {
+      ...state.copropropriete,
+      lotsOwned: [...state.copropropriete.lotsOwned, event.lotId]
+    };
+  } else if (event.buyerType === 'EXISTING_PARTICIPANT' && event.buyerName) {
+    // Existing participant increases lot count
+    updatedParticipants = updatedParticipants.map(p =>
+      p.name === event.buyerName ? { ...p, quantity: p.quantity + 1 } : p
+    );
+  }
+  // TODO: Handle NEWCOMER case (would need buyer details in event)
+
+  // 3. Record transaction
+  const buyerName = event.buyerType === 'COPRO' ? 'COPRO' : event.buyerName || 'Unknown';
+  const transaction: Transaction = {
+    type: 'LOT_SALE',
+    from: event.participant,
+    to: buyerName,
+    amount: event.salePrice,
+    date: event.date
+  };
+
+  return {
+    ...state,
+    currentDate: event.date,
+    participants: updatedParticipants,
+    copropropriete: updatedCopro,
+    transactionHistory: [...state.transactionHistory, transaction]
   };
 }
 
