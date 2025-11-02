@@ -586,7 +586,7 @@ export default function EnDivisionCorrect() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs text-gray-600 mb-2">
-                  Prix CASCO (gros œuvre) - Global
+                  Prix CASCO (gros œuvre) - Prix/m² - Global
                 </label>
                 <input
                   type="number"
