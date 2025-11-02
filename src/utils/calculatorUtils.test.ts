@@ -21,6 +21,91 @@ import {
   type UnitDetails,
 } from './calculatorUtils';
 
+// ============================================
+// Task 1.2: Participant Type Extensions (TDD)
+// ============================================
+
+describe('Participant type extensions', () => {
+  it('should identify founders with entry date equal to deed date', () => {
+    const deedDate = new Date('2026-02-01');
+    const founder: Participant = {
+      name: 'Alice',
+      isFounder: true,
+      entryDate: deedDate, // Founders enter at deed date
+      lotsOwned: [],
+      capitalApporte: 50000,
+      notaryFeesRate: 0.125,
+      interestRate: 0.04,
+      durationYears: 20,
+    };
+    expect(founder.isFounder).toBe(true);
+    expect(founder.entryDate).toEqual(deedDate);
+  });
+
+  it('should track newcomer with later entry date', () => {
+    const newcomer: Participant = {
+      name: 'Emma',
+      isFounder: false,
+      entryDate: new Date('2028-02-01'), // 2 years after initial deed
+      lotsOwned: [],
+      capitalApporte: 40000,
+      notaryFeesRate: 0.125,
+      interestRate: 0.04,
+      durationYears: 20,
+    };
+    expect(newcomer.isFounder).toBe(false);
+    expect(newcomer.entryDate).toEqual(new Date('2028-02-01'));
+  });
+
+  it('should track participant exit date', () => {
+    const exited: Participant = {
+      name: 'Bob',
+      isFounder: true,
+      entryDate: new Date('2026-02-01'),
+      exitDate: new Date('2028-06-01'),
+      lotsOwned: [],
+      capitalApporte: 40000,
+      notaryFeesRate: 0.125,
+      interestRate: 0.04,
+      durationYears: 20,
+    };
+    expect(exited.exitDate).toEqual(new Date('2028-06-01'));
+  });
+
+  it('should replace quantity with lotsOwned array with deed date', () => {
+    const deedDate = new Date('2026-02-01');
+    const withLots: Participant = {
+      name: 'Charlie',
+      isFounder: true,
+      entryDate: deedDate,
+      lotsOwned: [
+        {
+          lotId: 1,
+          surface: 85,
+          unitId: 101,
+          isPortage: false,
+          acquiredDate: deedDate, // Same as entry date for founders
+        },
+        {
+          lotId: 2,
+          surface: 85,
+          unitId: 101,
+          isPortage: true,
+          acquiredDate: deedDate,
+        },
+      ],
+      capitalApporte: 170000,
+      notaryFeesRate: 0.125,
+      interestRate: 0.04,
+      durationYears: 20,
+    };
+    expect(withLots.lotsOwned).toBeDefined();
+    expect(withLots.lotsOwned).toHaveLength(2);
+    expect(withLots.lotsOwned![0].acquiredDate).toEqual(deedDate);
+    expect(withLots.entryDate).toEqual(deedDate);
+  });
+});
+
 describe('Calculator Utils', () => {
   describe('calculatePricePerM2', () => {
     it('should calculate price per m2 without reduction', () => {

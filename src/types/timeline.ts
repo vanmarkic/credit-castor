@@ -9,6 +9,47 @@
 import type { Participant, ProjectParams, Scenario, CalculationResults } from '../utils/calculatorUtils';
 
 // ============================================
+// Lot Type
+// ============================================
+
+/**
+ * Represents a single lot (apartment/unit) with acquisition tracking
+ * Used to track ownership transfers and holding duration for price calculations
+ */
+export interface Lot {
+  lotId: number;
+  surface: number;
+  unitId: number;
+  isPortage: boolean;
+  acquiredDate: Date; // When this lot was legally acquired (deed date)
+  originalPrice?: number; // Purchase price when acquired
+  originalNotaryFees?: number; // Notary fees paid at acquisition
+  monthlyCarryingCost?: number; // Monthly cost for portage lots
+
+  // Sale tracking
+  soldDate?: Date;
+  soldTo?: string; // Participant name
+  salePrice?: number;
+  carryingCosts?: number; // Total carrying costs accumulated
+}
+
+/**
+ * Represents a lot owned by the copropriété (hidden lots)
+ * Tracks acquisition date and carrying costs until sold
+ */
+export interface CoproLot {
+  lotId: number;
+  surface: number;
+  acquiredDate: Date; // When copro acquired this lot (typically the initial deed date)
+
+  // Sale tracking
+  soldDate?: Date;
+  soldTo?: string; // Buyer's name
+  salePrice?: number;
+  totalCarryingCosts?: number; // Total costs accumulated by copro while holding
+}
+
+// ============================================
 // Base Event Structure
 // ============================================
 
@@ -23,23 +64,6 @@ export interface BaseEvent {
 }
 
 // ============================================
-// Participant Details (for event payloads)
-// ============================================
-
-export interface ParticipantDetails {
-  name: string;
-  surface: number;
-  unitId: number;
-  capitalApporte: number;
-  notaryFeesRate: number;
-  interestRate: number;
-  durationYears: number;
-  parachevementsPerM2?: number;
-  cascoSqm?: number;
-  parachevementsSqm?: number;
-}
-
-// ============================================
 // Copropriété Setup
 // ============================================
 
@@ -50,7 +74,7 @@ export interface CoproEntitySetup {
 
 export interface CoproEntity {
   name: string;
-  lotsOwned: number[];
+  lotsOwned: CoproLot[]; // Changed from number[] to CoproLot[]
   cashReserve: number;
   loans: Loan[];
   monthlyObligations: {
@@ -78,7 +102,7 @@ export interface Loan {
 
 export interface InitialPurchaseEvent extends BaseEvent {
   type: 'INITIAL_PURCHASE';
-  participants: ParticipantDetails[];
+  participants: Participant[]; // Changed from ParticipantDetails[]
   projectParams: ProjectParams;
   scenario: Scenario;
   copropropriete: CoproEntitySetup;
@@ -86,7 +110,7 @@ export interface InitialPurchaseEvent extends BaseEvent {
 
 export interface NewcomerJoinsEvent extends BaseEvent {
   type: 'NEWCOMER_JOINS';
-  buyer: ParticipantDetails;
+  buyer: Participant; // Changed from ParticipantDetails
   acquisition: {
     from: string; // Participant name who sold
     lotId: number;
@@ -110,7 +134,7 @@ export interface NewcomerJoinsEvent extends BaseEvent {
 
 export interface HiddenLotRevealedEvent extends BaseEvent {
   type: 'HIDDEN_LOT_REVEALED';
-  buyer: ParticipantDetails;
+  buyer: Participant; // Changed from ParticipantDetails
   lotId: number;
   salePrice: number;
   redistribution: {

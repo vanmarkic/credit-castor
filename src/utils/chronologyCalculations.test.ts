@@ -192,7 +192,9 @@ describe('applyInitialPurchase', () => {
     const newState = applyEvent(initialState, event);
 
     expect(newState.copropropriete.name).toBe('Copropriété Ferme du Temple');
-    expect(newState.copropropriete.lotsOwned).toEqual([5, 6]);
+    expect(newState.copropropriete.lotsOwned).toHaveLength(2);
+    expect(newState.copropropriete.lotsOwned[0].lotId).toBe(5);
+    expect(newState.copropropriete.lotsOwned[1].lotId).toBe(6);
     expect(newState.copropropriete.cashReserve).toBe(0);
     expect(newState.copropropriete.loans).toEqual([]);
   });
@@ -1017,7 +1019,7 @@ describe('applyParticipantExits', () => {
     const exitEvent = createParticipantExitsEvent('COPRO');
     const finalState = applyEvent(state, exitEvent);
 
-    expect(finalState.copropropriete.lotsOwned).toContain(1);
+    expect(finalState.copropropriete.lotsOwned.some(lot => lot.lotId === 1)).toBe(true);
   });
 
   it('should increase existing participant lot count when buyerType is EXISTING_PARTICIPANT', () => {

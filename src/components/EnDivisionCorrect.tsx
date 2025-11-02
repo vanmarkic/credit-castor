@@ -736,7 +736,7 @@ export default function EnDivisionCorrect() {
                         <span className="text-gray-300">•</span>
                         <span>{p.surface}m²</span>
                         <span className="text-gray-300">•</span>
-                        <span>{p.quantity} {p.quantity > 1 ? 'unités' : 'unité'}</span>
+                        <span>{p.quantity || 1} {(p.quantity || 1) > 1 ? 'unités' : 'unité'}</span>
                       </div>
                     </div>
                   </div>
@@ -777,7 +777,7 @@ export default function EnDivisionCorrect() {
                         onChange={(e) => updateParticipantSurface(idx, parseFloat(e.target.value) || 0)}
                         className="w-full px-3 py-2 font-medium border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white"
                       />
-                      <p className="text-xs text-gray-500 mt-1">Total pour {p.quantity} {p.quantity > 1 ? 'unités' : 'unité'}</p>
+                      <p className="text-xs text-gray-500 mt-1">Total pour {p.quantity || 1} {(p.quantity || 1) > 1 ? 'unités' : 'unité'}</p>
                     </div>
                     <div>
                       <label className="block text-xs text-gray-600 mb-1">Quantité</label>
@@ -877,7 +877,7 @@ export default function EnDivisionCorrect() {
                     <div className="bg-white rounded-lg p-3 border border-gray-200">
                       <p className="text-xs text-gray-500 mb-1">Construction</p>
                       <p className="text-base font-bold text-gray-900">{formatCurrency(p.constructionCost)}</p>
-                      {p.quantity > 1 && (
+                      {(p.quantity || 1) > 1 && (
                         <p className="text-xs text-gray-400 mt-0.5">{formatCurrency(p.constructionCostPerUnit)}/u</p>
                       )}
                     </div>

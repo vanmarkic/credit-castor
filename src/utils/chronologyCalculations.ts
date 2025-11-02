@@ -21,10 +21,10 @@ import type {
   ProjectionState,
   PhaseProjection,
   Transaction,
-  ParticipantDetails,
   ParticipantCashFlow,
   CoproCashFlow,
-  TransitionEvent
+  TransitionEvent,
+  CoproLot
 } from '../types/timeline';
 
 // ============================================
@@ -117,13 +117,20 @@ function applyInitialPurchase(
   // Convert ParticipantDetails to Participant
   const participants: Participant[] = event.participants.map(convertToParticipant);
 
+  // Convert hidden lot IDs to CoproLot objects with deed date
+  const coproLots: CoproLot[] = (event.copropropriete.hiddenLots || []).map(lotId => ({
+    lotId,
+    surface: 85, // TODO: Get actual surface from somewhere
+    acquiredDate: event.date, // Acquired at deed date
+  }));
+
   return {
     ...state,
     currentDate: event.date,
     participants,
     copropropriete: {
       name: event.copropropriete.name,
-      lotsOwned: event.copropropriete.hiddenLots || [],
+      lotsOwned: coproLots,
       cashReserve: 0,
       loans: [],
       monthlyObligations: {
@@ -152,8 +159,8 @@ function applyNewcomerJoins(
 
   // 2. Update seller's lot count if they were carrying multiple lots
   const updatedParticipants = state.participants.map(p => {
-    if (p.name === event.acquisition.from && p.quantity > 1) {
-      return { ...p, quantity: p.quantity - 1 };
+    if (p.name === event.acquisition.from && (p.quantity || 0) > 1) {
+      return { ...p, quantity: (p.quantity || 0) - 1 };
     }
     return p;
   });
@@ -202,7 +209,7 @@ function applyHiddenLotRevealed(
   // 2. Remove lot from copro
   const updatedCopro = {
     ...state.copropropriete,
-    lotsOwned: state.copropropriete.lotsOwned.filter(id => id !== event.lotId),
+    lotsOwned: state.copropropriete.lotsOwned.filter(lot => lot.lotId !== event.lotId),
     cashReserve: state.copropropriete.cashReserve + event.salePrice
   };
 
@@ -252,8 +259,8 @@ function applyPortageSettlement(
 ): ProjectionState {
   // 1. Update seller's lot count (reduce by 1 if carrying multiple)
   const updatedParticipants = state.participants.map(p => {
-    if (p.name === event.seller && p.quantity > 1) {
-      return { ...p, quantity: p.quantity - 1 };
+    if (p.name === event.seller && (p.quantity || 0) > 1) {
+      return { ...p, quantity: (p.quantity || 0) - 1 };
     }
     return p;
   });
@@ -330,10 +337,10 @@ function applyParticipantExits(
   const exitingParticipant = state.participants.find(p => p.name === event.participant);
 
   if (exitingParticipant) {
-    if (exitingParticipant.quantity > 1) {
+    if ((exitingParticipant.quantity || 0) > 1) {
       // Reduce lot count
       updatedParticipants = state.participants.map(p =>
-        p.name === event.participant ? { ...p, quantity: p.quantity - 1 } : p
+        p.name === event.participant ? { ...p, quantity: (p.quantity || 0) - 1 } : p
       );
     } else {
       // Remove participant entirely
@@ -346,14 +353,20 @@ function applyParticipantExits(
 
   if (event.buyerType === 'COPRO') {
     // Copro acquires the lot
+    const newCoproLot: CoproLot = {
+      lotId: event.lotId,
+      surface: 85, // TODO: Get actual surface
+      acquiredDate: event.date,
+      salePrice: event.salePrice,
+    };
     updatedCopro = {
       ...state.copropropriete,
-      lotsOwned: [...state.copropropriete.lotsOwned, event.lotId]
+      lotsOwned: [...state.copropropriete.lotsOwned, newCoproLot]
     };
   } else if (event.buyerType === 'EXISTING_PARTICIPANT' && event.buyerName) {
     // Existing participant increases lot count
     updatedParticipants = updatedParticipants.map(p =>
-      p.name === event.buyerName ? { ...p, quantity: p.quantity + 1 } : p
+      p.name === event.buyerName ? { ...p, quantity: (p.quantity || 0) + 1 } : p
     );
   }
   // TODO: Handle NEWCOMER case (would need buyer details in event)
@@ -382,21 +395,14 @@ function applyParticipantExits(
 // ============================================
 
 /**
- * Convert ParticipantDetails (from event) to Participant (domain model)
+ * Convert event participant to full Participant (ensures defaults)
  */
-function convertToParticipant(details: ParticipantDetails): Participant {
+function convertToParticipant(details: Participant): Participant {
   return {
-    name: details.name,
-    surface: details.surface,
-    unitId: details.unitId,
-    capitalApporte: details.capitalApporte,
-    notaryFeesRate: details.notaryFeesRate,
-    interestRate: details.interestRate,
-    durationYears: details.durationYears,
-    quantity: 1, // Default to 1 lot
-    parachevementsPerM2: details.parachevementsPerM2,
-    cascoSqm: details.cascoSqm,
-    parachevementsSqm: details.parachevementsSqm
+    ...details,
+    // Set defaults for any missing fields
+    quantity: details.quantity || 1,
+    isFounder: details.isFounder || false,
   };
 }
 
@@ -520,9 +526,10 @@ function calculateParticipantCashFlow(
 
   // Calculate carried lot expenses if carrying multiple lots
   let carriedLotExpenses = undefined;
-  if (participant.quantity > 1) {
-    const carriedLotValue = participantData.totalCost / participant.quantity;
-    const carriedLoanAmount = carriedLotValue - participant.capitalApporte / participant.quantity;
+  const quantity = participant.quantity || 1;
+  if (quantity > 1) {
+    const carriedLotValue = participantData.totalCost / quantity;
+    const carriedLoanAmount = carriedLotValue - participant.capitalApporte / quantity;
     const loanInterestOnly = carriedLoanAmount > 0
       ? (carriedLoanAmount * participant.interestRate / 100) / 12
       : 0;

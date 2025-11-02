@@ -1,6 +1,6 @@
 import TimelineView from './TimelineView';
 import { projectTimeline } from '../utils/chronologyCalculations';
-import type { InitialPurchaseEvent } from '../types/timeline';
+import type { InitialPurchaseEvent, NewcomerJoinsEvent } from '../types/timeline';
 
 /**
  * Demo component showcasing timeline visualization with test data
@@ -58,9 +58,41 @@ export default function TimelineDemo() {
     }
   };
 
-  // Commented out for now due to cash flow calculation bug
-  // const newcomerEvent: NewcomerJoinsEvent = { ... };
-  // const hiddenLotEvent: HiddenLotRevealedEvent = { ... };
+  // Newcomer joins event
+  const newcomerEvent: NewcomerJoinsEvent = {
+    id: 'evt_002',
+    type: 'NEWCOMER_JOINS',
+    date: new Date('2027-01-20T14:30:00Z'),
+    buyer: {
+      name: 'Emma',
+      surface: 134,
+      unitId: 2,
+      capitalApporte: 40000,
+      notaryFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      parachevementsPerM2: 500
+    },
+    acquisition: {
+      from: 'Buyer B',
+      lotId: 2,
+      purchasePrice: 165000,
+      breakdown: {
+        basePrice: 143000,
+        indexation: 5720,
+        carryingCostRecovery: 10800,
+        feesRecovery: 5480,
+        renovations: 0
+      }
+    },
+    notaryFees: 20625,
+    financing: {
+      capitalApporte: 40000,
+      loanAmount: 145625,
+      interestRate: 4.5,
+      durationYears: 25
+    }
+  };
 
   const unitDetails = {
     1: { casco: 178080, parachevements: 56000 },
@@ -68,25 +100,13 @@ export default function TimelineDemo() {
     5: { casco: 159000, parachevements: 50000 }
   };
 
-  // Project timeline from events
-  // NOTE: Currently only using single event due to bug in chronologyCalculations
-  // TODO: Fix cash flow calculation bug and then use: [initialEvent, newcomerEvent, hiddenLotEvent]
-  const events = [initialEvent];
+  // Project timeline from events - multi-phase timeline now working!
+  const events = [initialEvent, newcomerEvent];
   const phases = projectTimeline(events, unitDetails);
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Timeline Visualization Demo
-          </h1>
-          <p className="text-gray-600">
-            Interactive timeline showing project phases and events using test data from the event sourcing system.
-          </p>
-        </div>
-
         {/* Timeline */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <TimelineView phases={phases} />

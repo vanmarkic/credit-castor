@@ -70,7 +70,7 @@ export default function PhaseCard({ phase }: PhaseCardProps) {
                       <td className="p-3 font-medium text-gray-900">{p.name}</td>
                       <td className="p-3 text-right text-gray-700">
                         {p.surface} m²
-                        {p.quantity > 1 && (
+                        {(p.quantity || 1) > 1 && (
                           <span className="ml-1 text-xs text-gray-500">×{p.quantity}</span>
                         )}
                       </td>
@@ -134,12 +134,12 @@ export default function PhaseCard({ phase }: PhaseCardProps) {
               <div>
                 <div className="text-xs text-gray-500 mb-1">Lots Owned</div>
                 <div className="flex flex-wrap gap-2">
-                  {phase.copropropriete.lotsOwned.map(lotId => (
+                  {phase.copropropriete.lotsOwned.map((lot, idx) => (
                     <span
-                      key={lotId}
+                      key={lot.lotId || idx}
                       className="inline-flex items-center px-2 py-1 rounded bg-green-100 text-green-800 text-xs font-medium"
                     >
-                      Lot #{lotId}
+                      Lot #{lot.lotId}
                     </span>
                   ))}
                 </div>

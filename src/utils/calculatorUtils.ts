@@ -3,16 +3,27 @@
  * All functions are pure and testable
  */
 
+import type { Lot } from '../types/timeline';
+
 export interface Participant {
   name: string;
   capitalApporte: number;
   notaryFeesRate: number;
-  unitId: number;
-  surface: number;
   interestRate: number;
   durationYears: number;
-  quantity: number;
-  // cascoPerM2?: number; // REMOVED
+
+  // Timeline fields
+  isFounder?: boolean; // True if entered at deed date
+  entryDate?: Date; // When participant joined (for founders = deed date)
+  exitDate?: Date; // When participant left (if applicable)
+  lotsOwned?: Lot[]; // Array of lots owned (replaces quantity + surface + unitId)
+
+  // Legacy fields (still used in calculator, but will be replaced by lotsOwned)
+  unitId?: number;
+  surface?: number;
+  quantity?: number;
+
+  // Optional overrides
   parachevementsPerM2?: number;
   cascoSqm?: number;
   parachevementsSqm?: number;
@@ -102,7 +113,7 @@ export function calculatePricePerM2(
  * Calculate total surface from all participants
  */
 export function calculateTotalSurface(participants: Participant[]): number {
-  return participants.reduce((sum, p) => sum + p.surface, 0);
+  return participants.reduce((sum, p) => sum + (p.surface || 0), 0);
 }
 
 /**
@@ -162,6 +173,9 @@ export function calculateFraisGeneraux3ans(
   let totalCasco = 0;
 
   for (const participant of participants) {
+    // Skip if legacy fields not present (using new lotsOwned instead)
+    if (!participant.unitId || !participant.surface || !participant.quantity) continue;
+
     const { casco } = calculateCascoAndParachevements(
       participant.unitId,
       participant.surface,
@@ -373,9 +387,14 @@ export function calculateAll(
   );
 
   const participantBreakdown: ParticipantCalculation[] = participants.map(p => {
+    // For backward compatibility, require legacy fields
+    const unitId = p.unitId || 0;
+    const surface = p.surface || 0;
+    const quantity = p.quantity || 1;
+
     const { casco, parachevements } = calculateCascoAndParachevements(
-      p.unitId,
-      p.surface,
+      unitId,
+      surface,
       unitDetails,
       projectParams.globalCascoPerM2,
       p.parachevementsPerM2,
@@ -383,8 +402,7 @@ export function calculateAll(
       p.parachevementsSqm
     );
 
-    const quantity = p.quantity || 1;
-    const purchaseShare = calculatePurchaseShare(p.surface, pricePerM2);
+    const purchaseShare = calculatePurchaseShare(surface, pricePerM2);
     const notaryFees = calculateNotaryFees(purchaseShare, p.notaryFeesRate);
 
     // Since surface is TOTAL, casco and parachevements are already for total surface

@@ -14,8 +14,7 @@ import {
   calculateResalePrice,
   calculateRedistribution,
   type CarryingCosts,
-  type ResalePrice,
-  type Redistribution
+  // ResalePrice, Redistribution - unused type imports removed
 } from './portageCalculations';
 
 describe('calculateCarryingCosts', () => {
