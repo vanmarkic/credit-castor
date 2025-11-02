@@ -96,7 +96,6 @@ export default function EnDivisionCorrect() {
       interestRate: 4.5,
       durationYears: 25,
       quantity: 1,
-      cascoPerM2: 1590,
       parachevementsPerM2: 500
     }]);
 
@@ -189,12 +188,6 @@ export default function EnDivisionCorrect() {
   const updateQuantity = (index, value) => {
     const newParticipants = [...participants];
     newParticipants[index].quantity = Math.max(1, value);
-    setParticipants(newParticipants);
-  };
-
-  const updateCascoPerM2 = (index, value) => {
-    const newParticipants = [...participants];
-    newParticipants[index].cascoPerM2 = value;
     setParticipants(newParticipants);
   };
 
@@ -886,22 +879,20 @@ export default function EnDivisionCorrect() {
                   </div>
                 </div>
 
-                {/* Construction Detail - Always Visible */}
+                {/* Construction Detail */}
                 <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Détail Construction</p>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                    {/* CASCO - Display only (not editable) */}
                     <div className="bg-white p-3 rounded-lg border border-gray-200">
-                      <label className="block text-xs text-gray-500 mb-1">CASCO (gros œuvre) - Prix/m²</label>
-                      <input
-                        type="number"
-                        step="10"
-                        value={participants[idx].cascoPerM2}
-                        onChange={(e) => updateCascoPerM2(idx, parseFloat(e.target.value) || 0)}
-                        className="w-full px-3 py-2 text-sm font-semibold border border-gray-300 rounded-lg focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none mb-2"
-                      />
-                      <p className="text-xs text-gray-500">Total: <span className="font-bold text-gray-900">{formatCurrency(p.casco)}</span></p>
-                      <p className="text-xs text-gray-400">{participants[idx].cascoSqm || p.surface}m² × {participants[idx].cascoPerM2}€/m²</p>
+                      <p className="text-xs text-gray-500 mb-1">CASCO (gros œuvre)</p>
+                      <p className="text-lg font-bold text-gray-900">{formatCurrency(p.casco)}</p>
+                      <p className="text-xs text-gray-400">
+                        {participants[idx].cascoSqm || p.surface}m² × {projectParams.globalCascoPerM2}€/m² (global)
+                      </p>
                     </div>
+
+                    {/* Parachèvements - Editable */}
                     <div className="bg-white p-3 rounded-lg border border-gray-200">
                       <label className="block text-xs text-gray-500 mb-1">Parachèvements - Prix/m²</label>
                       <input
@@ -914,6 +905,8 @@ export default function EnDivisionCorrect() {
                       <p className="text-xs text-gray-500">Total: <span className="font-bold text-gray-900">{formatCurrency(p.parachevements)}</span></p>
                       <p className="text-xs text-gray-400">{participants[idx].parachevementsSqm || p.surface}m² × {participants[idx].parachevementsPerM2}€/m²</p>
                     </div>
+
+                    {/* Travaux communs - unchanged */}
                     <div className="bg-white p-3 rounded-lg border border-purple-200">
                       <p className="text-xs text-gray-500 mb-1">Travaux communs</p>
                       <p className="text-lg font-bold text-purple-700 mt-2">{formatCurrency(p.travauxCommunsPerUnit)}</p>
