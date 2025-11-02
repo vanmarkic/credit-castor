@@ -291,10 +291,11 @@ export default function EnDivisionCorrect() {
           return;
         }
 
-        // Load the data
-        setParticipants(data.participants);
-        setProjectParams(data.projectParams);
-        setScenario(data.scenario);
+        // Migrate and load the data
+        const migrated = migrateScenarioData(data);
+        setParticipants(migrated.participants);
+        setProjectParams(migrated.projectParams);
+        setScenario(migrated.scenario);
 
         alert('Scénario chargé avec succès!');
       } catch (error) {

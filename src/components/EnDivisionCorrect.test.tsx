@@ -363,4 +363,23 @@ describe('EnDivisionCorrect - Integration Tests', () => {
       global.localStorage.clear();
     });
   });
+
+  describe('file upload migration', () => {
+    it('file upload uses migration function', () => {
+      // Simulate v1.0.2 file data
+      const oldFileData = {
+        participants: [
+          { name: 'A', cascoPerM2: 1750, parachevementsPerM2: 500, surface: 100, unitId: 1, capitalApporte: 50000, notaryFeesRate: 12.5, interestRate: 4.5, durationYears: 25, quantity: 1 }
+        ],
+        projectParams: { totalPurchase: 650000, mesuresConservatoires: 20000 },
+        scenario: { constructionCostChange: 0, infrastructureReduction: 0, purchasePriceReduction: 0 }
+      };
+
+      const migrated = migrateScenarioData(oldFileData);
+
+      // Verify migration happens
+      expect(migrated.projectParams.globalCascoPerM2).toBe(1750);
+      expect(migrated.participants[0]).not.toHaveProperty('cascoPerM2');
+    });
+  });
 });
