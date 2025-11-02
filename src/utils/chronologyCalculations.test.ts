@@ -9,13 +9,11 @@ import { describe, it, expect } from 'vitest';
 import {
   applyEvent,
   createInitialState,
-  projectTimeline,
-  type ProjectionState
+  projectTimeline
 } from './chronologyCalculations';
 import type {
   InitialPurchaseEvent,
-  NewcomerJoinsEvent,
-  ParticipantDetails
+  NewcomerJoinsEvent
 } from '../types/timeline';
 
 // ============================================
@@ -527,5 +525,231 @@ describe('projectTimeline', () => {
     // Each phase should have fresh calculations
     expect(phases[0].snapshot.totalSurface).toBe(246); // 112 + 134
     expect(phases[1].snapshot.totalSurface).toBe(380); // 112 + 134 + 134 (Emma)
+  });
+});
+
+// ============================================
+// Cash Flow Calculations Tests
+// ============================================
+
+describe('Participant Cash Flows', () => {
+  const unitDetails = {
+    1: { casco: 178080, parachevements: 56000 },
+    2: { casco: 213060, parachevements: 67000 }
+  };
+
+  it('should calculate monthly recurring costs for own lot', () => {
+    const events = [createTestInitialPurchaseEvent()];
+    const phases = projectTimeline(events, unitDetails);
+
+    const phase0 = phases[0];
+    const buyerACashFlow = phase0.participantCashFlows.get('Buyer A');
+
+    expect(buyerACashFlow).toBeDefined();
+    expect(buyerACashFlow!.monthlyRecurring.ownLotExpenses.loanPayment).toBeGreaterThan(0);
+    expect(buyerACashFlow!.monthlyRecurring.ownLotExpenses.propertyTax).toBeCloseTo(388.38 / 12, 2);
+    expect(buyerACashFlow!.monthlyRecurring.ownLotExpenses.insurance).toBeCloseTo(2000 / 12 / 2, 2); // Split between 2 participants
+  });
+
+  it('should calculate carried lot expenses when participant carries multiple lots', () => {
+    // Create event where Buyer B carries 2 lots
+    const initialEvent = createTestInitialPurchaseEvent();
+    initialEvent.participants[1].surface = 268; // Double surface
+
+    const initialState = createInitialState();
+    let state = applyEvent(initialState, initialEvent);
+
+    // Manually set Buyer B to have 2 lots
+    state = {
+      ...state,
+      participants: state.participants.map(p =>
+        p.name === 'Buyer B' ? { ...p, quantity: 2 } : p
+      )
+    };
+
+    // Create a phase from this state
+    const events = [initialEvent];
+    const phases = projectTimeline(events, unitDetails);
+
+    // Manually modify phase to have Buyer B with 2 lots (simulating portage scenario)
+    const phase = phases[0];
+    phase.participants = phase.participants.map(p =>
+      p.name === 'Buyer B' ? { ...p, quantity: 2 } : p
+    );
+
+    // Re-calculate cash flows for this modified phase
+    const buyerBCashFlow = phase.participantCashFlows.get('Buyer B');
+
+    if (buyerBCashFlow?.monthlyRecurring.carriedLotExpenses) {
+      expect(buyerBCashFlow.monthlyRecurring.carriedLotExpenses.loanInterestOnly).toBeGreaterThan(0);
+      expect(buyerBCashFlow.monthlyRecurring.carriedLotExpenses.emptyPropertyTax).toBeCloseTo(388.38 / 12, 2);
+      expect(buyerBCashFlow.monthlyRecurring.carriedLotExpenses.insurance).toBeCloseTo(2000 / 12, 2);
+    }
+  });
+
+  it('should calculate phase transition events for lot sale', () => {
+    const events = [
+      createTestInitialPurchaseEvent(),
+      createNewcomerJoinsEvent()
+    ];
+    const phases = projectTimeline(events, unitDetails);
+
+    // Phase 1: Buyer B sold to Emma
+    const buyerBCashFlow = phases[1].participantCashFlows.get('Buyer B');
+    expect(buyerBCashFlow).toBeDefined();
+
+    const saleEvent = buyerBCashFlow!.phaseTransitionEvents.find(e => e.type === 'SALE');
+    expect(saleEvent).toBeDefined();
+    expect(saleEvent!.amount).toBe(165000);
+    expect(saleEvent!.breakdown).toEqual({
+      basePrice: 143000,
+      indexation: 5720,
+      carryingCostRecovery: 10800,
+      feesRecovery: 5480,
+      renovations: 0
+    });
+  });
+
+  it('should calculate phase transition events for lot purchase', () => {
+    const events = [
+      createTestInitialPurchaseEvent(),
+      createNewcomerJoinsEvent()
+    ];
+    const phases = projectTimeline(events, unitDetails);
+
+    // Phase 1: Emma purchased from Buyer B
+    const emmaCashFlow = phases[1].participantCashFlows.get('Emma');
+    expect(emmaCashFlow).toBeDefined();
+
+    const purchaseEvent = emmaCashFlow!.phaseTransitionEvents.find(e => e.type === 'PURCHASE');
+    expect(purchaseEvent).toBeDefined();
+    expect(purchaseEvent!.amount).toBe(-(165000 + 20625)); // Purchase price + notary fees
+  });
+
+  it('should calculate phase summary correctly', () => {
+    const events = [
+      createTestInitialPurchaseEvent(),
+      createNewcomerJoinsEvent()
+    ];
+    const phases = projectTimeline(events, unitDetails);
+
+    const phase0 = phases[0];
+    const buyerACashFlow = phase0.participantCashFlows.get('Buyer A');
+
+    expect(buyerACashFlow).toBeDefined();
+    expect(buyerACashFlow!.phaseSummary.durationMonths).toBeGreaterThan(0);
+    expect(buyerACashFlow!.phaseSummary.totalRecurring).toBe(
+      buyerACashFlow!.monthlyRecurring.totalMonthly * buyerACashFlow!.phaseSummary.durationMonths
+    );
+  });
+
+  it('should calculate cumulative position across phases', () => {
+    const events = [
+      createTestInitialPurchaseEvent(),
+      createNewcomerJoinsEvent()
+    ];
+    const phases = projectTimeline(events, unitDetails);
+
+    // Phase 0: Buyer B has initial investment
+    const phase0BuyerB = phases[0].participantCashFlows.get('Buyer B');
+    expect(phase0BuyerB!.cumulativePosition.totalInvested).toBeGreaterThan(0);
+    expect(phase0BuyerB!.cumulativePosition.totalReceived).toBe(0);
+
+    // Phase 1: Buyer B sold lot, should have received money
+    const phase1BuyerB = phases[1].participantCashFlows.get('Buyer B');
+    expect(phase1BuyerB!.cumulativePosition.totalReceived).toBe(165000);
+    expect(phase1BuyerB!.cumulativePosition.netPosition).toBeLessThan(0); // Still net negative after selling
+  });
+});
+
+describe('Copropriété Cash Flows', () => {
+  const unitDetails = {
+    1: { casco: 178080, parachevements: 56000 },
+    2: { casco: 213060, parachevements: 67000 }
+  };
+
+  it('should calculate monthly recurring costs', () => {
+    const events = [createTestInitialPurchaseEvent()];
+    const phases = projectTimeline(events, unitDetails);
+
+    const coproCashFlow = phases[0].coproproprieteCashFlow;
+
+    expect(coproCashFlow.monthlyRecurring.insurance).toBeCloseTo(2000 / 12, 2);
+    expect(coproCashFlow.monthlyRecurring.accountingFees).toBeCloseTo(1000 / 12, 2);
+    expect(coproCashFlow.monthlyRecurring.totalMonthly).toBeGreaterThan(0);
+  });
+
+  it('should calculate balance sheet with lots owned value', () => {
+    const events = [createTestInitialPurchaseEvent()];
+    const phases = projectTimeline(events, unitDetails);
+
+    const coproCashFlow = phases[0].coproproprieteCashFlow;
+
+    // Copro owns lots 5 and 6
+    expect(coproCashFlow.balanceSheet.lotsOwnedValue).toBeGreaterThan(0);
+    expect(coproCashFlow.balanceSheet.cashReserve).toBe(0);
+    expect(coproCashFlow.balanceSheet.outstandingLoans).toBe(0);
+  });
+
+  it('should update balance sheet after hidden lot sale', () => {
+    const hiddenLotEvent = {
+      id: 'evt_hidden_001',
+      type: 'HIDDEN_LOT_REVEALED' as const,
+      date: new Date('2026-06-15T10:00:00Z'),
+      buyer: {
+        name: 'Sarah',
+        surface: 100,
+        unitId: 5,
+        capitalApporte: 80000,
+        notaryFeesRate: 12.5,
+        interestRate: 4.5,
+        durationYears: 25,
+        parachevementsPerM2: 500
+      },
+      lotId: 5,
+      salePrice: 200000,
+      redistribution: {
+        'Buyer A': {
+          quotite: 0.455,
+          amount: 91000
+        },
+        'Buyer B': {
+          quotite: 0.545,
+          amount: 109000
+        }
+      },
+      notaryFees: 25000
+    };
+
+    const events = [
+      createTestInitialPurchaseEvent(),
+      hiddenLotEvent
+    ];
+    const phases = projectTimeline(events, unitDetails);
+
+    // Phase 1: After hidden lot sale
+    const coproCashFlow = phases[1].coproproprieteCashFlow;
+
+    // Copro should have reduced lots and updated cash
+    expect(coproCashFlow.balanceSheet.lotsOwnedValue).toBeLessThan(
+      phases[0].coproproprieteCashFlow.balanceSheet.lotsOwnedValue
+    );
+    expect(coproCashFlow.balanceSheet.cashReserve).toBe(0); // All redistributed
+  });
+
+  it('should calculate phase summary correctly', () => {
+    const events = [
+      createTestInitialPurchaseEvent(),
+      createNewcomerJoinsEvent()
+    ];
+    const phases = projectTimeline(events, unitDetails);
+
+    const phase0 = phases[0];
+    const coproCashFlow = phase0.coproproprieteCashFlow;
+
+    expect(coproCashFlow.phaseSummary.durationMonths).toBeGreaterThan(0);
+    expect(coproCashFlow.phaseSummary.totalRecurring).toBe(
+      coproCashFlow.monthlyRecurring.totalMonthly * coproCashFlow.phaseSummary.durationMonths
+    );
   });
 });

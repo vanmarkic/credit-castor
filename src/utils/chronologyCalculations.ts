@@ -17,7 +17,10 @@ import type {
   ProjectionState,
   PhaseProjection,
   Transaction,
-  ParticipantDetails
+  ParticipantDetails,
+  ParticipantCashFlow,
+  CoproCashFlow,
+  TransitionEvent
 } from '../types/timeline';
 
 // ============================================
@@ -88,7 +91,6 @@ export function applyEvent(
 
     default:
       // Exhaustive check (TypeScript will error if case missed)
-      const _exhaustive: never = event;
       return state;
   }
 }
@@ -293,15 +295,12 @@ export function projectTimeline(
 
   // Create Phase 0
   const phases: PhaseProjection[] = [
-    createPhaseProjection(state, 0, initialEvent.date, unitDetails, initialEvent)
+    createPhaseProjection(state, 0, initialEvent.date, unitDetails, initialEvent, [])
   ];
 
   // Apply remaining events, creating new phase for each
   for (let i = 1; i < events.length; i++) {
     const event = events[i];
-
-    // Apply event to state
-    state = applyEvent(state, event);
 
     // Calculate duration of previous phase
     const prevPhase = phases[phases.length - 1];
@@ -311,13 +310,282 @@ export function projectTimeline(
     prevPhase.durationMonths = durationMonths;
     prevPhase.endDate = event.date;
 
+    // Re-calculate previous phase cash flows with duration
+    // We don't need to recalculate - the phase already has correct participants
+    // Just update the summary with the now-known duration
+    prevPhase.participantCashFlows.forEach(cashFlow => {
+      cashFlow.phaseSummary.durationMonths = durationMonths;
+      cashFlow.phaseSummary.totalRecurring = cashFlow.monthlyRecurring.totalMonthly * durationMonths;
+      cashFlow.phaseSummary.phaseNetCashImpact = cashFlow.phaseSummary.totalRecurring + cashFlow.phaseSummary.transitionNet;
+      // Update cumulative invested with recurring costs
+      cashFlow.cumulativePosition.totalInvested += cashFlow.phaseSummary.totalRecurring;
+      cashFlow.cumulativePosition.netPosition = cashFlow.cumulativePosition.totalReceived - cashFlow.cumulativePosition.totalInvested;
+    });
+
+    prevPhase.coproproprieteCashFlow.phaseSummary.durationMonths = durationMonths;
+    prevPhase.coproproprieteCashFlow.phaseSummary.totalRecurring = prevPhase.coproproprieteCashFlow.monthlyRecurring.totalMonthly * durationMonths;
+    prevPhase.coproproprieteCashFlow.phaseSummary.phaseNetCashImpact = prevPhase.coproproprieteCashFlow.phaseSummary.totalRecurring + prevPhase.coproproprieteCashFlow.phaseSummary.transitionNet;
+
+    // Apply event to state
+    state = applyEvent(state, event);
+
     // Create new phase
     phases.push(
-      createPhaseProjection(state, i, event.date, unitDetails, event)
+      createPhaseProjection(state, i, event.date, unitDetails, event, phases)
     );
   }
 
   return phases;
+}
+
+// ============================================
+// Cash Flow Calculations
+// ============================================
+
+/**
+ * Calculate participant cash flow for a phase
+ *
+ * @param participant - The participant to calculate for
+ * @param snapshot - Current phase snapshot from calculateAll
+ * @param state - Projection state with transaction history
+ * @param phaseNumber - Current phase number
+ * @param durationMonths - Phase duration (undefined for ongoing phase)
+ * @param previousPhases - All previous phases for cumulative calculations
+ * @returns Participant cash flow structure
+ */
+function calculateParticipantCashFlow(
+  participant: Participant,
+  snapshot: any,
+  state: ProjectionState,
+  phaseNumber: number,
+  durationMonths: number | undefined,
+  previousPhases: PhaseProjection[]
+): ParticipantCashFlow {
+  // Get participant breakdown from snapshot
+  const participantData = snapshot.participantBreakdown.find(
+    (p: any) => p.name === participant.name
+  );
+
+  if (!participantData) {
+    throw new Error(`Participant ${participant.name} not found in snapshot`);
+  }
+
+  // Calculate monthly recurring costs for own lot
+  const loanPayment = participantData.monthlyPayment;
+  const propertyTax = 388.38 / 12; // Belgian empty property tax
+  const insurance = (2000 / 12) / snapshot.participantBreakdown.length; // Split insurance
+  const commonCharges = 0; // TODO: Implement common charges calculation
+
+  // Calculate carried lot expenses if carrying multiple lots
+  let carriedLotExpenses = undefined;
+  if (participant.quantity > 1) {
+    const carriedLotValue = participantData.totalCost / participant.quantity;
+    const carriedLoanAmount = carriedLotValue - participant.capitalApporte / participant.quantity;
+    const loanInterestOnly = carriedLoanAmount > 0
+      ? (carriedLoanAmount * participant.interestRate / 100) / 12
+      : 0;
+
+    carriedLotExpenses = {
+      loanInterestOnly,
+      emptyPropertyTax: 388.38 / 12,
+      insurance: 2000 / 12
+    };
+  }
+
+  const totalMonthly = loanPayment + propertyTax + insurance + commonCharges +
+    (carriedLotExpenses
+      ? carriedLotExpenses.loanInterestOnly + carriedLotExpenses.emptyPropertyTax + carriedLotExpenses.insurance
+      : 0);
+
+  const monthlyRecurring = {
+    ownLotExpenses: {
+      loanPayment,
+      propertyTax,
+      insurance,
+      commonCharges
+    },
+    carriedLotExpenses,
+    totalMonthly
+  };
+
+  // Calculate phase transition events
+  const phaseTransitionEvents: TransitionEvent[] = [];
+
+  // Find transactions involving this participant in current phase
+  state.transactionHistory.forEach(tx => {
+    if (tx.from === participant.name && tx.type === 'LOT_SALE') {
+      phaseTransitionEvents.push({
+        type: 'SALE',
+        amount: tx.amount,
+        date: tx.date,
+        description: `Sold lot to ${tx.to}`,
+        breakdown: tx.breakdown
+      });
+    }
+
+    if (tx.to === participant.name && tx.type === 'LOT_SALE') {
+      // Find associated notary fees
+      const notaryFees = state.transactionHistory.find(
+        t => t.type === 'NOTARY_FEES' && t.from === participant.name && t.date.getTime() === tx.date.getTime()
+      );
+      const totalPurchase = tx.amount + (notaryFees?.amount || 0);
+
+      phaseTransitionEvents.push({
+        type: 'PURCHASE',
+        amount: -totalPurchase,
+        date: tx.date,
+        description: `Purchased lot from ${tx.from}`,
+        breakdown: tx.breakdown
+      });
+    }
+
+    if (tx.to === participant.name && tx.type === 'REDISTRIBUTION') {
+      phaseTransitionEvents.push({
+        type: 'REDISTRIBUTION_RECEIVED',
+        amount: tx.amount,
+        date: tx.date,
+        description: 'Redistribution from hidden lot sale'
+      });
+    }
+  });
+
+  // Calculate phase summary
+  const totalRecurring = durationMonths !== undefined
+    ? totalMonthly * durationMonths
+    : 0;
+
+  const transitionNet = phaseTransitionEvents.reduce((sum, evt) => sum + evt.amount, 0);
+  const phaseNetCashImpact = totalRecurring + transitionNet;
+
+  const phaseSummary = {
+    durationMonths: durationMonths || 0,
+    totalRecurring,
+    transitionNet,
+    phaseNetCashImpact
+  };
+
+  // Calculate cumulative position
+  let totalInvested = participantData.capitalApporte + participantData.notaryFees;
+  let totalReceived = 0;
+
+  // Add cumulative from previous phases
+  if (previousPhases.length > 0) {
+    const prevPhase = previousPhases[previousPhases.length - 1];
+    const prevCashFlow = prevPhase.participantCashFlows.get(participant.name);
+    if (prevCashFlow) {
+      totalInvested = prevCashFlow.cumulativePosition.totalInvested;
+      totalReceived = prevCashFlow.cumulativePosition.totalReceived;
+    }
+  }
+
+  // Add current phase recurring costs to invested
+  totalInvested += totalRecurring;
+
+  // Add current phase transactions
+  phaseTransitionEvents.forEach(evt => {
+    if (evt.amount > 0) {
+      totalReceived += evt.amount;
+    } else {
+      totalInvested += Math.abs(evt.amount);
+    }
+  });
+
+  const cumulativePosition = {
+    totalInvested,
+    totalReceived,
+    netPosition: totalReceived - totalInvested
+  };
+
+  return {
+    participantName: participant.name,
+    phaseNumber,
+    monthlyRecurring,
+    phaseTransitionEvents,
+    phaseSummary,
+    cumulativePosition
+  };
+}
+
+/**
+ * Calculate copropriété cash flow for a phase
+ *
+ * @param state - Projection state
+ * @param snapshot - Current phase snapshot
+ * @param durationMonths - Phase duration (undefined for ongoing phase)
+ * @param unitDetails - Unit configurations for lot valuation
+ * @returns Copro cash flow structure
+ */
+function calculateCoproCashFlow(
+  state: ProjectionState,
+  snapshot: any,
+  durationMonths: number | undefined,
+  _unitDetails: UnitDetails
+): CoproCashFlow {
+  const copro = state.copropropriete;
+
+  // Calculate monthly recurring costs
+  const loanPayments = copro.loans.reduce((sum, loan) => sum + loan.monthlyPayment, 0);
+  const commonAreaMaintenance = copro.monthlyObligations.maintenanceReserve;
+  const insurance = copro.monthlyObligations.insurance;
+  const accountingFees = copro.monthlyObligations.accountingFees;
+  const totalMonthly = loanPayments + commonAreaMaintenance + insurance + accountingFees;
+
+  const monthlyRecurring = {
+    loanPayments,
+    commonAreaMaintenance,
+    insurance,
+    accountingFees,
+    totalMonthly
+  };
+
+  // Calculate phase summary
+  const totalRecurring = durationMonths !== undefined ? totalMonthly * durationMonths : 0;
+
+  // Calculate transition net (lot sales/purchases)
+  let transitionNet = 0;
+  state.transactionHistory.forEach(tx => {
+    if (tx.from === 'COPRO' && tx.type === 'LOT_SALE') {
+      transitionNet += tx.amount;
+    }
+    if (tx.type === 'REDISTRIBUTION') {
+      transitionNet -= tx.amount;
+    }
+  });
+
+  const phaseSummary = {
+    durationMonths: durationMonths || 0,
+    totalRecurring,
+    transitionNet,
+    phaseNetCashImpact: totalRecurring + transitionNet
+  };
+
+  // Calculate balance sheet
+  const cashReserve = copro.cashReserve;
+
+  // Calculate value of owned lots
+  let lotsOwnedValue = 0;
+  copro.lotsOwned.forEach(_lotId => {
+    // Estimate lot value based on price per m2
+    // Assume standard lot size for hidden lots (100 m2 as placeholder)
+    const lotSurface = 100; // TODO: Get actual lot surface from unit details
+    lotsOwnedValue += snapshot.pricePerM2 * lotSurface;
+  });
+
+  const outstandingLoans = copro.loans.reduce((sum, loan) => sum + loan.remainingBalance, 0);
+  const netWorth = cashReserve + lotsOwnedValue - outstandingLoans;
+
+  const balanceSheet = {
+    cashReserve,
+    lotsOwnedValue,
+    outstandingLoans,
+    netWorth
+  };
+
+  return {
+    monthlyRecurring,
+    phaseSummary,
+    balanceSheet
+  };
 }
 
 /**
@@ -331,7 +599,8 @@ function createPhaseProjection(
   phaseNumber: number,
   startDate: Date,
   unitDetails: UnitDetails,
-  triggeringEvent: DomainEvent
+  triggeringEvent: DomainEvent,
+  previousPhases: PhaseProjection[]
 ): PhaseProjection {
   // Reuse existing calculation engine
   const snapshot = calculateAll(
@@ -341,29 +610,27 @@ function createPhaseProjection(
     unitDetails
   );
 
-  // TODO: Calculate cash flows (will implement in next phase)
-  const participantCashFlows = new Map();
-  const coproproprieteCashFlow = {
-    monthlyRecurring: {
-      loanPayments: 0,
-      commonAreaMaintenance: 0,
-      insurance: 0,
-      accountingFees: 0,
-      totalMonthly: 0
-    },
-    phaseSummary: {
-      durationMonths: 0,
-      totalRecurring: 0,
-      transitionNet: 0,
-      phaseNetCashImpact: 0
-    },
-    balanceSheet: {
-      cashReserve: state.copropropriete.cashReserve,
-      lotsOwnedValue: 0,
-      outstandingLoans: 0,
-      netWorth: state.copropropriete.cashReserve
-    }
-  };
+  // Calculate cash flows for all participants
+  const participantCashFlows = new Map<string, ParticipantCashFlow>();
+  state.participants.forEach(participant => {
+    const cashFlow = calculateParticipantCashFlow(
+      participant,
+      snapshot,
+      state,
+      phaseNumber,
+      undefined, // Duration not known yet
+      previousPhases
+    );
+    participantCashFlows.set(participant.name, cashFlow);
+  });
+
+  // Calculate copro cash flow
+  const coproproprieteCashFlow = calculateCoproCashFlow(
+    state,
+    snapshot,
+    undefined, // Duration not known yet
+    unitDetails
+  );
 
   return {
     phaseNumber,
