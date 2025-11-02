@@ -32,17 +32,21 @@ const DEFAULT_SCENARIO = {
   purchasePriceReduction: 0
 };
 
+// Default deed date: February 1st, 2026
+const DEFAULT_DEED_DATE = '2026-02-01';
+
 const STORAGE_KEY = 'credit-castor-scenario';
 
 // LocalStorage utilities
-const saveToLocalStorage = (participants: any[], projectParams: any, scenario: any) => {
+const saveToLocalStorage = (participants: any[], projectParams: any, scenario: any, deedDate: string) => {
   try {
     const data = {
-      version: 1,
+      version: 2, // Increment version for deed date
       timestamp: new Date().toISOString(),
       participants,
       projectParams,
-      scenario
+      scenario,
+      deedDate
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch (error) {
@@ -73,7 +77,8 @@ const loadFromLocalStorage = () => {
       return {
         participants: data.participants || DEFAULT_PARTICIPANTS,
         projectParams: data.projectParams || DEFAULT_PROJECT_PARAMS,
-        scenario: data.scenario || DEFAULT_SCENARIO
+        scenario: data.scenario || DEFAULT_SCENARIO,
+        deedDate: data.deedDate // May be undefined for old saved data
       };
     }
   } catch (error) {
@@ -159,10 +164,15 @@ export default function EnDivisionCorrect() {
     return stored ? stored.scenario : DEFAULT_SCENARIO;
   });
 
+  const [deedDate, setDeedDate] = useState(() => {
+    const stored = loadFromLocalStorage();
+    return stored?.deedDate || DEFAULT_DEED_DATE;
+  });
+
   // Auto-save to localStorage whenever state changes
   useEffect(() => {
-    saveToLocalStorage(participants, projectParams, scenario);
-  }, [participants, projectParams, scenario]);
+    saveToLocalStorage(participants, projectParams, scenario, deedDate);
+  }, [participants, projectParams, scenario, deedDate]);
 
   const calculations = useMemo(() => {
     return calculateAll(participants, projectParams, scenario, unitDetails);
@@ -372,6 +382,26 @@ export default function EnDivisionCorrect() {
             <p className="text-xs text-gray-500 mt-3 text-center">
               Sauvegarde automatique activée
             </p>
+          </div>
+
+          {/* Deed Date Field */}
+          <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start gap-4">
+              <div className="flex-grow">
+                <label className="block text-sm font-semibold text-gray-800 mb-2">
+                  📅 Date de l'acte / Deed Date
+                </label>
+                <input
+                  type="date"
+                  value={deedDate}
+                  onChange={(e) => setDeedDate(e.target.value)}
+                  className="w-full md:w-64 px-4 py-2 text-base border-2 border-green-300 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-500 focus:outline-none bg-white font-medium"
+                />
+                <p className="text-xs text-gray-600 mt-2">
+                  Date when the property deed will be signed. This is T0 (Time Zero) for your project - all recurring costs and holding duration calculations start from this date.
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6">
