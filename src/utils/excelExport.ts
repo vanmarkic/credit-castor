@@ -4,7 +4,7 @@
  */
 
 import type { CalculationResults, ProjectParams, Scenario } from './calculatorUtils';
-import type { ExportWriter, Workbook, SheetCell, SheetData } from './exportWriter';
+import type { ExportWriter, SheetCell, SheetData } from './exportWriter';
 
 /**
  * Build export sheet data from calculation results

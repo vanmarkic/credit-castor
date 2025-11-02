@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Calculator, Users, DollarSign, Home, Building2, Wallet, Download, Upload, RotateCcw, Save, ChevronDown, ChevronUp } from 'lucide-react';
-import { calculateAll, type Participant } from '../utils/calculatorUtils';
+import { calculateAll } from '../utils/calculatorUtils';
 import { exportCalculations } from '../utils/excelExport';
 import { XlsxWriter } from '../utils/exportWriter';
 
@@ -101,7 +101,7 @@ export default function EnDivisionCorrect() {
   const participantRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const addParticipant = () => {
-    const newId = Math.max(...participants.map(p => p.unitId), 0) + 1;
+    const newId = Math.max(...participants.map((p: any) => p.unitId), 0) + 1;
     setParticipants([...participants, {
       name: 'Participant ' + (participants.length + 1),
       capitalApporte: 100000,
@@ -123,20 +123,20 @@ export default function EnDivisionCorrect() {
     }, 50);
   };
 
-  const removeParticipant = (index) => {
+  const removeParticipant = (index: number) => {
     if (participants.length > 1) {
-      const newParticipants = participants.filter((_, i) => i !== index);
+      const newParticipants = participants.filter((_: any, i: number) => i !== index);
       setParticipants(newParticipants);
     }
   };
 
-  const updateParticipantName = (index, name) => {
+  const updateParticipantName = (index: number, name: string) => {
     const newParticipants = [...participants];
     newParticipants[index].name = name;
     setParticipants(newParticipants);
   };
 
-  const updateParticipantSurface = (index, surface) => {
+  const updateParticipantSurface = (index: number, surface: number) => {
     const newParticipants = [...participants];
     newParticipants[index].surface = surface;
     setParticipants(newParticipants);
@@ -168,57 +168,57 @@ export default function EnDivisionCorrect() {
     return calculateAll(participants, projectParams, scenario, unitDetails);
   }, [participants, projectParams, scenario]);
 
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('fr-FR', { 
-      style: 'currency', 
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
       currency: 'EUR',
-      maximumFractionDigits: 0 
+      maximumFractionDigits: 0
     }).format(value);
   };
 
-  const updateCapital = (index, value) => {
+  const updateCapital = (index: number, value: number) => {
     const newParticipants = [...participants];
     newParticipants[index].capitalApporte = value;
     setParticipants(newParticipants);
   };
 
-  const updateNotaryRate = (index, value) => {
+  const updateNotaryRate = (index: number, value: number) => {
     const newParticipants = [...participants];
     newParticipants[index].notaryFeesRate = value;
     setParticipants(newParticipants);
   };
 
-  const updateInterestRate = (index, value) => {
+  const updateInterestRate = (index: number, value: number) => {
     const newParticipants = [...participants];
     newParticipants[index].interestRate = value;
     setParticipants(newParticipants);
   };
 
-  const updateDuration = (index, value) => {
+  const updateDuration = (index: number, value: number) => {
     const newParticipants = [...participants];
     newParticipants[index].durationYears = value;
     setParticipants(newParticipants);
   };
 
-  const updateQuantity = (index, value) => {
+  const updateQuantity = (index: number, value: number) => {
     const newParticipants = [...participants];
     newParticipants[index].quantity = Math.max(1, value);
     setParticipants(newParticipants);
   };
 
-  const updateParachevementsPerM2 = (index, value) => {
+  const updateParachevementsPerM2 = (index: number, value: number) => {
     const newParticipants = [...participants];
     newParticipants[index].parachevementsPerM2 = value;
     setParticipants(newParticipants);
   };
 
-  const updateCascoSqm = (index, value) => {
+  const updateCascoSqm = (index: number, value: number | undefined) => {
     const newParticipants = [...participants];
     newParticipants[index].cascoSqm = value;
     setParticipants(newParticipants);
   };
 
-  const updateParachevementsSqm = (index, value) => {
+  const updateParachevementsSqm = (index: number, value: number | undefined) => {
     const newParticipants = [...participants];
     newParticipants[index].parachevementsSqm = value;
     setParticipants(newParticipants);

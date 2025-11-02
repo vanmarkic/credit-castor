@@ -256,7 +256,7 @@ describe('Excel Export', () => {
       );
 
       // Verify key sections exist in correct order
-      const lines = result.split('\n') as string[];
+      const lines = (result || '').split('\n');
 
       // Find section indices
       const headerIdx = lines.findIndex(l => l.includes('ACHAT EN DIVISION'));
