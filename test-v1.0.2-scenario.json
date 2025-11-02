@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "timestamp": "2025-11-01T12:00:00.000Z",
+  "participants": [
+    {
+      "name": "Test User",
+      "capitalApporte": 50000,
+      "notaryFeesRate": 12.5,
+      "unitId": 1,
+      "surface": 112,
+      "interestRate": 4.5,
+      "durationYears": 25,
+      "quantity": 1,
+      "cascoPerM2": 1700,
+      "parachevementsPerM2": 500
+    }
+  ],
+  "projectParams": {
+    "totalPurchase": 650000,
+    "mesuresConservatoires": 20000,
+    "demolition": 40000,
+    "infrastructures": 90000,
+    "etudesPreparatoires": 59820,
+    "fraisEtudesPreparatoires": 27320,
+    "fraisGeneraux3ans": 0,
+    "batimentFondationConservatoire": 43700,
+    "batimentFondationComplete": 269200,
+    "batimentCoproConservatoire": 56000
+  },
+  "scenario": {
+    "constructionCostChange": 0,
+    "infrastructureReduction": 0,
+    "purchasePriceReduction": 0
+  }
+}
