@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import EnDivisionCorrect from './EnDivisionCorrect';
+import EnDivisionCorrect, { migrateScenarioData } from './EnDivisionCorrect';
 
 describe('EnDivisionCorrect - Integration Tests', () => {
   describe('Default Initial State', () => {
@@ -255,6 +255,38 @@ describe('EnDivisionCorrect - Integration Tests', () => {
       // The participant should have been added successfully and render without errors
       // Default values (capital: 100000, surface: 100, etc.) are verified by the component rendering successfully
       expect(newParticipantName).toBeInTheDocument();
+    });
+  });
+
+  describe('migrateScenarioData', () => {
+    it('migrates v1.0.2 format to v1.0.3', () => {
+      const oldData = {
+        participants: [
+          { name: 'A', cascoPerM2: 1700, parachevementsPerM2: 500, surface: 100, unitId: 1, capitalApporte: 50000, notaryFeesRate: 12.5, interestRate: 4.5, durationYears: 25, quantity: 1 },
+          { name: 'B', cascoPerM2: 1700, parachevementsPerM2: 600, surface: 150, unitId: 2, capitalApporte: 70000, notaryFeesRate: 12.5, interestRate: 4.5, durationYears: 25, quantity: 1 }
+        ],
+        projectParams: {
+          totalPurchase: 650000,
+          mesuresConservatoires: 20000,
+          demolition: 40000,
+          infrastructures: 90000,
+          etudesPreparatoires: 59820,
+          fraisEtudesPreparatoires: 27320,
+          fraisGeneraux3ans: 0,
+          batimentFondationConservatoire: 43700,
+          batimentFondationComplete: 269200,
+          batimentCoproConservatoire: 56000
+          // No globalCascoPerM2
+        },
+        scenario: { constructionCostChange: 0, infrastructureReduction: 0, purchasePriceReduction: 0 }
+      };
+
+      const result = migrateScenarioData(oldData);
+
+      expect(result.projectParams.globalCascoPerM2).toBe(1700);
+      expect(result.participants[0]).not.toHaveProperty('cascoPerM2');
+      expect(result.participants[1]).not.toHaveProperty('cascoPerM2');
+      expect(result.participants[0].parachevementsPerM2).toBe(500);
     });
   });
 });

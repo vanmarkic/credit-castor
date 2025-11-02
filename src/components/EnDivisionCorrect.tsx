@@ -34,6 +34,38 @@ const DEFAULT_SCENARIO = {
 
 const STORAGE_KEY = 'credit-castor-scenario';
 
+// Migration function to handle v1.0.2 -> v1.0.3 scenario format
+export const migrateScenarioData = (data: any): {
+  participants: any[];
+  projectParams: any;
+  scenario: any;
+} => {
+  // Clone to avoid mutations
+  const migrated = { ...data };
+
+  // Migration: If no globalCascoPerM2, use first participant's value or default
+  if (migrated.projectParams && !migrated.projectParams.globalCascoPerM2) {
+    migrated.projectParams = {
+      ...migrated.projectParams,
+      globalCascoPerM2: migrated.participants?.[0]?.cascoPerM2 || 1590
+    };
+  }
+
+  // Clean up old participant cascoPerM2 fields
+  if (migrated.participants) {
+    migrated.participants = migrated.participants.map((p: any) => {
+      const { cascoPerM2, ...rest } = p;
+      return rest;
+    });
+  }
+
+  return {
+    participants: migrated.participants || DEFAULT_PARTICIPANTS,
+    projectParams: migrated.projectParams || DEFAULT_PROJECT_PARAMS,
+    scenario: migrated.scenario || DEFAULT_SCENARIO
+  };
+};
+
 // LocalStorage utilities
 const saveToLocalStorage = (participants: any[], projectParams: any, scenario: any) => {
   try {
