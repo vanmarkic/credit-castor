@@ -5,14 +5,14 @@ import { exportCalculations } from '../utils/excelExport';
 import { XlsxWriter } from '../utils/exportWriter';
 
 // Default values for reset functionality
-const DEFAULT_PARTICIPANTS = [
+export const DEFAULT_PARTICIPANTS = [
   { name: 'Manuela/Dragan', capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, surface: 112, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500 },
   { name: 'Cathy/Jim', capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, surface: 134, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500 },
   { name: 'Annabelle/Colin', capitalApporte: 200000, notaryFeesRate: 12.5, unitId: 5, surface: 118, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500 },
   { name: 'Julie/Séverin', capitalApporte: 70000, notaryFeesRate: 12.5, unitId: 6, surface: 108, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500 }
 ];
 
-const DEFAULT_PROJECT_PARAMS = {
+export const DEFAULT_PROJECT_PARAMS = {
   totalPurchase: 650000,
   mesuresConservatoires: 20000,
   demolition: 40000,
@@ -26,7 +26,7 @@ const DEFAULT_PROJECT_PARAMS = {
   globalCascoPerM2: 1590
 };
 
-const DEFAULT_SCENARIO = {
+export const DEFAULT_SCENARIO = {
   constructionCostChange: 0,
   infrastructureReduction: 0,
   purchasePriceReduction: 0
@@ -52,7 +52,7 @@ export const migrateScenarioData = (data: any): {
   }
 
   // Clean up old participant cascoPerM2 fields
-  if (migrated.participants) {
+  if (migrated.participants && migrated.participants.length > 0) {
     migrated.participants = migrated.participants.map((p: any) => {
       const { cascoPerM2, ...rest } = p;
       return rest;
@@ -60,7 +60,7 @@ export const migrateScenarioData = (data: any): {
   }
 
   return {
-    participants: migrated.participants || DEFAULT_PARTICIPANTS,
+    participants: (migrated.participants && migrated.participants.length > 0) ? migrated.participants : DEFAULT_PARTICIPANTS,
     projectParams: migrated.projectParams || DEFAULT_PROJECT_PARAMS,
     scenario: migrated.scenario || DEFAULT_SCENARIO
   };

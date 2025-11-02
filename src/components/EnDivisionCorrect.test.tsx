@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import EnDivisionCorrect, { migrateScenarioData } from './EnDivisionCorrect';
+import EnDivisionCorrect, { migrateScenarioData, DEFAULT_PARTICIPANTS } from './EnDivisionCorrect';
 
 describe('EnDivisionCorrect - Integration Tests', () => {
   describe('Default Initial State', () => {
@@ -287,6 +287,58 @@ describe('EnDivisionCorrect - Integration Tests', () => {
       expect(result.participants[0]).not.toHaveProperty('cascoPerM2');
       expect(result.participants[1]).not.toHaveProperty('cascoPerM2');
       expect(result.participants[0].parachevementsPerM2).toBe(500);
+    });
+
+    it('handles v1.0.3 format as no-op', () => {
+      const newData = {
+        participants: [
+          { name: 'A', parachevementsPerM2: 500, surface: 100, unitId: 1, capitalApporte: 50000, notaryFeesRate: 12.5, interestRate: 4.5, durationYears: 25, quantity: 1 }
+        ],
+        projectParams: {
+          totalPurchase: 650000,
+          mesuresConservatoires: 20000,
+          demolition: 40000,
+          infrastructures: 90000,
+          etudesPreparatoires: 59820,
+          fraisEtudesPreparatoires: 27320,
+          fraisGeneraux3ans: 0,
+          batimentFondationConservatoire: 43700,
+          batimentFondationComplete: 269200,
+          batimentCoproConservatoire: 56000,
+          globalCascoPerM2: 1590
+        },
+        scenario: { constructionCostChange: 0, infrastructureReduction: 0, purchasePriceReduction: 0 }
+      };
+
+      const result = migrateScenarioData(newData);
+
+      expect(result.projectParams.globalCascoPerM2).toBe(1590);
+      expect(result.participants[0]).not.toHaveProperty('cascoPerM2');
+    });
+
+    it('uses default 1590 when no cascoPerM2 exists', () => {
+      const oldData = {
+        participants: [{ name: 'A', parachevementsPerM2: 500, surface: 100, unitId: 1, capitalApporte: 50000, notaryFeesRate: 12.5, interestRate: 4.5, durationYears: 25, quantity: 1 }],
+        projectParams: { totalPurchase: 650000 },
+        scenario: { constructionCostChange: 0 }
+      };
+
+      const result = migrateScenarioData(oldData);
+
+      expect(result.projectParams.globalCascoPerM2).toBe(1590);
+    });
+
+    it('handles empty participants array', () => {
+      const oldData = {
+        participants: [],
+        projectParams: {},
+        scenario: {}
+      };
+
+      const result = migrateScenarioData(oldData);
+
+      expect(result.participants).toEqual(DEFAULT_PARTICIPANTS);
+      expect(result.projectParams.globalCascoPerM2).toBe(1590);
     });
   });
 });
