@@ -1055,4 +1055,24 @@ describe('Calculator Utils', () => {
       expect(p1.parachevements).toBe(78400);
     });
   });
+
+  describe('Global CASCO Price', () => {
+    it('ProjectParams includes globalCascoPerM2', () => {
+      const projectParams: ProjectParams = {
+        totalPurchase: 650000,
+        mesuresConservatoires: 20000,
+        demolition: 40000,
+        infrastructures: 90000,
+        etudesPreparatoires: 59820,
+        fraisEtudesPreparatoires: 27320,
+        fraisGeneraux3ans: 0,
+        batimentFondationConservatoire: 43700,
+        batimentFondationComplete: 269200,
+        batimentCoproConservatoire: 56000,
+        globalCascoPerM2: 1590
+      };
+
+      expect(projectParams.globalCascoPerM2).toBe(1590);
+    });
+  });
 });

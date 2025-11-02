@@ -6,10 +6,10 @@ import { XlsxWriter } from '../utils/exportWriter';
 
 // Default values for reset functionality
 const DEFAULT_PARTICIPANTS = [
-  { name: 'Manuela/Dragan', capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, surface: 112, interestRate: 4.5, durationYears: 25, quantity: 1, cascoPerM2: 1590, parachevementsPerM2: 500 },
-  { name: 'Cathy/Jim', capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, surface: 134, interestRate: 4.5, durationYears: 25, quantity: 1, cascoPerM2: 1590, parachevementsPerM2: 500 },
-  { name: 'Annabelle/Colin', capitalApporte: 200000, notaryFeesRate: 12.5, unitId: 5, surface: 118, interestRate: 4.5, durationYears: 25, quantity: 1, cascoPerM2: 1590, parachevementsPerM2: 500 },
-  { name: 'Julie/Séverin', capitalApporte: 70000, notaryFeesRate: 12.5, unitId: 6, surface: 108, interestRate: 4.5, durationYears: 25, quantity: 1, cascoPerM2: 1590, parachevementsPerM2: 500 }
+  { name: 'Manuela/Dragan', capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, surface: 112, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500 },
+  { name: 'Cathy/Jim', capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, surface: 134, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500 },
+  { name: 'Annabelle/Colin', capitalApporte: 200000, notaryFeesRate: 12.5, unitId: 5, surface: 118, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500 },
+  { name: 'Julie/Séverin', capitalApporte: 70000, notaryFeesRate: 12.5, unitId: 6, surface: 108, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500 }
 ];
 
 const DEFAULT_PROJECT_PARAMS = {
@@ -22,7 +22,8 @@ const DEFAULT_PROJECT_PARAMS = {
   fraisGeneraux3ans: 0,
   batimentFondationConservatoire: 43700,
   batimentFondationComplete: 269200,
-  batimentCoproConservatoire: 56000
+  batimentCoproConservatoire: 56000,
+  globalCascoPerM2: 1590
 };
 
 const DEFAULT_SCENARIO = {

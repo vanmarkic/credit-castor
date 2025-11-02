@@ -12,10 +12,10 @@ export interface Participant {
   interestRate: number;
   durationYears: number;
   quantity: number;
-  cascoPerM2?: number; // Optional custom CASCO price per m² (default: 1590)
-  parachevementsPerM2?: number; // Optional custom parachèvements price per m² (default: 500)
-  cascoSqm?: number; // Optional: how many sqm will be renovated with CASCO (default: full surface)
-  parachevementsSqm?: number; // Optional: how many sqm will be renovated with parachèvements (default: full surface)
+  // cascoPerM2?: number; // REMOVED
+  parachevementsPerM2?: number;
+  cascoSqm?: number;
+  parachevementsSqm?: number;
 }
 
 export interface ProjectParams {
@@ -29,6 +29,7 @@ export interface ProjectParams {
   batimentFondationConservatoire: number;
   batimentFondationComplete: number;
   batimentCoproConservatoire: number;
+  globalCascoPerM2: number;
 }
 
 export interface Scenario {
