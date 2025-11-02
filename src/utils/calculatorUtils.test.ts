@@ -1118,5 +1118,57 @@ describe('Calculator Utils', () => {
       expect(result.casco).toBe(100000); // 50m² × 2000€/m²
       expect(result.parachevements).toBe(60000); // 100m² × 600€/m²
     });
+
+    it('all participants use global CASCO rate in calculateAll', () => {
+      const participants: Participant[] = [
+        {
+          name: 'A',
+          capitalApporte: 100000,
+          notaryFeesRate: 12.5,
+          unitId: 1,
+          surface: 100,
+          interestRate: 4.5,
+          durationYears: 25,
+          quantity: 1,
+          parachevementsPerM2: 500
+        },
+        {
+          name: 'B',
+          capitalApporte: 150000,
+          notaryFeesRate: 12.5,
+          unitId: 2,
+          surface: 150,
+          interestRate: 4.5,
+          durationYears: 25,
+          quantity: 1,
+          parachevementsPerM2: 600
+        }
+      ];
+
+      const projectParams: ProjectParams = {
+        totalPurchase: 650000,
+        mesuresConservatoires: 20000,
+        demolition: 40000,
+        infrastructures: 90000,
+        etudesPreparatoires: 59820,
+        fraisEtudesPreparatoires: 27320,
+        fraisGeneraux3ans: 0,
+        batimentFondationConservatoire: 43700,
+        batimentFondationComplete: 269200,
+        batimentCoproConservatoire: 56000,
+        globalCascoPerM2: 1700
+      };
+
+      const scenario: Scenario = {
+        constructionCostChange: 0,
+        infrastructureReduction: 0,
+        purchasePriceReduction: 0
+      };
+
+      const results = calculateAll(participants, projectParams, scenario, {});
+
+      expect(results.participantBreakdown[0].casco).toBe(170000); // 100 × 1700
+      expect(results.participantBreakdown[1].casco).toBe(255000); // 150 × 1700
+    });
   });
 });
