@@ -80,7 +80,10 @@ export function ParticipantDetailsPanel({
   };
 
   return (
-    <div className="px-6 pb-6 border-t border-gray-200 pt-4 relative">
+    <div
+      id={`participant-${p.name}`}
+      className="px-6 pb-6 border-t border-gray-200 pt-4 relative transition-all duration-200"
+    >
       {/* Pin button - top-right corner */}
       <button
         onClick={(e) => {
