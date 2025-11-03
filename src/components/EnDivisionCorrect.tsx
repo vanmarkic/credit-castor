@@ -33,6 +33,7 @@ import { useCalculatorState, useOrderedParticipantBreakdown } from '../hooks/use
 import { useParticipantOperations } from '../hooks/useParticipantOperations';
 import { useStoragePersistence } from '../hooks/useStoragePersistence';
 import { downloadScenarioFile, createFileUploadHandler } from '../utils/scenarioFileIO';
+import HorizontalSwimLaneTimeline from './HorizontalSwimLaneTimeline';
 
 export default function EnDivisionCorrect() {
   // State management
@@ -665,6 +666,15 @@ export default function EnDivisionCorrect() {
             })}
           </div>
         </div>
+
+        {/* Horizontal Timeline (Temporary - testing new visualization) */}
+        <HorizontalSwimLaneTimeline
+          participants={participants}
+          projectParams={projectParams}
+          calculations={calculations}
+          deedDate={deedDate}
+          onOpenParticipantDetails={setFullscreenParticipantIndex}
+        />
 
         {/* Full-screen participant detail modal */}
         {fullscreenParticipantIndex !== null && (() => {
