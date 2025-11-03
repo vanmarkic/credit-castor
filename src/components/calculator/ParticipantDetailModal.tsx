@@ -33,6 +33,8 @@ interface ParticipantDetailModalProps {
   onAddPortageLot: () => void;
   onRemovePortageLot: (lotId: number) => void;
   onUpdatePortageLotSurface: (lotId: number, surface: number) => void;
+  onRemove?: () => void;
+  totalParticipants: number;
 }
 
 export default function ParticipantDetailModal({
@@ -62,6 +64,8 @@ export default function ParticipantDetailModal({
   onAddPortageLot,
   onRemovePortageLot,
   onUpdatePortageLotSurface,
+  onRemove,
+  totalParticipants,
 }: ParticipantDetailModalProps) {
   if (!isOpen) return null;
 
@@ -71,39 +75,60 @@ export default function ParticipantDetailModal({
     <div className="fixed inset-0 bg-white z-50 overflow-y-auto">
       {/* Header */}
       <div className="sticky top-0 bg-white border-b border-gray-200 z-10 shadow-sm">
-        <div className="max-w-7xl mx-auto p-6 flex justify-between items-start">
-          <div className="flex-1">
-            <div className="flex items-center gap-3">
-              <input
-                type="text"
-                value={p.name}
-                onChange={(e) => onUpdateName(e.target.value)}
-                className="text-2xl font-bold text-gray-900 bg-transparent border-b-2 border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none px-1 py-1"
-                placeholder="Nom du participant"
-              />
+        <div className="max-w-7xl mx-auto p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+            {/* Left Column: Name and Info (2 rows) */}
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={p.name}
+                  onChange={(e) => onUpdateName(e.target.value)}
+                  className="text-2xl font-bold text-gray-900 bg-transparent border-b-2 border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none px-1 py-1"
+                  placeholder="Nom du·de la participant·e"
+                />
+              </div>
+              <div className="flex items-center gap-3 text-sm text-gray-600">
+                <span className="flex items-center gap-1">
+                  <span className="text-gray-400">Unité</span>
+                  <span className="font-medium text-blue-600">{p.unitId}</span>
+                </span>
+                <span className="text-gray-300">•</span>
+                <span>{p.surface}m²</span>
+                <span className="text-gray-300">•</span>
+                <span>{p.quantity || 1} {(p.quantity || 1) > 1 ? 'unités' : 'unité'}</span>
+                {participant.entryDate && (
+                  <>
+                    <span className="text-gray-300">•</span>
+                    <span className={`font-medium ${participant.isFounder ? 'text-green-600' : 'text-blue-600'}`}>
+                      Entrée: {new Date(participant.entryDate).toLocaleDateString('fr-BE')}
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-3 text-sm text-gray-600 mt-2">
-              <span className="flex items-center gap-1">
-                <span className="text-gray-400">Unité</span>
-                <span className="font-medium text-blue-600">{p.unitId}</span>
-              </span>
-              <span className="text-gray-300">•</span>
-              <span>{p.surface}m²</span>
-              <span className="text-gray-300">•</span>
-              <span>{p.quantity || 1} {(p.quantity || 1) > 1 ? 'unités' : 'unité'}</span>
-              {participant.entryDate && (
-                <>
-                  <span className="text-gray-300">•</span>
-                  <span className={`font-medium ${participant.isFounder ? 'text-green-600' : 'text-blue-600'}`}>
-                    Entrée: {new Date(participant.entryDate).toLocaleDateString('fr-BE')}
-                  </span>
-                </>
-              )}
+
+            {/* Right Column: Key Financial Metrics */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                <p className="text-xs text-gray-500 mb-1">Coût Total</p>
+                <p className="text-xl font-bold text-gray-900">{formatCurrency(p.totalCost)}</p>
+              </div>
+              <div className="bg-red-50 rounded-lg p-3 border border-red-300">
+                <p className="text-xs text-gray-600 mb-1">À emprunter</p>
+                <p className="text-xl font-bold text-red-700">{formatCurrency(p.loanNeeded)}</p>
+              </div>
+              <div className="bg-white rounded-lg p-3 border border-gray-200">
+                <p className="text-xs text-gray-500 mb-1">Mensualité</p>
+                <p className="text-xl font-bold text-red-600">{formatCurrency(p.monthlyPayment)}</p>
+              </div>
             </div>
           </div>
+
+          {/* Close button - repositioned to top right */}
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition-colors"
           >
             <X className="w-8 h-8" />
           </button>
@@ -130,92 +155,6 @@ export default function ParticipantDetailModal({
             style={{ color: isPinned ? "#eab308" : undefined }}
           />
         </button>
-
-        {/* Key Financial Metrics */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-            <p className="text-xs text-gray-500 mb-1">Coût Total</p>
-            <p className="text-2xl font-bold text-gray-900">{formatCurrency(p.totalCost)}</p>
-          </div>
-          <div className="bg-green-50 rounded-lg p-4 border border-green-300">
-            <p className="text-xs text-gray-600 mb-1">Capital apporté</p>
-            <p className="text-2xl font-bold text-green-700">{formatCurrency(p.capitalApporte)}</p>
-          </div>
-          <div className="bg-red-50 rounded-lg p-4 border border-red-300">
-            <p className="text-xs text-gray-600 mb-1">Emprunt</p>
-            <p className="text-2xl font-bold text-red-700">{formatCurrency(p.loanNeeded)}</p>
-          </div>
-          <div className="bg-white rounded-lg p-4 border border-gray-200">
-            <p className="text-xs text-gray-500 mb-1">Mensualité</p>
-            <p className="text-2xl font-bold text-red-600">{formatCurrency(p.monthlyPayment)}</p>
-          </div>
-        </div>
-
-        {/* Entry Date Section */}
-        <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
-          <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">📅 Date d'entrée</p>
-
-          <div className="mb-4">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={participant.isFounder || false}
-                onChange={(e) => {
-                  const defaultNewcomerDate = new Date(deedDate);
-                  defaultNewcomerDate.setFullYear(defaultNewcomerDate.getFullYear() + 1);
-
-                  onUpdateParticipant({
-                    ...participant,
-                    isFounder: e.target.checked,
-                    entryDate: e.target.checked
-                      ? new Date(deedDate)
-                      : (participant.entryDate || defaultNewcomerDate),
-                    purchaseDetails: e.target.checked ? undefined : participant.purchaseDetails
-                  });
-                }}
-                className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-              />
-              <span className="text-sm font-medium text-gray-700">
-                Fondateur (entre à la date de l'acte)
-              </span>
-            </label>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Date d'entrée dans le projet
-            </label>
-            <input
-              type="date"
-              value={participant.entryDate
-                ? new Date(participant.entryDate).toISOString().split('T')[0]
-                : deedDate}
-              onChange={(e) => {
-                const newDate = new Date(e.target.value);
-                if (newDate < new Date(deedDate)) {
-                  alert(`La date d'entrée ne peut pas être avant la date de l'acte (${deedDate})`);
-                  return;
-                }
-                onUpdateParticipant({
-                  ...participant,
-                  entryDate: newDate
-                });
-              }}
-              disabled={participant.isFounder}
-              min={deedDate}
-              className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none ${
-                participant.isFounder
-                  ? 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-white border-green-300 focus:border-green-500 focus:ring-2 focus:ring-green-500'
-              }`}
-            />
-            <p className="text-xs text-gray-600 mt-1">
-              {participant.isFounder
-                ? 'Les fondateurs entrent tous à la date de l\'acte'
-                : 'Date à laquelle ce participant rejoint le projet (doit être >= date de l\'acte)'}
-            </p>
-          </div>
-        </div>
 
         {/* Purchase Details (only for non-founders) */}
         {!participant.isFounder && (
@@ -403,7 +342,7 @@ export default function ParticipantDetailModal({
         {/* Cost Breakdown */}
         <div className="mb-6">
           <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Décomposition des Coûts</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             <div className="bg-white rounded-lg p-3 border border-gray-200">
               <p className="text-xs text-gray-500 mb-1">Part d'achat</p>
               <p className="text-lg font-bold text-gray-900">{formatCurrency(p.purchaseShare)}</p>
@@ -415,16 +354,14 @@ export default function ParticipantDetailModal({
               <p className="text-xs text-gray-400 mt-0.5">{p.notaryFeesRate}%</p>
             </div>
             <div className="bg-white rounded-lg p-3 border border-orange-200">
-              <p className="text-xs text-gray-500 mb-1">Rénovation perso.</p>
-              <p className="text-lg font-bold text-orange-700">{formatCurrency(p.personalRenovationCost)}</p>
-              <p className="text-xs text-orange-500 mt-0.5">CASCO + Parachèv.</p>
+              <p className="text-xs text-gray-500 mb-1">CASCO</p>
+              <p className="text-lg font-bold text-orange-700">{formatCurrency(p.casco)}</p>
+              <p className="text-xs text-orange-500 mt-0.5">{participant.cascoSqm || p.surface}m²</p>
             </div>
-            <div className="bg-white rounded-lg p-3 border border-gray-200">
-              <p className="text-xs text-gray-500 mb-1">Construction</p>
-              <p className="text-lg font-bold text-gray-900">{formatCurrency(p.constructionCost)}</p>
-              {(p.quantity || 1) > 1 && (
-                <p className="text-xs text-gray-400 mt-0.5">{formatCurrency(p.constructionCostPerUnit)}/u</p>
-              )}
+            <div className="bg-white rounded-lg p-3 border border-orange-200">
+              <p className="text-xs text-gray-500 mb-1">Parachèvements</p>
+              <p className="text-lg font-bold text-orange-700">{formatCurrency(p.parachevements)}</p>
+              <p className="text-xs text-orange-500 mt-0.5">{participant.parachevementsSqm || p.surface}m²</p>
             </div>
             <div className="bg-white rounded-lg p-3 border border-purple-200">
               <p className="text-xs text-gray-500 mb-1">Travaux communs</p>
@@ -434,10 +371,6 @@ export default function ParticipantDetailModal({
             <div className="bg-white rounded-lg p-3 border border-purple-200">
               <p className="text-xs text-gray-500 mb-1">Quote-part</p>
               <p className="text-lg font-bold text-purple-700">{formatCurrency(p.sharedCosts)}</p>
-            </div>
-            <div className="bg-green-50 rounded-lg p-3 border border-green-300">
-              <p className="text-xs text-gray-600 mb-1">Capital apporté</p>
-              <p className="text-lg font-bold text-green-700">{formatCurrency(p.capitalApporte)}</p>
             </div>
           </div>
         </div>
@@ -500,27 +433,44 @@ export default function ParticipantDetailModal({
 
         {/* Financing Result */}
         <div className="bg-red-50 rounded-lg p-5 border border-red-200 mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Emprunt Nécessaire</p>
-              <p className="text-sm text-gray-600">{p.financingRatio.toFixed(1)}% du coût à financer</p>
+          <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Emprunt Nécessaire</p>
+
+          {/* Math Operation: Total Cost - Capital = Loan */}
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="bg-white rounded-lg p-3 border border-gray-200 flex-1">
+              <p className="text-xs text-gray-500 mb-1">Coût Total hors intérêts</p>
+              <p className="text-lg font-bold text-gray-900">{formatCurrency(p.totalCost)}</p>
             </div>
-            <p className="text-3xl font-bold text-red-700">{formatCurrency(p.loanNeeded)}</p>
+
+            <div className="text-2xl font-bold text-gray-400 flex-shrink-0">−</div>
+
+            <div className="bg-green-50 rounded-lg p-3 border border-green-300 flex-1">
+              <p className="text-xs text-gray-600 mb-1">Capital apporté</p>
+              <p className="text-lg font-bold text-green-700">{formatCurrency(p.capitalApporte)}</p>
+            </div>
+
+            <div className="text-2xl font-bold text-gray-400 flex-shrink-0">=</div>
+
+            <div className="bg-red-100 rounded-lg p-3 border border-red-300 flex-1">
+              <p className="text-xs text-gray-600 mb-1">À emprunter</p>
+              <p className="text-lg font-bold text-red-700">{formatCurrency(p.loanNeeded)}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{p.financingRatio.toFixed(1)}%</p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-red-200">
-            <div className="bg-white rounded-lg p-3 border border-gray-200">
+            <div className="bg-white rounded-lg p-2 border border-red-200">
+              <p className="text-xs text-gray-500 mb-1">Intérêts</p>
+              <p className="text-base font-bold text-red-700">{formatCurrency(p.totalInterest)}</p>
+            </div>
+            <div className="bg-white rounded-lg p-2 border border-gray-200">
+              <p className="text-xs text-gray-500 mb-1">À rembourser sur {p.durationYears} ans</p>
+              <p className="text-base font-bold text-gray-900">{formatCurrency(p.totalRepayment)}</p>
+            </div>
+            <div className="bg-white rounded-lg p-2 border border-gray-200">
               <p className="text-xs text-gray-500 mb-1">Mensualité</p>
-              <p className="text-lg font-bold text-red-600">{formatCurrency(p.monthlyPayment)}</p>
+              <p className="text-base font-bold text-red-600">{formatCurrency(p.monthlyPayment)}</p>
               <p className="text-xs text-gray-400 mt-0.5">{p.durationYears} ans @ {p.interestRate}%</p>
-            </div>
-            <div className="bg-white rounded-lg p-3 border border-gray-200">
-              <p className="text-xs text-gray-500 mb-1">Total Remboursé</p>
-              <p className="text-lg font-bold text-gray-900">{formatCurrency(p.totalRepayment)}</p>
-            </div>
-            <div className="bg-white rounded-lg p-3 border border-red-200">
-              <p className="text-xs text-gray-500 mb-1">Coût Crédit</p>
-              <p className="text-lg font-bold text-red-700">{formatCurrency(p.totalInterest)}</p>
             </div>
           </div>
         </div>
@@ -622,6 +572,91 @@ export default function ParticipantDetailModal({
           }
           return null;
         })()}
+
+        {/* Entry Date Section */}
+        <div className="max-w-7xl mx-auto px-6 mt-8">
+          <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
+            <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">📅 Date d'entrée</p>
+
+            <div className="mb-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={participant.isFounder || false}
+                  onChange={(e) => {
+                    const defaultNewcomerDate = new Date(deedDate);
+                    defaultNewcomerDate.setFullYear(defaultNewcomerDate.getFullYear() + 1);
+
+                    onUpdateParticipant({
+                      ...participant,
+                      isFounder: e.target.checked,
+                      entryDate: e.target.checked
+                        ? new Date(deedDate)
+                        : (participant.entryDate || defaultNewcomerDate),
+                      purchaseDetails: e.target.checked ? undefined : participant.purchaseDetails
+                    });
+                  }}
+                  className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  Fondateur·rice (entre à la date de l'acte)
+                </span>
+              </label>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Date d'entrée dans le projet
+              </label>
+              <input
+                type="date"
+                value={participant.entryDate
+                  ? new Date(participant.entryDate).toISOString().split('T')[0]
+                  : deedDate}
+                onChange={(e) => {
+                  const newDate = new Date(e.target.value);
+                  if (newDate < new Date(deedDate)) {
+                    alert(`La date d'entrée ne peut pas être avant la date de l'acte (${deedDate})`);
+                    return;
+                  }
+                  onUpdateParticipant({
+                    ...participant,
+                    entryDate: newDate
+                  });
+                }}
+                disabled={participant.isFounder}
+                min={deedDate}
+                className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none ${
+                  participant.isFounder
+                    ? 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-white border-green-300 focus:border-green-500 focus:ring-2 focus:ring-green-500'
+                }`}
+              />
+              <p className="text-xs text-gray-600 mt-1">
+                {participant.isFounder
+                  ? 'Les fondateur·rice·s entrent tous·tes à la date de l\'acte'
+                  : 'Date à laquelle ce·tte participant·e rejoint le projet (doit être >= date de l\'acte)'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Remove participant button (when there's more than 1 participant) */}
+        {totalParticipants > 1 && onRemove && (
+          <div className="max-w-7xl mx-auto px-6 pb-6">
+            <button
+              onClick={() => {
+                if (confirm(`Êtes-vous sûr de vouloir retirer ${participant.name} ?`)) {
+                  onRemove();
+                  onClose();
+                }
+              }}
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors"
+            >
+              Retirer ce·tte participant·e
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

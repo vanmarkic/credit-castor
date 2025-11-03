@@ -5,11 +5,13 @@ import type { Participant } from '../../utils/calculatorUtils';
 interface ParticipantsTimelineProps {
   participants: Participant[];
   deedDate: string;
+  onDeedDateChange: (date: string) => void;
 }
 
 export const ParticipantsTimeline: React.FC<ParticipantsTimelineProps> = ({
   participants,
-  deedDate
+  deedDate,
+  onDeedDateChange
 }) => {
   const [expandedParticipant, setExpandedParticipant] = useState<string | null>(null);
 
@@ -68,12 +70,21 @@ export const ParticipantsTimeline: React.FC<ParticipantsTimelineProps> = ({
 
                 {/* Date label */}
                 <div className="mb-2">
-                  <div className="text-sm font-semibold text-gray-700">
-                    {formatDate(date)}
-                  </div>
-                  {isFounders && (
-                    <div className="text-xs text-green-600 font-medium">
-                      T0 - Date de l'acte (Fondateurs)
+                  {isFounders ? (
+                    <div>
+                      <input
+                        type="date"
+                        value={deedDate}
+                        onChange={(e) => onDeedDateChange(e.target.value)}
+                        className="text-sm font-semibold text-gray-700 px-2 py-1 border-2 border-green-300 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none bg-white mb-1"
+                      />
+                      <div className="text-xs text-green-600 font-medium">
+                        T0 - Date de l'acte (Fondateurs)
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm font-semibold text-gray-700">
+                      {formatDate(date)}
                     </div>
                   )}
                 </div>
@@ -182,7 +193,7 @@ export const ParticipantsTimeline: React.FC<ParticipantsTimelineProps> = ({
         <div className="bg-blue-50 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-1">
             <Users className="w-4 h-4 text-blue-600" />
-            <span className="text-sm font-medium text-gray-700">Nouveaux entrants</span>
+            <span className="text-sm font-medium text-gray-700">Nouveaux·elles entrant·e·s</span>
           </div>
           <div className="text-2xl font-bold text-blue-700">
             {participants.filter(p => !p.isFounder).length}

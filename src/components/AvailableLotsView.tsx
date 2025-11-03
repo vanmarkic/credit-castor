@@ -315,7 +315,7 @@ export default function AvailableLotsView({
             <div className="font-semibold mb-1">À propos des prix</div>
             <ul className="space-y-1 list-disc list-inside">
               <li>
-                <strong>Lots portage:</strong> Prix fixe incluant {yearsHeld.toFixed(1)} ans d'indexation à {indexationRate}% et frais de portage du fondateur
+                <strong>Lots portage:</strong> Prix fixe incluant {yearsHeld.toFixed(1)} ans d'indexation à {indexationRate}% et frais de portage du·de la fondateur·rice
               </li>
               <li>
                 <strong>Lots copro:</strong> Choisissez votre surface. Prix calculé proportionnellement avec indexation et frais de portage

@@ -50,7 +50,7 @@ export default function EnDivisionCorrect() {
   const addParticipant = () => {
     const newId = Math.max(...participants.map((p: any) => p.unitId), 0) + 1;
     setParticipants([...participants, {
-      name: 'Participant ' + (participants.length + 1),
+      name: 'Participant·e ' + (participants.length + 1),
       capitalApporte: 100000,
       notaryFeesRate: 12.5,
       unitId: newId,
@@ -595,17 +595,12 @@ export default function EnDivisionCorrect() {
                   className="w-full px-4 py-3 text-lg font-semibold border border-blue-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white"
                 />
                 <p className="text-xs text-blue-600 mt-1">
-                  Appliqué à tous les participants
+                  Appliqué à tous·tes les participant·e·s
                 </p>
               </div>
             </div>
           </div>
         </div>
-
-        <ParticipantsTimeline
-          participants={participants}
-          deedDate={deedDate}
-        />
 
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <div className="flex justify-between items-center mb-6">
@@ -615,7 +610,7 @@ export default function EnDivisionCorrect() {
               className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg transition-colors flex items-center gap-2"
             >
               <Users className="w-5 h-5" />
-              Ajouter un participant
+              Ajouter un·e participant·e
             </button>
           </div>
           
@@ -636,8 +631,9 @@ export default function EnDivisionCorrect() {
                   className={`cursor-pointer transition-all ${isExpanded ? 'p-6' : 'p-4'}`}
                   onClick={() => setFullscreenParticipantIndex(idx)}
                 >
-                  <div className="flex justify-between items-center">
-                    <div className="flex-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                    {/* Left Column: Name and Info */}
+                    <div className="flex flex-col gap-2">
                       <div className="flex items-center gap-3">
                         <input
                           type="text"
@@ -645,9 +641,9 @@ export default function EnDivisionCorrect() {
                           onChange={(e) => updateParticipantName(idx, e.target.value)}
                           onClick={(e) => e.stopPropagation()}
                           className="text-lg font-bold text-gray-900 bg-transparent border-b-2 border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none px-1 py-1"
-                          placeholder="Nom du participant"
+                          placeholder="Nom du·de la participant·e"
                         />
-                        {participants.length > 1 && (
+                        {!participants[idx].isFounder && participants.length > 1 && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -678,7 +674,7 @@ export default function EnDivisionCorrect() {
                           )}
                         </button>
                       </div>
-                      <div className="flex items-center gap-3 text-sm text-gray-600 mt-1">
+                      <div className="flex items-center gap-3 text-sm text-gray-600">
                         <span className="flex items-center gap-1">
                           <span className="text-gray-400">Unité</span>
                           <span className="font-medium text-blue-600">{p.unitId}</span>
@@ -765,6 +761,22 @@ export default function EnDivisionCorrect() {
                         )}
                       </div>
                     </div>
+
+                    {/* Right Column: Key Financial Metrics */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-gray-50 rounded-lg p-2 border border-gray-200" onClick={(e) => e.stopPropagation()}>
+                        <p className="text-xs text-gray-500 mb-1">Coût Total</p>
+                        <p className="text-base font-bold text-gray-900">{formatCurrency(p.totalCost)}</p>
+                      </div>
+                      <div className="bg-red-50 rounded-lg p-2 border border-red-300" onClick={(e) => e.stopPropagation()}>
+                        <p className="text-xs text-gray-600 mb-1">À emprunter</p>
+                        <p className="text-base font-bold text-red-700">{formatCurrency(p.loanNeeded)}</p>
+                      </div>
+                      <div className="bg-white rounded-lg p-2 border border-gray-200" onClick={(e) => e.stopPropagation()}>
+                        <p className="text-xs text-gray-500 mb-1">Mensualité</p>
+                        <p className="text-base font-bold text-red-600">{formatCurrency(p.monthlyPayment)}</p>
+                      </div>
+                    </div>
                   </div>
 
                 </div>
@@ -807,87 +819,6 @@ export default function EnDivisionCorrect() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Synthèse Globale</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-              <h3 className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Projet</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Coût total:</span>
-                  <span className="font-bold text-gray-900">
-                    <FormulaTooltip formula={getTotalProjectCostFormula()}>
-                      {formatCurrency(calculations.totals.total)}
-                    </FormulaTooltip>
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Capital total:</span>
-                  <span className="font-bold text-green-700">{formatCurrency(calculations.totals.capitalTotal)}</span>
-                </div>
-                <div className="flex justify-between pt-2 border-t border-gray-300">
-                  <span className="text-gray-600">Total emprunts:</span>
-                  <span className="font-bold text-red-700">
-                    <FormulaTooltip formula={getTotalLoansFormula()}>
-                      {formatCurrency(calculations.totals.totalLoansNeeded)}
-                    </FormulaTooltip>
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-              <h3 className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Moyennes</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Coût/personne:</span>
-                  <span className="font-bold text-gray-900">{formatCurrency(calculations.totals.total / participants.length)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Capital moyen:</span>
-                  <span className="font-bold text-green-700">{formatCurrency(calculations.totals.averageCapital)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Emprunt moyen:</span>
-                  <span className="font-bold text-red-700">{formatCurrency(calculations.totals.averageLoan)}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-              <h3 className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Fourchettes</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Emprunt min:</span>
-                  <span className="font-bold text-gray-900">{formatCurrency(Math.min(...calculations.participantBreakdown.map(p => p.loanNeeded)))}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Emprunt max:</span>
-                  <span className="font-bold text-gray-900">{formatCurrency(Math.max(...calculations.participantBreakdown.map(p => p.loanNeeded)))}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Écart:</span>
-                  <span className="font-bold text-gray-900">{formatCurrency(Math.max(...calculations.participantBreakdown.map(p => p.loanNeeded)) - Math.min(...calculations.participantBreakdown.map(p => p.loanNeeded)))}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-            <h4 className="text-sm font-semibold text-gray-800 mb-3">Leviers d'Optimisation</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 text-sm text-gray-700">
-              <div>• Négocier prix d'achat (-10% = €65K économisés)</div>
-              <div>• Subventions rénovation Wallonie</div>
-              <div>• Réduire coûts construction (value engineering)</div>
-              <div>• Auto-construction partielle</div>
-              <div>• Optimiser infrastructures (phaser les travaux)</div>
-              <div>• Négocier meilleur taux d'intérêt</div>
-              <div>• Augmenter capital apporté si possible</div>
-              <div>• Vendre une 5ème unité en pré-construction</div>
-            </div>
-          </div>
-        </div>
-
         {/* Full-screen participant detail modal */}
         {fullscreenParticipantIndex !== null && (() => {
           const idx = fullscreenParticipantIndex;
@@ -926,9 +857,17 @@ export default function EnDivisionCorrect() {
               onAddPortageLot={() => addPortageLot(idx)}
               onRemovePortageLot={(lotId) => removePortageLot(idx, lotId)}
               onUpdatePortageLotSurface={(lotId, surface) => updatePortageLotSurface(idx, lotId, surface)}
+              onRemove={() => removeParticipant(idx)}
+              totalParticipants={participants.length}
             />
           );
         })()}
+
+        <ParticipantsTimeline
+          participants={participants}
+          deedDate={deedDate}
+          onDeedDateChange={setDeedDate}
+        />
       </div>
       </div>
     </Tooltip.Provider>

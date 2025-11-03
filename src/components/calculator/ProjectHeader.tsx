@@ -33,7 +33,7 @@ export function ProjectHeader({
       <div className="flex items-center gap-4 mb-4">
         <Building2 className="w-12 h-12 text-blue-600" />
         <div>
-          <h1 className="text-4xl font-bold text-gray-800">Achat en Division - Acte 1</h1>
+          <h1 className="text-4xl font-bold text-gray-800">Achat Ferme du Temple</h1>
           <p className="text-gray-600">Wallonie, Belgique • Prix d'achat €650,000</p>
         </div>
       </div>
@@ -88,26 +88,6 @@ export function ProjectHeader({
         <p className="text-xs text-gray-500 mt-3 text-center">
           Sauvegarde automatique activée
         </p>
-      </div>
-
-      {/* Deed Date Field */}
-      <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 mb-6">
-        <div className="flex items-start gap-4">
-          <div className="flex-grow">
-            <label className="block text-sm font-semibold text-gray-800 mb-2">
-              📅 Date de l'acte / Deed Date
-            </label>
-            <input
-              type="date"
-              value={deedDate}
-              onChange={(e) => onDeedDateChange(e.target.value)}
-              className="w-full md:w-64 px-4 py-2 text-base border-2 border-green-300 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-500 focus:outline-none bg-white font-medium"
-            />
-            <p className="text-xs text-gray-600 mt-2">
-              Date when the property deed will be signed. This is T0 (Time Zero) for your project - all recurring costs and holding duration calculations start from this date.
-            </p>
-          </div>
-        </div>
       </div>
 
       <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6">

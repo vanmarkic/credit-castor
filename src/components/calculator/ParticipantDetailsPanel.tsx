@@ -10,8 +10,6 @@ import {
   getLoanNeededFormula,
   getMonthlyPaymentFormula,
   getNotaryFeesFormula,
-  getPersonalRenovationFormula,
-  getConstructionCostFormula,
   getSharedCostsFormula,
   getCascoFormula,
   getParachevementsFormula,
@@ -161,7 +159,7 @@ export function ParticipantDetailsPanel({
               className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
             />
             <span className="text-sm font-medium text-gray-700">
-              Fondateur (entre à la date de l'acte)
+              Fondateur·rice (entre à la date de l'acte)
             </span>
           </label>
         </div>
@@ -198,8 +196,8 @@ export function ParticipantDetailsPanel({
           />
           <p className="text-xs text-gray-600 mt-1">
             {participants[idx].isFounder
-              ? 'Les fondateurs entrent tous à la date de l\'acte'
-              : 'Date à laquelle ce participant rejoint le projet (doit être >= date de l\'acte)'}
+              ? 'Les fondateur·rice·s entrent tous·tes à la date de l\'acte'
+              : 'Date à laquelle ce·tte participant·e rejoint le projet (doit être >= date de l\'acte)'}
           </p>
         </div>
       </div>
@@ -399,7 +397,7 @@ export function ParticipantDetailsPanel({
       {/* Cost Breakdown */}
       <div className="mb-4">
         <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Décomposition des Coûts</p>
-        <div className="grid grid-cols-2 md:grid-cols-7 gap-2">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
           <div className="bg-white rounded-lg p-3 border border-gray-200">
             <p className="text-xs text-gray-500 mb-1">Part d'achat</p>
             <p className="text-base font-bold text-gray-900">
@@ -421,25 +419,23 @@ export function ParticipantDetailsPanel({
           </div>
 
           <div className="bg-white rounded-lg p-3 border border-orange-200">
-            <p className="text-xs text-gray-500 mb-1">Rénovation perso.</p>
+            <p className="text-xs text-gray-500 mb-1">CASCO</p>
             <p className="text-base font-bold text-orange-700">
-              <FormulaTooltip formula={getPersonalRenovationFormula(p)}>
-                {formatCurrency(p.personalRenovationCost)}
+              <FormulaTooltip formula={getCascoFormula(p, participants[idx].cascoSqm, projectParams.globalCascoPerM2)}>
+                {formatCurrency(p.casco)}
               </FormulaTooltip>
             </p>
-            <p className="text-xs text-orange-500 mt-0.5">CASCO + Parachèv.</p>
+            <p className="text-xs text-orange-500 mt-0.5">{participants[idx].cascoSqm || p.surface}m²</p>
           </div>
 
-          <div className="bg-white rounded-lg p-3 border border-gray-200">
-            <p className="text-xs text-gray-500 mb-1">Construction</p>
-            <p className="text-base font-bold text-gray-900">
-              <FormulaTooltip formula={getConstructionCostFormula(p, calculations.totals.construction, participants.length)}>
-                {formatCurrency(p.constructionCost)}
+          <div className="bg-white rounded-lg p-3 border border-orange-200">
+            <p className="text-xs text-gray-500 mb-1">Parachèvements</p>
+            <p className="text-base font-bold text-orange-700">
+              <FormulaTooltip formula={getParachevementsFormula(p, participants[idx].parachevementsSqm, participants[idx].parachevementsPerM2)}>
+                {formatCurrency(p.parachevements)}
               </FormulaTooltip>
             </p>
-            {(p.quantity || 1) > 1 && (
-              <p className="text-xs text-gray-400 mt-0.5">{formatCurrency(p.constructionCostPerUnit)}/u</p>
-            )}
+            <p className="text-xs text-orange-500 mt-0.5">{participants[idx].parachevementsSqm || p.surface}m²</p>
           </div>
 
           <div className="bg-white rounded-lg p-3 border border-purple-200">
@@ -459,11 +455,6 @@ export function ParticipantDetailsPanel({
                 {formatCurrency(p.sharedCosts)}
               </FormulaTooltip>
             </p>
-          </div>
-
-          <div className="bg-green-50 rounded-lg p-3 border border-green-300">
-            <p className="text-xs text-gray-600 mb-1">Capital apporté</p>
-            <p className="text-base font-bold text-green-700">{formatCurrency(p.capitalApporte)}</p>
           </div>
         </div>
       </div>
@@ -537,37 +528,66 @@ export function ParticipantDetailsPanel({
 
       {/* Financing Result */}
       <div className="bg-red-50 rounded-lg p-5 border border-red-200">
-        <div className="flex justify-between items-center mb-4">
-          <div>
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Emprunt Nécessaire</p>
-            <p className="text-sm text-gray-600">{p.financingRatio.toFixed(1)}% du coût à financer</p>
+        <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Emprunt Nécessaire</p>
+
+        {/* Math Operation: Total Cost - Capital = Loan */}
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <div className="bg-white rounded-lg p-3 border border-gray-200 flex-1">
+            <p className="text-xs text-gray-500 mb-1">Coût Total hors intérêts</p>
+            <p className="text-lg font-bold text-gray-900">
+              <FormulaTooltip formula={getTotalCostFormula(p)}>
+                {formatCurrency(p.totalCost)}
+              </FormulaTooltip>
+            </p>
           </div>
-          <p className="text-3xl font-bold text-red-700">{formatCurrency(p.loanNeeded)}</p>
+
+          <div className="text-2xl font-bold text-gray-400 flex-shrink-0">−</div>
+
+          <div className="bg-green-50 rounded-lg p-3 border border-green-300 flex-1">
+            <p className="text-xs text-gray-600 mb-1">Capital apporté</p>
+            <p className="text-lg font-bold text-green-700">{formatCurrency(p.capitalApporte)}</p>
+          </div>
+
+          <div className="text-2xl font-bold text-gray-400 flex-shrink-0">=</div>
+
+          <div className="bg-red-100 rounded-lg p-3 border border-red-300 flex-1">
+            <p className="text-xs text-gray-600 mb-1">À emprunter</p>
+            <p className="text-lg font-bold text-red-700">
+              <FormulaTooltip formula={getLoanNeededFormula(p)}>
+                {formatCurrency(p.loanNeeded)}
+              </FormulaTooltip>
+            </p>
+            <p className="text-xs text-gray-500 mt-0.5">{p.financingRatio.toFixed(1)}%</p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-red-200">
-          <div className="bg-white rounded-lg p-3 border border-gray-200">
-            <p className="text-xs text-gray-500 mb-1">Mensualité</p>
-            <p className="text-lg font-bold text-red-600">{formatCurrency(p.monthlyPayment)}</p>
-            <p className="text-xs text-gray-400 mt-0.5">{p.durationYears} ans @ {p.interestRate}%</p>
+          <div className="bg-white rounded-lg p-2 border border-red-200">
+            <p className="text-xs text-gray-500 mb-1">Intérêts</p>
+            <p className="text-base font-bold text-red-700">
+              <FormulaTooltip formula={getTotalInterestFormula(p)}>
+                {formatCurrency(p.totalInterest)}
+              </FormulaTooltip>
+            </p>
           </div>
 
-          <div className="bg-white rounded-lg p-3 border border-gray-200">
-            <p className="text-xs text-gray-500 mb-1">Total Remboursé</p>
-            <p className="text-lg font-bold text-gray-900">
+          <div className="bg-white rounded-lg p-2 border border-gray-200">
+            <p className="text-xs text-gray-500 mb-1">À rembourser sur {p.durationYears} ans</p>
+            <p className="text-base font-bold text-gray-900">
               <FormulaTooltip formula={getTotalRepaymentFormula(p)}>
                 {formatCurrency(p.totalRepayment)}
               </FormulaTooltip>
             </p>
           </div>
 
-          <div className="bg-white rounded-lg p-3 border border-red-200">
-            <p className="text-xs text-gray-500 mb-1">Coût Crédit</p>
-            <p className="text-lg font-bold text-red-700">
-              <FormulaTooltip formula={getTotalInterestFormula(p)}>
-                {formatCurrency(p.totalInterest)}
+          <div className="bg-white rounded-lg p-2 border border-gray-200">
+            <p className="text-xs text-gray-500 mb-1">Mensualité</p>
+            <p className="text-base font-bold text-red-600">
+              <FormulaTooltip formula={getMonthlyPaymentFormula(p)}>
+                {formatCurrency(p.monthlyPayment)}
               </FormulaTooltip>
             </p>
+            <p className="text-xs text-gray-400 mt-0.5">{p.durationYears} ans @ {p.interestRate}%</p>
           </div>
         </div>
       </div>
