@@ -468,11 +468,20 @@ export default function ParticipantDetailModal({
         {/* Cost Breakdown */}
         <div className="mb-6">
           <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Décomposition des Coûts</p>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="bg-white rounded-lg p-3 border border-gray-200">
               <p className="text-xs text-gray-500 mb-1">Part d'achat</p>
               <p className="text-lg font-bold text-gray-900">{formatCurrency(p.purchaseShare)}</p>
               <p className="text-xs text-blue-600 mt-0.5">{p.surface}m²</p>
+            </div>
+            <div className="bg-white rounded-lg p-3 border border-orange-200">
+              <p className="text-xs text-gray-500 mb-1">CASCO</p>
+              <p className="text-lg font-bold text-orange-700">{formatCurrency(p.casco)}</p>
+              <p className="text-xs text-orange-500 mt-0.5">{participant.cascoSqm || p.surface}m²</p>
+            </div>
+            <div className="bg-white rounded-lg p-3 border border-purple-200">
+              <p className="text-xs text-gray-500 mb-1">Commun</p>
+              <p className="text-lg font-bold text-purple-700">{formatCurrency(p.sharedCosts)}</p>
             </div>
             <div className="bg-white rounded-lg p-3 border border-gray-200">
               <p className="text-xs text-gray-500 mb-1">Frais notaire</p>
@@ -480,23 +489,9 @@ export default function ParticipantDetailModal({
               <p className="text-xs text-gray-400 mt-0.5">{p.notaryFeesRate}%</p>
             </div>
             <div className="bg-white rounded-lg p-3 border border-orange-200">
-              <p className="text-xs text-gray-500 mb-1">CASCO</p>
-              <p className="text-lg font-bold text-orange-700">{formatCurrency(p.casco)}</p>
-              <p className="text-xs text-orange-500 mt-0.5">{participant.cascoSqm || p.surface}m²</p>
-            </div>
-            <div className="bg-white rounded-lg p-3 border border-orange-200">
               <p className="text-xs text-gray-500 mb-1">Parachèvements</p>
               <p className="text-lg font-bold text-orange-700">{formatCurrency(p.parachevements)}</p>
               <p className="text-xs text-orange-500 mt-0.5">{participant.parachevementsSqm || p.surface}m²</p>
-            </div>
-            <div className="bg-white rounded-lg p-3 border border-purple-200">
-              <p className="text-xs text-gray-500 mb-1">Travaux communs</p>
-              <p className="text-lg font-bold text-purple-700">{formatCurrency(p.travauxCommunsPerUnit)}</p>
-              <p className="text-xs text-purple-500 mt-0.5">Commun fixe (÷{allParticipants.length})</p>
-            </div>
-            <div className="bg-white rounded-lg p-3 border border-purple-200">
-              <p className="text-xs text-gray-500 mb-1">Commun</p>
-              <p className="text-lg font-bold text-purple-700">{formatCurrency(p.sharedCosts)}</p>
             </div>
           </div>
         </div>

@@ -672,3 +672,604 @@ describe('Sales Flows', () => {
     });
   });
 });
+
+describe('Individual Loan Financing', () => {
+  it('should allow participant to apply for purchase loan during compromis_period', () => {
+    const actor = createActor(creditCastorMachine);
+    actor.start();
+
+    // Sign compromis
+    actor.send({
+      type: 'COMPROMIS_SIGNED',
+      compromisDate: new Date('2023-01-01'),
+      deposit: 50000
+    });
+
+    expect(actor.getSnapshot().matches('compromis_period')).toBe(true);
+
+    // Apply for loan
+    actor.send({
+      type: 'APPLY_FOR_LOAN',
+      participantId: 'participant1',
+      loanDetails: {
+        amount: 100000,
+        rate: 0.035,
+        duration: 25,
+        bankName: 'BNP Paribas Fortis'
+      }
+    });
+
+    const snapshot = actor.getSnapshot();
+    const loanApp = snapshot.context.financingApplications.get('participant1');
+
+    expect(loanApp).toBeDefined();
+    expect(loanApp?.status).toBe('pending');
+    expect(loanApp?.loanAmount).toBe(100000);
+    expect(loanApp?.bankName).toBe('BNP Paribas Fortis');
+    expect(loanApp?.purpose).toBe('purchase');
+  });
+
+  it('should handle loan approval flow: APPLY_FOR_LOAN → BANK_APPROVES → financing approved', () => {
+    const actor = createActor(creditCastorMachine);
+    actor.start();
+
+    actor.send({
+      type: 'COMPROMIS_SIGNED',
+      compromisDate: new Date('2023-01-01'),
+      deposit: 50000
+    });
+
+    // Apply for loan
+    actor.send({
+      type: 'APPLY_FOR_LOAN',
+      participantId: 'participant1',
+      loanDetails: {
+        amount: 100000,
+        rate: 0.035,
+        duration: 25,
+        bankName: 'KBC'
+      }
+    });
+
+    let snapshot = actor.getSnapshot();
+    expect(snapshot.context.approvedFinancing).toBe(0);
+
+    // Bank approves
+    actor.send({
+      type: 'BANK_APPROVES',
+      participantId: 'participant1'
+    });
+
+    snapshot = actor.getSnapshot();
+    const loanApp = snapshot.context.financingApplications.get('participant1');
+
+    expect(loanApp?.status).toBe('approved');
+    expect(loanApp?.approvalDate).toBeInstanceOf(Date);
+    expect(snapshot.context.approvedFinancing).toBe(100000);
+  });
+
+  it('should handle loan rejection flow: APPLY_FOR_LOAN → BANK_REJECTS → participant notified', () => {
+    const actor = createActor(creditCastorMachine);
+    actor.start();
+
+    actor.send({
+      type: 'COMPROMIS_SIGNED',
+      compromisDate: new Date('2023-01-01'),
+      deposit: 50000
+    });
+
+    // Apply for loan
+    actor.send({
+      type: 'APPLY_FOR_LOAN',
+      participantId: 'participant1',
+      loanDetails: {
+        amount: 100000,
+        rate: 0.035,
+        duration: 25,
+        bankName: 'ING'
+      }
+    });
+
+    // Bank rejects
+    actor.send({
+      type: 'BANK_REJECTS',
+      participantId: 'participant1',
+      reason: 'Insufficient income'
+    });
+
+    const snapshot = actor.getSnapshot();
+    const loanApp = snapshot.context.financingApplications.get('participant1');
+
+    expect(loanApp?.status).toBe('rejected');
+    expect(loanApp?.rejectionReason).toBe('Insufficient income');
+    expect(snapshot.context.approvedFinancing).toBe(0);
+  });
+
+  it('should require all participants to have approved financing before ALL_CONDITIONS_MET can proceed', () => {
+    const actor = createActor(creditCastorMachine);
+    actor.start();
+
+    actor.send({
+      type: 'COMPROMIS_SIGNED',
+      compromisDate: new Date('2023-01-01'),
+      deposit: 50000
+    });
+
+    // Manually set required financing (in real app, this would be calculated from participants' needs)
+    const snapshot = actor.getSnapshot();
+    snapshot.context.requiredFinancing = 200000;
+
+    // Apply for loans
+    actor.send({
+      type: 'APPLY_FOR_LOAN',
+      participantId: 'participant1',
+      loanDetails: {
+        amount: 100000,
+        rate: 0.035,
+        duration: 25,
+        bankName: 'BNP Paribas Fortis'
+      }
+    });
+
+    actor.send({
+      type: 'APPLY_FOR_LOAN',
+      participantId: 'participant2',
+      loanDetails: {
+        amount: 100000,
+        rate: 0.035,
+        duration: 25,
+        bankName: 'KBC'
+      }
+    });
+
+    // Only one loan approved - should not proceed
+    actor.send({
+      type: 'BANK_APPROVES',
+      participantId: 'participant1'
+    });
+
+    expect(actor.getSnapshot().context.approvedFinancing).toBe(100000);
+
+    // Try to proceed - should fail guard
+    actor.send({ type: 'ALL_CONDITIONS_MET' });
+    expect(actor.getSnapshot().matches('compromis_period')).toBe(true);
+
+    // Approve second loan
+    actor.send({
+      type: 'BANK_APPROVES',
+      participantId: 'participant2'
+    });
+
+    expect(actor.getSnapshot().context.approvedFinancing).toBe(200000);
+
+    // Now should succeed
+    actor.send({ type: 'ALL_CONDITIONS_MET' });
+    expect(actor.getSnapshot().matches('ready_for_deed')).toBe(true);
+  });
+
+  it('should support split loan scenario: participant applies for second (renovation) loan later', () => {
+    const actor = createActor(creditCastorMachine);
+    actor.start();
+
+    actor.send({
+      type: 'COMPROMIS_SIGNED',
+      compromisDate: new Date('2023-01-01'),
+      deposit: 50000
+    });
+
+    // Apply for first loan (purchase)
+    actor.send({
+      type: 'APPLY_FOR_LOAN',
+      participantId: 'participant1',
+      loanDetails: {
+        amount: 127000,
+        rate: 0.035,
+        duration: 25,
+        bankName: 'BNP Paribas Fortis'
+      }
+    });
+
+    let snapshot = actor.getSnapshot();
+    let loanApp = snapshot.context.financingApplications.get('participant1');
+
+    expect(loanApp?.purpose).toBe('purchase');
+    expect(loanApp?.loanAmount).toBe(127000);
+
+    // Approve first loan
+    actor.send({
+      type: 'BANK_APPROVES',
+      participantId: 'participant1'
+    });
+
+    // Navigate to later stage and apply for second loan (renovation)
+    // This would typically happen 1-2 years later during renovation phase
+    actor.send({
+      type: 'APPLY_FOR_LOAN',
+      participantId: 'participant1',
+      loanDetails: {
+        amount: 43000,
+        rate: 0.035,
+        duration: 25,
+        bankName: 'BNP Paribas Fortis'
+      }
+    });
+
+    snapshot = actor.getSnapshot();
+
+    // The new loan application should replace the old one in the Map
+    // In real implementation, we might want to track multiple loans per participant
+    loanApp = snapshot.context.financingApplications.get('participant1');
+    expect(loanApp?.loanAmount).toBe(43000);
+  });
+});
+
+describe('ACP Collective Loan Financing', () => {
+  // Helper function to navigate to copro_established state
+  const navigateToCoproEstablished = (actor: any) => {
+    actor.send({ type: 'COMPROMIS_SIGNED', compromisDate: new Date('2023-01-01'), deposit: 50000 });
+    actor.send({ type: 'ALL_CONDITIONS_MET' });
+    actor.send({ type: 'DEED_SIGNED', deedDate: new Date('2023-05-01'), notaryId: 'notary1' });
+    actor.send({ type: 'DEED_REGISTERED', registrationDate: new Date('2023-05-10') });
+    actor.send({ type: 'START_COPRO_CREATION' });
+    actor.send({ type: 'TECHNICAL_REPORT_READY' });
+    actor.send({ type: 'PRECAD_REQUESTED', referenceNumber: 'PRECAD-2023-001' });
+    actor.send({ type: 'PRECAD_APPROVED', approvalDate: new Date('2023-07-15') });
+    actor.send({ type: 'ACTE_DRAFTED' });
+    actor.send({ type: 'ACTE_SIGNED', signatureDate: new Date('2023-08-01') });
+    actor.send({ type: 'ACTE_TRANSCRIBED', transcriptionDate: new Date('2023-08-15'), acpNumber: 'ACP-BE-123' });
+  };
+
+  it('should allow ACP loan proposal: PROPOSE_ACP_LOAN → voting scheduled', () => {
+    const actor = createActor(creditCastorMachine);
+    actor.start();
+
+    navigateToCoproEstablished(actor);
+
+    // Propose ACP loan
+    actor.send({
+      type: 'PROPOSE_ACP_LOAN',
+      loanDetails: {
+        purpose: 'roof',
+        description: 'Complete roof renovation',
+        totalAmount: 50000,
+        capitalRequired: 15000
+      }
+    });
+
+    const snapshot = actor.getSnapshot();
+    const acpLoans = Array.from(snapshot.context.acpLoans.values());
+
+    expect(acpLoans.length).toBe(1);
+    expect(acpLoans[0].status).toBe('proposed');
+    expect(acpLoans[0].purpose).toBe('roof');
+    expect(acpLoans[0].totalAmount).toBe(50000);
+    expect(acpLoans[0].capitalRequired).toBe(15000);
+  });
+
+  it('should handle voting flow with hybrid method: vote → calculate scores → determine outcome', () => {
+    const actor = createActor(creditCastorMachine);
+    actor.start();
+
+    navigateToCoproEstablished(actor);
+
+    // Setup participants with quotités
+    const snapshot = actor.getSnapshot();
+    snapshot.context.participants = [
+      {
+        id: 'p1',
+        name: 'Alice',
+        isFounder: true,
+        entryDate: new Date('2023-01-01'),
+        lotsOwned: [{ lotId: 'lot1', acquisitionDate: new Date(), acquisitionCost: 100000, surface: 50 }],
+        loans: []
+      },
+      {
+        id: 'p2',
+        name: 'Bob',
+        isFounder: true,
+        entryDate: new Date('2023-01-01'),
+        lotsOwned: [{ lotId: 'lot2', acquisitionDate: new Date(), acquisitionCost: 100000, surface: 30 }],
+        loans: []
+      },
+      {
+        id: 'p3',
+        name: 'Carol',
+        isFounder: false,
+        entryDate: new Date('2023-06-01'),
+        lotsOwned: [{ lotId: 'lot3', acquisitionDate: new Date(), acquisitionCost: 100000, surface: 20 }],
+        loans: []
+      }
+    ];
+
+    snapshot.context.lots = [
+      { id: 'lot1', origin: 'founder', status: 'sold', ownerId: 'p1', surface: 50, heldForPortage: false },
+      { id: 'lot2', origin: 'founder', status: 'sold', ownerId: 'p2', surface: 30, heldForPortage: false },
+      { id: 'lot3', origin: 'copro', status: 'sold', ownerId: 'p3', surface: 20, heldForPortage: false }
+    ];
+
+    // Propose ACP loan
+    actor.send({
+      type: 'PROPOSE_ACP_LOAN',
+      loanDetails: {
+        purpose: 'facade',
+        description: 'Facade restoration',
+        totalAmount: 40000,
+        capitalRequired: 12000
+      }
+    });
+
+    let acpLoanSnapshot = actor.getSnapshot();
+    const loanId = Array.from(acpLoanSnapshot.context.acpLoans.keys())[0];
+
+    // Schedule vote
+    actor.send({
+      type: 'SCHEDULE_VOTE',
+      votingDate: new Date('2023-09-01')
+    });
+
+    acpLoanSnapshot = actor.getSnapshot();
+    let loan = acpLoanSnapshot.context.acpLoans.get(loanId);
+    expect(loan?.status).toBe('voting');
+    expect(loan?.votingDate).toBeInstanceOf(Date);
+
+    // Participants vote
+    actor.send({
+      type: 'VOTE_ON_LOAN',
+      participantId: 'p1',
+      vote: 'for'
+    });
+
+    actor.send({
+      type: 'VOTE_ON_LOAN',
+      participantId: 'p2',
+      vote: 'for'
+    });
+
+    actor.send({
+      type: 'VOTE_ON_LOAN',
+      participantId: 'p3',
+      vote: 'against'
+    });
+
+    // Complete voting
+    actor.send({ type: 'VOTING_COMPLETE' });
+
+    acpLoanSnapshot = actor.getSnapshot();
+    loan = acpLoanSnapshot.context.acpLoans.get(loanId);
+
+    expect(loan?.votingResults).toBeDefined();
+    expect(loan?.votingResults?.quorumReached).toBe(true);
+    expect(loan?.votingResults?.majorityReached).toBe(true);
+    expect(loan?.approvedByCoowners).toBe(true);
+    expect(loan?.status).toBe('capital_gathering');
+  });
+
+  it('should track capital gathering: participants pledge and pay capital', () => {
+    const actor = createActor(creditCastorMachine);
+    actor.start();
+
+    navigateToCoproEstablished(actor);
+
+    // Setup participants
+    const snapshot = actor.getSnapshot();
+    snapshot.context.participants = [
+      {
+        id: 'p1',
+        name: 'Alice',
+        isFounder: true,
+        entryDate: new Date('2023-01-01'),
+        lotsOwned: [{ lotId: 'lot1', acquisitionDate: new Date(), acquisitionCost: 100000, surface: 50 }],
+        loans: []
+      },
+      {
+        id: 'p2',
+        name: 'Bob',
+        isFounder: true,
+        entryDate: new Date('2023-01-01'),
+        lotsOwned: [{ lotId: 'lot2', acquisitionDate: new Date(), acquisitionCost: 100000, surface: 50 }],
+        loans: []
+      }
+    ];
+
+    snapshot.context.lots = [
+      { id: 'lot1', origin: 'founder', status: 'sold', ownerId: 'p1', surface: 50, heldForPortage: false },
+      { id: 'lot2', origin: 'founder', status: 'sold', ownerId: 'p2', surface: 50, heldForPortage: false }
+    ];
+
+    // Propose and approve loan
+    actor.send({
+      type: 'PROPOSE_ACP_LOAN',
+      loanDetails: {
+        purpose: 'staircases',
+        description: 'Staircase renovation',
+        totalAmount: 30000,
+        capitalRequired: 9000
+      }
+    });
+
+    const loanId = Array.from(actor.getSnapshot().context.acpLoans.keys())[0];
+
+    actor.send({ type: 'SCHEDULE_VOTE', votingDate: new Date('2023-09-01') });
+    actor.send({ type: 'VOTE_ON_LOAN', participantId: 'p1', vote: 'for' });
+    actor.send({ type: 'VOTE_ON_LOAN', participantId: 'p2', vote: 'for' });
+    actor.send({ type: 'VOTING_COMPLETE' });
+
+    // Pledge capital
+    actor.send({
+      type: 'PLEDGE_CAPITAL',
+      participantId: 'p1',
+      amount: 4500
+    });
+
+    actor.send({
+      type: 'PLEDGE_CAPITAL',
+      participantId: 'p2',
+      amount: 4500
+    });
+
+    let acpLoanSnapshot = actor.getSnapshot();
+    let loan = acpLoanSnapshot.context.acpLoans.get(loanId);
+
+    expect(loan?.contributions.get('p1')?.amountPledged).toBe(4500);
+    expect(loan?.contributions.get('p2')?.amountPledged).toBe(4500);
+
+    // Pay capital
+    actor.send({
+      type: 'PAY_CAPITAL',
+      participantId: 'p1',
+      amount: 4500
+    });
+
+    actor.send({
+      type: 'PAY_CAPITAL',
+      participantId: 'p2',
+      amount: 4500
+    });
+
+    acpLoanSnapshot = actor.getSnapshot();
+    loan = acpLoanSnapshot.context.acpLoans.get(loanId);
+
+    expect(loan?.contributions.get('p1')?.amountPaid).toBe(4500);
+    expect(loan?.contributions.get('p2')?.amountPaid).toBe(4500);
+    expect(loan?.capitalGathered).toBe(9000);
+  });
+
+  it('should handle loan application and disbursement once capital gathered', () => {
+    const actor = createActor(creditCastorMachine);
+    actor.start();
+
+    navigateToCoproEstablished(actor);
+
+    // Setup participants
+    const snapshot = actor.getSnapshot();
+    snapshot.context.participants = [
+      {
+        id: 'p1',
+        name: 'Alice',
+        isFounder: true,
+        entryDate: new Date('2023-01-01'),
+        lotsOwned: [{ lotId: 'lot1', acquisitionDate: new Date(), acquisitionCost: 100000, surface: 100 }],
+        loans: []
+      }
+    ];
+
+    snapshot.context.lots = [
+      { id: 'lot1', origin: 'founder', status: 'sold', ownerId: 'p1', surface: 100, heldForPortage: false }
+    ];
+
+    // Propose and approve loan
+    actor.send({
+      type: 'PROPOSE_ACP_LOAN',
+      loanDetails: {
+        purpose: 'common_areas',
+        description: 'Common area improvements',
+        totalAmount: 20000,
+        capitalRequired: 6000
+      }
+    });
+
+    const loanId = Array.from(actor.getSnapshot().context.acpLoans.keys())[0];
+
+    actor.send({ type: 'SCHEDULE_VOTE', votingDate: new Date('2023-09-01') });
+    actor.send({ type: 'VOTE_ON_LOAN', participantId: 'p1', vote: 'for' });
+    actor.send({ type: 'VOTING_COMPLETE' });
+    actor.send({ type: 'PLEDGE_CAPITAL', participantId: 'p1', amount: 6000 });
+    actor.send({ type: 'PAY_CAPITAL', participantId: 'p1', amount: 6000 });
+
+    // Apply for ACP loan
+    actor.send({
+      type: 'APPLY_FOR_ACP_LOAN',
+      loanId
+    });
+
+    let acpLoanSnapshot = actor.getSnapshot();
+    let loan = acpLoanSnapshot.context.acpLoans.get(loanId);
+    expect(loan?.status).toBe('loan_application');
+
+    // Loan approved
+    actor.send({
+      type: 'ACP_LOAN_APPROVED',
+      loanId
+    });
+
+    acpLoanSnapshot = actor.getSnapshot();
+    loan = acpLoanSnapshot.context.acpLoans.get(loanId);
+    expect(loan?.status).toBe('approved');
+    expect(loan?.approvalDate).toBeInstanceOf(Date);
+
+    // Disburse loan
+    actor.send({
+      type: 'DISBURSE_ACP_LOAN',
+      loanId
+    });
+
+    acpLoanSnapshot = actor.getSnapshot();
+    loan = acpLoanSnapshot.context.acpLoans.get(loanId);
+    expect(loan?.status).toBe('disbursed');
+    expect(loan?.disbursementDate).toBeInstanceOf(Date);
+
+    // Should add loan amount to ACP bank account
+    expect(acpLoanSnapshot.context.acpBankAccount).toBe(14000); // 20000 - 6000
+  });
+
+  it('should reject ACP loan if voting fails', () => {
+    const actor = createActor(creditCastorMachine);
+    actor.start();
+
+    navigateToCoproEstablished(actor);
+
+    // Setup participants
+    const snapshot = actor.getSnapshot();
+    snapshot.context.participants = [
+      {
+        id: 'p1',
+        name: 'Alice',
+        isFounder: true,
+        entryDate: new Date('2023-01-01'),
+        lotsOwned: [{ lotId: 'lot1', acquisitionDate: new Date(), acquisitionCost: 100000, surface: 50 }],
+        loans: []
+      },
+      {
+        id: 'p2',
+        name: 'Bob',
+        isFounder: true,
+        entryDate: new Date('2023-01-01'),
+        lotsOwned: [{ lotId: 'lot2', acquisitionDate: new Date(), acquisitionCost: 100000, surface: 50 }],
+        loans: []
+      }
+    ];
+
+    snapshot.context.lots = [
+      { id: 'lot1', origin: 'founder', status: 'sold', ownerId: 'p1', surface: 50, heldForPortage: false },
+      { id: 'lot2', origin: 'founder', status: 'sold', ownerId: 'p2', surface: 50, heldForPortage: false }
+    ];
+
+    // Propose loan
+    actor.send({
+      type: 'PROPOSE_ACP_LOAN',
+      loanDetails: {
+        purpose: 'other',
+        description: 'Unnecessary renovation',
+        totalAmount: 100000,
+        capitalRequired: 30000
+      }
+    });
+
+    const loanId = Array.from(actor.getSnapshot().context.acpLoans.keys())[0];
+
+    actor.send({ type: 'SCHEDULE_VOTE', votingDate: new Date('2023-09-01') });
+
+    // Majority votes against
+    actor.send({ type: 'VOTE_ON_LOAN', participantId: 'p1', vote: 'against' });
+    actor.send({ type: 'VOTE_ON_LOAN', participantId: 'p2', vote: 'against' });
+
+    actor.send({ type: 'VOTING_COMPLETE' });
+
+    const acpLoanSnapshot = actor.getSnapshot();
+    const loan = acpLoanSnapshot.context.acpLoans.get(loanId);
+
+    expect(loan?.votingResults?.majorityReached).toBe(false);
+    expect(loan?.approvedByCoowners).toBe(false);
+    expect(loan?.status).toBe('rejected');
+  });
+});

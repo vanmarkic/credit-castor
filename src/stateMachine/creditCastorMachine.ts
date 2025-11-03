@@ -1,7 +1,8 @@
 import { setup, assign } from 'xstate';
-import type { ProjectContext, PortagePricing, CoproPricing, CarryingCosts } from './types';
+import type { ProjectContext, PortagePricing, CoproPricing, CarryingCosts, LoanApplication, ACPLoan, ACPContribution, VotingRules } from './types';
 import type { ProjectEvents } from './events';
 import { queries } from './queries';
+import { calculateQuotite, calculateVotingResults } from './calculations';
 
 // Temporary storage for current sale in progress
 interface CurrentSale {
@@ -19,10 +20,11 @@ interface CurrentSale {
   };
 }
 
-// Extended context to track current sale
+// Extended context to track current sale and ACP loan
 interface ExtendedContext extends ProjectContext {
   currentSale?: CurrentSale;
   firstSaleDate?: Date;
+  currentACPLoanId?: string;
 }
 
 export const creditCastorMachine = setup({
@@ -32,6 +34,7 @@ export const creditCastorMachine = setup({
   },
 
   guards: {
+    // Sales guards
     isPortageSale: ({ context }) => {
       if (!context.currentSale) return false;
       return context.currentSale.saleType === 'portage';
@@ -48,6 +51,11 @@ export const creditCastorMachine = setup({
       if (event.type !== 'SALE_INITIATED') return false;
       const saleType = queries.getSaleType(context, event.lotId, event.sellerId);
       return saleType === 'classic';
+    },
+
+    // Financing guards
+    allFinancingApproved: ({ context }) => {
+      return context.approvedFinancing >= context.requiredFinancing;
     }
   },
 
@@ -269,6 +277,328 @@ export const creditCastorMachine = setup({
         return [...context.salesHistory, sale];
       },
       currentSale: undefined
+    }),
+
+    // Individual loan financing actions
+    applyForLoan: assign({
+      financingApplications: ({ context, event }) => {
+        if (event.type !== 'APPLY_FOR_LOAN') return context.financingApplications;
+
+        const newMap = new Map(context.financingApplications);
+        const loanApp: LoanApplication = {
+          participantId: event.participantId,
+          status: 'pending',
+          loanAmount: event.loanDetails.amount,
+          interestRate: event.loanDetails.rate,
+          durationYears: event.loanDetails.duration,
+          purpose: 'purchase', // Default to purchase, can be overridden
+          applicationDate: new Date(),
+          bankName: event.loanDetails.bankName
+        };
+
+        newMap.set(event.participantId, loanApp);
+        return newMap;
+      }
+    }),
+
+    approveLoan: assign({
+      financingApplications: ({ context, event }) => {
+        if (event.type !== 'BANK_APPROVES') return context.financingApplications;
+
+        const newMap = new Map(context.financingApplications);
+        const loanApp = newMap.get(event.participantId);
+
+        if (loanApp) {
+          newMap.set(event.participantId, {
+            ...loanApp,
+            status: 'approved',
+            approvalDate: new Date()
+          });
+        }
+
+        return newMap;
+      },
+      approvedFinancing: ({ context, event }) => {
+        if (event.type !== 'BANK_APPROVES') return context.approvedFinancing;
+
+        const loanApp = context.financingApplications.get(event.participantId);
+        if (loanApp) {
+          return context.approvedFinancing + loanApp.loanAmount;
+        }
+
+        return context.approvedFinancing;
+      }
+    }),
+
+    rejectLoan: assign({
+      financingApplications: ({ context, event }) => {
+        if (event.type !== 'BANK_REJECTS') return context.financingApplications;
+
+        const newMap = new Map(context.financingApplications);
+        const loanApp = newMap.get(event.participantId);
+
+        if (loanApp) {
+          newMap.set(event.participantId, {
+            ...loanApp,
+            status: 'rejected',
+            rejectionReason: event.reason
+          });
+        }
+
+        return newMap;
+      }
+    }),
+
+    // ACP Collective Loan actions
+    proposeACPLoan: assign(({ context, event }) => {
+      if (event.type !== 'PROPOSE_ACP_LOAN') return {};
+
+      const loanId = `acp-loan-${Date.now()}`;
+      const newMap = new Map(context.acpLoans);
+
+      const votingRules: VotingRules = {
+        method: 'hybrid',
+        quorumPercentage: 50,
+        majorityPercentage: 50,
+        hybridWeights: {
+          democraticWeight: 0.5,
+          quotiteWeight: 0.5
+        }
+      };
+
+      const acpLoan: ACPLoan = {
+        id: loanId,
+        purpose: event.loanDetails.purpose,
+        description: event.loanDetails.description,
+        totalAmount: event.loanDetails.totalAmount,
+        capitalRequired: event.loanDetails.capitalRequired,
+        capitalGathered: 0,
+        contributions: new Map(),
+        loanAmount: event.loanDetails.totalAmount - event.loanDetails.capitalRequired,
+        interestRate: 0.03, // Default 3%
+        durationYears: 15, // Default 15 years
+        votingRules,
+        votes: new Map(),
+        approvedByCoowners: false,
+        votingDate: null,
+        applicationDate: new Date(),
+        approvalDate: null,
+        disbursementDate: null,
+        status: 'proposed'
+      };
+
+      newMap.set(loanId, acpLoan);
+
+      return {
+        acpLoans: newMap,
+        currentACPLoanId: loanId
+      };
+    }),
+
+    scheduleVote: assign({
+      acpLoans: ({ context, event }) => {
+        if (event.type !== 'SCHEDULE_VOTE' || !context.currentACPLoanId) return context.acpLoans;
+
+        const newMap = new Map(context.acpLoans);
+        const loan = newMap.get(context.currentACPLoanId);
+
+        if (loan) {
+          newMap.set(context.currentACPLoanId, {
+            ...loan,
+            status: 'voting',
+            votingDate: event.votingDate
+          });
+        }
+
+        return newMap;
+      }
+    }),
+
+    recordVote: assign({
+      acpLoans: ({ context, event }) => {
+        if (event.type !== 'VOTE_ON_LOAN' || !context.currentACPLoanId) return context.acpLoans;
+
+        const newMap = new Map(context.acpLoans);
+        const loan = newMap.get(context.currentACPLoanId);
+
+        if (loan) {
+          const participant = context.participants.find(p => p.id === event.participantId);
+          const quotite = calculateQuotite(participant, context);
+
+          const newVotes = new Map(loan.votes);
+          newVotes.set(event.participantId, {
+            participantId: event.participantId,
+            vote: event.vote,
+            quotite,
+            timestamp: new Date()
+          });
+
+          newMap.set(context.currentACPLoanId, {
+            ...loan,
+            votes: newVotes
+          });
+        }
+
+        return newMap;
+      }
+    }),
+
+    tallyVotes: assign({
+      acpLoans: ({ context }) => {
+        if (!context.currentACPLoanId) return context.acpLoans;
+
+        const newMap = new Map(context.acpLoans);
+        const loan = newMap.get(context.currentACPLoanId);
+
+        if (loan) {
+          const votingResults = calculateVotingResults(
+            loan.votes,
+            loan.votingRules,
+            context.participants.length,
+            1.0
+          );
+
+          const approved = votingResults.quorumReached && votingResults.majorityReached;
+
+          newMap.set(context.currentACPLoanId, {
+            ...loan,
+            votingResults,
+            approvedByCoowners: approved,
+            status: approved ? 'capital_gathering' : 'rejected'
+          });
+        }
+
+        return newMap;
+      }
+    }),
+
+    pledgeCapital: assign({
+      acpLoans: ({ context, event }) => {
+        if (event.type !== 'PLEDGE_CAPITAL' || !context.currentACPLoanId) return context.acpLoans;
+
+        const newMap = new Map(context.acpLoans);
+        const loan = newMap.get(context.currentACPLoanId);
+
+        if (loan) {
+          const participant = context.participants.find(p => p.id === event.participantId);
+          const quotite = calculateQuotite(participant, context);
+
+          const newContributions = new Map(loan.contributions);
+          newContributions.set(event.participantId, {
+            participantId: event.participantId,
+            amountPledged: event.amount,
+            amountPaid: 0,
+            quotiteShare: quotite,
+            paymentDate: null
+          });
+
+          newMap.set(context.currentACPLoanId, {
+            ...loan,
+            contributions: newContributions
+          });
+        }
+
+        return newMap;
+      }
+    }),
+
+    payCapital: assign({
+      acpLoans: ({ context, event }) => {
+        if (event.type !== 'PAY_CAPITAL' || !context.currentACPLoanId) return context.acpLoans;
+
+        const newMap = new Map(context.acpLoans);
+        const loan = newMap.get(context.currentACPLoanId);
+
+        if (loan) {
+          const contribution = loan.contributions.get(event.participantId);
+
+          if (contribution) {
+            const newContributions = new Map(loan.contributions);
+            newContributions.set(event.participantId, {
+              ...contribution,
+              amountPaid: event.amount,
+              paymentDate: new Date()
+            });
+
+            const capitalGathered = Array.from(newContributions.values())
+              .reduce((sum, c) => sum + c.amountPaid, 0);
+
+            newMap.set(context.currentACPLoanId, {
+              ...loan,
+              contributions: newContributions,
+              capitalGathered
+            });
+          }
+        }
+
+        return newMap;
+      }
+    }),
+
+    applyForACPLoan: assign({
+      acpLoans: ({ context, event }) => {
+        if (event.type !== 'APPLY_FOR_ACP_LOAN') return context.acpLoans;
+
+        const newMap = new Map(context.acpLoans);
+        const loan = newMap.get(event.loanId);
+
+        if (loan) {
+          newMap.set(event.loanId, {
+            ...loan,
+            status: 'loan_application'
+          });
+        }
+
+        return newMap;
+      }
+    }),
+
+    approveACPLoan: assign({
+      acpLoans: ({ context, event }) => {
+        if (event.type !== 'ACP_LOAN_APPROVED') return context.acpLoans;
+
+        const newMap = new Map(context.acpLoans);
+        const loan = newMap.get(event.loanId);
+
+        if (loan) {
+          newMap.set(event.loanId, {
+            ...loan,
+            status: 'approved',
+            approvalDate: new Date()
+          });
+        }
+
+        return newMap;
+      }
+    }),
+
+    disburseACPLoan: assign({
+      acpLoans: ({ context, event }) => {
+        if (event.type !== 'DISBURSE_ACP_LOAN') return context.acpLoans;
+
+        const newMap = new Map(context.acpLoans);
+        const loan = newMap.get(event.loanId);
+
+        if (loan) {
+          newMap.set(event.loanId, {
+            ...loan,
+            status: 'disbursed',
+            disbursementDate: new Date()
+          });
+        }
+
+        return newMap;
+      },
+      acpBankAccount: ({ context, event }) => {
+        if (event.type !== 'DISBURSE_ACP_LOAN') return context.acpBankAccount;
+
+        const loan = context.acpLoans.get(event.loanId);
+        if (loan) {
+          return context.acpBankAccount + loan.loanAmount;
+        }
+
+        return context.acpBankAccount;
+      }
     })
   }
 
@@ -345,7 +675,19 @@ export const creditCastorMachine = setup({
 
     compromis_period: {
       on: {
-        ALL_CONDITIONS_MET: 'ready_for_deed'
+        APPLY_FOR_LOAN: {
+          actions: ['applyForLoan']
+        },
+        BANK_APPROVES: {
+          actions: ['approveLoan']
+        },
+        BANK_REJECTS: {
+          actions: ['rejectLoan']
+        },
+        ALL_CONDITIONS_MET: {
+          target: 'ready_for_deed',
+          guard: 'allFinancingApproved'
+        }
       }
     },
 
@@ -426,6 +768,33 @@ export const creditCastorMachine = setup({
         REQUEST_PERMIT: {
           target: 'permit_process',
           actions: ['recordPermitRequest']
+        },
+        PROPOSE_ACP_LOAN: {
+          actions: ['proposeACPLoan']
+        },
+        SCHEDULE_VOTE: {
+          actions: ['scheduleVote']
+        },
+        VOTE_ON_LOAN: {
+          actions: ['recordVote']
+        },
+        VOTING_COMPLETE: {
+          actions: ['tallyVotes']
+        },
+        PLEDGE_CAPITAL: {
+          actions: ['pledgeCapital']
+        },
+        PAY_CAPITAL: {
+          actions: ['payCapital']
+        },
+        APPLY_FOR_ACP_LOAN: {
+          actions: ['applyForACPLoan']
+        },
+        ACP_LOAN_APPROVED: {
+          actions: ['approveACPLoan']
+        },
+        DISBURSE_ACP_LOAN: {
+          actions: ['disburseACPLoan']
         }
       }
     },
