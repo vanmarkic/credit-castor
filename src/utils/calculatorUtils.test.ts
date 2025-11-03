@@ -1225,3 +1225,111 @@ describe('calculateTwoLoanFinancing', () => {
     expect(result.loan2DurationYears).toBe(18); // 20 - 2
   });
 });
+
+// ============================================
+// Task 5: calculateAll with two-loan financing
+// ============================================
+
+describe('calculateAll with two-loan financing', () => {
+  it('should use two-loan calculations when useTwoLoans is true', () => {
+    const participants: Participant[] = [
+      {
+        name: 'Two-Loan User',
+        capitalApporte: 100000,
+        notaryFeesRate: 12.5,
+        interestRate: 4.5,
+        durationYears: 20,
+        unitId: 1,
+        surface: 100,
+        quantity: 1,
+        useTwoLoans: true,
+        loan2DelayYears: 2,
+        loan2RenovationAmount: 50000,
+        capitalForLoan1: 60000,
+        capitalForLoan2: 40000,
+      }
+    ];
+
+    const projectParams: ProjectParams = {
+      totalPurchase: 200000,
+      mesuresConservatoires: 10000,
+      demolition: 5000,
+      infrastructures: 15000,
+      etudesPreparatoires: 3000,
+      fraisEtudesPreparatoires: 2000,
+      fraisGeneraux3ans: 0,
+      batimentFondationConservatoire: 5000,
+      batimentFondationComplete: 5000,
+      batimentCoproConservatoire: 5000,
+      globalCascoPerM2: 500,
+    };
+
+    const unitDetails: UnitDetails = {
+      1: { casco: 50000, parachevements: 25000 }
+    };
+
+    const results = calculateAll(participants, projectParams, unitDetails);
+    const p = results.participantBreakdown[0];
+
+    // Should have two-loan fields populated
+    expect(p.loan1Amount).toBeDefined();
+    expect(p.loan2Amount).toBeDefined();
+    expect(p.loan1MonthlyPayment).toBeDefined();
+    expect(p.loan2MonthlyPayment).toBeDefined();
+    expect(p.loan2DurationYears).toBe(18);
+
+    // loanNeeded should equal loan1Amount
+    expect(p.loanNeeded).toBe(p.loan1Amount);
+
+    // monthlyPayment should equal loan1MonthlyPayment
+    expect(p.monthlyPayment).toBe(p.loan1MonthlyPayment);
+
+    // totalInterest should be sum of both loans
+    expect(p.totalInterest).toBe(p.loan1Interest! + p.loan2Interest!);
+  });
+
+  it('should use single-loan calculations when useTwoLoans is false', () => {
+    const participants: Participant[] = [
+      {
+        name: 'Single-Loan User',
+        capitalApporte: 100000,
+        notaryFeesRate: 12.5,
+        interestRate: 4.5,
+        durationYears: 20,
+        unitId: 1,
+        surface: 100,
+        quantity: 1,
+      }
+    ];
+
+    const projectParams: ProjectParams = {
+      totalPurchase: 200000,
+      mesuresConservatoires: 10000,
+      demolition: 5000,
+      infrastructures: 15000,
+      etudesPreparatoires: 3000,
+      fraisEtudesPreparatoires: 2000,
+      fraisGeneraux3ans: 0,
+      batimentFondationConservatoire: 5000,
+      batimentFondationComplete: 5000,
+      batimentCoproConservatoire: 5000,
+      globalCascoPerM2: 500,
+    };
+
+    const unitDetails: UnitDetails = {
+      1: { casco: 50000, parachevements: 25000 }
+    };
+
+    const results = calculateAll(participants, projectParams, unitDetails);
+    const p = results.participantBreakdown[0];
+
+    // Should NOT have two-loan fields populated
+    expect(p.loan1Amount).toBeUndefined();
+    expect(p.loan2Amount).toBeUndefined();
+
+    // Should have standard single-loan fields
+    expect(p.loanNeeded).toBeGreaterThan(0);
+    expect(p.monthlyPayment).toBeGreaterThan(0);
+    expect(p.totalInterest).toBeGreaterThan(0);
+  });
+});
