@@ -26,6 +26,9 @@ export interface Lot {
   originalNotaryFees?: number; // Notary fees paid at acquisition
   monthlyCarryingCost?: number; // Monthly cost for portage lots
 
+  // Portage lot configuration
+  allocatedSurface?: number; // Surface allocated to portage (if isPortage=true)
+
   // Sale tracking
   soldDate?: Date;
   soldTo?: string; // Participant name
