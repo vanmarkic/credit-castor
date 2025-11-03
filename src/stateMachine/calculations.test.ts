@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { calculateIndexation, calculateCarryingCosts, calculateFirstLoanAmount, calculateSecondLoanAmount } from './calculations';
-import type { Lot, ProjectContext, ParticipantCosts } from './types';
+import { calculateIndexation, calculateCarryingCosts, calculateFirstLoanAmount, calculateSecondLoanAmount, calculateVotingResults } from './calculations';
+import type { Lot, ProjectContext, ParticipantCosts, ParticipantVote, VotingRules } from './types';
 
 describe('Indexation Calculation', () => {
   it('should calculate indexation using Belgian legal index', () => {
@@ -190,5 +190,78 @@ describe('Loan Split Calculations', () => {
     // When no construction, first loan = all costs, second loan = 0
     expect(firstLoan).toBe(132500);
     expect(secondLoan).toBe(0);
+  });
+});
+
+describe('Voting Calculations', () => {
+  it('should calculate democratic voting results', () => {
+    const votes = new Map<string, ParticipantVote>([
+      ['p1', { participantId: 'p1', vote: 'for', quotite: 0.2, timestamp: new Date() }],
+      ['p2', { participantId: 'p2', vote: 'for', quotite: 0.3, timestamp: new Date() }],
+      ['p3', { participantId: 'p3', vote: 'against', quotite: 0.25, timestamp: new Date() }],
+      ['p4', { participantId: 'p4', vote: 'for', quotite: 0.15, timestamp: new Date() }]
+    ]);
+
+    const rules: VotingRules = {
+      method: 'one_person_one_vote',
+      quorumPercentage: 50,
+      majorityPercentage: 50
+    };
+
+    const result = calculateVotingResults(votes, rules, 5, 1.0);
+
+    expect(result.totalVoters).toBe(4);
+    expect(result.votesFor).toBe(3);
+    expect(result.votesAgainst).toBe(1);
+    expect(result.quorumReached).toBe(true); // 4/5 = 80% > 50%
+    expect(result.majorityReached).toBe(true); // 3/4 = 75% > 50%
+    expect(result.democraticMajority).toBe(true);
+  });
+
+  it('should calculate quotité-weighted voting results', () => {
+    const votes = new Map<string, ParticipantVote>([
+      ['p1', { participantId: 'p1', vote: 'for', quotite: 0.2, timestamp: new Date() }],
+      ['p2', { participantId: 'p2', vote: 'for', quotite: 0.3, timestamp: new Date() }],
+      ['p3', { participantId: 'p3', vote: 'against', quotite: 0.25, timestamp: new Date() }]
+    ]);
+
+    const rules: VotingRules = {
+      method: 'quotite_weighted',
+      quorumPercentage: 50,
+      majorityPercentage: 50
+    };
+
+    const result = calculateVotingResults(votes, rules, 5, 1.0);
+
+    expect(result.quotiteFor).toBe(0.5); // 20% + 30%
+    expect(result.quotiteAgainst).toBe(0.25);
+    expect(result.quotiteMajority).toBe(true); // 0.5/0.75 = 66.7% > 50%
+  });
+
+  it('should calculate hybrid voting results', () => {
+    const votes = new Map<string, ParticipantVote>([
+      ['p1', { participantId: 'p1', vote: 'for', quotite: 0.2, timestamp: new Date() }],
+      ['p2', { participantId: 'p2', vote: 'for', quotite: 0.3, timestamp: new Date() }],
+      ['p3', { participantId: 'p3', vote: 'against', quotite: 0.25, timestamp: new Date() }],
+      ['p4', { participantId: 'p4', vote: 'for', quotite: 0.15, timestamp: new Date() }]
+    ]);
+
+    const rules: VotingRules = {
+      method: 'hybrid',
+      quorumPercentage: 50,
+      majorityPercentage: 50,
+      hybridWeights: {
+        democraticWeight: 0.5,
+        quotiteWeight: 0.5
+      }
+    };
+
+    const result = calculateVotingResults(votes, rules, 5, 1.0);
+
+    // Democratic: 3/4 = 75%
+    // Quotité: 0.65/0.9 = 72.2%
+    // Hybrid: (75% × 0.5) + (72.2% × 0.5) = 73.6%
+    expect(result.hybridScore).toBeCloseTo(0.736, 2);
+    expect(result.majorityReached).toBe(true);
   });
 });

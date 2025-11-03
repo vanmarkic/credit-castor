@@ -1,4 +1,4 @@
-import type { IndexRate, Lot, Participant, ProjectContext, CarryingCosts, ParticipantCosts } from './types';
+import type { IndexRate, Lot, Participant, ProjectContext, CarryingCosts, ParticipantCosts, VotingRules, VotingResults, ParticipantVote } from './types';
 
 /**
  * Calculate indexation growth using Belgian legal index
@@ -167,4 +167,91 @@ export function calculateSplitLoanSavings(
   const interestSaved = secondLoanAmount * monthlyInterestRate * monthsDelayed;
 
   return interestSaved;
+}
+
+/**
+ * Calculate voting results based on voting method
+ */
+export function calculateVotingResults(
+  votes: Map<string, ParticipantVote>,
+  votingRules: VotingRules,
+  totalParticipants: number,
+  totalQuotitePossible: number = 1.0
+): VotingResults {
+  // Democratic counting
+  const totalVoters = votes.size;
+  const votesFor = Array.from(votes.values()).filter(v => v.vote === 'for').length;
+  const votesAgainst = Array.from(votes.values()).filter(v => v.vote === 'against').length;
+  const abstentions = Array.from(votes.values()).filter(v => v.vote === 'abstain').length;
+
+  // Quotité-weighted counting
+  const quotiteFor = Array.from(votes.values())
+    .filter(v => v.vote === 'for')
+    .reduce((sum, v) => sum + v.quotite, 0);
+
+  const quotiteAgainst = Array.from(votes.values())
+    .filter(v => v.vote === 'against')
+    .reduce((sum, v) => sum + v.quotite, 0);
+
+  const quotiteAbstained = Array.from(votes.values())
+    .filter(v => v.vote === 'abstain')
+    .reduce((sum, v) => sum + v.quotite, 0);
+
+  const totalQuotite = quotiteFor + quotiteAgainst + quotiteAbstained;
+
+  // Calculate majorities
+  const democraticMajority = votesFor > (totalVoters * (votingRules.majorityPercentage / 100));
+  const quotiteMajority = quotiteFor > (totalQuotite * (votingRules.majorityPercentage / 100));
+
+  // Quorum checks
+  let quorumReached = false;
+  let majorityReached = false;
+  let hybridScore: number | undefined;
+
+  switch (votingRules.method) {
+    case 'one_person_one_vote':
+      quorumReached = totalVoters >= (totalParticipants * (votingRules.quorumPercentage / 100));
+      majorityReached = democraticMajority;
+      break;
+
+    case 'quotite_weighted':
+      quorumReached = totalQuotite >= (totalQuotitePossible * (votingRules.quorumPercentage / 100));
+      majorityReached = quotiteMajority;
+      break;
+
+    case 'hybrid':
+      if (!votingRules.hybridWeights) {
+        throw new Error('Hybrid voting requires hybridWeights configuration');
+      }
+
+      const democraticQuorum = totalVoters >= (totalParticipants * (votingRules.quorumPercentage / 100));
+      const quotiteQuorum = totalQuotite >= (totalQuotitePossible * (votingRules.quorumPercentage / 100));
+      quorumReached = democraticQuorum && quotiteQuorum;
+
+      const democraticScore = totalVoters > 0 ? votesFor / totalVoters : 0;
+      const quotiteScore = totalQuotite > 0 ? quotiteFor / totalQuotite : 0;
+
+      hybridScore =
+        (democraticScore * votingRules.hybridWeights.democraticWeight) +
+        (quotiteScore * votingRules.hybridWeights.quotiteWeight);
+
+      majorityReached = hybridScore > (votingRules.majorityPercentage / 100);
+      break;
+  }
+
+  return {
+    totalVoters,
+    votesFor,
+    votesAgainst,
+    abstentions,
+    totalQuotite,
+    quotiteFor,
+    quotiteAgainst,
+    quotiteAbstained,
+    hybridScore,
+    quorumReached,
+    majorityReached,
+    democraticMajority,
+    quotiteMajority
+  };
 }
