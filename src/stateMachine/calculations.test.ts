@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { calculateIndexation, calculateCarryingCosts } from './calculations';
-import type { Lot, ProjectContext } from './types';
+import { calculateIndexation, calculateCarryingCosts, calculateFirstLoanAmount, calculateSecondLoanAmount } from './calculations';
+import type { Lot, ProjectContext, ParticipantCosts } from './types';
 
 describe('Indexation Calculation', () => {
   it('should calculate indexation using Belgian legal index', () => {
@@ -125,5 +125,70 @@ describe('Carrying Costs Calculation', () => {
     expect(result.totalMonths).toBeCloseTo(24, 0);
     expect(result.total).toBeGreaterThan(0);
     expect(result.monthlyLoanInterest).toBeCloseTo((80000 * 0.035) / 12, 2);
+  });
+});
+
+describe('Loan Split Calculations', () => {
+  const costs: ParticipantCosts = {
+    partAchat: 80000,
+    droitEnregistrement: 10000,
+    travauxCommuns: 15000,
+    casco: 40000,
+    parachevements: 25000
+  };
+
+  it('should calculate first loan amount (1/3 construction)', () => {
+    const firstLoan = calculateFirstLoanAmount(costs);
+
+    const constructionCosts = costs.casco + costs.parachevements; // 65,000
+    const expectedFirstLoan =
+      costs.partAchat +                      // 80,000
+      costs.droitEnregistrement +            // 10,000
+      costs.travauxCommuns +                 // 15,000
+      (constructionCosts / 3);               // 21,667
+
+    expect(firstLoan).toBeCloseTo(126667, 0);
+    expect(firstLoan).toBeCloseTo(expectedFirstLoan, 0);
+  });
+
+  it('should calculate second loan amount (2/3 construction)', () => {
+    const secondLoan = calculateSecondLoanAmount(costs);
+
+    const constructionCosts = costs.casco + costs.parachevements; // 65,000
+    const expectedSecondLoan = (constructionCosts * 2) / 3;       // 43,333
+
+    expect(secondLoan).toBeCloseTo(43333, 0);
+    expect(secondLoan).toBeCloseTo(expectedSecondLoan, 0);
+  });
+
+  it('should verify split loans sum equals total', () => {
+    const firstLoan = calculateFirstLoanAmount(costs);
+    const secondLoan = calculateSecondLoanAmount(costs);
+
+    const totalCosts =
+      costs.partAchat +
+      costs.droitEnregistrement +
+      costs.travauxCommuns +
+      costs.casco +
+      costs.parachevements;
+
+    expect(firstLoan + secondLoan).toBeCloseTo(totalCosts, 0);
+  });
+
+  it('should handle zero construction costs', () => {
+    const noConstrucitonCosts: ParticipantCosts = {
+      partAchat: 100000,
+      droitEnregistrement: 12500,
+      travauxCommuns: 20000,
+      casco: 0,
+      parachevements: 0
+    };
+
+    const firstLoan = calculateFirstLoanAmount(noConstrucitonCosts);
+    const secondLoan = calculateSecondLoanAmount(noConstrucitonCosts);
+
+    // When no construction, first loan = all costs, second loan = 0
+    expect(firstLoan).toBe(132500);
+    expect(secondLoan).toBe(0);
   });
 });

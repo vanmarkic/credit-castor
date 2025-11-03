@@ -1,4 +1,4 @@
-import type { IndexRate, Lot, Participant, ProjectContext, CarryingCosts } from './types';
+import type { IndexRate, Lot, Participant, ProjectContext, CarryingCosts, ParticipantCosts } from './types';
 
 /**
  * Calculate indexation growth using Belgian legal index
@@ -110,4 +110,61 @@ function calculateMonthlyLoanInterest(
   return participant.loans.reduce((total, loan) => {
     return total + (loan.loanAmount * loan.interestRate) / 12;
   }, 0);
+}
+
+/**
+ * Calculate first loan amount (purchase loan)
+ * Covers: 100% purchase + fees + common + 1/3 construction
+ */
+export function calculateFirstLoanAmount(costs: ParticipantCosts): number {
+  const constructionCosts = costs.casco + costs.parachevements;
+
+  return (
+    costs.partAchat +
+    costs.droitEnregistrement +
+    costs.travauxCommuns +
+    (constructionCosts / 3)
+  );
+}
+
+/**
+ * Calculate second loan amount (renovation loan)
+ * Covers: 2/3 of construction costs
+ */
+export function calculateSecondLoanAmount(costs: ParticipantCosts): number {
+  const constructionCosts = costs.casco + costs.parachevements;
+  return (constructionCosts * 2) / 3;
+}
+
+/**
+ * Calculate total financing needed (single loan or sum of split loans)
+ */
+export function calculateTotalFinancing(costs: ParticipantCosts): number {
+  return (
+    costs.partAchat +
+    costs.droitEnregistrement +
+    costs.travauxCommuns +
+    costs.casco +
+    costs.parachevements
+  );
+}
+
+/**
+ * Calculate interest savings from split loan strategy
+ * @param costs - Participant's total costs
+ * @param interestRate - Annual interest rate (e.g., 0.035 for 3.5%)
+ * @param monthsDelayed - Months between first and second loan (typically 18-24)
+ */
+export function calculateSplitLoanSavings(
+  costs: ParticipantCosts,
+  interestRate: number,
+  monthsDelayed: number
+): number {
+  const secondLoanAmount = calculateSecondLoanAmount(costs);
+
+  // Interest saved by not borrowing second loan amount immediately
+  const monthlyInterestRate = interestRate / 12;
+  const interestSaved = secondLoanAmount * monthlyInterestRate * monthsDelayed;
+
+  return interestSaved;
 }
