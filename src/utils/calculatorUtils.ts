@@ -430,6 +430,62 @@ export function calculateFinancingRatio(
 }
 
 /**
+ * Calculate two-loan financing breakdown
+ * Loan 1: purchaseShare + notaryFees + sharedCosts + (personalRenovationCost - loan2RenovationAmount) - capitalForLoan1
+ * Loan 2: loan2RenovationAmount - capitalForLoan2
+ */
+export function calculateTwoLoanFinancing(
+  purchaseShare: number,
+  notaryFees: number,
+  sharedCosts: number,
+  personalRenovationCost: number,
+  participant: Participant
+): {
+  loan1Amount: number;
+  loan1MonthlyPayment: number;
+  loan1Interest: number;
+  loan2Amount: number;
+  loan2DurationYears: number;
+  loan2MonthlyPayment: number;
+  loan2Interest: number;
+  totalInterest: number;
+} {
+  const loan2RenovationAmount = participant.loan2RenovationAmount || 0;
+  const capitalForLoan1 = participant.capitalForLoan1 || 0;
+  const capitalForLoan2 = participant.capitalForLoan2 || 0;
+  const loan2DelayYears = participant.loan2DelayYears ?? 2;
+
+  // Loan 1: Everything except the renovation going to loan 2
+  const loan1RenovationPortion = personalRenovationCost - loan2RenovationAmount;
+  const loan1Amount = Math.max(0, purchaseShare + notaryFees + sharedCosts + loan1RenovationPortion - capitalForLoan1);
+
+  // Loan 2: Only the specified renovation amount
+  const loan2Amount = Math.max(0, loan2RenovationAmount - capitalForLoan2);
+
+  // Loan 2 duration: Same end date as loan 1
+  const loan2DurationYears = participant.durationYears - loan2DelayYears;
+
+  // Monthly payments
+  const loan1MonthlyPayment = calculateMonthlyPayment(loan1Amount, participant.interestRate, participant.durationYears);
+  const loan2MonthlyPayment = calculateMonthlyPayment(loan2Amount, participant.interestRate, loan2DurationYears);
+
+  // Interest calculations
+  const loan1Interest = calculateTotalInterest(loan1MonthlyPayment, participant.durationYears, loan1Amount);
+  const loan2Interest = calculateTotalInterest(loan2MonthlyPayment, loan2DurationYears, loan2Amount);
+
+  return {
+    loan1Amount,
+    loan1MonthlyPayment,
+    loan1Interest,
+    loan2Amount,
+    loan2DurationYears,
+    loan2MonthlyPayment,
+    loan2Interest,
+    totalInterest: loan1Interest + loan2Interest
+  };
+}
+
+/**
  * Main calculation function that computes all participant breakdowns and totals
  */
 export function calculateAll(
