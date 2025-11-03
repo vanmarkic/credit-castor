@@ -22,6 +22,20 @@ export const creditCastorMachine = setup({
         if (event.type !== 'COMPROMIS_SIGNED') return context.compromisDate;
         return event.compromisDate;
       }
+    }),
+
+    recordDeedDate: assign({
+      deedDate: ({ event }) => {
+        if (event.type !== 'DEED_SIGNED') return null;
+        return event.deedDate;
+      }
+    }),
+
+    recordRegistrationDate: assign({
+      registrationDate: ({ event }) => {
+        if (event.type !== 'DEED_REGISTERED') return null;
+        return event.registrationDate;
+      }
     })
   }
 
@@ -96,12 +110,35 @@ export const creditCastorMachine = setup({
     },
 
     compromis_period: {
-      // Will be expanded with parallel states
+      on: {
+        ALL_CONDITIONS_MET: 'ready_for_deed'
+      }
     },
 
-    ready_for_deed: {},
-    deed_registration_pending: {},
-    ownership_transferred: {},
+    ready_for_deed: {
+      on: {
+        DEED_SIGNED: {
+          target: 'deed_registration_pending',
+          actions: ['recordDeedDate']
+        }
+      }
+    },
+
+    deed_registration_pending: {
+      on: {
+        DEED_REGISTERED: {
+          target: 'ownership_transferred',
+          actions: ['recordRegistrationDate']
+        }
+      }
+    },
+
+    ownership_transferred: {
+      on: {
+        START_COPRO_CREATION: 'copro_creation'
+      }
+    },
+
     copro_creation: {},
     copro_established: {},
     permit_process: {},
