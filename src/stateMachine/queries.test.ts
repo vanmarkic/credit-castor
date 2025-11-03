@@ -97,3 +97,81 @@ describe('Participant Queries', () => {
     expect(participant?.name).toBe('Bob');
   });
 });
+
+describe('Lot Queries', () => {
+  let context: ProjectContext;
+
+  beforeEach(() => {
+    context = {
+      participants: [],
+      lots: [
+        {
+          id: 'lot1',
+          origin: 'founder',
+          status: 'available',
+          ownerId: 'p1',
+          surface: 100,
+          heldForPortage: true
+        },
+        {
+          id: 'lot2',
+          origin: 'copro',
+          status: 'hidden',
+          ownerId: 'copropriete',
+          surface: 50,
+          heldForPortage: false
+        },
+        {
+          id: 'lot3',
+          origin: 'copro',
+          status: 'available',
+          ownerId: 'copropriete',
+          surface: 75,
+          heldForPortage: false
+        }
+      ],
+      salesHistory: [],
+      acteTranscriptionDate: new Date(),
+      permitEnactedDate: null,
+      // ... minimal context
+    } as ProjectContext;
+  });
+
+  it('should get lots by origin', () => {
+    const founderLots = queries.getLotsByOrigin(context, 'founder');
+    expect(founderLots).toHaveLength(1);
+    expect(founderLots[0].id).toBe('lot1');
+
+    const coproLots = queries.getLotsByOrigin(context, 'copro');
+    expect(coproLots).toHaveLength(2);
+  });
+
+  it('should get available lots', () => {
+    const available = queries.getAvailableLots(context);
+    expect(available).toHaveLength(2);
+  });
+
+  it('should get portage lots', () => {
+    const portage = queries.getPortageLots(context);
+    expect(portage).toHaveLength(1);
+    expect(portage[0].id).toBe('lot1');
+  });
+
+  it('should get hidden lots', () => {
+    const hidden = queries.getHiddenLots(context);
+    expect(hidden).toHaveLength(1);
+    expect(hidden[0].id).toBe('lot2');
+  });
+
+  it('should detect sale type correctly', () => {
+    expect(queries.getSaleType(context, 'lot1', 'p1')).toBe('portage');
+    expect(queries.getSaleType(context, 'lot3', 'copropriete')).toBe('copro');
+  });
+
+  it('should check if portage sales are allowed', () => {
+    expect(queries.canSellPortageLots(context)).toBe(true);
+
+    context.acteTranscriptionDate = null;
+    expect(queries.canSellPortageLots(context)).toBe(false);
+  });
+});
