@@ -963,7 +963,7 @@ export default function EnDivisionCorrect() {
               [], // Copro lots - empty for now
               calculations
             )}
-            deedDate={deedDate}
+            deedDate={new Date(deedDate)}
             formulaParams={portageFormula}
           />
         </div>
