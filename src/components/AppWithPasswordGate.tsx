@@ -6,8 +6,8 @@ export default function AppWithPasswordGate() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Check if already authenticated in this session
-    const authenticated = sessionStorage.getItem('authenticated');
+    // Check if already authenticated
+    const authenticated = localStorage.getItem('authenticated');
     if (authenticated === 'true') {
       setIsAuthenticated(true);
     }

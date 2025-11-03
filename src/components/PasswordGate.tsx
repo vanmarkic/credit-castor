@@ -17,8 +17,8 @@ export default function PasswordGate({ onUnlock }: PasswordGateProps) {
 
     if (password === correctPassword) {
       setError(false);
-      // Store in sessionStorage so it persists during the session
-      sessionStorage.setItem('authenticated', 'true');
+      // Store in localStorage so it persists across sessions
+      localStorage.setItem('authenticated', 'true');
       onUnlock();
     } else {
       setError(true);
