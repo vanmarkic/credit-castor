@@ -1,8 +1,15 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import PortageLotConfig from './PortageLotConfig';
+import type { PortageFormulaParams } from '../utils/calculatorUtils';
 
 describe('PortageLotConfig', () => {
+  const defaultFormulaParams: PortageFormulaParams = {
+    indexationRate: 2.0,
+    carryingCostRecovery: 100,
+    averageInterestRate: 4.5
+  };
+
   it('should render empty state when no portage lots', () => {
     render(
       <PortageLotConfig
@@ -10,6 +17,8 @@ describe('PortageLotConfig', () => {
         onAddLot={vi.fn()}
         onRemoveLot={vi.fn()}
         onUpdateSurface={vi.fn()}
+        deedDate={new Date('2023-01-01')}
+        formulaParams={defaultFormulaParams}
       />
     );
 
@@ -25,6 +34,8 @@ describe('PortageLotConfig', () => {
         onAddLot={onAddLot}
         onRemoveLot={vi.fn()}
         onUpdateSurface={vi.fn()}
+        deedDate={new Date('2023-01-01')}
+        formulaParams={defaultFormulaParams}
       />
     );
 
@@ -42,7 +53,10 @@ describe('PortageLotConfig', () => {
         unitId: 1,
         isPortage: true,
         allocatedSurface: 50,
-        acquiredDate: new Date('2026-02-01')
+        acquiredDate: new Date('2026-02-01'),
+        originalPrice: 60000,
+        originalNotaryFees: 7500,
+        originalConstructionCost: 0
       }
     ];
 
@@ -52,10 +66,46 @@ describe('PortageLotConfig', () => {
         onAddLot={vi.fn()}
         onRemoveLot={vi.fn()}
         onUpdateSurface={vi.fn()}
+        deedDate={new Date('2023-01-01')}
+        formulaParams={defaultFormulaParams}
       />
     );
 
     const input = screen.getByDisplayValue('50');
     expect(input).toBeInTheDocument();
+  });
+
+  it('should display price breakdown table for portage lot', () => {
+    const lot = {
+      lotId: 1,
+      surface: 45,
+      allocatedSurface: 45,
+      isPortage: true,
+      originalPrice: 60000,
+      originalNotaryFees: 7500,
+      originalConstructionCost: 0
+    };
+
+    const formulaParams: PortageFormulaParams = {
+      indexationRate: 2.0,
+      carryingCostRecovery: 100,
+      averageInterestRate: 4.5
+    };
+
+    render(
+      <PortageLotConfig
+        portageLots={[lot]}
+        onAddLot={() => {}}
+        onRemoveLot={() => {}}
+        onUpdateSurface={() => {}}
+        deedDate={new Date('2023-01-01')}
+        formulaParams={formulaParams}
+      />
+    );
+
+    expect(screen.getByText(/Base acquisition/i)).toBeInTheDocument();
+    expect(screen.getByText(/Indexation/i)).toBeInTheDocument();
+    expect(screen.getByText(/Frais de portage/i)).toBeInTheDocument();
+    expect(screen.getByText(/Prix total/i)).toBeInTheDocument();
   });
 });
