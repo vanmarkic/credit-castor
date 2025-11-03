@@ -40,6 +40,7 @@ describe('Participant Queries', () => {
       registrationDate: null,
       precadReferenceNumber: null,
       precadRequestDate: null,
+      precadApprovalDate: null,
       acteDeBaseDate: null,
       acteTranscriptionDate: null,
       acpEnterpriseNumber: null,

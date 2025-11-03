@@ -78,6 +78,7 @@ export interface ProjectContext {
   registrationDate: Date | null;
   precadReferenceNumber: string | null;
   precadRequestDate: Date | null;
+  precadApprovalDate: Date | null;
   acteDeBaseDate: Date | null;
   acteTranscriptionDate: Date | null;
   acpEnterpriseNumber: string | null;

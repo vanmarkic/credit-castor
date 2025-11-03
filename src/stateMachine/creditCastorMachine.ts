@@ -1,6 +1,6 @@
 import { setup, assign } from 'xstate';
-import type { ProjectContext, ProjectEvents } from './types';
-import type { PurchaseEvents } from './events';
+import type { ProjectContext } from './types';
+import type { ProjectEvents } from './events';
 
 export const creditCastorMachine = setup({
   types: {} as {
@@ -36,6 +36,41 @@ export const creditCastorMachine = setup({
         if (event.type !== 'DEED_REGISTERED') return null;
         return event.registrationDate;
       }
+    }),
+
+    recordPrecadRequest: assign({
+      precadReferenceNumber: ({ event }) => {
+        if (event.type !== 'PRECAD_REQUESTED') return null;
+        return event.referenceNumber;
+      },
+      precadRequestDate: () => {
+        return new Date();
+      }
+    }),
+
+    recordPrecadApproval: assign({
+      precadApprovalDate: ({ event }) => {
+        if (event.type !== 'PRECAD_APPROVED') return null;
+        return event.approvalDate;
+      }
+    }),
+
+    recordActeSignature: assign({
+      acteDeBaseDate: ({ event }) => {
+        if (event.type !== 'ACTE_SIGNED') return null;
+        return event.signatureDate;
+      }
+    }),
+
+    recordActeTranscription: assign({
+      acteTranscriptionDate: ({ event }) => {
+        if (event.type !== 'ACTE_TRANSCRIBED') return null;
+        return event.transcriptionDate;
+      },
+      acpEnterpriseNumber: ({ event }) => {
+        if (event.type !== 'ACTE_TRANSCRIBED') return null;
+        return event.acpNumber;
+      }
     })
   }
 
@@ -50,6 +85,7 @@ export const creditCastorMachine = setup({
     registrationDate: null,
     precadReferenceNumber: null,
     precadRequestDate: null,
+    precadApprovalDate: null,
     acteDeBaseDate: null,
     acteTranscriptionDate: null,
     acpEnterpriseNumber: null,
@@ -139,7 +175,54 @@ export const creditCastorMachine = setup({
       }
     },
 
-    copro_creation: {},
+    copro_creation: {
+      initial: 'awaiting_technical_report',
+      states: {
+        awaiting_technical_report: {
+          on: {
+            TECHNICAL_REPORT_READY: 'awaiting_precad'
+          }
+        },
+        awaiting_precad: {
+          on: {
+            PRECAD_REQUESTED: {
+              target: 'precad_review',
+              actions: ['recordPrecadRequest']
+            }
+          }
+        },
+        precad_review: {
+          on: {
+            PRECAD_APPROVED: {
+              target: 'drafting_acte',
+              actions: ['recordPrecadApproval']
+            }
+          }
+        },
+        drafting_acte: {
+          on: {
+            ACTE_DRAFTED: 'awaiting_signatures'
+          }
+        },
+        awaiting_signatures: {
+          on: {
+            ACTE_SIGNED: {
+              target: 'awaiting_transcription',
+              actions: ['recordActeSignature']
+            }
+          }
+        },
+        awaiting_transcription: {
+          on: {
+            ACTE_TRANSCRIBED: {
+              target: '#creditCastorProject.copro_established',
+              actions: ['recordActeTranscription']
+            }
+          }
+        }
+      }
+    },
+
     copro_established: {},
     permit_process: {},
     permit_active: {},
