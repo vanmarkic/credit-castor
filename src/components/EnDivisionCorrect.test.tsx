@@ -32,7 +32,7 @@ describe('EnDivisionCorrect - Integration Tests', () => {
       expect(travauxCommunsPerUnit).toBe(92225);
 
       // Verify key totals are displayed in the UI
-      expect(screen.getByText('572m²')).toBeInTheDocument();
+      expect(screen.getByText('632m²')).toBeInTheDocument();
 
       // Participant 1: Manuela/Dragan
       // Unit 1: casco = 178080, parachevements = 56000

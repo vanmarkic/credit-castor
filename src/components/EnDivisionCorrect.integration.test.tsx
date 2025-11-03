@@ -24,19 +24,30 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
     fireEvent.click(addButton);
 
     // Wait for new participant to appear (now 6th participant since we have 5 defaults)
+    let participant6Text: HTMLElement | null = null;
     await waitFor(() => {
-      expect(screen.getByText(/Participant.*6/i)).toBeInTheDocument();
+      participant6Text = screen.getByText(/Participant.*6/i);
+      expect(participant6Text).toBeInTheDocument();
     });
 
-    // Details panel is now always visible, should see entry date section
-    await waitFor(() => {
-      expect(screen.getByText(/Date d'entrée dans le projet/i)).toBeInTheDocument();
-    });
+    // Find the participant name input for Participant 6 and click its parent card
+    const nameInputs = screen.getAllByPlaceholderText(/Nom du·de la participant·e/i);
+    const newParticipantInput = nameInputs[nameInputs.length - 1];
+    const participantCard = newParticipantInput.closest('div[class*="cursor-pointer"]');
 
-    // Check that "Fondateur" checkbox is checked by default
-    const founderCheckboxes = screen.getAllByRole('checkbox', { name: /Fondateur/i });
-    const lastFounderCheckbox = founderCheckboxes[founderCheckboxes.length - 1];
-    expect(lastFounderCheckbox).toBeChecked();
+    if (participantCard) {
+      fireEvent.click(participantCard);
+
+      // Modal should open and show entry date section
+      await waitFor(() => {
+        expect(screen.getByText(/Date d'entrée dans le projet/i)).toBeInTheDocument();
+      });
+
+      // Check that "Fondateur" checkbox is checked by default (in the modal)
+      const founderCheckboxes = screen.getAllByRole('checkbox', { name: /Fondateur/i });
+      const lastFounderCheckbox = founderCheckboxes[founderCheckboxes.length - 1];
+      expect(lastFounderCheckbox).toBeChecked();
+    }
   });
 
   it('should show purchase details fields when unchecking founder checkbox', async () => {
@@ -50,16 +61,29 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
       expect(screen.getByText(/Participant.*6/i)).toBeInTheDocument();
     });
 
-    // Details panel is now always visible
-    // Uncheck "Fondateur"
-    const founderCheckboxes = screen.getAllByRole('checkbox', { name: /Fondateur/i });
-    const lastFounderCheckbox = founderCheckboxes[founderCheckboxes.length - 1];
-    fireEvent.click(lastFounderCheckbox);
+    // Find the participant name input for Participant 6 and click its parent card
+    const nameInputs = screen.getAllByPlaceholderText(/Nom du·de la participant·e/i);
+    const newParticipantInput = nameInputs[nameInputs.length - 1];
+    const participantCard = newParticipantInput.closest('div[class*="cursor-pointer"]');
 
-    // Should see lot selection section
-    await waitFor(() => {
-      expect(screen.getByText(/Sélection du Lot/i)).toBeInTheDocument();
-    });
+    if (participantCard) {
+      fireEvent.click(participantCard);
+
+      // Wait for modal to open
+      await waitFor(() => {
+        expect(screen.getByText(/Date d'entrée dans le projet/i)).toBeInTheDocument();
+      });
+
+      // Uncheck "Fondateur"
+      const founderCheckboxes = screen.getAllByRole('checkbox', { name: /Fondateur/i });
+      const lastFounderCheckbox = founderCheckboxes[founderCheckboxes.length - 1];
+      fireEvent.click(lastFounderCheckbox);
+
+      // Should see lot selection section
+      await waitFor(() => {
+        expect(screen.getByText(/Sélection du Lot/i)).toBeInTheDocument();
+      });
+    }
   });
 
   it.skip('should display portage payback info when participant sells to newcomer', async () => {

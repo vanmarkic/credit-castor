@@ -9,6 +9,14 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: true,
+    // Memory leak prevention
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        singleFork: true,
+      }
+    },
+    isolate: true,
   },
   resolve: {
     alias: {
