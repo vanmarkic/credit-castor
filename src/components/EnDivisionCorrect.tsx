@@ -1,8 +1,10 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Calculator, Users, DollarSign, Home, Building2, Wallet, Download, Upload, RotateCcw, Save, ChevronDown, ChevronUp } from 'lucide-react';
+import { Calculator, Users, DollarSign, Home, Building2, Wallet, Download, Upload, RotateCcw, Save, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react';
 import { calculateAll } from '../utils/calculatorUtils';
 import { exportCalculations } from '../utils/excelExport';
 import { XlsxWriter } from '../utils/exportWriter';
+import { convertCalculatorToInitialPurchaseEvent } from '../utils/calculatorToTimeline';
+import { exportTimelineToJSON } from '../utils/timelineExport';
 
 // Default values for reset functionality
 const DEFAULT_PARTICIPANTS = [
@@ -239,6 +241,41 @@ export default function EnDivisionCorrect() {
     exportCalculations(calculations, projectParams, scenario, writer);
   };
 
+  // Continue to Timeline - convert calculator to timeline event
+  const continueToTimeline = () => {
+    try {
+      // Convert calculator inputs to InitialPurchaseEvent
+      const event = convertCalculatorToInitialPurchaseEvent(
+        participants,
+        projectParams,
+        scenario,
+        new Date(deedDate),
+        'Copropriété', // Default name
+        [] // No hidden lots by default
+      );
+
+      // Export as JSON
+      const timelineJSON = exportTimelineToJSON([event]);
+
+      // Download the file
+      const blob = new Blob([timelineJSON], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `timeline-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      // Show success message
+      alert('Timeline exported! You can now import this file in the Timeline view at /continuous-timeline-demo/');
+    } catch (error) {
+      console.error('Timeline export failed:', error);
+      alert('Erreur lors de l\'export vers la timeline');
+    }
+  };
+
   // Download scenario as JSON file
   const downloadScenario = () => {
     const data = {
@@ -368,6 +405,15 @@ export default function EnDivisionCorrect() {
               >
                 <Download className="w-4 h-4" />
                 Excel
+              </button>
+
+              <button
+                onClick={continueToTimeline}
+                className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 border border-green-600 text-sm"
+                title="Export to Timeline - Download JSON file for timeline view"
+              >
+                <ArrowRight className="w-4 h-4" />
+                Continue to Timeline
               </button>
             </div>
 
