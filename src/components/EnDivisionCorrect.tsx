@@ -12,8 +12,9 @@ import { FormulaTooltip } from './FormulaTooltip';
 import { formatCurrency } from '../utils/formatting';
 import { ExpenseCategorySection } from './ExpenseCategorySection';
 import { calculateExpenseCategoriesTotal } from '../utils/calculatorUtils';
-// @ts-ignore - Reserved for future use
 import PortageFormulaConfig from './PortageFormulaConfig';
+import AvailableLotsView from './AvailableLotsView';
+import { getAvailableLotsForNewcomer } from '../utils/availableLots';
 import {
   getPricePerM2Formula,
   getTotalProjectCostFormula
@@ -944,6 +945,28 @@ export default function EnDivisionCorrect() {
           deedDate={deedDate}
           onDeedDateChange={setDeedDate}
         />
+
+        {/* Global Portage Formula Configuration */}
+        <div className="mt-8">
+          <PortageFormulaConfig
+            formulaParams={portageFormula}
+            onUpdateParams={setPortageFormula}
+            deedDate={deedDate}
+          />
+        </div>
+
+        {/* Available Lots Marketplace */}
+        <div className="mt-8">
+          <AvailableLotsView
+            availableLots={getAvailableLotsForNewcomer(
+              participants,
+              [], // Copro lots - empty for now
+              calculations
+            )}
+            deedDate={deedDate}
+            formulaParams={portageFormula}
+          />
+        </div>
       </div>
       </div>
     </Tooltip.Provider>
