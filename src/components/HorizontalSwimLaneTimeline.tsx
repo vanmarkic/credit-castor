@@ -272,8 +272,8 @@ export default function HorizontalSwimLaneTimeline({
                   <div
                     key={sIdx}
                     className={`
-                      w-56 p-4 rounded-lg border-2 transition-shadow hover:shadow-md
-                      ${snapshot.isT0 ? 'timeline-card-t0 cursor-pointer' : ''}
+                      w-56 p-4 rounded-lg border-2 transition-shadow hover:shadow-md cursor-pointer
+                      ${snapshot.isT0 ? 'timeline-card-t0' : ''}
                       ${getZoneBackgroundClass(snapshot.colorZone, snapshot.isT0, p.isFounder === true)}
                       ${snapshot.isT0
                         ? 'border-green-300'
@@ -281,9 +281,7 @@ export default function HorizontalSwimLaneTimeline({
                       }
                     `}
                     onClick={() => {
-                      if (snapshot.isT0) {
-                        onOpenParticipantDetails(snapshot.participantIndex);
-                      }
+                      onOpenParticipantDetails(snapshot.participantIndex);
                     }}
                   >
                     <div className="text-xs text-gray-500 mb-2">
