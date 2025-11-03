@@ -626,11 +626,35 @@ export default function EnDivisionCorrect() {
                       </div>
                       <div className="bg-red-50 rounded-lg p-2 border border-red-300" onClick={(e) => e.stopPropagation()}>
                         <p className="text-xs text-gray-600 mb-1">À emprunter</p>
-                        <p className="text-base font-bold text-red-700">{formatCurrency(p.loanNeeded)}</p>
+                        {p.useTwoLoans ? (
+                          <div className="relative group">
+                            <p className="text-base font-bold text-red-700">{formatCurrency(p.loanNeeded)}</p>
+                            <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded p-2 -top-20 left-1/2 transform -translate-x-1/2 w-48 z-10">
+                              <div>Prêt 1: {formatCurrency(p.loan1Amount || 0)} ({p.durationYears} ans)</div>
+                              <div>Prêt 2: {formatCurrency(p.loan2Amount || 0)} ({p.loan2DurationYears || 0} ans, démarre année {p.loan2DelayYears || 2})</div>
+                              <div className="border-t mt-1 pt-1">Total intérêts: {formatCurrency(p.totalInterest)}</div>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-base font-bold text-red-700">{formatCurrency(p.loanNeeded)}</p>
+                        )}
                       </div>
                       <div className="bg-white rounded-lg p-2 border border-gray-200" onClick={(e) => e.stopPropagation()}>
                         <p className="text-xs text-gray-500 mb-1">Mensualité</p>
-                        <p className="text-base font-bold text-red-600">{formatCurrency(p.monthlyPayment)}</p>
+                        {p.useTwoLoans ? (
+                          <div className="space-y-1 text-sm">
+                            <div>
+                              <span className="font-semibold">Années 1-{p.loan2DelayYears || 2}:</span>
+                              <span className="ml-2">{formatCurrency(p.loan1MonthlyPayment || 0)}</span>
+                            </div>
+                            <div>
+                              <span className="font-semibold">Années {(p.loan2DelayYears || 2) + 1}+:</span>
+                              <span className="ml-2">{formatCurrency((p.loan1MonthlyPayment || 0) + (p.loan2MonthlyPayment || 0))}</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-base font-bold text-red-600">{formatCurrency(p.monthlyPayment)}</p>
+                        )}
                       </div>
                     </div>
                   </div>
