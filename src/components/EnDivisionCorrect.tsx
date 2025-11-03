@@ -1300,35 +1300,93 @@ export default function EnDivisionCorrect() {
                   </div>
                 </div>
 
-                {/* Portage Paybacks - Show if this participant is doing portage */}
+                {/* Expected Paybacks - Show portage paybacks AND copropriété redistributions */}
                 {(() => {
-                  // Find all participants who are buying from this participant
-                  const paybacks = participants
+                  // 1. Find all participants who are buying from this participant (portage)
+                  const portagePaybacks = participants
                     .filter((buyer: any) => buyer.purchaseDetails?.buyingFrom === participants[idx].name)
                     .map((buyer: any) => ({
                       date: buyer.entryDate || new Date(deedDate),
                       buyer: buyer.name,
+                      amount: buyer.purchaseDetails?.purchasePrice || 0,
+                      type: 'portage' as const,
+                      description: 'Achat de lot portage'
+                    }));
+
+                  // 2. Calculate copropriété redistributions for this participant
+                  const coproSales = participants
+                    .filter((buyer: any) => buyer.purchaseDetails?.buyingFrom === 'Copropriété')
+                    .map((buyer: any) => ({
+                      buyer: buyer.name,
+                      entryDate: buyer.entryDate || new Date(deedDate),
                       amount: buyer.purchaseDetails?.purchasePrice || 0
-                    }))
+                    }));
+
+                  const coproRedistributions = coproSales.map((sale: any) => {
+                    const saleDate = new Date(sale.entryDate);
+                    const participantEntryDate = participants[idx].entryDate
+                      ? new Date(participants[idx].entryDate)
+                      : new Date(deedDate);
+
+                    // Only participants who entered before the sale date get a share
+                    if (participantEntryDate >= saleDate) {
+                      return null;
+                    }
+
+                    // Calculate months in project until sale
+                    const monthsInProject = (saleDate.getTime() - participantEntryDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
+
+                    // Calculate total months for all eligible participants
+                    const eligibleParticipants = participants.filter((p: any) => {
+                      const pEntryDate = p.entryDate ? new Date(p.entryDate) : new Date(deedDate);
+                      return pEntryDate < saleDate;
+                    });
+
+                    const totalMonths = eligibleParticipants.reduce((sum: number, p: any) => {
+                      const pEntryDate = p.entryDate ? new Date(p.entryDate) : new Date(deedDate);
+                      const pMonths = (saleDate.getTime() - pEntryDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
+                      return sum + pMonths;
+                    }, 0);
+
+                    // Calculate this participant's share
+                    const shareRatio = totalMonths > 0 ? monthsInProject / totalMonths : 0;
+                    const shareAmount = sale.amount * shareRatio;
+
+                    return {
+                      date: sale.entryDate,
+                      buyer: sale.buyer,
+                      amount: shareAmount,
+                      type: 'copro' as const,
+                      description: `Part copropriété (${(shareRatio * 100).toFixed(1)}%)`
+                    };
+                  }).filter((r: any) => r !== null);
+
+                  // 3. Combine and sort all paybacks
+                  const allPaybacks = [...portagePaybacks, ...coproRedistributions]
                     .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-                  if (paybacks.length > 0) {
-                    const totalRecovered = paybacks.reduce((sum: number, pb: any) => sum + pb.amount, 0);
+                  if (allPaybacks.length > 0) {
+                    const totalRecovered = allPaybacks.reduce((sum: number, pb: any) => sum + pb.amount, 0);
 
                     return (
                       <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
-                        <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">💼 Portage - Remboursements attendus</p>
+                        <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">💰 Remboursements attendus</p>
                         <div className="space-y-2">
-                          {paybacks.map((pb: any, pbIdx: number) => (
-                            <div key={pbIdx} className="flex justify-between items-center text-sm bg-white rounded-lg p-3 border border-purple-100">
-                              <div>
-                                <span className="font-medium text-gray-800">{pb.buyer}</span>
-                                <span className="text-gray-600 ml-2">
-                                  ({new Date(pb.date).toLocaleDateString('fr-BE', { year: 'numeric', month: 'short', day: 'numeric' })})
-                                </span>
+                          {allPaybacks.map((pb: any, pbIdx: number) => (
+                            <div key={pbIdx} className="bg-white rounded-lg p-3 border border-purple-100">
+                              <div className="flex justify-between items-center mb-1">
+                                <div>
+                                  <span className="font-medium text-gray-800">{pb.buyer}</span>
+                                  <span className="text-gray-600 text-xs ml-2">
+                                    ({new Date(pb.date).toLocaleDateString('fr-BE', { year: 'numeric', month: 'short', day: 'numeric' })})
+                                  </span>
+                                </div>
+                                <div className="font-bold text-purple-700">
+                                  {formatCurrency(pb.amount)}
+                                </div>
                               </div>
-                              <div className="font-bold text-purple-700">
-                                {formatCurrency(pb.amount)}
+                              <div className="text-xs text-gray-500">
+                                {pb.type === 'portage' ? '💼 ' : '🏢 '}{pb.description}
                               </div>
                             </div>
                           ))}
@@ -1348,107 +1406,6 @@ export default function EnDivisionCorrect() {
                   return null;
                 })()}
 
-                {/* Copropriété Redistribution - Show shares from copro sales */}
-                {(() => {
-                  // Find all sales from Copropriété
-                  const coproSales = participants
-                    .filter((buyer: any) => buyer.purchaseDetails?.buyingFrom === 'Copropriété')
-                    .map((buyer: any) => ({
-                      buyer: buyer.name,
-                      entryDate: buyer.entryDate || new Date(deedDate),
-                      amount: buyer.purchaseDetails?.purchasePrice || 0
-                    }));
-
-                  if (coproSales.length > 0) {
-                    // Calculate this participant's share for each sale
-                    // Share is based on time in project (from deed date to sale date)
-                    const redistributions = coproSales.map((sale: any) => {
-                      const saleDate = new Date(sale.entryDate);
-                      const participantEntryDate = participants[idx].entryDate
-                        ? new Date(participants[idx].entryDate)
-                        : new Date(deedDate);
-
-                      // Only participants who entered before the sale date get a share
-                      if (participantEntryDate >= saleDate) {
-                        return null;
-                      }
-
-                      // Calculate months in project until sale
-                      const monthsInProject = (saleDate.getTime() - participantEntryDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
-
-                      // Calculate total months for all eligible participants
-                      const eligibleParticipants = participants.filter((p: any) => {
-                        const pEntryDate = p.entryDate ? new Date(p.entryDate) : new Date(deedDate);
-                        return pEntryDate < saleDate;
-                      });
-
-                      const totalMonths = eligibleParticipants.reduce((sum: number, p: any) => {
-                        const pEntryDate = p.entryDate ? new Date(p.entryDate) : new Date(deedDate);
-                        const pMonths = (saleDate.getTime() - pEntryDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
-                        return sum + pMonths;
-                      }, 0);
-
-                      // Calculate this participant's share
-                      const shareRatio = totalMonths > 0 ? monthsInProject / totalMonths : 0;
-                      const shareAmount = sale.amount * shareRatio;
-
-                      return {
-                        buyer: sale.buyer,
-                        saleDate: sale.entryDate,
-                        totalAmount: sale.amount,
-                        monthsInProject: Math.round(monthsInProject),
-                        shareRatio,
-                        shareAmount
-                      };
-                    }).filter((r: any) => r !== null);
-
-                    if (redistributions.length > 0) {
-                      const totalShare = redistributions.reduce((sum: number, r: any) => sum + r.shareAmount, 0);
-
-                      return (
-                        <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                          <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">🏢 Copropriété - Redistributions</p>
-                          <div className="space-y-2">
-                            {redistributions.map((redist: any, rIdx: number) => (
-                              <div key={rIdx} className="bg-white rounded-lg p-3 border border-blue-100">
-                                <div className="flex justify-between items-start mb-2">
-                                  <div>
-                                    <span className="font-medium text-gray-800">{redist.buyer}</span>
-                                    <span className="text-gray-600 text-xs ml-2">
-                                      achète {formatCurrency(redist.totalAmount)}
-                                    </span>
-                                  </div>
-                                  <div className="font-bold text-blue-700">
-                                    {formatCurrency(redist.shareAmount)}
-                                  </div>
-                                </div>
-                                <div className="text-xs text-gray-600">
-                                  <span>Votre part: {(redist.shareRatio * 100).toFixed(1)}%</span>
-                                  <span className="mx-2">•</span>
-                                  <span>{redist.monthsInProject} mois dans le projet</span>
-                                  <span className="mx-2">•</span>
-                                  <span className="text-gray-500">
-                                    ({new Date(redist.saleDate).toLocaleDateString('fr-BE', { year: 'numeric', month: 'short' })})
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="mt-3 pt-3 border-t border-blue-300 flex justify-between items-center">
-                            <span className="text-sm font-semibold text-gray-800">Total redistribué</span>
-                            <span className="text-lg font-bold text-blue-800">
-                              {formatCurrency(totalShare)}
-                            </span>
-                          </div>
-                          <p className="text-xs text-blue-600 mt-2">
-                            Montant calculé au prorata du temps passé dans le projet avant la vente.
-                          </p>
-                        </div>
-                      );
-                    }
-                  }
-                  return null;
-                })()}
                   </div>
                 )}
               </div>
