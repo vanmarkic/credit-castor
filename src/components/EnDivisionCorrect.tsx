@@ -163,6 +163,51 @@ export default function EnDivisionCorrect() {
     setParticipants(newParticipants);
   };
 
+  const addPortageLot = (participantIndex: number) => {
+    const newLotId = Math.max(
+      ...participants.flatMap((p: any) => p.lotsOwned?.map((l: any) => l.lotId) || []),
+      0
+    ) + 1;
+
+    // Update participant lotsOwned array
+    const newParticipants = [...participants];
+    if (!newParticipants[participantIndex].lotsOwned) {
+      newParticipants[participantIndex].lotsOwned = [];
+    }
+
+    newParticipants[participantIndex].lotsOwned.push({
+      lotId: newLotId,
+      surface: 0,
+      unitId: newParticipants[participantIndex].unitId || 0,
+      isPortage: true,
+      allocatedSurface: 0,
+      acquiredDate: new Date(deedDate)
+    });
+
+    setParticipants(newParticipants);
+  };
+
+  const removePortageLot = (participantIndex: number, lotId: number) => {
+    const newParticipants = [...participants];
+    if (newParticipants[participantIndex].lotsOwned) {
+      newParticipants[participantIndex].lotsOwned =
+        newParticipants[participantIndex].lotsOwned.filter((l: any) => l.lotId !== lotId);
+    }
+    setParticipants(newParticipants);
+  };
+
+  const updatePortageLotSurface = (participantIndex: number, lotId: number, surface: number) => {
+    const newParticipants = [...participants];
+    if (newParticipants[participantIndex].lotsOwned) {
+      const lot = newParticipants[participantIndex].lotsOwned.find((l: any) => l.lotId === lotId);
+      if (lot) {
+        lot.surface = surface;
+        lot.allocatedSurface = surface;
+      }
+    }
+    setParticipants(newParticipants);
+  };
+
   const unitDetails = {
     1: { casco: 178080, parachevements: 56000 },
     3: { casco: 213060, parachevements: 67000 },
