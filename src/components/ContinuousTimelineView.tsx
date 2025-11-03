@@ -14,6 +14,8 @@ import { exportTimelineToJSON, importTimelineFromJSON } from '../utils/timelineE
 import TimelineVisualization from './TimelineVisualization';
 import ParticipantsTable from './ParticipantsTable';
 import CoproprietéPanel from './CoproprietéPanel';
+import AvailableLotsView from './AvailableLotsView';
+import { getAvailableLotsForNewcomer } from '../utils/availableLots';
 
 interface ContinuousTimelineViewProps {
   events: DomainEvent[];
@@ -22,7 +24,7 @@ interface ContinuousTimelineViewProps {
 export default function ContinuousTimelineView({
   events: initialEvents,
 }: ContinuousTimelineViewProps) {
-  const [activeTab, setActiveTab] = useState<'timeline' | 'participants' | 'copro'>('timeline');
+  const [activeTab, setActiveTab] = useState<'timeline' | 'participants' | 'copro' | 'available'>('timeline');
   const [events, setEvents] = useState<DomainEvent[]>(initialEvents);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -143,6 +145,16 @@ export default function ContinuousTimelineView({
             >
               Copropriété
             </button>
+            <button
+              onClick={() => setActiveTab('available')}
+              className={`px-6 py-4 font-semibold border-b-2 transition-colors ${
+                activeTab === 'available'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              📦 Lots Disponibles
+            </button>
           </div>
         </div>
       </div>
@@ -199,6 +211,16 @@ export default function ContinuousTimelineView({
         {activeTab === 'copro' && (
           <CoproprietéPanel
             copropropriete={timeline.copropropriete}
+            deedDate={timeline.deedDate}
+          />
+        )}
+
+        {activeTab === 'available' && (
+          <AvailableLotsView
+            availableLots={getAvailableLotsForNewcomer(
+              timeline.participants,
+              timeline.copropropriete.lotsOwned
+            )}
             deedDate={timeline.deedDate}
           />
         )}

@@ -1,5 +1,6 @@
 import type { Participant } from './calculatorUtils';
 import type { CoproLot } from '../types/timeline';
+import type { ParticipantTimeline } from './timelineProjection';
 
 export interface AvailableLot {
   lotId: number;
@@ -18,13 +19,23 @@ export interface AvailableLot {
  * - Copropriété lots with free surface choice
  */
 export function getAvailableLotsForNewcomer(
-  participants: Participant[],
+  participants: Participant[] | ParticipantTimeline[],
   coproLots: CoproLot[]
 ): AvailableLot[] {
   const available: AvailableLot[] = [];
 
+  // Normalize participants to Participant type
+  const normalizedParticipants: Participant[] = participants.map(p => {
+    // If it's a ParticipantTimeline, extract the participant
+    if ('participant' in p) {
+      return p.participant;
+    }
+    // Otherwise it's already a Participant
+    return p;
+  });
+
   // Add portage lots from founders
-  for (const participant of participants) {
+  for (const participant of normalizedParticipants) {
     if (participant.isFounder && participant.lotsOwned) {
       for (const lot of participant.lotsOwned) {
         if (lot.isPortage && !lot.soldDate) {

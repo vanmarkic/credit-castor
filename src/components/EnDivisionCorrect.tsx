@@ -7,6 +7,8 @@ import { convertCalculatorToInitialPurchaseEvent } from '../utils/calculatorToTi
 import { exportTimelineToJSON } from '../utils/timelineExport';
 import { ParticipantsTimeline } from './calculator/ParticipantsTimeline';
 import PortageLotConfig from './PortageLotConfig';
+import AvailableLotsView from './AvailableLotsView';
+import { getAvailableLotsForNewcomer } from '../utils/availableLots';
 
 // Default values for reset functionality
 const DEFAULT_PARTICIPANTS = [
@@ -1459,6 +1461,14 @@ export default function EnDivisionCorrect() {
               );
             })}
           </div>
+        </div>
+
+        {/* Available Lots for Newcomers */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+          <AvailableLotsView
+            availableLots={getAvailableLotsForNewcomer(participants, [])}
+            deedDate={new Date(deedDate)}
+          />
         </div>
 
         <div className="bg-white rounded-xl shadow-lg p-6">
