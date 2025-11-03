@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { Users } from 'lucide-react';
 import type { Participant, CalculationResults, ProjectParams } from '../utils/calculatorUtils';
 import { formatCurrency } from '../utils/formatting';
 
@@ -23,14 +24,15 @@ interface HorizontalSwimLaneTimelineProps {
   calculations: CalculationResults;
   deedDate: string;
   onOpenParticipantDetails: (index: number) => void;
+  onAddParticipant: () => void;
 }
 
 export default function HorizontalSwimLaneTimeline({
   participants,
-  projectParams,
   calculations,
   deedDate,
-  onOpenParticipantDetails
+  onOpenParticipantDetails,
+  onAddParticipant
 }: HorizontalSwimLaneTimelineProps) {
   // Generate snapshots from participants
   const snapshots = useMemo(() => {
@@ -62,7 +64,7 @@ export default function HorizontalSwimLaneTimeline({
             totalCost: breakdown.totalCost,
             loanNeeded: breakdown.loanNeeded,
             monthlyPayment: breakdown.monthlyPayment,
-            isT0: dateIdx === 0 && p.isFounder
+            isT0: dateIdx === 0 && (p.isFounder === true)
           };
 
           if (!result.has(p.name)) {
@@ -78,10 +80,21 @@ export default function HorizontalSwimLaneTimeline({
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-      <h2 className="text-2xl font-bold text-gray-800 mb-4">💳 Timeline Financier</h2>
-      <p className="text-sm text-gray-600 mb-4">
-        Visualisez l'évolution des besoins de financement au fil du temps
-      </p>
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800">💳 Besoins de Financement Individuels</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            Visualisez l'évolution des besoins de financement au fil du temps
+          </p>
+        </div>
+        <button
+          onClick={onAddParticipant}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg transition-colors flex items-center gap-2"
+        >
+          <Users className="w-5 h-5" />
+          Ajouter un·e participant·e
+        </button>
+      </div>
 
       <div className="flex overflow-x-auto">
         {/* Sticky name column */}

@@ -1,5 +1,4 @@
 import { useMemo, useRef } from 'react';
-import { Users } from 'lucide-react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { calculateAll, type Participant } from '../utils/calculatorUtils';
 import { exportCalculations } from '../utils/excelExport';
@@ -539,141 +538,14 @@ export default function EnDivisionCorrect() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">💳 Besoins de Financement Individuels</h2>
-            <button
-              onClick={addParticipant}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2 rounded-lg transition-colors flex items-center gap-2"
-            >
-              <Users className="w-5 h-5" />
-              Ajouter un·e participant·e
-            </button>
-          </div>
-          
-          <div className="space-y-6">
-            {orderedParticipantBreakdown.map((p) => {
-              // Find the original index in the participants array
-              const idx = participants.findIndex((participant: any) => participant.name === p.name);
-
-              return (
-              <div
-                key={idx}
-                ref={(el) => { participantRefs.current[idx] = el; }}
-                className="border border-gray-300 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow">
-
-                {/* Always Visible Header */}
-                <div
-                  className="cursor-pointer transition-all p-6"
-                  onClick={() => setFullscreenParticipantIndex(idx)}
-                >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                    {/* Left Column: Name and Info */}
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="text"
-                          value={p.name}
-                          onChange={(e) => updateParticipantName(idx, e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-lg font-bold text-gray-900 bg-transparent border-b-2 border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none px-1 py-1"
-                          placeholder="Nom du·de la participant·e"
-                        />
-                        {!participants[idx].isFounder && participants.length > 1 && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              removeParticipant(idx);
-                            }}
-                            className="text-red-600 hover:text-red-700 text-xs font-medium px-2 py-1 rounded border border-red-300 hover:bg-red-50 transition-colors"
-                          >
-                            Retirer
-                          </button>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-3 text-sm text-gray-600">
-                        <span className="flex items-center gap-1">
-                          <span className="text-gray-400">Unité</span>
-                          <span className="font-medium text-blue-600">{p.unitId}</span>
-                        </span>
-                        <span className="text-gray-300">•</span>
-                        <span>{p.surface}m²</span>
-                        <span className="text-gray-300">•</span>
-                        <span>{p.quantity || 1} {(p.quantity || 1) > 1 ? 'unités' : 'unité'}</span>
-                        {participants[idx].entryDate && (
-                          <>
-                            <span className="text-gray-300">•</span>
-                            <span className={`font-medium ${participants[idx].isFounder ? 'text-green-600' : 'text-blue-600'}`}>
-                              Entrée: {new Date(participants[idx].entryDate).toLocaleDateString('fr-BE')}
-                            </span>
-                          </>
-                        )}
-                        {participants[idx].purchaseDetails?.buyingFrom && (
-                          <>
-                            <span className="text-gray-300">•</span>
-                            <span className="text-purple-600 text-xs">
-                              Achète de {participants[idx].purchaseDetails.buyingFrom}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Right Column: Key Financial Metrics */}
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="bg-gray-50 rounded-lg p-2 border border-gray-200" onClick={(e) => e.stopPropagation()}>
-                        <p className="text-xs text-gray-500 mb-1">Coût Total</p>
-                        <p className="text-base font-bold text-gray-900">{formatCurrency(p.totalCost)}</p>
-                      </div>
-                      <div className="bg-red-50 rounded-lg p-2 border border-red-300" onClick={(e) => e.stopPropagation()}>
-                        <p className="text-xs text-gray-600 mb-1">À emprunter</p>
-                        {p.useTwoLoans ? (
-                          <div className="relative group">
-                            <p className="text-base font-bold text-red-700">{formatCurrency(p.loanNeeded)}</p>
-                            <div className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded p-2 -top-20 left-1/2 transform -translate-x-1/2 w-48 z-10">
-                              <div>Prêt 1: {formatCurrency(p.loan1Amount || 0)} ({p.durationYears} ans)</div>
-                              <div>Prêt 2: {formatCurrency(p.loan2Amount || 0)} ({p.loan2DurationYears || 0} ans, démarre année {p.loan2DelayYears || 2})</div>
-                              <div className="border-t mt-1 pt-1">Total intérêts: {formatCurrency(p.totalInterest)}</div>
-                            </div>
-                          </div>
-                        ) : (
-                          <p className="text-base font-bold text-red-700">{formatCurrency(p.loanNeeded)}</p>
-                        )}
-                      </div>
-                      <div className="bg-white rounded-lg p-2 border border-gray-200" onClick={(e) => e.stopPropagation()}>
-                        <p className="text-xs text-gray-500 mb-1">Mensualité</p>
-                        {p.useTwoLoans ? (
-                          <div className="space-y-1 text-sm">
-                            <div>
-                              <span className="font-semibold">Années 1-{p.loan2DelayYears || 2}:</span>
-                              <span className="ml-2">{formatCurrency(p.loan1MonthlyPayment || 0)}</span>
-                            </div>
-                            <div>
-                              <span className="font-semibold">Années {(p.loan2DelayYears || 2) + 1}+:</span>
-                              <span className="ml-2">{formatCurrency((p.loan1MonthlyPayment || 0) + (p.loan2MonthlyPayment || 0))}</span>
-                            </div>
-                          </div>
-                        ) : (
-                          <p className="text-base font-bold text-red-600">{formatCurrency(p.monthlyPayment)}</p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Horizontal Timeline (Temporary - testing new visualization) */}
+        {/* Horizontal Timeline */}
         <HorizontalSwimLaneTimeline
           participants={participants}
           projectParams={projectParams}
           calculations={calculations}
           deedDate={deedDate}
           onOpenParticipantDetails={setFullscreenParticipantIndex}
+          onAddParticipant={addParticipant}
         />
 
         {/* Full-screen participant detail modal */}

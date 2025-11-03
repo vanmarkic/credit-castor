@@ -71,63 +71,102 @@ describe('HorizontalSwimLaneTimeline', () => {
         unitId: 1,
         surface: 100,
         quantity: 1,
+        capitalApporte: 50000,
+        notaryFeesRate: 12.5,
+        interestRate: 4.5,
+        durationYears: 25,
+        isFounder: true,
+        entryDate: new Date(deedDate),
+        pricePerM2: 1000,
         purchaseShare: 100000,
         notaryFees: 12500,
         casco: 50000,
         parachevements: 30000,
         personalRenovationCost: 80000,
-        sharedInfrastructureCost: 20000,
+        constructionCost: 80000,
+        constructionCostPerUnit: 80000,
+        travauxCommunsPerUnit: 0,
+        sharedCosts: 20000,
         totalCost: 212500,
-        capitalApporte: 50000,
         loanNeeded: 162500,
+        financingRatio: 0.76,
         monthlyPayment: 900,
-        totalInterest: 100000,
-        isFounder: true,
-        entryDate: new Date(deedDate)
+        totalRepayment: 270000,
+        totalInterest: 100000
       },
       {
         name: 'Bob',
         unitId: 3,
         surface: 120,
         quantity: 1,
+        capitalApporte: 40000,
+        notaryFeesRate: 12.5,
+        interestRate: 4.5,
+        durationYears: 25,
+        isFounder: true,
+        entryDate: new Date(deedDate),
+        pricePerM2: 1000,
         purchaseShare: 120000,
         notaryFees: 15000,
         casco: 60000,
         parachevements: 36000,
         personalRenovationCost: 96000,
-        sharedInfrastructureCost: 20000,
+        constructionCost: 96000,
+        constructionCostPerUnit: 96000,
+        travauxCommunsPerUnit: 0,
+        sharedCosts: 20000,
         totalCost: 251000,
-        capitalApporte: 40000,
         loanNeeded: 211000,
+        financingRatio: 0.84,
         monthlyPayment: 1100,
-        totalInterest: 120000,
-        isFounder: true,
-        entryDate: new Date(deedDate)
+        totalRepayment: 330000,
+        totalInterest: 120000
       },
       {
         name: 'Carol',
         unitId: 5,
         surface: 90,
         quantity: 1,
+        capitalApporte: 30000,
+        notaryFeesRate: 12.5,
+        interestRate: 4.5,
+        durationYears: 25,
+        isFounder: false,
+        entryDate: new Date('2026-08-01'),
+        pricePerM2: 1667,
         purchaseShare: 150000,
         notaryFees: 18750,
         casco: 45000,
         parachevements: 27000,
         personalRenovationCost: 72000,
-        sharedInfrastructureCost: 20000,
+        constructionCost: 72000,
+        constructionCostPerUnit: 72000,
+        travauxCommunsPerUnit: 0,
+        sharedCosts: 20000,
         totalCost: 260750,
-        capitalApporte: 30000,
         loanNeeded: 230750,
+        financingRatio: 0.88,
         monthlyPayment: 1250,
+        totalRepayment: 375000,
         totalInterest: 140000,
-        isFounder: false,
-        entryDate: new Date('2026-08-01')
+        purchaseDetails: {
+          buyingFrom: 'Copropriété',
+          purchasePrice: 150000
+        }
       }
     ],
     totals: {
       purchase: 370000,
       totalNotaryFees: 46250,
-      total: 724250
+      construction: 248000,
+      shared: 60000,
+      totalTravauxCommuns: 0,
+      travauxCommunsPerUnit: 0,
+      total: 724250,
+      capitalTotal: 120000,
+      totalLoansNeeded: 604250,
+      averageLoan: 201416,
+      averageCapital: 40000
     },
     sharedCosts: 60000,
     sharedPerPerson: 20000,
@@ -136,6 +175,7 @@ describe('HorizontalSwimLaneTimeline', () => {
   };
 
   const mockOnOpenParticipantDetails = vi.fn();
+  const mockOnAddParticipant = vi.fn();
 
   it('renders participant names in sticky column', () => {
     render(
@@ -145,6 +185,7 @@ describe('HorizontalSwimLaneTimeline', () => {
         calculations={mockCalculations}
         deedDate={deedDate}
         onOpenParticipantDetails={mockOnOpenParticipantDetails}
+        onAddParticipant={mockOnAddParticipant}
       />
     );
 
@@ -161,6 +202,7 @@ describe('HorizontalSwimLaneTimeline', () => {
         calculations={mockCalculations}
         deedDate={deedDate}
         onOpenParticipantDetails={mockOnOpenParticipantDetails}
+        onAddParticipant={mockOnAddParticipant}
       />
     );
 
@@ -177,6 +219,7 @@ describe('HorizontalSwimLaneTimeline', () => {
         calculations={mockCalculations}
         deedDate={deedDate}
         onOpenParticipantDetails={mockOnOpenParticipantDetails}
+        onAddParticipant={mockOnAddParticipant}
       />
     );
 
