@@ -20,6 +20,25 @@ import {
   type Scenario,
   type UnitDetails,
 } from './calculatorUtils';
+import type { PortageFormulaParams } from './calculatorUtils';
+
+// ============================================
+// Portage Formula Parameters
+// ============================================
+
+describe('PortageFormulaParams', () => {
+  it('should have default portage formula parameters', () => {
+    const defaults: PortageFormulaParams = {
+      indexationRate: 2.0,
+      carryingCostRecovery: 100,
+      averageInterestRate: 4.5
+    };
+
+    expect(defaults.indexationRate).toBe(2.0);
+    expect(defaults.carryingCostRecovery).toBe(100);
+    expect(defaults.averageInterestRate).toBe(4.5);
+  });
+});
 
 // ============================================
 // Task 1.2: Participant Type Extensions (TDD)

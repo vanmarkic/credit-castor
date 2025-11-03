@@ -75,6 +75,18 @@ export interface Scenario {
   purchasePriceReduction: number; // percentage
 }
 
+export interface PortageFormulaParams {
+  indexationRate: number; // Annual percentage (default: 2.0)
+  carryingCostRecovery: number; // Percentage of carrying costs to recover (default: 100)
+  averageInterestRate: number; // Annual percentage for loan interest (default: 4.5)
+}
+
+export const DEFAULT_PORTAGE_FORMULA: PortageFormulaParams = {
+  indexationRate: 2.0,
+  carryingCostRecovery: 100,
+  averageInterestRate: 4.5
+};
+
 export interface UnitDetails {
   [unitId: number]: {
     casco: number;
