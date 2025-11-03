@@ -119,3 +119,68 @@ export function getTotalLoansFormula(): string[] {
     "Total of all individual loan amounts"
   ];
 }
+
+/**
+ * Get formula explanation for CASCO (structural work) cost
+ */
+export function getCascoFormula(p: ParticipantCalculation, cascoSqm: number | undefined, globalCascoPerM2: number): string[] {
+  const sqm = cascoSqm ?? p.surface;
+  return [
+    "CASCO (structural work) cost",
+    `${sqm}m² × €${globalCascoPerM2}/m² = €${p.casco.toLocaleString()}`
+  ];
+}
+
+/**
+ * Get formula explanation for Parachèvements (finishing work) cost
+ */
+export function getParachevementsFormula(p: ParticipantCalculation, parachevementsSqm: number | undefined, parachevementsPerM2: number | undefined): string[] {
+  const sqm = parachevementsSqm ?? p.surface;
+  const perM2 = parachevementsPerM2 ?? 0;
+  return [
+    "Parachèvements (finishing work) cost",
+    `${sqm}m² × €${perM2}/m² = €${p.parachevements.toLocaleString()}`
+  ];
+}
+
+/**
+ * Get formula explanation for Travaux Communs (common building works)
+ */
+export function getTravauxCommunsFormula(p: ParticipantCalculation): string[] {
+  return [
+    "Common building works per unit",
+    `Foundation + Structure + Copro works ÷ participants × ${p.quantity || 1} unit(s)`,
+    `= €${p.travauxCommunsPerUnit.toLocaleString()}`
+  ];
+}
+
+/**
+ * Get formula explanation for total repayment (principal + interest)
+ */
+export function getTotalRepaymentFormula(p: ParticipantCalculation): string[] {
+  return [
+    "Total amount repaid over loan duration",
+    `€${p.monthlyPayment.toLocaleString()} monthly × ${p.durationYears} years × 12 months = €${p.totalRepayment.toLocaleString()}`
+  ];
+}
+
+/**
+ * Get formula explanation for total interest (cost of credit)
+ */
+export function getTotalInterestFormula(p: ParticipantCalculation): string[] {
+  return [
+    "Total interest paid (cost of credit)",
+    `€${p.totalRepayment.toLocaleString()} total repaid - €${p.loanNeeded.toLocaleString()} principal = €${p.totalInterest.toLocaleString()}`
+  ];
+}
+
+/**
+ * Get formula explanation for expected paybacks total
+ */
+export function getExpectedPaybacksFormula(totalRecovered: number, paybackCount: number): string[] {
+  return [
+    "Total expected income from portage & copropriété sales",
+    `Sum of ${paybackCount} payment(s) = €${totalRecovered.toLocaleString()}`,
+    "Received when newcomers join the project"
+  ];
+}
