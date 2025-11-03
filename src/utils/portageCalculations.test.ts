@@ -79,7 +79,13 @@ describe('calculateCarryingCosts', () => {
 
 describe('calculateResalePrice', () => {
   it('should match habitat-beaver 2-year portage example', () => {
-    // From guide: Base 143k, after 2 years with portage
+    // Updated test: portage acquisition now includes construction costs
+    // Total acquisition = purchase + notary + construction
+    const originalPrice = 143000;
+    const originalNotaryFees = 17875;
+    const originalConstructionCost = 0; // No construction in this test
+    const totalAcquisition = originalPrice + originalNotaryFees + originalConstructionCost;
+
     const carryingCosts: CarryingCosts = {
       monthlyInterest: 348.75,
       monthlyTax: 32.37,
@@ -89,72 +95,91 @@ describe('calculateResalePrice', () => {
     };
 
     const result = calculateResalePrice(
-      143000,  // original purchase
-      17875,   // notary fees (12.5%)
+      originalPrice,
+      originalNotaryFees,
+      originalConstructionCost,
       2,       // years held
       2,       // indexation rate
       carryingCosts,
       0        // no renovations
     );
 
-    // Expected breakdown from guide:
-    // Base: 143,000
-    // Indexation (2%/year × 2): 143000 × 1.02^2 - 143000 = 5,777.2
+    // Expected with new logic (notary fees in base, no separate recovery):
+    // Base: 160,875 (143k + 17,875)
+    // Indexation: 160875 × (1.02^2 - 1) = 6,499.86
     // Carrying costs: 13,147
-    // Fees recovery (60%): 10,725
-    // Total: ~172,649
+    // Total: 160,875 + 6,499.86 + 13,147 = 180,521.86
 
-    expect(result.basePrice).toBe(143000);
-    expect(result.indexation).toBeCloseTo(5777.2, 1);
+    expect(result.basePrice).toBe(totalAcquisition);
+    expect(result.indexation).toBeCloseTo(6499.35, 1);
     expect(result.carryingCostRecovery).toBeCloseTo(13147, 0);
-    expect(result.feesRecovery).toBeCloseTo(10725, 0);
-    expect(result.totalPrice).toBeCloseTo(172649, 0);
+    expect(result.feesRecovery).toBe(0); // No separate fee recovery in new logic
+    expect(result.totalPrice).toBeCloseTo(180521.35, 1);
   });
 
   it('should calculate indexation correctly', () => {
+    const originalPrice = 100000;
+    const originalNotaryFees = 12500;
+    const originalConstructionCost = 0;
+
     const result = calculateResalePrice(
-      100000,  // base
-      12500,   // fees
+      originalPrice,
+      originalNotaryFees,
+      originalConstructionCost,
       3,       // years
       2,       // 2% indexation
       { totalForPeriod: 0 } as CarryingCosts,
       0
     );
 
-    // 100,000 × (1.02^3 - 1) = 100,000 × 0.061208 = 6,120.80
-    expect(result.indexation).toBeCloseTo(6121, 0);
+    // 112,500 × (1.02^3 - 1) = 112,500 × 0.061208 = 6,885.90
+    expect(result.indexation).toBeCloseTo(6886, 0);
   });
 
-  it('should apply 60% fee recovery within 2 years', () => {
+  it('should include notary fees in base acquisition cost (not separate recovery)', () => {
+    const originalPrice = 143000;
+    const originalNotaryFees = 17875;
+    const originalConstructionCost = 0;
+
     const result = calculateResalePrice(
-      143000,
-      17875,
-      2,  // 2 years = eligible
+      originalPrice,
+      originalNotaryFees,
+      originalConstructionCost,
+      2,  // 2 years
       2,
       { totalForPeriod: 0 } as CarryingCosts,
       0
     );
 
-    expect(result.feesRecovery).toBeCloseTo(17875 * 0.6, 0);
+    // Notary fees are now part of base acquisition, not recovered separately
+    expect(result.basePrice).toBe(originalPrice + originalNotaryFees + originalConstructionCost);
+    expect(result.feesRecovery).toBe(0);
   });
 
-  it('should NOT apply fee recovery after 2 years', () => {
+  it('should NOT apply fee recovery (fees are in base)', () => {
     const result = calculateResalePrice(
       143000,
       17875,
+      0, // construction
       2.1,  // Just over 2 years
       2,
       { totalForPeriod: 0 } as CarryingCosts,
       0
     );
 
+    // No separate fee recovery in new logic
     expect(result.feesRecovery).toBe(0);
   });
 
   it('should include renovation costs in total', () => {
+    const originalPrice = 143000;
+    const originalNotaryFees = 17875;
+    const originalConstructionCost = 0;
+
     const result = calculateResalePrice(
-      143000,
-      17875,
+      originalPrice,
+      originalNotaryFees,
+      originalConstructionCost,
       1,
       2,
       { totalForPeriod: 5000 } as CarryingCosts,
@@ -162,10 +187,15 @@ describe('calculateResalePrice', () => {
     );
 
     expect(result.renovations).toBe(15000);
-    expect(result.totalPrice).toBeGreaterThan(143000 + 15000);
+    expect(result.totalPrice).toBeGreaterThan(originalPrice + originalNotaryFees + 15000);
   });
 
   it('should provide detailed breakdown', () => {
+    const originalPrice = 150000;
+    const originalNotaryFees = 18750;
+    const originalConstructionCost = 0;
+    const totalAcquisition = originalPrice + originalNotaryFees + originalConstructionCost;
+
     const carryingCosts: CarryingCosts = {
       monthlyInterest: 300,
       monthlyTax: 30,
@@ -175,8 +205,9 @@ describe('calculateResalePrice', () => {
     };
 
     const result = calculateResalePrice(
-      150000,
-      18750,
+      originalPrice,
+      originalNotaryFees,
+      originalConstructionCost,
       2,
       2,
       carryingCosts,
@@ -184,8 +215,8 @@ describe('calculateResalePrice', () => {
     );
 
     expect(result.breakdown).toBeDefined();
-    expect(result.breakdown.base).toBe(150000);
-    expect(result.breakdown.fees).toBeCloseTo(18750 * 0.6, 0);
+    expect(result.breakdown.base).toBe(totalAcquisition);
+    expect(result.breakdown.fees).toBe(0); // No separate fee recovery in new logic
     expect(result.breakdown.indexation).toBeGreaterThan(0);
     expect(result.breakdown.carrying).toBe(11520);
     expect(result.breakdown.renovations).toBe(10000);
@@ -278,14 +309,125 @@ describe('calculateRedistribution', () => {
     expect(result.find(r => r.participantName === 'Buyer C')?.amount).toBeCloseTo(175000 * (118/472), 0);
     expect(result.find(r => r.participantName === 'Buyer D')?.amount).toBeCloseTo(175000 * (108/472), 0);
   });
+
+  it('should redistribute to founders + one newcomer', () => {
+    // Scenario: 2 founders at T0, 1 newcomer joins at T+1
+    // Founders: A (112m²), B (134m²)
+    // Newcomer: N (50m²)
+    // Total building: 296m²
+    // Copro sells hidden lot for 100k at T+2
+    const participants = [
+      { name: 'Founder A', surface: 112 },
+      { name: 'Founder B', surface: 134 },
+      { name: 'Newcomer N', surface: 50 }
+    ];
+
+    const totalBuildingSurface = 296;
+    const saleProceeds = 100000;
+
+    const result = calculateRedistribution(saleProceeds, participants, totalBuildingSurface);
+
+    expect(result).toHaveLength(3);
+
+    // Founder A: (112/296) × 100k
+    const founderA = result.find(r => r.participantName === 'Founder A')!;
+    expect(founderA.quotite).toBeCloseTo(112/296, 4);
+    expect(founderA.amount).toBeCloseTo(100000 * (112/296), 0);
+
+    // Founder B: (134/296) × 100k
+    const founderB = result.find(r => r.participantName === 'Founder B')!;
+    expect(founderB.quotite).toBeCloseTo(134/296, 4);
+    expect(founderB.amount).toBeCloseTo(100000 * (134/296), 0);
+
+    // Newcomer N: (50/296) × 100k
+    const newcomerN = result.find(r => r.participantName === 'Newcomer N')!;
+    expect(newcomerN.quotite).toBeCloseTo(50/296, 4);
+    expect(newcomerN.amount).toBeCloseTo(100000 * (50/296), 0);
+
+    // Verify sum equals sale proceeds
+    const total = result.reduce((sum, r) => sum + r.amount, 0);
+    expect(total).toBeCloseTo(saleProceeds, 0);
+  });
+
+  it('should redistribute to founders + multiple newcomers', () => {
+    // Scenario: 2 founders + 2 newcomers
+    // Founders: A (112m²), B (134m²)
+    // Newcomers: N1 (50m²), N2 (75m²)
+    // Total building: 371m²
+    // Copro sells hidden lot for 150k
+    const participants = [
+      { name: 'Founder A', surface: 112 },
+      { name: 'Founder B', surface: 134 },
+      { name: 'Newcomer 1', surface: 50 },
+      { name: 'Newcomer 2', surface: 75 }
+    ];
+
+    const totalBuildingSurface = 371;
+    const saleProceeds = 150000;
+
+    const result = calculateRedistribution(saleProceeds, participants, totalBuildingSurface);
+
+    expect(result).toHaveLength(4);
+
+    // Founder A: (112/371) × 150k
+    expect(result.find(r => r.participantName === 'Founder A')?.amount).toBeCloseTo(150000 * (112/371), 0);
+
+    // Founder B: (134/371) × 150k
+    expect(result.find(r => r.participantName === 'Founder B')?.amount).toBeCloseTo(150000 * (134/371), 0);
+
+    // Newcomer 1: (50/371) × 150k
+    expect(result.find(r => r.participantName === 'Newcomer 1')?.amount).toBeCloseTo(150000 * (50/371), 0);
+
+    // Newcomer 2: (75/371) × 150k
+    expect(result.find(r => r.participantName === 'Newcomer 2')?.amount).toBeCloseTo(150000 * (75/371), 0);
+
+    // Verify sum equals sale proceeds
+    const total = result.reduce((sum, r) => sum + r.amount, 0);
+    expect(total).toBeCloseTo(saleProceeds, 0);
+  });
+
+  it('should handle backward compatibility (founders only)', () => {
+    // Scenario: Only founders, no newcomers yet
+    // This tests backward compatibility with original behavior
+    const participants = [
+      { name: 'Founder A', surface: 112 },
+      { name: 'Founder B', surface: 134 }
+    ];
+
+    const totalBuildingSurface = 246;
+    const saleProceeds = 100000;
+
+    const result = calculateRedistribution(saleProceeds, participants, totalBuildingSurface);
+
+    expect(result).toHaveLength(2);
+
+    // Founder A: (112/246) × 100k
+    expect(result.find(r => r.participantName === 'Founder A')?.amount).toBeCloseTo(100000 * (112/246), 0);
+
+    // Founder B: (134/246) × 100k
+    expect(result.find(r => r.participantName === 'Founder B')?.amount).toBeCloseTo(100000 * (134/246), 0);
+
+    // Verify sum equals sale proceeds
+    const total = result.reduce((sum, r) => sum + r.amount, 0);
+    expect(total).toBeCloseTo(saleProceeds, 0);
+  });
 });
 
 describe('calculatePortageLotPrice', () => {
   it('should calculate price for lot from founder with imposed surface', () => {
     // Founder allocated 50m² for portage at deed date
-    // Original price: 50m² × 1377€/m² = 68,850€
+    // Original acquisition cost breakdown:
+    // - Purchase price: 50m² × 1377€/m² = 68,850€
+    // - Notary fees: 8,606.25€ (12.5%)
+    // - Construction: 50,000€ (CASCO + parachevements + travaux communs share)
+    // Total acquisition: 127,456.25€
     // Held for 2 years with 2% indexation
     // Carrying costs: calculated based on lot value and loan
+
+    const originalPrice = 68850;
+    const originalNotaryFees = 8606.25;
+    const originalConstructionCost = 50000;
+    const totalAcquisitionCost = originalPrice + originalNotaryFees + originalConstructionCost;
 
     const carryingCosts: CarryingCosts = {
       monthlyInterest: 200,
@@ -296,18 +438,23 @@ describe('calculatePortageLotPrice', () => {
     };
 
     const result = calculatePortageLotPrice(
-      68850,    // original price (50m² × 1377)
-      8606.25,  // notary fees (12.5%)
+      originalPrice,
+      originalNotaryFees,
+      originalConstructionCost,
       2,        // years held
       2,        // indexation rate
       carryingCosts,
       0         // no renovations
     );
 
-    // Expected: base + indexation + carrying + fee recovery
-    expect(result.basePrice).toBe(68850);
+    // Expected: base acquisition cost (purchase + notary + construction) + indexation + carrying
+    expect(result.basePrice).toBe(totalAcquisitionCost);
     expect(result.surfaceImposed).toBe(true);
-    expect(result.totalPrice).toBeGreaterThan(68850);
+    expect(result.totalPrice).toBeGreaterThan(totalAcquisitionCost);
+
+    // Verify indexation is applied to total acquisition cost
+    const expectedIndexation = totalAcquisitionCost * (Math.pow(1.02, 2) - 1);
+    expect(result.indexation).toBeCloseTo(expectedIndexation, 2);
   });
 
   it('should calculate price for lot from copropriété with free surface', () => {

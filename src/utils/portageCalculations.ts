@@ -109,54 +109,58 @@ export function calculateCarryingCosts(
  * Calculate fair resale price using habitat-beaver formula
  *
  * Formula breakdown:
- * - Base price (original purchase)
- * - + Indexation (compound interest at 2%/year default)
+ * - Base acquisition cost (purchase price + notary fees + construction costs)
+ * - + Indexation (compound interest at 2%/year default on total acquisition)
  * - + Carrying cost recovery
- * - + Renovation costs
- * - + Fee recovery (60% if resold within 2 years - Belgian law)
+ * - + Additional renovations after initial acquisition
+ *
+ * Note: Fee recovery removed as notary fees are now included in base acquisition
  *
  * @param originalPurchaseShare - Original purchase price
  * @param originalNotaryFees - Notary fees paid at purchase
+ * @param originalConstructionCost - Construction costs (CASCO + parachevements + travaux communs)
  * @param yearsHeld - Years the lot was carried
  * @param indexationRate - Annual indexation rate (default 2%)
  * @param carryingCosts - Calculated carrying costs
- * @param renovationsConducted - Any renovation costs to recover
+ * @param renovationsConducted - Any additional renovation costs after acquisition
  * @returns Complete breakdown of resale price
  */
 export function calculateResalePrice(
   originalPurchaseShare: number,
   originalNotaryFees: number,
+  originalConstructionCost: number,
   yearsHeld: number,
   indexationRate: number = 2,
   carryingCosts: CarryingCosts,
   renovationsConducted: number = 0
 ): ResalePrice {
-  // Calculate indexation (compound)
-  const indexationMultiplier = Math.pow(1 + indexationRate / 100, yearsHeld);
-  const indexation = originalPurchaseShare * (indexationMultiplier - 1);
+  // Total acquisition cost = purchase + notary + construction
+  // This represents the "as if buying 2 apartments" cost
+  const totalAcquisitionCost = originalPurchaseShare + originalNotaryFees + originalConstructionCost;
 
-  // Fee recovery: 60% if within 2 years (Belgian law)
-  const feesRecovery = yearsHeld <= 2
-    ? originalNotaryFees * 0.6
-    : 0;
+  // Calculate indexation on total acquisition cost (compound)
+  const indexationMultiplier = Math.pow(1 + indexationRate / 100, yearsHeld);
+  const indexation = totalAcquisitionCost * (indexationMultiplier - 1);
+
+  // Fee recovery no longer applicable (fees included in acquisition cost)
+  const feesRecovery = 0;
 
   // Total price
   const totalPrice =
-    originalPurchaseShare +
+    totalAcquisitionCost +
     indexation +
     carryingCosts.totalForPeriod +
-    feesRecovery +
     renovationsConducted;
 
   return {
-    basePrice: originalPurchaseShare,
+    basePrice: totalAcquisitionCost,
     feesRecovery,
     indexation,
     carryingCostRecovery: carryingCosts.totalForPeriod,
     renovations: renovationsConducted,
     totalPrice,
     breakdown: {
-      base: originalPurchaseShare,
+      base: totalAcquisitionCost,
       fees: feesRecovery,
       indexation,
       carrying: carryingCosts.totalForPeriod,
@@ -185,6 +189,7 @@ export interface PortageLotPrice {
 export function calculatePortageLotPrice(
   originalPrice: number,
   originalNotaryFees: number,
+  originalConstructionCost: number,
   yearsHeld: number,
   indexationRate: number,
   carryingCosts: CarryingCosts,
@@ -193,6 +198,7 @@ export function calculatePortageLotPrice(
   const resale = calculateResalePrice(
     originalPrice,
     originalNotaryFees,
+    originalConstructionCost,
     yearsHeld,
     indexationRate,
     carryingCosts,
@@ -256,23 +262,28 @@ export function calculatePortageLotPriceFromCopro(
 /**
  * Calculate redistribution when copropriété sells hidden lot
  *
- * Based on habitat-beaver guide:
- * - Each initial co-owner receives proportional share
- * - Proportion = their surface / total surface at purchase
+ * Based on Belgian copropriété law and habitat-beaver guide:
+ * - All current participants (founders + newcomers) receive proportional share
+ * - Proportion = their surface / total building surface
  * - This is their quotité in the copropriété
  *
+ * Quotité Model:
+ * - Every participant with owned surface gets quotité
+ * - Quotité = (participant surface) / (total building surface)
+ * - Newcomers who join get quotité same as founders
+ *
  * @param saleProceeds - Total amount from lot sale
- * @param initialCopropietaires - Initial co-owners at purchase
- * @param totalSurfaceAtPurchase - Total surface at initial purchase
+ * @param allCurrentParticipants - All current participants (founders + newcomers)
+ * @param totalBuildingSurface - Total surface of the building (constant denominator)
  * @returns Array of redistributions per participant
  */
 export function calculateRedistribution(
   saleProceeds: number,
-  initialCopropietaires: ParticipantSurface[],
-  totalSurfaceAtPurchase: number
+  allCurrentParticipants: ParticipantSurface[],
+  totalBuildingSurface: number
 ): Redistribution[] {
-  return initialCopropietaires.map(participant => {
-    const quotite = participant.surface / totalSurfaceAtPurchase;
+  return allCurrentParticipants.map(participant => {
+    const quotite = participant.surface / totalBuildingSurface;
     const amount = saleProceeds * quotite;
 
     return {
