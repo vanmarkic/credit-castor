@@ -1106,13 +1106,15 @@ export default function EnDivisionCorrect() {
                       </div>
                     </div>
 
-                {/* Portage Lot Configuration */}
-                <PortageLotConfig
-                  portageLots={participants[idx].lotsOwned?.filter((lot: any) => lot.isPortage) || []}
-                  onAddLot={() => addPortageLot(idx)}
-                  onRemoveLot={(lotId) => removePortageLot(idx, lotId)}
-                  onUpdateSurface={(lotId, surface) => updatePortageLotSurface(idx, lotId, surface)}
-                />
+                {/* Portage Lot Configuration (only for founders) */}
+                {participants[idx].isFounder && (
+                  <PortageLotConfig
+                    portageLots={participants[idx].lotsOwned?.filter((lot: any) => lot.isPortage) || []}
+                    onAddLot={() => addPortageLot(idx)}
+                    onRemoveLot={(lotId) => removePortageLot(idx, lotId)}
+                    onUpdateSurface={(lotId, surface) => updatePortageLotSurface(idx, lotId, surface)}
+                  />
+                )}
 
                     <div>
                       <label className="block text-xs text-gray-600 mb-1">Taux d'intérêt (%)</label>
