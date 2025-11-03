@@ -1015,7 +1015,23 @@ export default function EnDivisionCorrect() {
                     {/* Show selected lot details if any */}
                     {participants[idx].purchaseDetails?.lotId && (
                       <div className="bg-green-50 border border-green-300 rounded-lg p-3 mt-3">
-                        <p className="text-xs font-semibold text-green-800 mb-2">✅ Lot sélectionné:</p>
+                        <div className="flex items-start justify-between mb-2">
+                          <p className="text-xs font-semibold text-green-800">✅ Lot sélectionné:</p>
+                          <button
+                            onClick={() => {
+                              const updated = [...participants];
+                              updated[idx] = {
+                                ...updated[idx],
+                                purchaseDetails: undefined,
+                                surface: 0
+                              };
+                              setParticipants(updated);
+                            }}
+                            className="text-xs text-red-600 hover:text-red-800 font-semibold hover:underline"
+                          >
+                            ✕ Changer de lot
+                          </button>
+                        </div>
                         <div className="grid grid-cols-3 gap-2 text-xs">
                           <div>
                             <span className="text-gray-600">Lot:</span>
