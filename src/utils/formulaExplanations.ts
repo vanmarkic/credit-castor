@@ -10,8 +10,8 @@ import type { ParticipantCalculation, CalculationTotals } from './calculatorUtil
  */
 export function getTotalCostFormula(p: ParticipantCalculation): string[] {
   return [
-    "Total cost for this participant",
-    `Purchase €${p.purchaseShare.toLocaleString()} + Notary €${p.notaryFees.toLocaleString()} + Construction €${p.constructionCost.toLocaleString()} + Shared €${p.sharedCosts.toLocaleString()}`
+    "Coût total pour ce participant",
+    `Achat €${p.purchaseShare.toLocaleString()} + Notaire €${p.notaryFees.toLocaleString()} + Construction €${p.constructionCost.toLocaleString()} + Quote-part €${p.sharedCosts.toLocaleString()}`
   ];
 }
 
@@ -20,7 +20,7 @@ export function getTotalCostFormula(p: ParticipantCalculation): string[] {
  */
 export function getPurchaseShareFormula(p: ParticipantCalculation, pricePerM2: number): string[] {
   return [
-    "Your share of the building purchase",
+    "Votre part de l'achat du bâtiment",
     `€${pricePerM2.toFixed(2)}/m² × ${p.surface}m² = €${p.purchaseShare.toLocaleString()}`
   ];
 }
@@ -30,8 +30,8 @@ export function getPurchaseShareFormula(p: ParticipantCalculation, pricePerM2: n
  */
 export function getNotaryFeesFormula(p: ParticipantCalculation): string[] {
   return [
-    "Belgian notary fees for property transfer",
-    `€${p.purchaseShare.toLocaleString()} purchase × ${p.notaryFeesRate}% rate = €${p.notaryFees.toLocaleString()}`
+    "Frais de notaire belges pour le transfert",
+    `€${p.purchaseShare.toLocaleString()} achat × ${p.notaryFeesRate}% taux = €${p.notaryFees.toLocaleString()}`
   ];
 }
 
@@ -40,7 +40,7 @@ export function getNotaryFeesFormula(p: ParticipantCalculation): string[] {
  */
 export function getPersonalRenovationFormula(p: ParticipantCalculation): string[] {
   return [
-    "CASCO + Parachèvements for your units",
+    "CASCO + Parachèvements pour vos unités",
     `€${p.casco.toLocaleString()} CASCO + €${p.parachevements.toLocaleString()} parachèvements = €${p.personalRenovationCost.toLocaleString()}`
   ];
 }
@@ -54,8 +54,8 @@ export function getConstructionCostFormula(
   totalUnits: number
 ): string[] {
   return [
-    "Your share of shared construction",
-    `€${totalConstruction.toLocaleString()} total ÷ ${totalUnits} units × ${p.quantity} quantity = €${p.constructionCost.toLocaleString()}`
+    "Votre part des coûts de construction partagés",
+    `€${totalConstruction.toLocaleString()} total ÷ ${totalUnits} unités × ${p.quantity} quantité = €${p.constructionCost.toLocaleString()}`
   ];
 }
 
@@ -64,8 +64,8 @@ export function getConstructionCostFormula(
  */
 export function getSharedCostsFormula(p: ParticipantCalculation, participantCount: number): string[] {
   return [
-    "Your share of common project expenses",
-    `Infrastructure + Studies + Frais généraux ÷ ${participantCount} participants = €${p.sharedCosts.toLocaleString()}`
+    "Votre part des frais communs du projet",
+    `Infrastructure + Études + Frais généraux ÷ ${participantCount} participants = €${p.sharedCosts.toLocaleString()}`
   ];
 }
 
@@ -74,8 +74,8 @@ export function getSharedCostsFormula(p: ParticipantCalculation, participantCoun
  */
 export function getLoanNeededFormula(p: ParticipantCalculation): string[] {
   return [
-    "Amount to borrow",
-    `€${p.totalCost.toLocaleString()} total cost - €${p.capitalApporte.toLocaleString()} capital = €${p.loanNeeded.toLocaleString()} loan`
+    "Montant à emprunter",
+    `€${p.totalCost.toLocaleString()} coût total - €${p.capitalApporte.toLocaleString()} capital = €${p.loanNeeded.toLocaleString()} emprunt`
   ];
 }
 
@@ -84,9 +84,9 @@ export function getLoanNeededFormula(p: ParticipantCalculation): string[] {
  */
 export function getMonthlyPaymentFormula(p: ParticipantCalculation): string[] {
   return [
-    "Loan repayment over duration",
-    `€${p.loanNeeded.toLocaleString()} loan at ${p.interestRate}% over ${p.durationYears} years`,
-    "PMT(rate/12, years×12, -principal)"
+    "Remboursement mensuel du prêt",
+    `€${p.loanNeeded.toLocaleString()} emprunt à ${p.interestRate}% sur ${p.durationYears} ans`,
+    "PMT(taux/12, années×12, -principal)"
   ];
 }
 
@@ -95,8 +95,8 @@ export function getMonthlyPaymentFormula(p: ParticipantCalculation): string[] {
  */
 export function getPricePerM2Formula(totals: CalculationTotals, totalSurface: number): string[] {
   return [
-    "Average price per square meter",
-    `€${totals.purchase.toLocaleString()} total purchase ÷ ${totalSurface}m² total surface`
+    "Prix moyen par mètre carré",
+    `€${totals.purchase.toLocaleString()} achat total ÷ ${totalSurface}m² surface totale`
   ];
 }
 
@@ -105,8 +105,8 @@ export function getPricePerM2Formula(totals: CalculationTotals, totalSurface: nu
  */
 export function getTotalProjectCostFormula(): string[] {
   return [
-    "Sum of all project expenses",
-    "Purchase + Notary + Construction + Shared"
+    "Somme de toutes les dépenses du projet",
+    "Achat + Notaire + Construction + Quote-part"
   ];
 }
 
@@ -115,8 +115,8 @@ export function getTotalProjectCostFormula(): string[] {
  */
 export function getTotalLoansFormula(): string[] {
   return [
-    "Sum of all participant loans",
-    "Total of all individual loan amounts"
+    "Somme de tous les emprunts des participants",
+    "Total de tous les montants d'emprunt individuels"
   ];
 }
 
@@ -126,7 +126,7 @@ export function getTotalLoansFormula(): string[] {
 export function getCascoFormula(p: ParticipantCalculation, cascoSqm: number | undefined, globalCascoPerM2: number): string[] {
   const sqm = cascoSqm ?? p.surface;
   return [
-    "CASCO (structural work) cost",
+    "Coût CASCO (gros œuvre)",
     `${sqm}m² × €${globalCascoPerM2}/m² = €${p.casco.toLocaleString()}`
   ];
 }
@@ -138,7 +138,7 @@ export function getParachevementsFormula(p: ParticipantCalculation, parachevemen
   const sqm = parachevementsSqm ?? p.surface;
   const perM2 = parachevementsPerM2 ?? 0;
   return [
-    "Parachèvements (finishing work) cost",
+    "Coût Parachèvements (finitions)",
     `${sqm}m² × €${perM2}/m² = €${p.parachevements.toLocaleString()}`
   ];
 }
@@ -148,8 +148,8 @@ export function getParachevementsFormula(p: ParticipantCalculation, parachevemen
  */
 export function getTravauxCommunsFormula(p: ParticipantCalculation): string[] {
   return [
-    "Common building works per unit",
-    `Foundation + Structure + Copro works ÷ participants × ${p.quantity || 1} unit(s)`,
+    "Travaux communs du bâtiment par unité",
+    `Fondations + Structure + Travaux copro ÷ participants × ${p.quantity || 1} unité(s)`,
     `= €${p.travauxCommunsPerUnit.toLocaleString()}`
   ];
 }
@@ -159,8 +159,8 @@ export function getTravauxCommunsFormula(p: ParticipantCalculation): string[] {
  */
 export function getTotalRepaymentFormula(p: ParticipantCalculation): string[] {
   return [
-    "Total amount repaid over loan duration",
-    `€${p.monthlyPayment.toLocaleString()} monthly × ${p.durationYears} years × 12 months = €${p.totalRepayment.toLocaleString()}`
+    "Montant total remboursé sur la durée du prêt",
+    `€${p.monthlyPayment.toLocaleString()} mensuel × ${p.durationYears} ans × 12 mois = €${p.totalRepayment.toLocaleString()}`
   ];
 }
 
@@ -169,8 +169,8 @@ export function getTotalRepaymentFormula(p: ParticipantCalculation): string[] {
  */
 export function getTotalInterestFormula(p: ParticipantCalculation): string[] {
   return [
-    "Total interest paid (cost of credit)",
-    `€${p.totalRepayment.toLocaleString()} total repaid - €${p.loanNeeded.toLocaleString()} principal = €${p.totalInterest.toLocaleString()}`
+    "Intérêts totaux payés (coût du crédit)",
+    `€${p.totalRepayment.toLocaleString()} total remboursé - €${p.loanNeeded.toLocaleString()} principal = €${p.totalInterest.toLocaleString()}`
   ];
 }
 
@@ -179,8 +179,8 @@ export function getTotalInterestFormula(p: ParticipantCalculation): string[] {
  */
 export function getExpectedPaybacksFormula(totalRecovered: number, paybackCount: number): string[] {
   return [
-    "Total expected income from portage & copropriété sales",
-    `Sum of ${paybackCount} payment(s) = €${totalRecovered.toLocaleString()}`,
-    "Received when newcomers join the project"
+    "Revenus attendus du portage & ventes copropriété",
+    `Somme de ${paybackCount} paiement(s) = €${totalRecovered.toLocaleString()}`,
+    "Reçus lorsque de nouveaux participants rejoignent"
   ];
 }

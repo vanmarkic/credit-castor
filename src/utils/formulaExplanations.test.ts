@@ -61,14 +61,14 @@ describe('formulaExplanations', () => {
       const result = getTotalCostFormula(mockParticipant);
 
       expect(result).toHaveLength(2);
-      expect(result[0]).toBe('Total cost for this participant');
-      expect(result[1]).toContain('Purchase');
+      expect(result[0]).toBe('Coût total pour ce participant');
+      expect(result[1]).toContain('Achat');
       expect(result[1]).toContain('150,000');
-      expect(result[1]).toContain('Notary');
+      expect(result[1]).toContain('Notaire');
       expect(result[1]).toContain('18,750');
       expect(result[1]).toContain('Construction');
       expect(result[1]).toContain('120,000');
-      expect(result[1]).toContain('Shared');
+      expect(result[1]).toContain('Quote-part');
       expect(result[1]).toContain('25,000');
     });
   });
@@ -78,7 +78,7 @@ describe('formulaExplanations', () => {
       const result = getPurchaseShareFormula(mockParticipant, 1500);
 
       expect(result).toHaveLength(2);
-      expect(result[0]).toBe('Your share of the building purchase');
+      expect(result[0]).toBe('Votre part de l\'achat du bâtiment');
       expect(result[1]).toContain('1500');
       expect(result[1]).toContain('100');
       expect(result[1]).toContain('150,000');
@@ -90,7 +90,7 @@ describe('formulaExplanations', () => {
       const result = getNotaryFeesFormula(mockParticipant);
 
       expect(result).toHaveLength(2);
-      expect(result[0]).toBe('Belgian notary fees for property transfer');
+      expect(result[0]).toBe('Frais de notaire belges pour le transfert');
       expect(result[1]).toContain('150,000');
       expect(result[1]).toContain('12.5');
       expect(result[1]).toContain('18,750');
@@ -127,7 +127,7 @@ describe('formulaExplanations', () => {
       const result = getSharedCostsFormula(mockParticipant, 3);
 
       expect(result).toHaveLength(2);
-      expect(result[0]).toContain('share');
+      expect(result[0]).toContain('part');
       expect(result[1]).toContain('Infrastructure');
       expect(result[1]).toContain('3');
       expect(result[1]).toContain(mockParticipant.sharedCosts.toLocaleString());
@@ -139,7 +139,7 @@ describe('formulaExplanations', () => {
       const result = getLoanNeededFormula(mockParticipant);
 
       expect(result).toHaveLength(2);
-      expect(result[0]).toContain('borrow');
+      expect(result[0]).toContain('emprunter');
       expect(result[1]).toContain('313,750');
       expect(result[1]).toContain('50,000');
       expect(result[1]).toContain('263,750');
@@ -151,11 +151,11 @@ describe('formulaExplanations', () => {
       const result = getMonthlyPaymentFormula(mockParticipant);
 
       expect(result).toHaveLength(3);
-      expect(result[0]).toContain('Loan repayment');
+      expect(result[0]).toContain('Remboursement');
       expect(result[1]).toContain('263,750');
       expect(result[1]).toContain('3.5');
       expect(result[1]).toContain('20');
-      expect(result[2]).toBe('PMT(rate/12, years×12, -principal)');
+      expect(result[2]).toBe('PMT(taux/12, années×12, -principal)');
     });
   });
 
@@ -164,7 +164,7 @@ describe('formulaExplanations', () => {
       const result = getPricePerM2Formula(mockTotals, 300);
 
       expect(result).toHaveLength(2);
-      expect(result[0]).toContain('price per square meter');
+      expect(result[0]).toContain('Prix moyen');
       expect(result[1]).toContain('450,000');
       expect(result[1]).toContain('300');
     });
@@ -175,11 +175,11 @@ describe('formulaExplanations', () => {
       const result = getTotalProjectCostFormula();
 
       expect(result).toHaveLength(2);
-      expect(result[0]).toContain('Sum of all project expenses');
-      expect(result[1]).toContain('Purchase');
-      expect(result[1]).toContain('Notary');
+      expect(result[0]).toContain('Somme');
+      expect(result[1]).toContain('Achat');
+      expect(result[1]).toContain('Notaire');
       expect(result[1]).toContain('Construction');
-      expect(result[1]).toContain('Shared');
+      expect(result[1]).toContain('Quote-part');
     });
   });
 
@@ -188,9 +188,9 @@ describe('formulaExplanations', () => {
       const result = getTotalLoansFormula();
 
       expect(result).toHaveLength(2);
-      expect(result[0]).toContain('Sum of all participant loans');
+      expect(result[0]).toContain('Somme');
       expect(result[1]).toContain('Total');
-      expect(result[1]).toContain('loan');
+      expect(result[1]).toContain('emprunt');
     });
   });
 });
