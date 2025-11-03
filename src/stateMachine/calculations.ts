@@ -9,17 +9,22 @@ export function calculateIndexation(
   indexRates: IndexRate[]
 ): number {
   const yearsHeld = (saleDate.getTime() - acquisitionDate.getTime()) / (1000 * 60 * 60 * 24 * 365);
+  const acquisitionYear = acquisitionDate.getFullYear();
 
   let indexedValue = 1;
-  for (let year = 0; year < Math.floor(yearsHeld); year++) {
-    const rate = indexRates[year]?.rate || 1.02; // Fallback to 2%
+  for (let yearOffset = 0; yearOffset < Math.floor(yearsHeld); yearOffset++) {
+    const targetYear = acquisitionYear + yearOffset;
+    const rateData = indexRates.find(r => r.year === targetYear);
+    const rate = rateData?.rate || 1.02; // Fallback to 2%
     indexedValue *= rate;
   }
 
   // Handle partial year
   const partialYear = yearsHeld - Math.floor(yearsHeld);
   if (partialYear > 0) {
-    const nextRate = indexRates[Math.floor(yearsHeld)]?.rate || 1.02;
+    const targetYear = acquisitionYear + Math.floor(yearsHeld);
+    const rateData = indexRates.find(r => r.year === targetYear);
+    const nextRate = rateData?.rate || 1.02;
     const partialGrowth = (nextRate - 1) * partialYear;
     indexedValue *= (1 + partialGrowth);
   }
