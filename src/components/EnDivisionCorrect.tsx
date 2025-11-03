@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Users } from 'lucide-react';
+import * as Tooltip from '@radix-ui/react-tooltip';
 import { calculateAll } from '../utils/calculatorUtils';
 import { exportCalculations } from '../utils/excelExport';
 import { XlsxWriter } from '../utils/exportWriter';
@@ -7,7 +8,13 @@ import { ParticipantsTimeline } from './calculator/ParticipantsTimeline';
 import { ProjectHeader } from './calculator/ProjectHeader';
 import { ParticipantDetailsPanel } from './calculator/ParticipantDetailsPanel';
 import ParticipantDetailModal from './calculator/ParticipantDetailModal';
+import { FormulaTooltip } from './FormulaTooltip';
 import { formatCurrency } from '../utils/formatting';
+import {
+  getPricePerM2Formula,
+  getTotalProjectCostFormula,
+  getTotalLoansFormula
+} from '../utils/formulaExplanations';
 import {
   DEFAULT_PARTICIPANTS,
   DEFAULT_PROJECT_PARAMS,
@@ -373,7 +380,8 @@ export default function EnDivisionCorrect() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-100 p-6">
+    <Tooltip.Provider>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-100 p-6">
       <div className="max-w-7xl mx-auto">
 
         <ProjectHeader
@@ -395,7 +403,11 @@ export default function EnDivisionCorrect() {
             <div className="p-3 bg-white rounded-lg border border-gray-200">
               <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Achat Total</p>
               <p className="text-lg font-bold text-gray-900">{formatCurrency(calculations.totals.purchase)}</p>
-              <p className="text-xs text-blue-600 mt-1">{formatCurrency(calculations.pricePerM2)}/m²</p>
+              <p className="text-xs text-blue-600 mt-1">
+                <FormulaTooltip formula={getPricePerM2Formula(calculations.totals, calculations.totalSurface)}>
+                  {formatCurrency(calculations.pricePerM2)}/m²
+                </FormulaTooltip>
+              </p>
             </div>
             <div className="p-3 bg-white rounded-lg border border-gray-200">
               <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Frais de Notaire</p>
@@ -418,7 +430,11 @@ export default function EnDivisionCorrect() {
             </div>
             <div className="p-3 bg-gray-50 rounded-lg border border-gray-300">
               <p className="text-xs text-gray-600 uppercase tracking-wide mb-1 font-semibold">TOTAL</p>
-              <p className="text-lg font-bold text-gray-900">{formatCurrency(calculations.totals.total)}</p>
+              <p className="text-lg font-bold text-gray-900">
+                <FormulaTooltip formula={getTotalProjectCostFormula()}>
+                  {formatCurrency(calculations.totals.total)}
+                </FormulaTooltip>
+              </p>
             </div>
           </div>
 
@@ -799,7 +815,11 @@ export default function EnDivisionCorrect() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Coût total:</span>
-                  <span className="font-bold text-gray-900">{formatCurrency(calculations.totals.total)}</span>
+                  <span className="font-bold text-gray-900">
+                    <FormulaTooltip formula={getTotalProjectCostFormula()}>
+                      {formatCurrency(calculations.totals.total)}
+                    </FormulaTooltip>
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Capital total:</span>
@@ -807,7 +827,11 @@ export default function EnDivisionCorrect() {
                 </div>
                 <div className="flex justify-between pt-2 border-t border-gray-300">
                   <span className="text-gray-600">Total emprunts:</span>
-                  <span className="font-bold text-red-700">{formatCurrency(calculations.totals.totalLoansNeeded)}</span>
+                  <span className="font-bold text-red-700">
+                    <FormulaTooltip formula={getTotalLoansFormula()}>
+                      {formatCurrency(calculations.totals.totalLoansNeeded)}
+                    </FormulaTooltip>
+                  </span>
                 </div>
               </div>
             </div>
@@ -906,6 +930,7 @@ export default function EnDivisionCorrect() {
           );
         })()}
       </div>
-    </div>
+      </div>
+    </Tooltip.Provider>
   );
 }
