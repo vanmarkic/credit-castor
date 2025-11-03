@@ -1038,13 +1038,26 @@ export default function EnDivisionCorrect() {
                   <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Configuration</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs text-gray-600 mb-1">Surface totale (m²)</label>
+                      <label className="block text-xs text-gray-600 mb-1">
+                        Surface totale (m²)
+                        {!participants[idx].isFounder && participants[idx].purchaseDetails?.buyingFrom &&
+                         participants[idx].purchaseDetails?.buyingFrom !== 'Copropriété' && (
+                          <span className="ml-2 text-orange-600 font-semibold">🔒 Imposée par portage</span>
+                        )}
+                      </label>
                       <input
                         type="number"
                         step="1"
                         value={p.surface}
                         onChange={(e) => updateParticipantSurface(idx, parseFloat(e.target.value) || 0)}
-                        className="w-full px-3 py-2 font-medium border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white"
+                        disabled={!participants[idx].isFounder && participants[idx].purchaseDetails?.buyingFrom &&
+                                  participants[idx].purchaseDetails?.buyingFrom !== 'Copropriété'}
+                        className={`w-full px-3 py-2 font-medium border rounded-lg focus:outline-none ${
+                          !participants[idx].isFounder && participants[idx].purchaseDetails?.buyingFrom &&
+                          participants[idx].purchaseDetails?.buyingFrom !== 'Copropriété'
+                            ? 'border-orange-300 bg-orange-50 text-gray-700 cursor-not-allowed'
+                            : 'border-gray-300 bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
+                        }`}
                       />
                       <p className="text-xs text-gray-500 mt-1">Total pour {p.quantity || 1} {(p.quantity || 1) > 1 ? 'unités' : 'unité'}</p>
                     </div>
