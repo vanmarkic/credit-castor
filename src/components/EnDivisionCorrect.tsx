@@ -5,6 +5,7 @@ import { exportCalculations } from '../utils/excelExport';
 import { XlsxWriter } from '../utils/exportWriter';
 import { convertCalculatorToInitialPurchaseEvent } from '../utils/calculatorToTimeline';
 import { exportTimelineToJSON } from '../utils/timelineExport';
+import PortageLotConfig from './PortageLotConfig';
 
 // Default values for reset functionality
 export const DEFAULT_PARTICIPANTS = [
@@ -1095,6 +1096,14 @@ export default function EnDivisionCorrect() {
                     </div>
                   </div>
                 </div>
+
+                {/* Portage Lot Configuration */}
+                <PortageLotConfig
+                  portageLots={participants[idx].lotsOwned?.filter((lot: any) => lot.isPortage) || []}
+                  onAddLot={() => addPortageLot(idx)}
+                  onRemoveLot={(lotId) => removePortageLot(idx, lotId)}
+                  onUpdateSurface={(lotId, surface) => updatePortageLotSurface(idx, lotId, surface)}
+                />
 
                 {/* Financing Result */}
                 <div className="bg-red-50 rounded-lg p-5 border border-red-200">
