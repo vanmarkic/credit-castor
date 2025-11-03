@@ -109,7 +109,7 @@ describe('Excel Export', () => {
       expect(sheetData.name).toBe('Calculateur Division');
       expect(sheetData.cells.length).toBeGreaterThan(0);
       expect(sheetData.columnWidths).toBeDefined();
-      expect(sheetData.columnWidths?.length).toBe(28);
+      expect(sheetData.columnWidths?.length).toBe(34);
 
       // Check some key cells
       const headerCell = sheetData.cells.find(c => c.row === 1 && c.col === 'A');
@@ -431,6 +431,29 @@ describe('Excel Export', () => {
 
       const acheteDeHeader = sheetData.cells.find(c => c.data.value === 'Achete de');
       expect(acheteDeHeader).toBeDefined();
+    });
+
+    it('should include two-loan financing columns', () => {
+      const sheetData = buildExportSheetData(
+        mockCalculations,
+        mockProjectParams,
+        mockUnitDetails,
+        '10/11/2025'
+      );
+
+      const twoLoansHeader = sheetData.cells.find(c => c.data.value === '2 prets');
+      const loan1AmountHeader = sheetData.cells.find(c => c.data.value === 'Pret1 montant');
+      const loan1MonthlyHeader = sheetData.cells.find(c => c.data.value === 'Pret1 mens');
+      const loan2AmountHeader = sheetData.cells.find(c => c.data.value === 'Pret2 montant');
+      const loan2MonthlyHeader = sheetData.cells.find(c => c.data.value === 'Pret2 mens');
+      const loan2DurationHeader = sheetData.cells.find(c => c.data.value === 'Pret2 duree');
+
+      expect(twoLoansHeader).toBeDefined();
+      expect(loan1AmountHeader).toBeDefined();
+      expect(loan1MonthlyHeader).toBeDefined();
+      expect(loan2AmountHeader).toBeDefined();
+      expect(loan2MonthlyHeader).toBeDefined();
+      expect(loan2DurationHeader).toBeDefined();
     });
   });
 });
