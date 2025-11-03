@@ -990,6 +990,20 @@ export default function EnDivisionCorrect() {
                   <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
                     <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">💰 Détails de l'achat</p>
 
+                    {/* Available Lots for Purchase */}
+                    <div className="mb-4">
+                      <AvailableLotsView
+                        availableLots={getAvailableLotsForNewcomer(participants, [])}
+                        deedDate={new Date(deedDate)}
+                      />
+                    </div>
+
+                    <div className="border-t border-blue-300 pt-4 mb-3">
+                      <p className="text-xs text-gray-600 font-semibold mb-2">
+                        Ou saisissez manuellement les détails :
+                      </p>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1461,14 +1475,6 @@ export default function EnDivisionCorrect() {
               );
             })}
           </div>
-        </div>
-
-        {/* Available Lots for Newcomers */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <AvailableLotsView
-            availableLots={getAvailableLotsForNewcomer(participants, [])}
-            deedDate={new Date(deedDate)}
-          />
         </div>
 
         <div className="bg-white rounded-xl shadow-lg p-6">
