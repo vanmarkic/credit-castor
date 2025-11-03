@@ -281,7 +281,10 @@ export default function AvailableLotsView({
                       {/* Select Button for Copro Lots */}
                       {onSelectLot && (
                         <button
-                          onClick={() => onSelectLot(lot, price)}
+                          onClick={() => onSelectLot({
+                            ...lot,
+                            surface: chosenSurface // Use chosen surface, not maximum lot surface
+                          }, price)}
                           className="w-full mt-3 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors"
                         >
                           👆 Sélectionner ce lot ({chosenSurface}m²)
