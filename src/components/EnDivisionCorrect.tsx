@@ -999,6 +999,8 @@ export default function EnDivisionCorrect() {
                           const updated = [...participants];
                           updated[idx] = {
                             ...updated[idx],
+                            surface: lot.surface, // Set surface from selected lot
+                            capitalApporte: Math.min(updated[idx].capitalApporte || 0, price.totalPrice), // Ensure capital doesn't exceed price
                             purchaseDetails: {
                               buyingFrom: lot.fromParticipant || 'Copropriété',
                               lotId: lot.lotId,
