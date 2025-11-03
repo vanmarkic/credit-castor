@@ -57,7 +57,7 @@ const saveToLocalStorage = (participants: any[], projectParams: any, scenario: a
   }
 };
 
-const loadFromLocalStorage = () => {
+export const loadFromLocalStorage = () => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
