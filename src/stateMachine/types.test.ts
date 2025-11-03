@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { Participant, Lot, PortageSale, CoproSale, ClassicSale, LoanApplication, ACPLoan } from './types';
+import type { Participant, Lot, PortageSale, CoproSale, ClassicSale, LoanApplication, ACPLoan, ProjectFinancials } from './types';
 
 describe('Type Definitions', () => {
   it('should create valid Participant', () => {
@@ -151,5 +151,40 @@ describe('Financing Types', () => {
 
     expect(acpLoan.purpose).toBe('roof');
     expect(acpLoan.votingRules.method).toBe('hybrid');
+  });
+});
+
+describe('Project Financials', () => {
+  it('should create project financials structure', () => {
+    const financials: ProjectFinancials = {
+      totalPurchasePrice: 500000,
+      fraisGeneraux: {
+        architectFees: 15000,
+        recurringCosts: {
+          propertyTax: 388.38,
+          accountant: 1000,
+          podio: 600,
+          buildingInsurance: 2000,
+          reservationFees: 2000,
+          contingencies: 2000
+        },
+        oneTimeCosts: 5000,
+        total3Years: 45000
+      },
+      travauxCommuns: 100000,
+      expenseCategories: {
+        conservatoire: 20000,
+        habitabiliteSommaire: 30000,
+        premierTravaux: 50000
+      },
+      globalCascoPerM2: 1500,
+      indexRates: [
+        { year: 2023, rate: 1.02 },
+        { year: 2024, rate: 1.03 }
+      ]
+    };
+
+    expect(financials.totalPurchasePrice).toBe(500000);
+    expect(financials.fraisGeneraux.total3Years).toBe(45000);
   });
 });

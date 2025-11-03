@@ -277,5 +277,42 @@ export interface VotingResults {
   quotiteMajority: boolean;
 }
 
-// Stub types (will be filled in later tasks)
-export type ProjectFinancials = any;
+// ============================================
+// FINANCIAL TYPES
+// ============================================
+
+export interface ProjectFinancials {
+  totalPurchasePrice: number;
+  fraisGeneraux: FraisGeneraux;
+  travauxCommuns: number;
+  expenseCategories: {
+    conservatoire: number;
+    habitabiliteSommaire: number;
+    premierTravaux: number;
+  };
+  globalCascoPerM2: number;
+  indexRates: IndexRate[];
+}
+
+export interface FraisGeneraux {
+  architectFees: number;
+  recurringCosts: RecurringCosts;
+  oneTimeCosts: number;
+  total3Years: number;
+}
+
+export interface RecurringCosts {
+  propertyTax: number;
+  accountant: number;
+  podio: number;
+  buildingInsurance: number;
+  reservationFees: number;
+  contingencies: number;
+  syndicFees?: number;
+  chargesCommunes?: number;
+}
+
+export interface IndexRate {
+  year: number;
+  rate: number;
+}
