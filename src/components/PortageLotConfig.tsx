@@ -1,8 +1,6 @@
-import React from 'react';
 import type { Lot } from '../types/timeline';
 
 interface PortageLotConfigProps {
-  participantIndex: number;
   portageLots: Lot[];
   onAddLot: () => void;
   onRemoveLot: (lotId: number) => void;
@@ -10,7 +8,6 @@ interface PortageLotConfigProps {
 }
 
 export default function PortageLotConfig({
-  participantIndex,
   portageLots,
   onAddLot,
   onRemoveLot,

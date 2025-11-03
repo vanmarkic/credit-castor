@@ -4,9 +4,8 @@ import PortageLotConfig from './PortageLotConfig';
 
 describe('PortageLotConfig', () => {
   it('should render empty state when no portage lots', () => {
-    const { container } = render(
+    render(
       <PortageLotConfig
-        participantIndex={0}
         portageLots={[]}
         onAddLot={vi.fn()}
         onRemoveLot={vi.fn()}
@@ -22,7 +21,6 @@ describe('PortageLotConfig', () => {
 
     render(
       <PortageLotConfig
-        participantIndex={0}
         portageLots={[]}
         onAddLot={onAddLot}
         onRemoveLot={vi.fn()}
@@ -50,7 +48,6 @@ describe('PortageLotConfig', () => {
 
     render(
       <PortageLotConfig
-        participantIndex={0}
         portageLots={lots}
         onAddLot={vi.fn()}
         onRemoveLot={vi.fn()}
