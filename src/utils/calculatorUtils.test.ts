@@ -14,6 +14,7 @@ import {
   calculateTotalInterest,
   calculateFinancingRatio,
   calculateFraisGeneraux3ans,
+  calculateTwoLoanFinancing,
   calculateAll,
   type Participant,
   type ProjectParams,
@@ -1131,5 +1132,204 @@ describe('Calculator Utils', () => {
       expect(results.participantBreakdown[0].casco).toBe(170000); // 100 × 1700
       expect(results.participantBreakdown[1].casco).toBe(255000); // 150 × 1700
     });
+  });
+});
+
+// ============================================
+// Task 3: calculateTwoLoanFinancing Tests
+// ============================================
+
+describe('calculateTwoLoanFinancing', () => {
+  it('should split costs between two loans with default 2/3 split', () => {
+    const participant: Participant = {
+      name: 'Test',
+      capitalApporte: 100000,
+      notaryFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 20,
+      useTwoLoans: true,
+      loan2DelayYears: 2,
+      loan2RenovationAmount: 100000, // 2/3 of 150k renovation
+      capitalForLoan1: 50000,
+      capitalForLoan2: 50000,
+    };
+
+    const purchaseShare = 200000;
+    const notaryFees = 25000;
+    const sharedCosts = 50000;
+    const personalRenovationCost = 150000; // casco + parachevements
+
+    const result = calculateTwoLoanFinancing(
+      purchaseShare,
+      notaryFees,
+      sharedCosts,
+      personalRenovationCost,
+      participant
+    );
+
+    // Loan 1: 200k + 25k + 50k + 50k (renovation not in loan2) - 50k (capital) = 275k
+    expect(result.loan1Amount).toBe(275000);
+
+    // Loan 2: 100k - 50k (capital) = 50k
+    expect(result.loan2Amount).toBe(50000);
+
+    // Loan 2 duration: 20 - 2 = 18 years
+    expect(result.loan2DurationYears).toBe(18);
+
+    // Monthly payments should be positive
+    expect(result.loan1MonthlyPayment).toBeGreaterThan(0);
+    expect(result.loan2MonthlyPayment).toBeGreaterThan(0);
+
+    // Total interest
+    expect(result.totalInterest).toBe(result.loan1Interest + result.loan2Interest);
+  });
+
+  it('should handle zero loan 2 amount', () => {
+    const participant: Participant = {
+      name: 'Test',
+      capitalApporte: 100000,
+      notaryFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 20,
+      useTwoLoans: true,
+      loan2DelayYears: 2,
+      loan2RenovationAmount: 0,
+      capitalForLoan1: 100000,
+      capitalForLoan2: 0,
+    };
+
+    const result = calculateTwoLoanFinancing(200000, 25000, 50000, 150000, participant);
+
+    // All renovation in loan 1
+    expect(result.loan1Amount).toBe(325000); // 200k+25k+50k+150k-100k
+    expect(result.loan2Amount).toBe(0);
+    expect(result.loan2MonthlyPayment).toBe(0);
+    expect(result.loan2Interest).toBe(0);
+  });
+
+  it('should default loan2DelayYears to 2 if not specified', () => {
+    const participant: Participant = {
+      name: 'Test',
+      capitalApporte: 0,
+      notaryFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 20,
+      useTwoLoans: true,
+      loan2RenovationAmount: 50000,
+      capitalForLoan1: 0,
+      capitalForLoan2: 0,
+    };
+
+    const result = calculateTwoLoanFinancing(100000, 12500, 25000, 75000, participant);
+
+    expect(result.loan2DurationYears).toBe(18); // 20 - 2
+  });
+});
+
+// ============================================
+// Task 5: calculateAll with two-loan financing
+// ============================================
+
+describe('calculateAll with two-loan financing', () => {
+  it('should use two-loan calculations when useTwoLoans is true', () => {
+    const participants: Participant[] = [
+      {
+        name: 'Two-Loan User',
+        capitalApporte: 100000,
+        notaryFeesRate: 12.5,
+        interestRate: 4.5,
+        durationYears: 20,
+        unitId: 1,
+        surface: 100,
+        quantity: 1,
+        useTwoLoans: true,
+        loan2DelayYears: 2,
+        loan2RenovationAmount: 50000,
+        capitalForLoan1: 60000,
+        capitalForLoan2: 40000,
+      }
+    ];
+
+    const projectParams: ProjectParams = {
+      totalPurchase: 200000,
+      mesuresConservatoires: 10000,
+      demolition: 5000,
+      infrastructures: 15000,
+      etudesPreparatoires: 3000,
+      fraisEtudesPreparatoires: 2000,
+      fraisGeneraux3ans: 0,
+      batimentFondationConservatoire: 5000,
+      batimentFondationComplete: 5000,
+      batimentCoproConservatoire: 5000,
+      globalCascoPerM2: 500,
+    };
+
+    const unitDetails: UnitDetails = {
+      1: { casco: 50000, parachevements: 25000 }
+    };
+
+    const results = calculateAll(participants, projectParams, unitDetails);
+    const p = results.participantBreakdown[0];
+
+    // Should have two-loan fields populated
+    expect(p.loan1Amount).toBeDefined();
+    expect(p.loan2Amount).toBeDefined();
+    expect(p.loan1MonthlyPayment).toBeDefined();
+    expect(p.loan2MonthlyPayment).toBeDefined();
+    expect(p.loan2DurationYears).toBe(18);
+
+    // loanNeeded should equal loan1Amount
+    expect(p.loanNeeded).toBe(p.loan1Amount);
+
+    // monthlyPayment should equal loan1MonthlyPayment
+    expect(p.monthlyPayment).toBe(p.loan1MonthlyPayment);
+
+    // totalInterest should be sum of both loans
+    expect(p.totalInterest).toBe(p.loan1Interest! + p.loan2Interest!);
+  });
+
+  it('should use single-loan calculations when useTwoLoans is false', () => {
+    const participants: Participant[] = [
+      {
+        name: 'Single-Loan User',
+        capitalApporte: 100000,
+        notaryFeesRate: 12.5,
+        interestRate: 4.5,
+        durationYears: 20,
+        unitId: 1,
+        surface: 100,
+        quantity: 1,
+      }
+    ];
+
+    const projectParams: ProjectParams = {
+      totalPurchase: 200000,
+      mesuresConservatoires: 10000,
+      demolition: 5000,
+      infrastructures: 15000,
+      etudesPreparatoires: 3000,
+      fraisEtudesPreparatoires: 2000,
+      fraisGeneraux3ans: 0,
+      batimentFondationConservatoire: 5000,
+      batimentFondationComplete: 5000,
+      batimentCoproConservatoire: 5000,
+      globalCascoPerM2: 500,
+    };
+
+    const unitDetails: UnitDetails = {
+      1: { casco: 50000, parachevements: 25000 }
+    };
+
+    const results = calculateAll(participants, projectParams, unitDetails);
+    const p = results.participantBreakdown[0];
+
+    // Should NOT have two-loan fields populated
+    expect(p.loan1Amount).toBeUndefined();
+    expect(p.loan2Amount).toBeUndefined();
+
+    // Should have standard single-loan fields
+    expect(p.loanNeeded).toBeGreaterThan(0);
+    expect(p.monthlyPayment).toBeGreaterThan(0);
+    expect(p.totalInterest).toBeGreaterThan(0);
   });
 });

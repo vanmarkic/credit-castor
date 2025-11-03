@@ -12,6 +12,13 @@ export interface Participant {
   interestRate: number;
   durationYears: number;
 
+  // Two-loan financing (optional)
+  useTwoLoans?: boolean;  // Checkbox: enable 2-loan financing
+  loan2DelayYears?: number;  // Default: 2 (when loan 2 starts after loan 1)
+  loan2RenovationAmount?: number;  // Absolute € amount of (casco+parachevements) in loan 2
+  capitalForLoan1?: number;  // How much of capitalApporte goes to loan 1
+  capitalForLoan2?: number;  // How much of capitalApporte goes to loan 2
+
   // Timeline fields
   isFounder?: boolean; // True if entered at deed date
   entryDate?: Date; // When participant joined (for founders = deed date)
@@ -108,6 +115,15 @@ export interface ParticipantCalculation extends Participant {
   monthlyPayment: number;
   totalRepayment: number;
   totalInterest: number;
+
+  // Two-loan breakdown (only populated if useTwoLoans = true)
+  loan1Amount?: number;
+  loan1MonthlyPayment?: number;
+  loan1Interest?: number;
+  loan2Amount?: number;
+  loan2DurationYears?: number;  // Calculated to match loan 1 end date
+  loan2MonthlyPayment?: number;
+  loan2Interest?: number;
 }
 
 export interface CalculationTotals {
@@ -414,6 +430,62 @@ export function calculateFinancingRatio(
 }
 
 /**
+ * Calculate two-loan financing breakdown
+ * Loan 1: purchaseShare + notaryFees + sharedCosts + (personalRenovationCost - loan2RenovationAmount) - capitalForLoan1
+ * Loan 2: loan2RenovationAmount - capitalForLoan2
+ */
+export function calculateTwoLoanFinancing(
+  purchaseShare: number,
+  notaryFees: number,
+  sharedCosts: number,
+  personalRenovationCost: number,
+  participant: Participant
+): {
+  loan1Amount: number;
+  loan1MonthlyPayment: number;
+  loan1Interest: number;
+  loan2Amount: number;
+  loan2DurationYears: number;
+  loan2MonthlyPayment: number;
+  loan2Interest: number;
+  totalInterest: number;
+} {
+  const loan2RenovationAmount = participant.loan2RenovationAmount || 0;
+  const capitalForLoan1 = participant.capitalForLoan1 || 0;
+  const capitalForLoan2 = participant.capitalForLoan2 || 0;
+  const loan2DelayYears = participant.loan2DelayYears ?? 2;
+
+  // Loan 1: Everything except the renovation going to loan 2
+  const loan1RenovationPortion = personalRenovationCost - loan2RenovationAmount;
+  const loan1Amount = Math.max(0, purchaseShare + notaryFees + sharedCosts + loan1RenovationPortion - capitalForLoan1);
+
+  // Loan 2: Only the specified renovation amount
+  const loan2Amount = Math.max(0, loan2RenovationAmount - capitalForLoan2);
+
+  // Loan 2 duration: Same end date as loan 1
+  const loan2DurationYears = participant.durationYears - loan2DelayYears;
+
+  // Monthly payments
+  const loan1MonthlyPayment = calculateMonthlyPayment(loan1Amount, participant.interestRate, participant.durationYears);
+  const loan2MonthlyPayment = calculateMonthlyPayment(loan2Amount, participant.interestRate, loan2DurationYears);
+
+  // Interest calculations
+  const loan1Interest = calculateTotalInterest(loan1MonthlyPayment, participant.durationYears, loan1Amount);
+  const loan2Interest = calculateTotalInterest(loan2MonthlyPayment, loan2DurationYears, loan2Amount);
+
+  return {
+    loan1Amount,
+    loan1MonthlyPayment,
+    loan1Interest,
+    loan2Amount,
+    loan2DurationYears,
+    loan2MonthlyPayment,
+    loan2Interest,
+    totalInterest: loan1Interest + loan2Interest
+  };
+}
+
+/**
  * Main calculation function that computes all participant breakdowns and totals
  */
 export function calculateAll(
@@ -475,17 +547,52 @@ export function calculateAll(
     const constructionCostPerUnit = constructionCost / quantity;
 
     const totalCost = purchaseShare + notaryFees + constructionCost + sharedPerPerson;
-    const loanNeeded = calculateLoanAmount(totalCost, p.capitalApporte);
+
+    // Two-loan financing or single loan
+    let loanNeeded: number;
+    let monthlyPayment: number;
+    let totalRepayment: number;
+    let totalInterest: number;
+    let loan1Amount: number | undefined;
+    let loan1MonthlyPayment: number | undefined;
+    let loan1Interest: number | undefined;
+    let loan2Amount: number | undefined;
+    let loan2DurationYears: number | undefined;
+    let loan2MonthlyPayment: number | undefined;
+    let loan2Interest: number | undefined;
+
+    if (p.useTwoLoans) {
+      // Use two-loan financing
+      const twoLoanCalc = calculateTwoLoanFinancing(
+        purchaseShare,
+        notaryFees,
+        sharedPerPerson,
+        personalRenovationCost,
+        p
+      );
+
+      loan1Amount = twoLoanCalc.loan1Amount;
+      loan1MonthlyPayment = twoLoanCalc.loan1MonthlyPayment;
+      loan1Interest = twoLoanCalc.loan1Interest;
+      loan2Amount = twoLoanCalc.loan2Amount;
+      loan2DurationYears = twoLoanCalc.loan2DurationYears;
+      loan2MonthlyPayment = twoLoanCalc.loan2MonthlyPayment;
+      loan2Interest = twoLoanCalc.loan2Interest;
+
+      // For backward compatibility, loanNeeded = loan1Amount
+      loanNeeded = loan1Amount;
+      monthlyPayment = loan1MonthlyPayment;
+      totalRepayment = (loan1MonthlyPayment * p.durationYears * 12) + (loan2MonthlyPayment * loan2DurationYears * 12);
+      totalInterest = twoLoanCalc.totalInterest;
+    } else {
+      // Use single-loan financing (existing logic)
+      loanNeeded = calculateLoanAmount(totalCost, p.capitalApporte);
+      monthlyPayment = calculateMonthlyPayment(loanNeeded, p.interestRate, p.durationYears);
+      totalRepayment = monthlyPayment * p.durationYears * 12;
+      totalInterest = calculateTotalInterest(monthlyPayment, p.durationYears, loanNeeded);
+    }
+
     const financingRatio = calculateFinancingRatio(loanNeeded, totalCost);
-
-    const monthlyPayment = calculateMonthlyPayment(
-      loanNeeded,
-      p.interestRate,
-      p.durationYears
-    );
-
-    const totalRepayment = monthlyPayment * p.durationYears * 12;
-    const totalInterest = calculateTotalInterest(monthlyPayment, p.durationYears, loanNeeded);
 
     return {
       ...p,
@@ -506,6 +613,14 @@ export function calculateAll(
       monthlyPayment,
       totalRepayment,
       totalInterest,
+      // Two-loan fields (only populated if useTwoLoans = true)
+      loan1Amount,
+      loan1MonthlyPayment,
+      loan1Interest,
+      loan2Amount,
+      loan2DurationYears,
+      loan2MonthlyPayment,
+      loan2Interest,
     };
   });
 

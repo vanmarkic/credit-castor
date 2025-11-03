@@ -149,8 +149,9 @@ export function buildExportSheetData(
                    'Part achat', 'Frais notaire', 'CASCO', 'Parachevements', 'Travaux communs',
                    'Construction', 'Commun', 'TOTAL', 'Emprunt', 'Mensualite', 'Total rembourse',
                    'Reno perso', 'CASCO m2', 'Parachev m2', 'CASCO sqm', 'Parachev sqm',
-                   'Fondateur', 'Date entree', 'Lots detenus', 'Achete de'];
-  const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'AA', 'AB'];
+                   'Fondateur', 'Date entree', 'Lots detenus', 'Achete de',
+                   '2 prets', 'Pret1 montant', 'Pret1 mens', 'Pret2 montant', 'Pret2 mens', 'Pret2 duree'];
+  const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH'];
 
   headers.forEach((header, idx) => {
     addCell(headerRow, cols[idx], header);
@@ -201,6 +202,23 @@ export function buildExportSheetData(
 
     // Purchase details (for newcomers)
     addCell(r, 'AB', p.purchaseDetails?.buyingFrom || '');
+
+    // Two-loan financing details
+    if (p.useTwoLoans) {
+      addCell(r, 'AC', 'Oui');
+      addCell(r, 'AD', p.loan1Amount);
+      addCell(r, 'AE', p.loan1MonthlyPayment);
+      addCell(r, 'AF', p.loan2Amount);
+      addCell(r, 'AG', p.loan2MonthlyPayment);
+      addCell(r, 'AH', `${p.loan2DurationYears} ans (démarre année ${p.loan2DelayYears || 2})`);
+    } else {
+      addCell(r, 'AC', 'Non');
+      addCell(r, 'AD', '');
+      addCell(r, 'AE', '');
+      addCell(r, 'AF', '');
+      addCell(r, 'AG', '');
+      addCell(r, 'AH', '');
+    }
   });
 
   // Totals row
@@ -236,6 +254,12 @@ export function buildExportSheetData(
   addCell(totalRow, 'Z', '');
   addCell(totalRow, 'AA', '');
   addCell(totalRow, 'AB', '');
+  addCell(totalRow, 'AC', '');
+  addCell(totalRow, 'AD', '');
+  addCell(totalRow, 'AE', '');
+  addCell(totalRow, 'AF', '');
+  addCell(totalRow, 'AG', '');
+  addCell(totalRow, 'AH', '');
 
   // Summary section
   const synthRow = totalRow + 2;
@@ -253,7 +277,7 @@ export function buildExportSheetData(
   addCell(synthRow + 7, 'A', 'Emprunt maximum');
   addCell(synthRow + 7, 'B', null, `MAX(Q${startRow}:Q${endRow})`);
 
-  // Column widths (expanded to 28 columns)
+  // Column widths (expanded to 34 columns for two-loan financing)
   const columnWidths = [
     { col: 0, width: 25 }, { col: 1, width: 8 }, { col: 2, width: 10 }, { col: 3, width: 8 },
     { col: 4, width: 15 }, { col: 5, width: 14 }, { col: 6, width: 12 }, { col: 7, width: 12 },
@@ -261,7 +285,9 @@ export function buildExportSheetData(
     { col: 12, width: 15 }, { col: 13, width: 15 }, { col: 14, width: 15 }, { col: 15, width: 15 },
     { col: 16, width: 15 }, { col: 17, width: 15 }, { col: 18, width: 15 }, { col: 19, width: 15 },
     { col: 20, width: 12 }, { col: 21, width: 12 }, { col: 22, width: 12 }, { col: 23, width: 12 },
-    { col: 24, width: 10 }, { col: 25, width: 12 }, { col: 26, width: 30 }, { col: 27, width: 20 }
+    { col: 24, width: 10 }, { col: 25, width: 12 }, { col: 26, width: 30 }, { col: 27, width: 20 },
+    { col: 28, width: 10 }, { col: 29, width: 15 }, { col: 30, width: 15 }, { col: 31, width: 15 },
+    { col: 32, width: 15 }, { col: 33, width: 25 }
   ];
 
   return {
