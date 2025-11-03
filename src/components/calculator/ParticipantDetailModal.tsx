@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { X, Star } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatting';
 import AvailableLotsView from '../AvailableLotsView';
@@ -5,6 +6,7 @@ import PortageLotConfig from '../PortageLotConfig';
 import { getAvailableLotsForNewcomer, type AvailableLot } from '../../utils/availableLots';
 import type { PortageLotPrice } from '../../utils/portageCalculations';
 import type { Participant, ParticipantCalculation, CalculationResults, ProjectParams, PortageFormulaParams } from '../../utils/calculatorUtils';
+import { validateTwoLoanFinancing } from '../../utils/twoLoanValidation';
 
 interface ParticipantDetailModalProps {
   isOpen: boolean;
@@ -72,6 +74,13 @@ export default function ParticipantDetailModal({
   if (!isOpen) return null;
 
   const idx = participantIndex;
+
+  const validationErrors = useMemo(() => {
+    if (!participant.useTwoLoans) {
+      return {};
+    }
+    return validateTwoLoanFinancing(participant, p.personalRenovationCost || 0);
+  }, [participant, p.personalRenovationCost]);
 
   return (
     <div className="fixed inset-0 bg-white z-50 overflow-y-auto">
@@ -375,6 +384,11 @@ export default function ParticipantDetailModal({
                     min="1"
                     step="0.5"
                   />
+                  {validationErrors.loanDelay && (
+                    <div className="text-red-600 text-xs mt-1 p-2 bg-red-50 rounded">
+                      ⚠️ {validationErrors.loanDelay}
+                    </div>
+                  )}
                 </div>
 
                 {/* Renovation amount in loan 2 */}
@@ -395,6 +409,11 @@ export default function ParticipantDetailModal({
                   <p className="text-xs text-gray-600 mt-1">
                     Rénovation totale: €{p.personalRenovationCost?.toLocaleString() || '0'}
                   </p>
+                  {validationErrors.renovationAmount && (
+                    <div className="text-red-600 text-xs mt-1 p-2 bg-red-50 rounded">
+                      ⚠️ {validationErrors.renovationAmount}
+                    </div>
+                  )}
                 </div>
 
                 {/* Capital allocation */}
@@ -431,6 +450,12 @@ export default function ParticipantDetailModal({
                     />
                   </div>
                 </div>
+
+                {validationErrors.capitalAllocation && (
+                  <div className="text-red-600 text-xs mt-1 p-2 bg-red-50 rounded">
+                    ⚠️ {validationErrors.capitalAllocation}
+                  </div>
+                )}
 
                 <p className="text-xs text-gray-600">
                   Capital disponible: €{participant.capitalApporte?.toLocaleString() || '0'}
