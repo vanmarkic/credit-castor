@@ -5,6 +5,7 @@ import { exportCalculations } from '../utils/excelExport';
 import { XlsxWriter } from '../utils/exportWriter';
 import { convertCalculatorToInitialPurchaseEvent } from '../utils/calculatorToTimeline';
 import { exportTimelineToJSON } from '../utils/timelineExport';
+import { ParticipantsTimeline } from './calculator/ParticipantsTimeline';
 
 // Default values for reset functionality
 const DEFAULT_PARTICIPANTS = [
@@ -100,7 +101,14 @@ const clearLocalStorage = () => {
 export default function EnDivisionCorrect() {
   const [participants, setParticipants] = useState(() => {
     const stored = loadFromLocalStorage();
-    return stored ? stored.participants : DEFAULT_PARTICIPANTS;
+    const baseParticipants = stored ? stored.participants : DEFAULT_PARTICIPANTS;
+
+    // Ensure all participants have isFounder and entryDate
+    return baseParticipants.map((p: any) => ({
+      ...p,
+      isFounder: p.isFounder !== undefined ? p.isFounder : true,
+      entryDate: p.entryDate || new Date(stored?.deedDate || DEFAULT_DEED_DATE)
+    }));
   });
 
   const [expandedParticipants, setExpandedParticipants] = useState<{[key: number]: boolean}>({});
@@ -118,7 +126,9 @@ export default function EnDivisionCorrect() {
       interestRate: 4.5,
       durationYears: 25,
       quantity: 1,
-      parachevementsPerM2: 500
+      parachevementsPerM2: 500,
+      isFounder: true,
+      entryDate: new Date(deedDate)
     }]);
 
     // Scroll to the newly added participant (will be at the last index after state update)
@@ -745,6 +755,11 @@ export default function EnDivisionCorrect() {
           </div>
         </div>
 
+        <ParticipantsTimeline
+          participants={participants}
+          deedDate={deedDate}
+        />
+
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-800">💳 Besoins de Financement Individuels</h2>
@@ -813,6 +828,22 @@ export default function EnDivisionCorrect() {
                         <span>{p.surface}m²</span>
                         <span className="text-gray-300">•</span>
                         <span>{p.quantity || 1} {(p.quantity || 1) > 1 ? 'unités' : 'unité'}</span>
+                        {participants[idx].entryDate && (
+                          <>
+                            <span className="text-gray-300">•</span>
+                            <span className={`font-medium ${participants[idx].isFounder ? 'text-green-600' : 'text-blue-600'}`}>
+                              Entrée: {new Date(participants[idx].entryDate).toLocaleDateString('fr-BE')}
+                            </span>
+                          </>
+                        )}
+                        {participants[idx].purchaseDetails?.buyingFrom && (
+                          <>
+                            <span className="text-gray-300">•</span>
+                            <span className="text-purple-600 text-xs">
+                              Achète de {participants[idx].purchaseDetails.buyingFrom}
+                            </span>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -840,7 +871,160 @@ export default function EnDivisionCorrect() {
 
                 {/* Expandable Details */}
                 {isExpanded && (
-                  <div className="px-6 pb-6 border-t border-gray-200 pt-4">{/* Configuration Section */}
+                  <div className="px-6 pb-6 border-t border-gray-200 pt-4">
+                {/* Entry Date Section */}
+                <div className="mb-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">📅 Date d'entrée</p>
+
+                  <div className="mb-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={participants[idx].isFounder || false}
+                        onChange={(e) => {
+                          const updated = [...participants];
+                          updated[idx] = {
+                            ...updated[idx],
+                            isFounder: e.target.checked,
+                            entryDate: e.target.checked ? new Date(deedDate) : updated[idx].entryDate,
+                            purchaseDetails: e.target.checked ? undefined : updated[idx].purchaseDetails
+                          };
+                          setParticipants(updated);
+                        }}
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        Fondateur (entre à la date de l'acte)
+                      </span>
+                    </label>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Date d'entrée dans le projet
+                    </label>
+                    <input
+                      type="date"
+                      value={participants[idx].entryDate
+                        ? new Date(participants[idx].entryDate).toISOString().split('T')[0]
+                        : deedDate}
+                      onChange={(e) => {
+                        const newDate = new Date(e.target.value);
+                        if (newDate < new Date(deedDate)) {
+                          alert(`La date d'entrée ne peut pas être avant la date de l'acte (${deedDate})`);
+                          return;
+                        }
+                        const updated = [...participants];
+                        updated[idx] = {
+                          ...updated[idx],
+                          entryDate: newDate
+                        };
+                        setParticipants(updated);
+                      }}
+                      disabled={participants[idx].isFounder}
+                      min={deedDate}
+                      className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none ${
+                        participants[idx].isFounder
+                          ? 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'
+                          : 'bg-white border-green-300 focus:border-green-500 focus:ring-2 focus:ring-green-500'
+                      }`}
+                    />
+                    <p className="text-xs text-gray-600 mt-1">
+                      {participants[idx].isFounder
+                        ? 'Les fondateurs entrent tous à la date de l\'acte'
+                        : 'Date à laquelle ce participant rejoint le projet (doit être >= date de l\'acte)'}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Purchase Details (only for non-founders) */}
+                {!participants[idx].isFounder && (
+                  <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">💰 Détails de l'achat</p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Achète de
+                        </label>
+                        <select
+                          value={participants[idx].purchaseDetails?.buyingFrom || ''}
+                          onChange={(e) => {
+                            const updated = [...participants];
+                            updated[idx] = {
+                              ...updated[idx],
+                              purchaseDetails: {
+                                ...updated[idx].purchaseDetails,
+                                buyingFrom: e.target.value
+                              }
+                            };
+                            setParticipants(updated);
+                          }}
+                          className="w-full px-4 py-2 border-2 border-blue-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        >
+                          <option value="">Sélectionner...</option>
+                          <option value="Copropriété">Copropriété</option>
+                          {participants.map((otherP: any, otherIdx: number) =>
+                            otherIdx !== idx ? (
+                              <option key={otherIdx} value={otherP.name}>{otherP.name}</option>
+                            ) : null
+                          )}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Lot ID
+                        </label>
+                        <input
+                          type="number"
+                          value={participants[idx].purchaseDetails?.lotId || ''}
+                          onChange={(e) => {
+                            const updated = [...participants];
+                            updated[idx] = {
+                              ...updated[idx],
+                              purchaseDetails: {
+                                ...updated[idx].purchaseDetails,
+                                lotId: parseInt(e.target.value) || undefined
+                              }
+                            };
+                            setParticipants(updated);
+                          }}
+                          className="w-full px-4 py-2 border-2 border-blue-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                          placeholder="1"
+                        />
+                      </div>
+
+                      <div className="col-span-full">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Prix d'achat
+                        </label>
+                        <input
+                          type="number"
+                          value={participants[idx].purchaseDetails?.purchasePrice || ''}
+                          onChange={(e) => {
+                            const updated = [...participants];
+                            updated[idx] = {
+                              ...updated[idx],
+                              purchaseDetails: {
+                                ...updated[idx].purchaseDetails,
+                                purchasePrice: parseFloat(e.target.value) || undefined
+                              }
+                            };
+                            setParticipants(updated);
+                          }}
+                          className="w-full px-4 py-2 border-2 border-blue-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                          placeholder="150000"
+                        />
+                        <p className="text-xs text-gray-600 mt-1">
+                          Prix calculé avec indexation + frais de portage récupérés
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Configuration Section */}
                 <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Configuration</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1064,6 +1248,156 @@ export default function EnDivisionCorrect() {
                     </div>
                   </div>
                 </div>
+
+                {/* Portage Paybacks - Show if this participant is doing portage */}
+                {(() => {
+                  // Find all participants who are buying from this participant
+                  const paybacks = participants
+                    .filter((buyer: any) => buyer.purchaseDetails?.buyingFrom === participants[idx].name)
+                    .map((buyer: any) => ({
+                      date: buyer.entryDate || new Date(deedDate),
+                      buyer: buyer.name,
+                      amount: buyer.purchaseDetails?.purchasePrice || 0
+                    }))
+                    .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+                  if (paybacks.length > 0) {
+                    const totalRecovered = paybacks.reduce((sum: number, pb: any) => sum + pb.amount, 0);
+
+                    return (
+                      <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                        <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">💼 Portage - Remboursements attendus</p>
+                        <div className="space-y-2">
+                          {paybacks.map((pb: any, pbIdx: number) => (
+                            <div key={pbIdx} className="flex justify-between items-center text-sm bg-white rounded-lg p-3 border border-purple-100">
+                              <div>
+                                <span className="font-medium text-gray-800">{pb.buyer}</span>
+                                <span className="text-gray-600 ml-2">
+                                  ({new Date(pb.date).toLocaleDateString('fr-BE', { year: 'numeric', month: 'short', day: 'numeric' })})
+                                </span>
+                              </div>
+                              <div className="font-bold text-purple-700">
+                                {formatCurrency(pb.amount)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-3 pt-3 border-t border-purple-300 flex justify-between items-center">
+                          <span className="text-sm font-semibold text-gray-800">Total récupéré</span>
+                          <span className="text-lg font-bold text-purple-800">
+                            {formatCurrency(totalRecovered)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-purple-600 mt-2">
+                          Ces montants seront versés lorsque les nouveaux participants entreront dans le projet.
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
+                {/* Copropriété Redistribution - Show shares from copro sales */}
+                {(() => {
+                  // Find all sales from Copropriété
+                  const coproSales = participants
+                    .filter((buyer: any) => buyer.purchaseDetails?.buyingFrom === 'Copropriété')
+                    .map((buyer: any) => ({
+                      buyer: buyer.name,
+                      entryDate: buyer.entryDate || new Date(deedDate),
+                      amount: buyer.purchaseDetails?.purchasePrice || 0
+                    }));
+
+                  if (coproSales.length > 0) {
+                    // Calculate this participant's share for each sale
+                    // Share is based on time in project (from deed date to sale date)
+                    const redistributions = coproSales.map((sale: any) => {
+                      const saleDate = new Date(sale.entryDate);
+                      const participantEntryDate = participants[idx].entryDate
+                        ? new Date(participants[idx].entryDate)
+                        : new Date(deedDate);
+
+                      // Only participants who entered before the sale date get a share
+                      if (participantEntryDate >= saleDate) {
+                        return null;
+                      }
+
+                      // Calculate months in project until sale
+                      const monthsInProject = (saleDate.getTime() - participantEntryDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
+
+                      // Calculate total months for all eligible participants
+                      const eligibleParticipants = participants.filter((p: any) => {
+                        const pEntryDate = p.entryDate ? new Date(p.entryDate) : new Date(deedDate);
+                        return pEntryDate < saleDate;
+                      });
+
+                      const totalMonths = eligibleParticipants.reduce((sum: number, p: any) => {
+                        const pEntryDate = p.entryDate ? new Date(p.entryDate) : new Date(deedDate);
+                        const pMonths = (saleDate.getTime() - pEntryDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
+                        return sum + pMonths;
+                      }, 0);
+
+                      // Calculate this participant's share
+                      const shareRatio = totalMonths > 0 ? monthsInProject / totalMonths : 0;
+                      const shareAmount = sale.amount * shareRatio;
+
+                      return {
+                        buyer: sale.buyer,
+                        saleDate: sale.entryDate,
+                        totalAmount: sale.amount,
+                        monthsInProject: Math.round(monthsInProject),
+                        shareRatio,
+                        shareAmount
+                      };
+                    }).filter((r: any) => r !== null);
+
+                    if (redistributions.length > 0) {
+                      const totalShare = redistributions.reduce((sum: number, r: any) => sum + r.shareAmount, 0);
+
+                      return (
+                        <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                          <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">🏢 Copropriété - Redistributions</p>
+                          <div className="space-y-2">
+                            {redistributions.map((redist: any, rIdx: number) => (
+                              <div key={rIdx} className="bg-white rounded-lg p-3 border border-blue-100">
+                                <div className="flex justify-between items-start mb-2">
+                                  <div>
+                                    <span className="font-medium text-gray-800">{redist.buyer}</span>
+                                    <span className="text-gray-600 text-xs ml-2">
+                                      achète {formatCurrency(redist.totalAmount)}
+                                    </span>
+                                  </div>
+                                  <div className="font-bold text-blue-700">
+                                    {formatCurrency(redist.shareAmount)}
+                                  </div>
+                                </div>
+                                <div className="text-xs text-gray-600">
+                                  <span>Votre part: {(redist.shareRatio * 100).toFixed(1)}%</span>
+                                  <span className="mx-2">•</span>
+                                  <span>{redist.monthsInProject} mois dans le projet</span>
+                                  <span className="mx-2">•</span>
+                                  <span className="text-gray-500">
+                                    ({new Date(redist.saleDate).toLocaleDateString('fr-BE', { year: 'numeric', month: 'short' })})
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="mt-3 pt-3 border-t border-blue-300 flex justify-between items-center">
+                            <span className="text-sm font-semibold text-gray-800">Total redistribué</span>
+                            <span className="text-lg font-bold text-blue-800">
+                              {formatCurrency(totalShare)}
+                            </span>
+                          </div>
+                          <p className="text-xs text-blue-600 mt-2">
+                            Montant calculé au prorata du temps passé dans le projet avant la vente.
+                          </p>
+                        </div>
+                      );
+                    }
+                  }
+                  return null;
+                })()}
                   </div>
                 )}
               </div>

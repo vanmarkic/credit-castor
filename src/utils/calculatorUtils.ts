@@ -18,6 +18,20 @@ export interface Participant {
   exitDate?: Date; // When participant left (if applicable)
   lotsOwned?: Lot[]; // Array of lots owned (replaces quantity + surface + unitId)
 
+  // Purchase details (for newcomers only)
+  purchaseDetails?: {
+    buyingFrom: string; // Participant name or "Copropriété"
+    lotId?: number;
+    purchasePrice?: number;
+    breakdown?: {
+      basePrice: number;
+      indexation: number;
+      carryingCostRecovery: number;
+      feesRecovery: number;
+      renovations: number;
+    };
+  };
+
   // Legacy fields (still used in calculator, but will be replaced by lotsOwned)
   unitId?: number;
   surface?: number;
