@@ -8,6 +8,7 @@ import type { DomainEvent, InitialPurchaseEvent, Lot } from '../types/timeline';
 import type { CashFlowTransaction, ParticipantCashFlow } from '../types/cashFlow';
 import type { Participant } from './calculatorUtils';
 import { calculateMonthsBetween } from './coproRedistribution';
+import { calculateMonthlyPayment } from './calculatorUtils';
 
 /**
  * Build participant's complete cash flow from events
@@ -154,12 +155,13 @@ function generateLoanPayment(
   }
 
   const interestRate = participant.interestRate || 0.04;
-  const monthlyRate = interestRate / 12;
-  const durationMonths = (participant.durationYears || 20) * 12;
+  const durationYears = participant.durationYears || 20;
 
-  // Calculate monthly payment (principal + interest)
-  const monthlyPayment = borrowedAmount * (monthlyRate * Math.pow(1 + monthlyRate, durationMonths)) /
-    (Math.pow(1 + monthlyRate, durationMonths) - 1);
+  // Calculate monthly payment (principal + interest) using shared function
+  const monthlyPayment = calculateMonthlyPayment(borrowedAmount, interestRate * 100, durationYears);
+
+  const monthlyRate = interestRate / 12;
+  const durationMonths = durationYears * 12;
 
   // Calculate principal and interest for this month
   const remainingBalance = borrowedAmount * (

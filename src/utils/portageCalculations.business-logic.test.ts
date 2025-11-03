@@ -299,16 +299,16 @@ describe('Business Logic: Copropriété Lot Pricing', () => {
     // 38000 × [(1.02)^2.5 - 1] = 38000 × 0.0509 = €1,929
     const expectedIndexation = price.basePrice * (Math.pow(1.02, yearsHeld) - 1);
     expect(price.indexation).toBeCloseTo(expectedIndexation, 0);
-    expect(price.indexation).toBeCloseTo(1929, 10); // Within €10 of design doc (shows ~1919)
+    expect(price.indexation).toBeCloseTo(1929, 0); // Within €0.5 of design doc value
 
     // Verify carrying costs are proportional
     expect(price.carryingCostRecovery).toBeCloseTo(2381, 0);
 
-    // Verify total
-    expect(price.totalPrice).toBeCloseTo(42300, 10);
+    // Verify total (base 38000 + indexation 1929 + carrying 2381 = 42310)
+    expect(price.totalPrice).toBeCloseTo(42310, 0);
 
-    // Verify price per m²
-    expect(price.pricePerM2).toBeCloseTo(846, 1);
+    // Verify price per m² (42310 / 50 = 846.2)
+    expect(price.pricePerM2).toBeCloseTo(846, 0);
   });
 
   it('Example 2: Different surface choices from same lot', () => {

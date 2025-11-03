@@ -454,7 +454,7 @@ export function projectTimeline(
     // Calculate duration of previous phase
     const prevPhase = phases[phases.length - 1];
     const durationMs = event.date.getTime() - prevPhase.startDate.getTime();
-    const durationMonths = Math.round(durationMs / (1000 * 60 * 60 * 24 * 30.44));
+    const durationMonths = Math.round(durationMs / (1000 * 60 * 60 * 24 * AVERAGE_DAYS_PER_MONTH));
 
     prevPhase.durationMonths = durationMonths;
     prevPhase.endDate = event.date;
@@ -522,12 +522,14 @@ function calculateParticipantCashFlow(
   // Calculate monthly recurring costs for own lot
   const loanPayment = participantData.monthlyPayment;
   const propertyTax = 388.38 / 12; // Belgian empty property tax
-  const insurance = (2000 / 12) / snapshot.participantBreakdown.length; // Split insurance
+  const insurance = snapshot.participantBreakdown.length > 0
+    ? (2000 / 12) / snapshot.participantBreakdown.length
+    : 0; // Split insurance among participants, or 0 if none
   const commonCharges = 0; // TODO: Implement common charges calculation
 
   // Calculate carried lot expenses if carrying multiple lots
   let carriedLotExpenses = undefined;
-  const quantity = participant.quantity || 1;
+  const quantity = Math.max(participant.quantity || 1, 1); // Ensure quantity is at least 1
   if (quantity > 1) {
     const carriedLotValue = participantData.totalCost / quantity;
     const carriedLoanAmount = carriedLotValue - participant.capitalApporte / quantity;

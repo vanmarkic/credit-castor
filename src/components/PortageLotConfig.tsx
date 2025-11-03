@@ -27,6 +27,8 @@ export default function PortageLotConfig({
   // Calculate years held using utility function
   const yearsHeld = calculateYearsHeld(deedDate, new Date());
 
+  console.log('yearsHeld:', yearsHeld);
+
   const handleScrollToMarketplace = () => {
     const marketplace = document.getElementById('portage-marketplace');
     if (marketplace) {
@@ -35,9 +37,9 @@ export default function PortageLotConfig({
   };
 
   return (
-    <div className="mb-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
+    <div className="p-3 bg-orange-50/40 rounded-lg border border-orange-100">
       <div className="flex justify-between items-center mb-3">
-        <p className="text-xs text-orange-700 uppercase tracking-wide font-semibold">
+        <p className="text-xs text-orange-600 uppercase tracking-wide font-medium">
           📦 Lot en Portage
         </p>
         {portageLots.length === 0 && (

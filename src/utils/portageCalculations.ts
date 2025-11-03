@@ -9,6 +9,7 @@
  * All functions are pure (no side effects) for testability.
  */
 
+import { startOfDay, differenceInMilliseconds, isBefore } from 'date-fns';
 import type { PortageFormulaParams as PortageFormulaParamsImport } from './calculatorUtils';
 import { DAYS_PER_YEAR } from './timeConstants';
 
@@ -232,6 +233,17 @@ export function calculatePortageLotPriceFromCopro(
   formulaParams: PortageFormulaParams,
   totalCarryingCosts: number
 ): PortageLotPrice {
+  // Validate inputs to prevent division by zero
+  if (totalCoproLotSurface <= 0) {
+    throw new Error('Total copropriété lot surface must be greater than zero');
+  }
+  if (surfaceChosen <= 0) {
+    throw new Error('Surface chosen must be greater than zero');
+  }
+  if (surfaceChosen > totalCoproLotSurface) {
+    throw new Error('Surface chosen cannot exceed total copropriété lot surface');
+  }
+
   // Calculate proportional base price
   const surfaceRatio = surfaceChosen / totalCoproLotSurface;
   const basePrice = totalCoproLotOriginalPrice * surfaceRatio;
@@ -286,6 +298,10 @@ export function calculateRedistribution(
   allCurrentParticipants: ParticipantSurface[],
   totalBuildingSurface: number
 ): Redistribution[] {
+  if (totalBuildingSurface <= 0) {
+    throw new Error('Total building surface must be greater than zero');
+  }
+
   return allCurrentParticipants.map(participant => {
     const quotite = participant.surface / totalBuildingSurface;
     const amount = saleProceeds * quotite;
@@ -308,14 +324,28 @@ export function calculateRedistribution(
  * Used to determine the portage period for pricing calculations.
  * Returns fractional years (e.g., 2.5 for 2 years and 6 months).
  *
+ * Uses date-fns for reliable date handling and normalization to avoid timezone issues.
+ *
  * @param founderEntryDate - Date when the founder acquired the property (deed date)
  * @param buyerEntryDate - Date when the buyer is purchasing (or current date)
  * @returns Years held as a decimal number (minimum 0, no negative values)
  */
 export function calculateYearsHeld(founderEntryDate: Date, buyerEntryDate: Date): number {
-  const diffMs = buyerEntryDate.getTime() - founderEntryDate.getTime();
+  // Normalize dates to start of day to avoid timezone issues
+  const normalizedFounderDate = startOfDay(founderEntryDate);
+  const normalizedBuyerDate = startOfDay(buyerEntryDate);
+
+  // If buyer date is before founder date, return 0 (no negative time)
+  if (isBefore(normalizedBuyerDate, normalizedFounderDate)) {
+    console.log('Buyer entry date is before founder entry date, returning 0');
+    return 0;
+  }
+
+  const diffMs = differenceInMilliseconds(normalizedBuyerDate, normalizedFounderDate);
+  console.log(`Date difference in ms: ${diffMs}`);
   const diffYears = diffMs / (1000 * 60 * 60 * 24 * DAYS_PER_YEAR);
-  return Math.max(0, diffYears);
+  console.log(`Calculated years held: ${diffYears} years`);
+  return diffYears;
 }
 
 // ============================================

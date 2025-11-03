@@ -13,10 +13,10 @@
  * All functions are pure (no side effects) for testability.
  */
 
-import { AVERAGE_DAYS_PER_MONTH as AVERAGE_DAYS_PER_MONTH_IMPORT } from './timeConstants';
+import { AVERAGE_DAYS_PER_MONTH } from './timeConstants';
 
 // Re-export for backwards compatibility
-export { AVERAGE_DAYS_PER_MONTH_IMPORT as AVERAGE_DAYS_PER_MONTH };
+export { AVERAGE_DAYS_PER_MONTH };
 
 // ============================================
 // Types

@@ -144,6 +144,9 @@ export function calculatePricePerM2(
   totalSurface: number,
   purchasePriceReduction: number = 0
 ): number {
+  if (totalSurface <= 0) {
+    throw new Error('Total surface must be greater than zero');
+  }
   const adjustedPurchase = totalPurchase * (1 - purchasePriceReduction / 100);
   return adjustedPurchase / totalSurface;
 }
@@ -415,6 +418,9 @@ export function calculateFinancingRatio(
   loanAmount: number,
   totalCost: number
 ): number {
+  if (totalCost <= 0) {
+    return 0; // If no cost, financing ratio is 0%
+  }
   return (loanAmount / totalCost) * 100;
 }
 

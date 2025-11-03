@@ -369,18 +369,6 @@ export function ParticipantDetailsPanel({
             </div>
           </div>
 
-          {/* Portage Lot Configuration (only for founders) */}
-          {participants[idx].isFounder && (
-            <PortageLotConfig
-              portageLots={participants[idx].lotsOwned?.filter((lot: any) => lot.isPortage) || []}
-              onAddLot={() => addPortageLot(idx)}
-              onRemoveLot={(lotId) => removePortageLot(idx, lotId)}
-              onUpdateSurface={(lotId, surface) => updatePortageLotSurface(idx, lotId, surface)}
-              deedDate={new Date(deedDate)}
-              formulaParams={formulaParams}
-            />
-          )}
-
           <div>
             <label className="block text-xs text-gray-600 mb-1">Taux d'intérêt (%)</label>
             <input
@@ -401,6 +389,20 @@ export function ParticipantDetailsPanel({
             />
           </div>
         </div>
+
+        {/* Portage Lot Configuration (only for founders) - moved outside grid for better flow */}
+        {participants[idx].isFounder && (
+          <div className="mt-4 pt-4 border-t border-gray-300">
+            <PortageLotConfig
+              portageLots={participants[idx].lotsOwned?.filter((lot: any) => lot.isPortage) || []}
+              onAddLot={() => addPortageLot(idx)}
+              onRemoveLot={(lotId) => removePortageLot(idx, lotId)}
+              onUpdateSurface={(lotId, surface) => updatePortageLotSurface(idx, lotId, surface)}
+              deedDate={new Date(deedDate)}
+              formulaParams={formulaParams}
+            />
+          </div>
+        )}
       </div>
 
       {/* Cost Breakdown */}

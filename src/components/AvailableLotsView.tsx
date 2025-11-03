@@ -7,14 +7,15 @@
  */
 
 import { useState } from 'react';
+import { isAfter } from 'date-fns';
 import type { AvailableLot } from '../utils/availableLots';
 import type { PortageLotPrice } from '../utils/portageCalculations';
 import type { PortageFormulaParams } from '../utils/calculatorUtils';
 import {
-  calculatePortageLotPrice,
-  calculateCarryingCosts,
   calculateYearsHeld,
-  calculateCoproEstimatedPrice
+  calculateCoproEstimatedPrice,
+  calculatePortageLotPrice,
+  calculateCarryingCosts
 } from '../utils/portageCalculations';
 import { formatCurrency } from '../utils/formatting';
 
@@ -24,8 +25,11 @@ interface AvailableLotsViewProps {
   formulaParams: PortageFormulaParams;
   onSelectLot?: (lot: AvailableLot, price: PortageLotPrice) => void;
   /**
-   * Optional buyer entry date. If provided, years held is calculated as
-   * (buyerEntryDate - founderEntryDate). If not provided, uses current date.
+   * Optional buyer entry date for calculating portage pricing.
+   *
+   * - In interactive mode (when onSelectLot is provided): REQUIRED. Must be after deed date.
+   * - In display-only mode: Optional. Falls back to max(today, deedDate).
+   *
    * This is critical for newcomer purchase scenarios where the portage price
    * should be calculated at the time of the transaction, not "as of today".
    */
@@ -44,21 +48,39 @@ export default function AvailableLotsView({
   const founderLots = availableLots.filter(lot => lot.source === 'FOUNDER');
   const coproLots = availableLots.filter(lot => lot.source === 'COPRO');
 
-  // Years held: from founder entry (deed date) to buyer entry (or today if no buyer specified)
-  const saleDate = buyerEntryDate || new Date();
-  const yearsHeld = calculateYearsHeld(deedDate, saleDate);
+  // Determine sale date with proper validation
+  // When in buyer mode (onSelectLot provided), require valid buyerEntryDate
+  const isInteractiveMode = onSelectLot !== undefined;
 
-  const handleScrollToParticipant = (participantName: string) => {
-    const element = document.getElementById(`participant-${participantName}`);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      // Highlight briefly
-      element.classList.add('ring-2', 'ring-orange-500');
-      setTimeout(() => {
-        element.classList.remove('ring-2', 'ring-orange-500');
-      }, 2000);
-    }
-  };
+  // Validate buyer entry date in interactive mode
+  if (isInteractiveMode && !buyerEntryDate) {
+    return (
+      <div id="portage-marketplace" className="bg-red-50 border border-red-300 rounded-lg p-6">
+        <p className="text-red-700 font-semibold">⚠️ Impossible de calculer le prix en portage</p>
+        <p className="text-red-600 text-sm mt-2">
+          Le participant doit avoir une date d'entrée valide pour acheter un lot en portage.
+        </p>
+      </div>
+    );
+  }
+
+  // Validate that buyer entry date is after deed date (if provided)
+  if (buyerEntryDate && !isAfter(buyerEntryDate, deedDate) && buyerEntryDate.getTime() !== deedDate.getTime()) {
+    return (
+      <div id="portage-marketplace" className="bg-red-50 border border-red-300 rounded-lg p-6">
+        <p className="text-red-700 font-semibold">⚠️ Date d'entrée invalide</p>
+        <p className="text-red-600 text-sm mt-2">
+          La date d'entrée du participant ({buyerEntryDate.toLocaleDateString('fr-BE')})
+          doit être égale ou postérieure à la date de l'acte ({deedDate.toLocaleDateString('fr-BE')}).
+        </p>
+      </div>
+    );
+  }
+
+  // Years held: from founder entry (deed date) to buyer entry
+  // In display-only mode, use today or deed date (whichever is later) as fallback
+  const saleDate = buyerEntryDate || (isAfter(new Date(), deedDate) ? new Date() : deedDate);
+  const yearsHeld = calculateYearsHeld(deedDate, saleDate);
 
   // Handle surface input for copro lots
   const handleCoproSurfaceChange = (lotId: number, surface: number) => {
@@ -78,146 +100,64 @@ export default function AvailableLotsView({
 
   return (
     <div id="portage-marketplace" className="space-y-6 scroll-mt-6">
-      {/* Title */}
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <span>🏪</span>
-          Place de Marché — Lots Disponibles
-        </h2>
-        <p className="text-sm text-gray-600 mt-1">
-          Choisissez parmi les lots en portage (fondateurs) ou les lots de la copropriété
-        </p>
-      </div>
-
       {/* Founder Portage Lots */}
       {founderLots.length > 0 && (
-        <div className="bg-orange-50 rounded-lg border-2 border-orange-200 p-6">
-          <h3 className="text-lg font-semibold text-orange-700 mb-4 flex items-center gap-2">
-            <span>📦</span>
-            Lots Portage (Surface imposée)
-          </h3>
+        <div className="space-y-3">
+          {founderLots.map(lot => {
+            const originalPrice = lot.originalPrice ?? lot.surface * 1377;
+            const originalNotaryFees = lot.originalNotaryFees ?? originalPrice * 0.125;
+            const originalConstructionCost = lot.originalConstructionCost ?? 0;
 
-          {/* Side-by-Side: Formula + Lots */}
-          <div className="grid grid-cols-[300px_1fr] gap-6">
-            {/* Generic Formula */}
-            <div className="bg-white p-4 rounded-lg border border-orange-300 h-fit">
-              <h4 className="text-sm font-semibold text-orange-900 mb-3">
-                Formule générale
-              </h4>
-              <div className="space-y-2 text-xs text-gray-700">
-                <div className="font-semibold">Prix =</div>
-                <div className="pl-2">Base</div>
-                <div className="pl-2">+ Indexation</div>
-                <div className="pl-2">+ Portage</div>
+            const carryingCosts = calculateCarryingCosts(
+              originalPrice,
+              0,
+              Math.round(yearsHeld * 12),
+              formulaParams.averageInterestRate
+            );
 
-                <div className="pt-2 border-t border-orange-200 mt-2">
-                  <div className="font-semibold mb-1">Où:</div>
-                  <div>Base = Achat +</div>
-                  <div className="pl-4">Notaire + Casco</div>
+            const price = calculatePortageLotPrice(
+              originalPrice,
+              originalNotaryFees,
+              originalConstructionCost,
+              yearsHeld,
+              formulaParams,
+              carryingCosts,
+              0
+            );
 
-                  <div className="mt-1">Indexation =</div>
-                  <div className="pl-4">Base × [(1+r)^t-1]</div>
-
-                  <div className="mt-1">Portage =</div>
-                  <div className="pl-4">Intérêts +</div>
-                  <div className="pl-4">Taxes +</div>
-                  <div className="pl-4">Assurance</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Specific Lots */}
-            <div className="space-y-4">
-              <h4 className="text-sm font-semibold text-orange-900">
-                Lots disponibles
-              </h4>
-              {founderLots.map(lot => {
-                const originalPrice = lot.originalPrice ?? lot.surface * 1377;
-                const originalNotaryFees = lot.originalNotaryFees ?? originalPrice * 0.125;
-                const originalConstructionCost = lot.originalConstructionCost ?? 0;
-
-                const carryingCosts = calculateCarryingCosts(
-                  originalPrice,
-                  0,
-                  Math.round(yearsHeld * 12),
-                  formulaParams.averageInterestRate
-                );
-
-                const price = calculatePortageLotPrice(
-                  originalPrice,
-                  originalNotaryFees,
-                  originalConstructionCost,
-                  yearsHeld,
-                  formulaParams,
-                  carryingCosts,
-                  0
-                );
-
-                return (
-                  <div
-                    key={lot.lotId}
-                    className="bg-white border-2 border-orange-300 rounded-lg p-4"
-                  >
-                    <div className="mb-3">
-                      <div className="text-sm">
-                        De{' '}
-                        <button
-                          onClick={() => handleScrollToParticipant(lot.fromParticipant || '')}
-                          className="font-bold text-orange-700 hover:text-orange-900 underline"
-                        >
-                          {lot.fromParticipant}
-                        </button>
-                        {' • '}
-                        <span className="font-bold">{lot.surface}m²</span>
-                      </div>
-                      <div className="text-lg font-bold text-orange-900 mt-1">
-                        Prix: {formatCurrency(price.totalPrice)}
-                      </div>
+            return (
+              <div
+                key={lot.lotId}
+                className="bg-orange-50 border-2 border-orange-300 rounded-lg p-4 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <div className="text-sm text-gray-600">
+                      De <span className="font-bold text-orange-700">{lot.fromParticipant}</span>
                     </div>
-
-                    {/* Breakdown Table */}
-                    <div className="bg-orange-50 rounded border border-orange-200 overflow-hidden">
-                      <table className="w-full text-xs">
-                        <tbody>
-                          <tr className="border-b border-orange-100">
-                            <td className="px-3 py-1.5 text-gray-700">Base</td>
-                            <td className="px-3 py-1.5 text-right font-semibold">
-                              {formatCurrency(price.basePrice)}
-                            </td>
-                          </tr>
-                          <tr className="border-b border-orange-100">
-                            <td className="px-3 py-1.5 text-gray-700">
-                              Indexation
-                              <div className="text-[10px] text-gray-500">
-                                ({formulaParams.indexationRate}% × {yearsHeld.toFixed(1)}a)
-                              </div>
-                            </td>
-                            <td className="px-3 py-1.5 text-right font-semibold">
-                              {formatCurrency(price.indexation)}
-                            </td>
-                          </tr>
-                          <tr className="border-b border-orange-200">
-                            <td className="px-3 py-1.5 text-gray-700">
-                              Portage ({yearsHeld.toFixed(1)}a)
-                            </td>
-                            <td className="px-3 py-1.5 text-right font-semibold">
-                              {formatCurrency(price.carryingCostRecovery)}
-                            </td>
-                          </tr>
-                          <tr className="bg-orange-100">
-                            <td className="px-3 py-1.5 font-bold text-orange-900">Total</td>
-                            <td className="px-3 py-1.5 text-right font-bold text-orange-900">
-                              {formatCurrency(price.totalPrice)}
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
+                    <div className="text-xl font-bold text-orange-900 mt-1">
+                      {lot.surface}m²
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                  <div className="text-right">
+                    <div className="text-xs text-gray-600">Prix</div>
+                    <div className="text-2xl font-bold text-orange-900">
+                      {formatCurrency(price.totalPrice)}
+                    </div>
+                  </div>
+                </div>
+
+                {onSelectLot && (
+                  <button
+                    onClick={() => onSelectLot(lot, price)}
+                    className="w-full px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg transition-colors"
+                  >
+                    👆 Sélectionner ce lot
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
