@@ -98,8 +98,8 @@ export const DEFAULT_SCENARIO = {
   purchasePriceReduction: 0
 };
 
-// Default deed date: February 1st, 2026
-export const DEFAULT_DEED_DATE = '2026-02-01';
+// Default deed date: February 1st, 2023 (past date so portage calculations show meaningful values)
+export const DEFAULT_DEED_DATE = '2023-02-01';
 
 export const STORAGE_KEY = 'credit-castor-scenario';
 export const PINNED_PARTICIPANT_KEY = 'credit-castor-pinned-participant';

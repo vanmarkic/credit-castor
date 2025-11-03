@@ -18,20 +18,30 @@ interface AvailableLotsViewProps {
   deedDate: Date;
   formulaParams: PortageFormulaParams;
   onSelectLot?: (lot: AvailableLot, price: PortageLotPrice) => void;
+  /**
+   * Optional buyer entry date. If provided, years held is calculated as
+   * (buyerEntryDate - founderEntryDate). If not provided, uses current date.
+   * This is critical for newcomer purchase scenarios where the portage price
+   * should be calculated at the time of the transaction, not "as of today".
+   */
+  buyerEntryDate?: Date;
 }
 
 export default function AvailableLotsView({
   availableLots,
   deedDate,
   formulaParams,
-  onSelectLot
+  onSelectLot,
+  buyerEntryDate
 }: AvailableLotsViewProps) {
   const [coproSurfaces, setCoproSurfaces] = useState<Record<number, number>>({});
 
   const founderLots = availableLots.filter(lot => lot.source === 'FOUNDER');
   const coproLots = availableLots.filter(lot => lot.source === 'COPRO');
 
-  const yearsHeld = calculateYearsHeld(deedDate);
+  // Years held: from founder entry (deed date) to buyer entry (or today if no buyer specified)
+  const saleDate = buyerEntryDate || new Date();
+  const yearsHeld = calculateYearsHeld(deedDate, saleDate);
 
   const handleScrollToParticipant = (participantName: string) => {
     const element = document.getElementById(`participant-${participantName}`);
@@ -373,10 +383,8 @@ export default function AvailableLotsView({
 // Helper Functions
 // ============================================
 
-function calculateYearsHeld(deedDate: Date): number {
-  const now = new Date();
-  const deed = new Date(deedDate);
-  const diffMs = now.getTime() - deed.getTime();
+function calculateYearsHeld(founderEntryDate: Date, buyerEntryDate: Date): number {
+  const diffMs = buyerEntryDate.getTime() - founderEntryDate.getTime();
   const diffYears = diffMs / (1000 * 60 * 60 * 24 * 365.25);
   return Math.max(0, diffYears);
 }

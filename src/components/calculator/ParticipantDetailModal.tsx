@@ -174,6 +174,7 @@ export default function ParticipantDetailModal({
                 )}
                 deedDate={new Date(deedDate)}
                 formulaParams={formulaParams}
+                buyerEntryDate={participant.entryDate ? new Date(participant.entryDate) : undefined}
                 onSelectLot={(lot: AvailableLot, price: PortageLotPrice) => {
                   onUpdateParticipant({
                     ...participant,
