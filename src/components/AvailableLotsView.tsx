@@ -2,7 +2,6 @@
  * AvailableLotsView Component
  *
  * Displays available lots for newcomers to purchase
- * - Portage lots from founders (imposed surface with calculated price)
  * - Copropriété lots (free surface choice with price calculator)
  */
 
@@ -13,11 +12,8 @@ import type { PortageLotPrice } from '../utils/portageCalculations';
 import type { PortageFormulaParams } from '../utils/calculatorUtils';
 import {
   calculateYearsHeld,
-  calculateCoproEstimatedPrice,
-  calculatePortageLotPrice,
-  calculateCarryingCosts
+  calculateCoproEstimatedPrice
 } from '../utils/portageCalculations';
-import { formatCurrency } from '../utils/formatting';
 
 interface AvailableLotsViewProps {
   availableLots: AvailableLot[];
@@ -45,7 +41,6 @@ export default function AvailableLotsView({
 }: AvailableLotsViewProps) {
   const [coproSurfaces, setCoproSurfaces] = useState<Record<number, number>>({});
 
-  const founderLots = availableLots.filter(lot => lot.source === 'FOUNDER');
   const coproLots = availableLots.filter(lot => lot.source === 'COPRO');
 
   // Determine sale date with proper validation
@@ -100,67 +95,6 @@ export default function AvailableLotsView({
 
   return (
     <div id="portage-marketplace" className="space-y-6 scroll-mt-6">
-      {/* Founder Portage Lots */}
-      {founderLots.length > 0 && (
-        <div className="space-y-3">
-          {founderLots.map(lot => {
-            const originalPrice = lot.originalPrice ?? lot.surface * 1377;
-            const originalNotaryFees = lot.originalNotaryFees ?? originalPrice * 0.125;
-            const originalConstructionCost = lot.originalConstructionCost ?? 0;
-
-            const carryingCosts = calculateCarryingCosts(
-              originalPrice,
-              0,
-              Math.round(yearsHeld * 12),
-              formulaParams.averageInterestRate
-            );
-
-            const price = calculatePortageLotPrice(
-              originalPrice,
-              originalNotaryFees,
-              originalConstructionCost,
-              yearsHeld,
-              formulaParams,
-              carryingCosts,
-              0
-            );
-
-            return (
-              <div
-                key={lot.lotId}
-                className="bg-orange-50 border-2 border-orange-300 rounded-lg p-4 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <div className="text-sm text-gray-600">
-                      De <span className="font-bold text-orange-700">{lot.fromParticipant}</span>
-                    </div>
-                    <div className="text-xl font-bold text-orange-900 mt-1">
-                      {lot.surface}m²
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xs text-gray-600">Prix</div>
-                    <div className="text-2xl font-bold text-orange-900">
-                      {formatCurrency(price.totalPrice)}
-                    </div>
-                  </div>
-                </div>
-
-                {onSelectLot && (
-                  <button
-                    onClick={() => onSelectLot(lot, price)}
-                    className="w-full px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg transition-colors"
-                  >
-                    👆 Sélectionner ce lot
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
       {/* Copropriété Lots */}
       {coproLots.length > 0 && (
         <div className="bg-purple-50 rounded-lg border-2 border-purple-200 p-6">
