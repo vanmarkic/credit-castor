@@ -8,7 +8,7 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
 
     // Timeline section should be visible
     expect(screen.getByText(/Timeline des Participants/i)).toBeInTheDocument();
-    expect(screen.getByText(/Fondateurs/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Fondateurs/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Nouveaux entrants/i)).toBeInTheDocument();
   });
 
@@ -24,13 +24,13 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
       expect(screen.getByText(/Participant 5/i)).toBeInTheDocument();
     });
 
-    // Find all "Développer" buttons and click the last one (new participant)
-    const expandButtons = screen.getAllByRole('button', { name: /Développer/i });
+    // Find all "Dï¿½velopper" buttons and click the last one (new participant)
+    const expandButtons = screen.getAllByRole('button', { name: /Dï¿½velopper/i });
     fireEvent.click(expandButtons[expandButtons.length - 1]);
 
     // Should see entry date section
     await waitFor(() => {
-      expect(screen.getByText(/Date d'entrée/i)).toBeInTheDocument();
+      expect(screen.getByText(/Date d'entrï¿½e/i)).toBeInTheDocument();
     });
 
     // Check that "Fondateur" checkbox is checked by default
@@ -51,7 +51,7 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
     });
 
     // Expand the new participant
-    const expandButtons = screen.getAllByRole('button', { name: /Développer/i });
+    const expandButtons = screen.getAllByRole('button', { name: /Dï¿½velopper/i });
     fireEvent.click(expandButtons[expandButtons.length - 1]);
 
     // Uncheck "Fondateur"
@@ -61,8 +61,8 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
 
     // Should see purchase details section
     await waitFor(() => {
-      expect(screen.getByText(/Détails de l'achat/i)).toBeInTheDocument();
-      expect(screen.getByText(/Achète de/i)).toBeInTheDocument();
+      expect(screen.getByText(/Dï¿½tails de l'achat/i)).toBeInTheDocument();
+      expect(screen.getByText(/Achï¿½te de/i)).toBeInTheDocument();
     });
   });
 
@@ -78,7 +78,7 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
     });
 
     // Expand the newcomer
-    const expandButtons = screen.getAllByRole('button', { name: /Développer/i });
+    const expandButtons = screen.getAllByRole('button', { name: /Dï¿½velopper/i });
     const newcomerExpandBtn = expandButtons[expandButtons.length - 1];
     fireEvent.click(newcomerExpandBtn);
 
@@ -88,12 +88,12 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
     fireEvent.click(newcomerFounderCheckbox);
 
     await waitFor(() => {
-      expect(screen.getByText(/Achète de/i)).toBeInTheDocument();
+      expect(screen.getByText(/Achï¿½te de/i)).toBeInTheDocument();
     });
 
     // Select buying from first participant (Manuela/Dragan)
     const buyingFromSelects = screen.getAllByRole('combobox');
-    const buyingFromSelect = buyingFromSelects[buyingFromSelects.length - 1]; // Last select is the "Achète de"
+    const buyingFromSelect = buyingFromSelects[buyingFromSelects.length - 1]; // Last select is the "Achï¿½te de"
     fireEvent.change(buyingFromSelect, { target: { value: 'Manuela/Dragan' } });
 
     // Set purchase price
@@ -117,7 +117,7 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
     });
   });
 
-  it('should display copropriété redistribution when buying from copropriété', async () => {
+  it('should display copropriï¿½tï¿½ redistribution when buying from copropriï¿½tï¿½', async () => {
     render(<EnDivisionCorrect />);
 
     // Add a new participant
@@ -129,7 +129,7 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
     });
 
     // Expand the newcomer
-    const expandButtons = screen.getAllByRole('button', { name: /Développer/i });
+    const expandButtons = screen.getAllByRole('button', { name: /Dï¿½velopper/i });
     const newcomerExpandBtn = expandButtons[expandButtons.length - 1];
     fireEvent.click(newcomerExpandBtn);
 
@@ -139,13 +139,13 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
     fireEvent.click(newcomerFounderCheckbox);
 
     await waitFor(() => {
-      expect(screen.getByText(/Achète de/i)).toBeInTheDocument();
+      expect(screen.getByText(/Achï¿½te de/i)).toBeInTheDocument();
     });
 
-    // Select buying from Copropriété
+    // Select buying from Copropriï¿½tï¿½
     const buyingFromSelects = screen.getAllByRole('combobox');
     const buyingFromSelect = buyingFromSelects[buyingFromSelects.length - 1];
-    fireEvent.change(buyingFromSelect, { target: { value: 'Copropriété' } });
+    fireEvent.change(buyingFromSelect, { target: { value: 'Copropriï¿½tï¿½' } });
 
     // Set purchase price
     const priceInputs = screen.getAllByPlaceholderText(/150000/i);
@@ -164,9 +164,9 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
     const firstExpandButton = expandButtons[0];
     fireEvent.click(firstExpandButton);
 
-    // Should see copropriété redistribution section
+    // Should see copropriï¿½tï¿½ redistribution section
     await waitFor(() => {
-      const coproSection = screen.queryByText(/Copropriété - Redistributions/i);
+      const coproSection = screen.queryByText(/Copropriï¿½tï¿½ - Redistributions/i);
       // This should appear when copro sale is configured
       if (coproSection) {
         expect(coproSection).toBeInTheDocument();
@@ -189,7 +189,7 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
     });
 
     // Expand the newcomer
-    const expandButtons = screen.getAllByRole('button', { name: /Développer/i });
+    const expandButtons = screen.getAllByRole('button', { name: /Dï¿½velopper/i });
     fireEvent.click(expandButtons[expandButtons.length - 1]);
 
     // Uncheck founder to enable date picker
@@ -198,12 +198,12 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
     fireEvent.click(lastCheckbox);
 
     await waitFor(() => {
-      const dateInputs = screen.getAllByLabelText(/Date d'entrée dans le projet/i);
+      const dateInputs = screen.getAllByLabelText(/Date d'entrï¿½e dans le projet/i);
       expect(dateInputs.length).toBeGreaterThan(0);
     });
 
     // Try to set date before deed date (deed date is 2026-02-01)
-    const dateInputs = screen.getAllByLabelText(/Date d'entrée dans le projet/i);
+    const dateInputs = screen.getAllByLabelText(/Date d'entrï¿½e dans le projet/i);
     const lastDateInput = dateInputs[dateInputs.length - 1];
 
     fireEvent.change(lastDateInput, { target: { value: '2025-01-01' } });
@@ -224,7 +224,9 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
     expect(timelineSection).toBeInTheDocument();
 
     // Should show founder count (default 4 participants)
-    const founderCount = screen.getByText(/Fondateurs/i).parentElement?.querySelector('.text-2xl');
+    const foundersElements = screen.getAllByText(/Fondateurs/i);
+    const founderCountElement = foundersElements.find(el => el.parentElement?.querySelector('.text-2xl'));
+    const founderCount = founderCountElement?.parentElement?.querySelector('.text-2xl');
     expect(founderCount).toHaveTextContent('4');
 
     // Should show newcomer count (default 0)
