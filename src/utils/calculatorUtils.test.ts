@@ -14,6 +14,7 @@ import {
   calculateTotalInterest,
   calculateFinancingRatio,
   calculateFraisGeneraux3ans,
+  calculateTwoLoanFinancing,
   calculateAll,
   type Participant,
   type ProjectParams,
@@ -1131,5 +1132,96 @@ describe('Calculator Utils', () => {
       expect(results.participantBreakdown[0].casco).toBe(170000); // 100 × 1700
       expect(results.participantBreakdown[1].casco).toBe(255000); // 150 × 1700
     });
+  });
+});
+
+// ============================================
+// Task 3: calculateTwoLoanFinancing Tests
+// ============================================
+
+describe('calculateTwoLoanFinancing', () => {
+  it('should split costs between two loans with default 2/3 split', () => {
+    const participant: Participant = {
+      name: 'Test',
+      capitalApporte: 100000,
+      notaryFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 20,
+      useTwoLoans: true,
+      loan2DelayYears: 2,
+      loan2RenovationAmount: 100000, // 2/3 of 150k renovation
+      capitalForLoan1: 50000,
+      capitalForLoan2: 50000,
+    };
+
+    const purchaseShare = 200000;
+    const notaryFees = 25000;
+    const sharedCosts = 50000;
+    const personalRenovationCost = 150000; // casco + parachevements
+
+    const result = calculateTwoLoanFinancing(
+      purchaseShare,
+      notaryFees,
+      sharedCosts,
+      personalRenovationCost,
+      participant
+    );
+
+    // Loan 1: 200k + 25k + 50k + 50k (renovation not in loan2) - 50k (capital) = 275k
+    expect(result.loan1Amount).toBe(275000);
+
+    // Loan 2: 100k - 50k (capital) = 50k
+    expect(result.loan2Amount).toBe(50000);
+
+    // Loan 2 duration: 20 - 2 = 18 years
+    expect(result.loan2DurationYears).toBe(18);
+
+    // Monthly payments should be positive
+    expect(result.loan1MonthlyPayment).toBeGreaterThan(0);
+    expect(result.loan2MonthlyPayment).toBeGreaterThan(0);
+
+    // Total interest
+    expect(result.totalInterest).toBe(result.loan1Interest + result.loan2Interest);
+  });
+
+  it('should handle zero loan 2 amount', () => {
+    const participant: Participant = {
+      name: 'Test',
+      capitalApporte: 100000,
+      notaryFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 20,
+      useTwoLoans: true,
+      loan2DelayYears: 2,
+      loan2RenovationAmount: 0,
+      capitalForLoan1: 100000,
+      capitalForLoan2: 0,
+    };
+
+    const result = calculateTwoLoanFinancing(200000, 25000, 50000, 150000, participant);
+
+    // All renovation in loan 1
+    expect(result.loan1Amount).toBe(325000); // 200k+25k+50k+150k-100k
+    expect(result.loan2Amount).toBe(0);
+    expect(result.loan2MonthlyPayment).toBe(0);
+    expect(result.loan2Interest).toBe(0);
+  });
+
+  it('should default loan2DelayYears to 2 if not specified', () => {
+    const participant: Participant = {
+      name: 'Test',
+      capitalApporte: 0,
+      notaryFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 20,
+      useTwoLoans: true,
+      loan2RenovationAmount: 50000,
+      capitalForLoan1: 0,
+      capitalForLoan2: 0,
+    };
+
+    const result = calculateTwoLoanFinancing(100000, 12500, 25000, 75000, participant);
+
+    expect(result.loan2DurationYears).toBe(18); // 20 - 2
   });
 });
