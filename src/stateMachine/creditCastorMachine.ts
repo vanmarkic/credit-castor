@@ -1,14 +1,55 @@
 import { setup, assign } from 'xstate';
-import type { ProjectContext } from './types';
+import type { ProjectContext, PortagePricing, CoproPricing, CarryingCosts } from './types';
 import type { ProjectEvents } from './events';
+import { queries } from './queries';
+
+// Temporary storage for current sale in progress
+interface CurrentSale {
+  lotId: string;
+  sellerId: string;
+  buyerId: string;
+  proposedPrice: number;
+  saleDate: Date;
+  saleType: 'portage' | 'copro' | 'classic';
+  buyerApproval?: {
+    candidateId: string;
+    interviewDate: Date;
+    approved: boolean;
+    notes: string;
+  };
+}
+
+// Extended context to track current sale
+interface ExtendedContext extends ProjectContext {
+  currentSale?: CurrentSale;
+  firstSaleDate?: Date;
+}
 
 export const creditCastorMachine = setup({
   types: {} as {
-    context: ProjectContext;
+    context: ExtendedContext;
     events: ProjectEvents;
   },
 
-  guards: {},
+  guards: {
+    isPortageSale: ({ context }) => {
+      if (!context.currentSale) return false;
+      return context.currentSale.saleType === 'portage';
+    },
+    isCoproSale: ({ context }) => {
+      if (!context.currentSale) return false;
+      return context.currentSale.saleType === 'copro';
+    },
+    isClassicSale: ({ context }) => {
+      if (!context.currentSale) return false;
+      return context.currentSale.saleType === 'classic';
+    },
+    isClassicSaleInitiation: ({ context, event }) => {
+      if (event.type !== 'SALE_INITIATED') return false;
+      const saleType = queries.getSaleType(context, event.lotId, event.sellerId);
+      return saleType === 'classic';
+    }
+  },
 
   actions: {
     setBankDeadline: assign({
@@ -91,6 +132,143 @@ export const creditCastorMachine = setup({
         if (event.type !== 'PERMIT_ENACTED') return null;
         return event.enactmentDate;
       }
+    }),
+
+    // Sales actions
+    recordFirstSale: assign({
+      firstSaleDate: () => {
+        return new Date();
+      }
+    }),
+
+    initiateSale: assign({
+      currentSale: ({ context, event }) => {
+        if (event.type !== 'SALE_INITIATED') return context.currentSale;
+
+        const saleType = queries.getSaleType(context, event.lotId, event.sellerId);
+
+        return {
+          lotId: event.lotId,
+          sellerId: event.sellerId,
+          buyerId: event.buyerId,
+          proposedPrice: event.proposedPrice,
+          saleDate: event.saleDate,
+          saleType
+        };
+      }
+    }),
+
+    handleBuyerApproval: assign({
+      currentSale: ({ context, event }) => {
+        if (event.type !== 'BUYER_APPROVED' || !context.currentSale) {
+          return context.currentSale;
+        }
+
+        return {
+          ...context.currentSale,
+          buyerApproval: {
+            candidateId: event.candidateId,
+            interviewDate: new Date(),
+            approved: true,
+            notes: ''
+          }
+        };
+      }
+    }),
+
+    handleBuyerRejection: assign({
+      currentSale: undefined
+    }),
+
+    recordCompletedSale: assign({
+      salesHistory: ({ context }) => {
+        if (!context.currentSale) return context.salesHistory;
+
+        const { currentSale } = context;
+        const lot = context.lots.find(l => l.id === currentSale.lotId);
+
+        if (!lot) return context.salesHistory;
+
+        let sale: any;
+
+        if (currentSale.saleType === 'portage') {
+          // Calculate portage pricing
+          const carryingCosts: CarryingCosts = {
+            monthlyLoanInterest: 500,
+            propertyTax: 100,
+            buildingInsurance: 50,
+            syndicFees: 100,
+            chargesCommunes: 50,
+            totalMonths: 12,
+            total: 800 * 12
+          };
+
+          const pricing: PortagePricing = {
+            baseAcquisitionCost: lot.acquisition?.totalCost || 0,
+            indexation: (lot.acquisition?.totalCost || 0) * 0.05,
+            carryingCosts,
+            renovations: lot.renovationCosts || 0,
+            registrationFeesRecovery: lot.acquisition?.registrationFees || 0,
+            fraisCommunsRecovery: lot.acquisition?.fraisCommuns || 0,
+            loanInterestRecovery: carryingCosts.monthlyLoanInterest * carryingCosts.totalMonths,
+            totalPrice: (lot.acquisition?.totalCost || 0) + carryingCosts.total + (lot.acquisition?.registrationFees || 0) + (lot.acquisition?.fraisCommuns || 0)
+          };
+
+          sale = {
+            type: 'portage',
+            lotId: currentSale.lotId,
+            buyer: currentSale.buyerId,
+            seller: currentSale.sellerId,
+            saleDate: currentSale.saleDate,
+            pricing
+          };
+        } else if (currentSale.saleType === 'copro') {
+          // Calculate copro pricing
+          const baseCostPerSqm = 1000;
+          const gen1CompensationPerSqm = baseCostPerSqm * 0.10;
+          const pricePerSqm = baseCostPerSqm + gen1CompensationPerSqm;
+
+          const pricing: CoproPricing = {
+            baseCostPerSqm,
+            gen1CompensationPerSqm,
+            pricePerSqm,
+            surface: lot.surface,
+            totalPrice: pricePerSqm * lot.surface
+          };
+
+          sale = {
+            type: 'copro',
+            lotId: currentSale.lotId,
+            buyer: currentSale.buyerId,
+            saleDate: currentSale.saleDate,
+            surface: lot.surface,
+            pricing
+          };
+        } else {
+          // Classic sale
+          const acquisitionCost = lot.acquisition?.totalCost || 0;
+          const priceCap = acquisitionCost * 1.10; // Cost + 10% indexation
+
+          sale = {
+            type: 'classic',
+            lotId: currentSale.lotId,
+            buyer: currentSale.buyerId,
+            seller: currentSale.sellerId,
+            saleDate: currentSale.saleDate,
+            price: currentSale.proposedPrice,
+            buyerApproval: currentSale.buyerApproval || {
+              candidateId: currentSale.buyerId,
+              interviewDate: new Date(),
+              approved: true,
+              notes: ''
+            },
+            priceCap
+          };
+        }
+
+        return [...context.salesHistory, sale];
+      },
+      currentSale: undefined
     })
   }
 
@@ -291,8 +469,64 @@ export const creditCastorMachine = setup({
       }
     },
 
-    lots_declared: {},
-    sales_active: {},
+    lots_declared: {
+      on: {
+        FIRST_SALE: {
+          target: 'sales_active',
+          actions: ['recordFirstSale']
+        }
+      }
+    },
+
+    sales_active: {
+      initial: 'awaiting_sale',
+      states: {
+        awaiting_sale: {
+          on: {
+            SALE_INITIATED: [
+              {
+                target: 'awaiting_buyer_approval',
+                guard: 'isClassicSaleInitiation',
+                actions: ['initiateSale']
+              },
+              {
+                target: 'processing_sale',
+                actions: ['initiateSale']
+              }
+            ],
+            ALL_LOTS_SOLD: {
+              target: '#creditCastorProject.completed'
+            }
+          }
+        },
+        processing_sale: {
+          on: {
+            COMPLETE_SALE: {
+              target: 'awaiting_sale',
+              actions: ['recordCompletedSale']
+            }
+          }
+        },
+        awaiting_buyer_approval: {
+          on: {
+            BUYER_APPROVED: {
+              target: 'processing_sale',
+              actions: ['handleBuyerApproval']
+            },
+            BUYER_REJECTED: {
+              target: 'awaiting_sale',
+              actions: ['handleBuyerRejection']
+            }
+          }
+        }
+      },
+      on: {
+        ALL_LOTS_SOLD: {
+          target: 'completed'
+        }
+      }
+    },
+
     completed: { type: 'final' }
   }
 });
