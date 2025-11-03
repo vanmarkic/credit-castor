@@ -16,7 +16,7 @@ describe('EnDivisionCorrect - Integration Tests', () => {
       // Price per m² = 650000 / 472 = 1377.12 EUR/m²
       const pricePerM2 = 650000 / 472;
 
-      // Shared costs (quote-part):
+      // Shared costs (commun):
       // 20000 + 40000 + 90000 + 59820 + 27320 + 136825.63 = 373965.63
       const sharedCosts = 20000 + 40000 + 90000 + 59820 + 27320 + 136825.63;
       expect(sharedCosts).toBeCloseTo(373965.63, 2);

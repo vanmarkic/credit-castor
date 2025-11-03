@@ -68,7 +68,7 @@ describe('formulaExplanations', () => {
       expect(result[1]).toContain('18,750');
       expect(result[1]).toContain('Construction');
       expect(result[1]).toContain('120,000');
-      expect(result[1]).toContain('Quote-part');
+      expect(result[1]).toContain('Commun');
       expect(result[1]).toContain('25,000');
     });
   });
@@ -179,7 +179,7 @@ describe('formulaExplanations', () => {
       expect(result[1]).toContain('Achat');
       expect(result[1]).toContain('Notaire');
       expect(result[1]).toContain('Construction');
-      expect(result[1]).toContain('Quote-part');
+      expect(result[1]).toContain('Commun');
     });
   });
 

@@ -43,6 +43,17 @@ export interface Participant {
   parachevementsSqm?: number;
 }
 
+export interface ExpenseLineItem {
+  label: string;
+  amount: number;
+}
+
+export interface ExpenseCategories {
+  conservatoire: ExpenseLineItem[];
+  habitabiliteSommaire: ExpenseLineItem[];
+  premierTravaux: ExpenseLineItem[];
+}
+
 export interface ProjectParams {
   totalPurchase: number;
   mesuresConservatoires: number;
@@ -55,6 +66,7 @@ export interface ProjectParams {
   batimentFondationComplete: number;
   batimentCoproConservatoire: number;
   globalCascoPerM2: number;
+  expenseCategories?: ExpenseCategories;
 }
 
 export interface Scenario {
@@ -132,12 +144,46 @@ export function calculateTotalSurface(participants: Participant[]): number {
 }
 
 /**
+ * Calculate total from expense categories
+ */
+export function calculateExpenseCategoriesTotal(
+  expenseCategories: ExpenseCategories | undefined
+): number {
+  if (!expenseCategories) {
+    return 0;
+  }
+
+  const conservatoireTotal = expenseCategories.conservatoire.reduce(
+    (sum, item) => sum + item.amount,
+    0
+  );
+  const habitabiliteSommaireTotal = expenseCategories.habitabiliteSommaire.reduce(
+    (sum, item) => sum + item.amount,
+    0
+  );
+  const premierTravauxTotal = expenseCategories.premierTravaux.reduce(
+    (sum, item) => sum + item.amount,
+    0
+  );
+
+  return conservatoireTotal + habitabiliteSommaireTotal + premierTravauxTotal;
+}
+
+/**
  * Calculate shared infrastructure costs
+ * Note: If expenseCategories is provided, it replaces the old infrastructure fields
  */
 export function calculateSharedCosts(
   projectParams: ProjectParams,
   infrastructureReduction: number = 0
 ): number {
+  // If new expense categories are defined, use them instead of old fields
+  if (projectParams.expenseCategories) {
+    const expenseCategoriesTotal = calculateExpenseCategoriesTotal(projectParams.expenseCategories);
+    return expenseCategoriesTotal + projectParams.fraisGeneraux3ans;
+  }
+
+  // Legacy calculation (for backward compatibility)
   return (
     projectParams.mesuresConservatoires +
     projectParams.demolition +

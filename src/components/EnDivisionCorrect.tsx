@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Users } from 'lucide-react';
+import { Users } from 'lucide-react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { calculateAll } from '../utils/calculatorUtils';
 import { exportCalculations } from '../utils/excelExport';
@@ -7,10 +7,11 @@ import { XlsxWriter } from '../utils/exportWriter';
 import { ParticipantsTimeline } from './calculator/ParticipantsTimeline';
 import { ProjectHeader } from './calculator/ProjectHeader';
 import { VerticalToolbar } from './calculator/VerticalToolbar';
-import { ParticipantDetailsPanel } from './calculator/ParticipantDetailsPanel';
 import ParticipantDetailModal from './calculator/ParticipantDetailModal';
 import { FormulaTooltip } from './FormulaTooltip';
 import { formatCurrency } from '../utils/formatting';
+import { ExpenseCategorySection } from './ExpenseCategorySection';
+import { calculateExpenseCategoriesTotal } from '../utils/calculatorUtils';
 import {
   getPricePerM2Formula,
   getTotalProjectCostFormula
@@ -64,7 +65,6 @@ export default function EnDivisionCorrect() {
     }));
   });
 
-  const [expandedParticipants, setExpandedParticipants] = useState<{[key: number]: boolean}>({});
   const [pinnedParticipant, setPinnedParticipant] = useState<string | null>(() => loadPinnedParticipant());
   const [fullscreenParticipantIndex, setFullscreenParticipantIndex] = useState<number | null>(null);
 
@@ -369,7 +369,7 @@ export default function EnDivisionCorrect() {
 
   const exportToExcel = () => {
     const writer = new XlsxWriter();
-    exportCalculations(calculations, projectParams, scenario, writer);
+    exportCalculations(calculations, projectParams, scenario, unitDetails, writer);
   };
 
 
@@ -545,8 +545,8 @@ export default function EnDivisionCorrect() {
 
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <h2 className="text-xl font-bold text-gray-800 mb-4">Décomposition des Coûts</h2>
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-            <div className="p-3 bg-white rounded-lg border border-gray-200">
+          <div className="flex items-center justify-center gap-3">
+            <div className="p-3 bg-white rounded-lg border border-gray-200 flex-1">
               <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Achat Total</p>
               <p className="text-lg font-bold text-gray-900">{formatCurrency(calculations.totals.purchase)}</p>
               <p className="text-xs text-blue-600 mt-1">
@@ -555,26 +555,41 @@ export default function EnDivisionCorrect() {
                 </FormulaTooltip>
               </p>
             </div>
-            <div className="p-3 bg-white rounded-lg border border-gray-200">
+
+            <div className="text-2xl font-bold text-gray-400 flex-shrink-0">+</div>
+
+            <div className="p-3 bg-white rounded-lg border border-purple-200 flex-1">
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Commun Infrastr.</p>
+              <p className="text-lg font-bold text-purple-700">{formatCurrency(calculations.sharedCosts)}</p>
+              <p className="text-xs text-purple-500 mt-1">{formatCurrency(calculations.sharedPerPerson)}/pers</p>
+            </div>
+
+            <div className="text-2xl font-bold text-gray-400 flex-shrink-0">+</div>
+
+            <div className="p-3 bg-white rounded-lg border border-orange-200 flex-1">
+              <FormulaTooltip formula={[
+                "Rénovations personnelles",
+                `CASCO (gros œuvre): ${formatCurrency(calculations.participantBreakdown.reduce((sum, p) => sum + p.casco, 0))}`,
+                `+ Parachèvements: ${formatCurrency(calculations.participantBreakdown.reduce((sum, p) => sum + p.parachevements, 0))}`,
+                `= ${formatCurrency(calculations.participantBreakdown.reduce((sum, p) => sum + p.personalRenovationCost, 0))}`
+              ]}>
+                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Rénovations Perso.</p>
+              </FormulaTooltip>
+              <p className="text-lg font-bold text-orange-700">{formatCurrency(calculations.participantBreakdown.reduce((sum, p) => sum + p.personalRenovationCost, 0))}</p>
+              <p className="text-xs text-orange-500 mt-1">CASCO + Parachèv.</p>
+            </div>
+
+            <div className="text-2xl font-bold text-gray-400 flex-shrink-0">+</div>
+
+            <div className="p-3 bg-white rounded-lg border border-gray-200 flex-1">
               <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Frais de Notaire</p>
               <p className="text-lg font-bold text-gray-900">{formatCurrency(calculations.totals.totalNotaryFees)}</p>
               <p className="text-xs text-gray-400 mt-1">taux individuels</p>
             </div>
-            <div className="p-3 bg-white rounded-lg border border-orange-200">
-              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Rénovations Perso.</p>
-              <p className="text-lg font-bold text-orange-700">{formatCurrency(calculations.participantBreakdown.reduce((sum, p) => sum + p.personalRenovationCost, 0))}</p>
-              <p className="text-xs text-orange-500 mt-1">CASCO + Parachèv.</p>
-            </div>
-            <div className="p-3 bg-white rounded-lg border border-gray-200">
-              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Construction</p>
-              <p className="text-lg font-bold text-gray-900">{formatCurrency(calculations.totals.construction)}</p>
-            </div>
-            <div className="p-3 bg-white rounded-lg border border-purple-200">
-              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Quote-part Infrastr.</p>
-              <p className="text-lg font-bold text-purple-700">{formatCurrency(calculations.sharedCosts)}</p>
-              <p className="text-xs text-purple-500 mt-1">{formatCurrency(calculations.sharedPerPerson)}/pers</p>
-            </div>
-            <div className="p-3 bg-gray-50 rounded-lg border border-gray-300">
+
+            <div className="text-2xl font-bold text-gray-400 flex-shrink-0">=</div>
+
+            <div className="p-3 bg-gray-50 rounded-lg border border-gray-300 flex-1">
               <p className="text-xs text-gray-600 uppercase tracking-wide mb-1 font-semibold">TOTAL</p>
               <p className="text-lg font-bold text-gray-900">
                 <FormulaTooltip formula={getTotalProjectCostFormula()}>
@@ -585,165 +600,179 @@ export default function EnDivisionCorrect() {
           </div>
 
           <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-            <h3 className="text-sm font-semibold text-gray-800 mb-2">Détail Quote-part (infrastructures extérieures)</h3>
-            <p className="text-xs text-gray-600 mb-3">
-              Les bâtiments communs (€368,900) sont dans "Construction" pour éviter le double comptage.
-            </p>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Mesures conservatoires</label>
-                <input
-                  type="number"
-                  step="1000"
-                  value={projectParams.mesuresConservatoires}
-                  onChange={(e) => setProjectParams({...projectParams, mesuresConservatoires: parseFloat(e.target.value) || 0})}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white"
+            <h3 className="text-sm font-semibold text-gray-800 mb-3">Détail Commun</h3>
+
+            {projectParams.expenseCategories && (
+              <div className="space-y-3">
+                <ExpenseCategorySection
+                  title="CONSERVATOIRE"
+                  items={projectParams.expenseCategories.conservatoire}
+                  onItemChange={(index: number, value: number) => {
+                    const newCategories = {
+                      ...projectParams.expenseCategories!,
+                      conservatoire: projectParams.expenseCategories!.conservatoire.map((item: any, i: number) =>
+                        i === index ? { ...item, amount: value } : item
+                      ),
+                    };
+                    setProjectParams({ ...projectParams, expenseCategories: newCategories });
+                  }}
+                  onItemLabelChange={(index: number, label: string) => {
+                    const newCategories = {
+                      ...projectParams.expenseCategories!,
+                      conservatoire: projectParams.expenseCategories!.conservatoire.map((item: any, i: number) =>
+                        i === index ? { ...item, label } : item
+                      ),
+                    };
+                    setProjectParams({ ...projectParams, expenseCategories: newCategories });
+                  }}
+                  onAddItem={() => {
+                    const newCategories = {
+                      ...projectParams.expenseCategories!,
+                      conservatoire: [
+                        ...projectParams.expenseCategories!.conservatoire,
+                        { label: 'Nouvelle dépense', amount: 0 }
+                      ],
+                    };
+                    setProjectParams({ ...projectParams, expenseCategories: newCategories });
+                  }}
+                  onRemoveItem={(index: number) => {
+                    const newCategories = {
+                      ...projectParams.expenseCategories!,
+                      conservatoire: projectParams.expenseCategories!.conservatoire.filter((_: any, i: number) => i !== index),
+                    };
+                    setProjectParams({ ...projectParams, expenseCategories: newCategories });
+                  }}
                 />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Démolition</label>
-                <input
-                  type="number"
-                  step="1000"
-                  value={projectParams.demolition}
-                  onChange={(e) => setProjectParams({...projectParams, demolition: parseFloat(e.target.value) || 0})}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white"
+
+                <ExpenseCategorySection
+                  title="HABITABILITE SOMMAIRE"
+                  items={projectParams.expenseCategories.habitabiliteSommaire}
+                  onItemChange={(index: number, value: number) => {
+                    const newCategories = {
+                      ...projectParams.expenseCategories!,
+                      habitabiliteSommaire: projectParams.expenseCategories!.habitabiliteSommaire.map((item: any, i: number) =>
+                        i === index ? { ...item, amount: value } : item
+                      ),
+                    };
+                    setProjectParams({ ...projectParams, expenseCategories: newCategories });
+                  }}
+                  onItemLabelChange={(index: number, label: string) => {
+                    const newCategories = {
+                      ...projectParams.expenseCategories!,
+                      habitabiliteSommaire: projectParams.expenseCategories!.habitabiliteSommaire.map((item: any, i: number) =>
+                        i === index ? { ...item, label } : item
+                      ),
+                    };
+                    setProjectParams({ ...projectParams, expenseCategories: newCategories });
+                  }}
+                  onAddItem={() => {
+                    const newCategories = {
+                      ...projectParams.expenseCategories!,
+                      habitabiliteSommaire: [
+                        ...projectParams.expenseCategories!.habitabiliteSommaire,
+                        { label: 'Nouvelle dépense', amount: 0 }
+                      ],
+                    };
+                    setProjectParams({ ...projectParams, expenseCategories: newCategories });
+                  }}
+                  onRemoveItem={(index: number) => {
+                    const newCategories = {
+                      ...projectParams.expenseCategories!,
+                      habitabiliteSommaire: projectParams.expenseCategories!.habitabiliteSommaire.filter((_: any, i: number) => i !== index),
+                    };
+                    setProjectParams({ ...projectParams, expenseCategories: newCategories });
+                  }}
                 />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Infrastructures</label>
-                <input
-                  type="number"
-                  step="1000"
-                  value={projectParams.infrastructures}
-                  onChange={(e) => setProjectParams({...projectParams, infrastructures: parseFloat(e.target.value) || 0})}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white"
+
+                <ExpenseCategorySection
+                  title="PREMIER TRAVAUX"
+                  items={projectParams.expenseCategories.premierTravaux}
+                  onItemChange={(index: number, value: number) => {
+                    const newCategories = {
+                      ...projectParams.expenseCategories!,
+                      premierTravaux: projectParams.expenseCategories!.premierTravaux.map((item: any, i: number) =>
+                        i === index ? { ...item, amount: value } : item
+                      ),
+                    };
+                    setProjectParams({ ...projectParams, expenseCategories: newCategories });
+                  }}
+                  onItemLabelChange={(index: number, label: string) => {
+                    const newCategories = {
+                      ...projectParams.expenseCategories!,
+                      premierTravaux: projectParams.expenseCategories!.premierTravaux.map((item: any, i: number) =>
+                        i === index ? { ...item, label } : item
+                      ),
+                    };
+                    setProjectParams({ ...projectParams, expenseCategories: newCategories });
+                  }}
+                  onAddItem={() => {
+                    const newCategories = {
+                      ...projectParams.expenseCategories!,
+                      premierTravaux: [
+                        ...projectParams.expenseCategories!.premierTravaux,
+                        { label: 'Nouvelle dépense', amount: 0 }
+                      ],
+                    };
+                    setProjectParams({ ...projectParams, expenseCategories: newCategories });
+                  }}
+                  onRemoveItem={(index: number) => {
+                    const newCategories = {
+                      ...projectParams.expenseCategories!,
+                      premierTravaux: projectParams.expenseCategories!.premierTravaux.filter((_: any, i: number) => i !== index),
+                    };
+                    setProjectParams({ ...projectParams, expenseCategories: newCategories });
+                  }}
                 />
+
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="flex justify-between items-center p-3 bg-gray-50">
+                <h4 className="text-sm font-semibold text-gray-800 uppercase tracking-wide">Frais Généraux étalés sur 3 ans</h4>
+                <span className="text-sm font-bold text-purple-700">
+                  {formatCurrency(
+                    projectParams.expenseCategories
+                      ? calculations.sharedCosts - calculateExpenseCategoriesTotal(projectParams.expenseCategories)
+                      : projectParams.fraisGeneraux3ans
+                  )}
+                </span>
               </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Études préparatoires</label>
-                <input
-                  type="number"
-                  step="1000"
-                  value={projectParams.etudesPreparatoires}
-                  onChange={(e) => setProjectParams({...projectParams, etudesPreparatoires: parseFloat(e.target.value) || 0})}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Frais Études préparatoires</label>
-                <input
-                  type="number"
-                  step="1000"
-                  value={projectParams.fraisEtudesPreparatoires}
-                  onChange={(e) => setProjectParams({...projectParams, fraisEtudesPreparatoires: parseFloat(e.target.value) || 0})}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Frais Généraux étalés sur 3 ans</label>
-                <div className="bg-white p-3 rounded-lg border border-gray-300">
-                  <p className="text-base font-bold text-purple-700">
-                    {formatCurrency(calculations.sharedCosts - (projectParams.mesuresConservatoires + projectParams.demolition + projectParams.infrastructures * (1 - scenario.infrastructureReduction / 100) + projectParams.etudesPreparatoires + projectParams.fraisEtudesPreparatoires))}
-                  </p>
-                  <div className="text-xs text-gray-500 mt-1 space-y-0.5">
-                    <p>• Honoraires (15% × 30% CASCO)</p>
-                    <p>• Frais récurrents × 3 ans</p>
-                  </div>
-                  <p className="text-xs text-gray-400 italic mt-1">
-                    Calculé automatiquement
-                  </p>
+              <div className="p-3 bg-white space-y-2">
+                {/* Global CASCO rate input */}
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-600 whitespace-nowrap">
+                    Prix CASCO/m² Global:
+                  </label>
+                  <input
+                    type="number"
+                    step="10"
+                    value={projectParams.globalCascoPerM2}
+                    onChange={(e) => setProjectParams({
+                      ...projectParams,
+                      globalCascoPerM2: parseFloat(e.target.value) || 1590
+                    })}
+                    className="w-24 px-2 py-1 text-sm font-semibold border border-blue-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                  />
+                  <span className="text-xs text-blue-600">€/m²</span>
+                </div>
+
+                {/* Calculation breakdown */}
+                <div className="text-xs text-gray-500 space-y-0.5">
+                  <p>• Honoraires (15% × 30% CASCO)</p>
+                  <p>• Frais récurrents × 3 ans</p>
+                  <p className="text-gray-400 italic mt-1">Calculé automatiquement</p>
                 </div>
               </div>
-            </div>
-            <div className="mt-3 p-3 bg-purple-100 rounded-lg border border-purple-300">
+                </div>
+              </div>
+            )}
+
+            <div className="mt-4 p-3 bg-purple-100 rounded-lg border border-purple-300">
               <div className="flex justify-between items-center">
-                <p className="text-sm font-semibold text-gray-700">Total quote-part:</p>
+                <p className="text-sm font-semibold text-gray-700">Total commun:</p>
                 <p className="text-lg font-bold text-purple-800">{formatCurrency(calculations.sharedCosts)}</p>
               </div>
               <p className="text-xs text-gray-600 mt-1">
                 {formatCurrency(calculations.sharedPerPerson)} par personne
               </p>
-            </div>
-          </div>
-
-          <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-            <h3 className="text-sm font-semibold text-gray-800 mb-2">Travaux Communs</h3>
-            <p className="text-xs text-gray-600 mb-3">
-              Total: €{calculations.totals.totalTravauxCommuns.toLocaleString()} divisé par {participants.length} {participants.length > 1 ? 'unités' : 'unité'} = {formatCurrency(calculations.totals.travauxCommunsPerUnit)} par personne
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Bâtiment fondation (conservatoire)</label>
-                <input
-                  type="number"
-                  step="1000"
-                  value={projectParams.batimentFondationConservatoire}
-                  onChange={(e) => setProjectParams({...projectParams, batimentFondationConservatoire: parseFloat(e.target.value) || 0})}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white"
-                />
-                <p className="text-xs text-gray-400 mt-1">200€/m² × 218.5m²</p>
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Bâtiment fondation (complète)</label>
-                <input
-                  type="number"
-                  step="1000"
-                  value={projectParams.batimentFondationComplete}
-                  onChange={(e) => setProjectParams({...projectParams, batimentFondationComplete: parseFloat(e.target.value) || 0})}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white"
-                />
-                <p className="text-xs text-gray-400 mt-1">800€/m² × 336.5m²</p>
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Bâtiment copro (conservatoire)</label>
-                <input
-                  type="number"
-                  step="1000"
-                  value={projectParams.batimentCoproConservatoire}
-                  onChange={(e) => setProjectParams({...projectParams, batimentCoproConservatoire: parseFloat(e.target.value) || 0})}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white"
-                />
-                <p className="text-xs text-gray-400 mt-1">200€/m² × 280m²</p>
-              </div>
-            </div>
-            <div className="mt-3 p-3 bg-purple-100 rounded-lg border border-purple-300">
-              <div className="flex justify-between items-center">
-                <p className="text-sm font-semibold text-gray-700">Total travaux communs:</p>
-                <p className="text-lg font-bold text-purple-800">{formatCurrency(calculations.totals.totalTravauxCommuns)}</p>
-              </div>
-              <p className="text-xs text-gray-600 mt-1">
-                {formatCurrency(calculations.totals.travauxCommunsPerUnit)} par unité (÷{participants.length})
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6">🎛️ Scénarios d'Optimisation</h2>
-
-          {/* NEW: Global Construction Rates */}
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h3 className="text-sm font-semibold text-gray-800 mb-3">Taux de Base</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-gray-600 mb-2">
-                  Prix CASCO (gros œuvre) - Prix/m² - Global
-                </label>
-                <input
-                  type="number"
-                  step="10"
-                  value={projectParams.globalCascoPerM2}
-                  onChange={(e) => setProjectParams({
-                    ...projectParams,
-                    globalCascoPerM2: parseFloat(e.target.value) || 1590
-                  })}
-                  className="w-full px-4 py-3 text-lg font-semibold border border-blue-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white"
-                />
-                <p className="text-xs text-blue-600 mt-1">
-                  Appliqué à tous·tes les participant·e·s
-                </p>
-              </div>
             </div>
           </div>
         </div>
@@ -764,7 +793,6 @@ export default function EnDivisionCorrect() {
             {orderedParticipantBreakdown.map((p) => {
               // Find the original index in the participants array
               const idx = participants.findIndex((participant: any) => participant.name === p.name);
-              const isExpanded = expandedParticipants[idx];
 
               return (
               <div
@@ -774,7 +802,7 @@ export default function EnDivisionCorrect() {
 
                 {/* Always Visible Header */}
                 <div
-                  className={`cursor-pointer transition-all ${isExpanded ? 'p-6' : 'p-4'}`}
+                  className="cursor-pointer transition-all p-6"
                   onClick={() => setFullscreenParticipantIndex(idx)}
                 >
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
@@ -800,25 +828,6 @@ export default function EnDivisionCorrect() {
                             Retirer
                           </button>
                         )}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setExpandedParticipants(prev => ({...prev, [idx]: !prev[idx]}));
-                          }}
-                          className="text-gray-600 hover:text-gray-800 text-xs font-medium px-2 py-1 rounded border border-gray-300 hover:bg-gray-50 transition-colors flex items-center gap-1"
-                        >
-                          {isExpanded ? (
-                            <>
-                              <ChevronUp className="w-4 h-4" />
-                              Réduire
-                            </>
-                          ) : (
-                            <>
-                              <ChevronDown className="w-4 h-4" />
-                              Détails
-                            </>
-                          )}
-                        </button>
                       </div>
                       <div className="flex items-center gap-3 text-sm text-gray-600">
                         <span className="flex items-center gap-1">
@@ -845,66 +854,6 @@ export default function EnDivisionCorrect() {
                             </span>
                           </>
                         )}
-                        {!isExpanded && (
-                          <>
-                            <span className="text-gray-300">•</span>
-                            <span className="font-semibold text-gray-900">{formatCurrency(p.totalCost)}</span>
-                            {(() => {
-                              // Calculate total expected returns for founders
-                              if (!participants[idx].isFounder) return null;
-
-                              // 1. Portage paybacks
-                              const portagePaybacks = participants
-                                .filter((buyer: any) => buyer.purchaseDetails?.buyingFrom === participants[idx].name)
-                                .map((buyer: any) => buyer.purchaseDetails?.purchasePrice || 0);
-
-                              // 2. Copropriété redistributions
-                              const coproSales = participants
-                                .filter((buyer: any) => buyer.purchaseDetails?.buyingFrom === 'Copropriété')
-                                .map((buyer: any) => ({
-                                  entryDate: buyer.entryDate || new Date(deedDate),
-                                  amount: buyer.purchaseDetails?.purchasePrice || 0
-                                }));
-
-                              const coproRedistributions = coproSales.map((sale: any) => {
-                                const saleDate = new Date(sale.entryDate);
-                                const participantEntryDate = participants[idx].entryDate
-                                  ? new Date(participants[idx].entryDate)
-                                  : new Date(deedDate);
-
-                                if (participantEntryDate >= saleDate) return 0;
-
-                                const monthsInProject = (saleDate.getTime() - participantEntryDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
-                                const eligibleParticipants = participants.filter((p: any) => {
-                                  const pEntryDate = p.entryDate ? new Date(p.entryDate) : new Date(deedDate);
-                                  return pEntryDate < saleDate;
-                                });
-
-                                const totalMonths = eligibleParticipants.reduce((sum: number, p: any) => {
-                                  const pEntryDate = p.entryDate ? new Date(p.entryDate) : new Date(deedDate);
-                                  const pMonths = (saleDate.getTime() - pEntryDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
-                                  return sum + pMonths;
-                                }, 0);
-
-                                const shareRatio = totalMonths > 0 ? monthsInProject / totalMonths : 0;
-                                return sale.amount * shareRatio;
-                              });
-
-                              const totalReturns = portagePaybacks.reduce((sum: number, amt: number) => sum + amt, 0) +
-                                                  coproRedistributions.reduce((sum: number, amt: number) => sum + amt, 0);
-
-                              if (totalReturns > 0) {
-                                return (
-                                  <>
-                                    <span className="text-gray-300">•</span>
-                                    <span className="font-semibold text-purple-700">{formatCurrency(totalReturns)}</span>
-                                  </>
-                                );
-                              }
-                              return null;
-                            })()}
-                          </>
-                        )}
                       </div>
                     </div>
 
@@ -926,39 +875,6 @@ export default function EnDivisionCorrect() {
                   </div>
 
                 </div>
-
-                {/* Expandable Details */}
-                {isExpanded && (
-                  <ParticipantDetailsPanel
-                    participant={participants[idx]}
-                    participantCalc={p}
-                    participantIndex={idx}
-                    allParticipants={participants}
-                    calculations={calculations}
-                    projectParams={projectParams}
-                    deedDate={deedDate}
-                    pinnedParticipant={pinnedParticipant}
-                    onPinParticipant={handlePinParticipant}
-                    onUnpinParticipant={handleUnpinParticipant}
-                    onUpdateParticipant={(index, updates) => {
-                      const newParticipants = [...participants];
-                      newParticipants[index] = { ...newParticipants[index], ...updates };
-                      setParticipants(newParticipants);
-                    }}
-                    onUpdateParticipantSurface={updateParticipantSurface}
-                    onUpdateCapital={updateCapital}
-                    onUpdateNotaryRate={updateNotaryRate}
-                    onUpdateQuantity={updateQuantity}
-                    onUpdateParachevementsPerM2={updateParachevementsPerM2}
-                    onUpdateCascoSqm={updateCascoSqm}
-                    onUpdateParachevementsSqm={updateParachevementsSqm}
-                    onUpdateInterestRate={updateInterestRate}
-                    onUpdateDuration={updateDuration}
-                    onAddPortageLot={addPortageLot}
-                    onRemovePortageLot={removePortageLot}
-                    onUpdatePortageLotSurface={updatePortageLotSurface}
-                  />
-                )}
               </div>
               );
             })}

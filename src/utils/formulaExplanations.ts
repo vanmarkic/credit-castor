@@ -11,7 +11,7 @@ import type { ParticipantCalculation, CalculationTotals } from './calculatorUtil
 export function getTotalCostFormula(p: ParticipantCalculation): string[] {
   return [
     "Coût total pour ce participant",
-    `Achat €${p.purchaseShare.toLocaleString()} + Notaire €${p.notaryFees.toLocaleString()} + Construction €${p.constructionCost.toLocaleString()} + Quote-part €${p.sharedCosts.toLocaleString()}`
+    `Achat €${p.purchaseShare.toLocaleString()} + Notaire €${p.notaryFees.toLocaleString()} + Construction €${p.constructionCost.toLocaleString()} + Commun €${p.sharedCosts.toLocaleString()}`
   ];
 }
 
@@ -106,7 +106,7 @@ export function getPricePerM2Formula(totals: CalculationTotals, totalSurface: nu
 export function getTotalProjectCostFormula(): string[] {
   return [
     "Somme de toutes les dépenses du projet",
-    "Achat + Notaire + Construction + Quote-part"
+    "Achat + Notaire + Construction + Commun"
   ];
 }
 

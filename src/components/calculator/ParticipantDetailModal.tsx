@@ -366,10 +366,10 @@ export default function ParticipantDetailModal({
             <div className="bg-white rounded-lg p-3 border border-purple-200">
               <p className="text-xs text-gray-500 mb-1">Travaux communs</p>
               <p className="text-lg font-bold text-purple-700">{formatCurrency(p.travauxCommunsPerUnit)}</p>
-              <p className="text-xs text-purple-500 mt-0.5">Quote-part fixe (÷{allParticipants.length})</p>
+              <p className="text-xs text-purple-500 mt-0.5">Commun fixe (÷{allParticipants.length})</p>
             </div>
             <div className="bg-white rounded-lg p-3 border border-purple-200">
-              <p className="text-xs text-gray-500 mb-1">Quote-part</p>
+              <p className="text-xs text-gray-500 mb-1">Commun</p>
               <p className="text-lg font-bold text-purple-700">{formatCurrency(p.sharedCosts)}</p>
             </div>
           </div>

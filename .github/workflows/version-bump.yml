@@ -1,0 +1,261 @@
+name: Version Bump
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        options:
+          - patch  # 1.0.0 -> 1.0.1 (bugfixes)
+          - minor  # 1.0.0 -> 1.1.0 (new features)
+          - major  # 1.0.0 -> 2.0.0 (breaking changes)
+          - auto   # Auto-detect from commits
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    outputs:
+      new_version: ${{ steps.bump.outputs.new_version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Get current version
+        id: current
+        run: |
+          # Get current version from src/utils/version.ts
+          CURRENT_VERSION=$(grep "RELEASE_VERSION = " src/utils/version.ts | sed "s/.*'\(.*\)'.*/\1/")
+          echo "current_version=v$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: v$CURRENT_VERSION"
+
+      - name: Auto-detect bump type from commits
+        if: github.event.inputs.bump_type == 'auto'
+        id: auto-detect
+        run: |
+          # Get commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)
+          COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:"%s" 2>/dev/null || git log --pretty=format:"%s")
+
+          echo "Analyzing commits for conventional commit patterns..."
+          echo "$COMMITS"
+
+          # Check for breaking changes (BREAKING CHANGE or !)
+          if echo "$COMMITS" | grep -qE "(BREAKING CHANGE|!:)"; then
+            echo "bump_type=major" >> $GITHUB_OUTPUT
+            echo "🚨 Detected BREAKING CHANGE - bumping MAJOR version"
+          # Check for new features (feat:)
+          elif echo "$COMMITS" | grep -qE "^feat(\(.+\))?:"; then
+            echo "bump_type=minor" >> $GITHUB_OUTPUT
+            echo "✨ Detected new features - bumping MINOR version"
+          # Default to patch (fix:, chore:, docs:, etc.)
+          else
+            echo "bump_type=patch" >> $GITHUB_OUTPUT
+            echo "🐛 Detected fixes/chores - bumping PATCH version"
+          fi
+
+      - name: Calculate new version
+        id: bump
+        run: |
+          CURRENT="${{ steps.current.outputs.current_version }}"
+          BUMP_TYPE="${{ github.event.inputs.bump_type }}"
+
+          # If auto-detect, use the detected type
+          if [ "$BUMP_TYPE" = "auto" ]; then
+            BUMP_TYPE="${{ steps.auto-detect.outputs.bump_type }}"
+          fi
+
+          # Remove 'v' prefix for calculation
+          CURRENT="${CURRENT#v}"
+
+          # Split version into components
+          IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT"
+          MAJOR="${VERSION_PARTS[0]:-0}"
+          MINOR="${VERSION_PARTS[1]:-0}"
+          PATCH="${VERSION_PARTS[2]:-0}"
+
+          # Bump version based on type
+          case "$BUMP_TYPE" in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
+
+          NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+          NEW_VERSION_NO_V="${MAJOR}.${MINOR}.${PATCH}"
+
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "new_version_no_v=$NEW_VERSION_NO_V" >> $GITHUB_OUTPUT
+          echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
+
+          echo "📦 Version bump: ${{ steps.current.outputs.current_version }} → $NEW_VERSION ($BUMP_TYPE)"
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)
+
+          echo "## What's Changed" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+
+          # Parse commits by type
+          git log $LAST_TAG..HEAD --pretty=format:"%s" | while read commit; do
+            case "$commit" in
+              feat*|feature*)
+                echo "### ✨ Features" >> CHANGELOG_FEATURES.md
+                echo "- ${commit#*: }" >> CHANGELOG_FEATURES.md
+                ;;
+              fix*)
+                echo "### 🐛 Bug Fixes" >> CHANGELOG_FIXES.md
+                echo "- ${commit#*: }" >> CHANGELOG_FIXES.md
+                ;;
+              docs*)
+                echo "### 📚 Documentation" >> CHANGELOG_DOCS.md
+                echo "- ${commit#*: }" >> CHANGELOG_DOCS.md
+                ;;
+              perf*)
+                echo "### ⚡ Performance" >> CHANGELOG_PERF.md
+                echo "- ${commit#*: }" >> CHANGELOG_PERF.md
+                ;;
+              refactor*)
+                echo "### ♻️ Refactoring" >> CHANGELOG_REFACTOR.md
+                echo "- ${commit#*: }" >> CHANGELOG_REFACTOR.md
+                ;;
+              test*)
+                echo "### ✅ Tests" >> CHANGELOG_TESTS.md
+                echo "- ${commit#*: }" >> CHANGELOG_TESTS.md
+                ;;
+              chore*|ci*)
+                echo "### 🔧 Maintenance" >> CHANGELOG_CHORE.md
+                echo "- ${commit#*: }" >> CHANGELOG_CHORE.md
+                ;;
+              *)
+                echo "### 📝 Other Changes" >> CHANGELOG_OTHER.md
+                echo "- $commit" >> CHANGELOG_OTHER.md
+                ;;
+            esac
+          done
+
+          # Combine changelog sections in order
+          for file in CHANGELOG_FEATURES.md CHANGELOG_FIXES.md CHANGELOG_PERF.md CHANGELOG_REFACTOR.md CHANGELOG_DOCS.md CHANGELOG_TESTS.md CHANGELOG_CHORE.md CHANGELOG_OTHER.md; do
+            if [ -f "$file" ]; then
+              cat "$file" >> CHANGELOG.md
+              echo "" >> CHANGELOG.md
+            fi
+          done
+
+          # Clean up temp files
+          rm -f CHANGELOG_*.md
+
+          echo "Generated changelog:"
+          cat CHANGELOG.md
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update version.ts
+        run: |
+          NEW_VERSION="${{ steps.bump.outputs.new_version_no_v }}"
+
+          # Update RELEASE_VERSION in version.ts
+          sed -i "s/export const RELEASE_VERSION = '.*'/export const RELEASE_VERSION = '$NEW_VERSION'/" src/utils/version.ts
+
+          echo "✅ Updated src/utils/version.ts to $NEW_VERSION"
+
+          # Show the updated file
+          cat src/utils/version.ts
+
+      - name: Update package.json version
+        run: |
+          NEW_VERSION="${{ steps.bump.outputs.new_version_no_v }}"
+
+          # Update package.json
+          sed -i "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" package.json
+
+          echo "✅ Updated package.json to $NEW_VERSION"
+
+      - name: Commit version bump
+        run: |
+          NEW_VERSION="${{ steps.bump.outputs.new_version }}"
+          BUMP_TYPE="${{ steps.bump.outputs.bump_type }}"
+
+          git add src/utils/version.ts package.json
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: bump version to $NEW_VERSION ($BUMP_TYPE)"
+            git push origin master
+            echo "✅ Committed version bump"
+          fi
+
+      - name: Create and push tag
+        run: |
+          NEW_VERSION="${{ steps.bump.outputs.new_version }}"
+          BUMP_TYPE="${{ steps.bump.outputs.bump_type }}"
+
+          git tag -a "$NEW_VERSION" -m "Release $NEW_VERSION ($BUMP_TYPE bump)"
+          git push origin "$NEW_VERSION"
+
+          echo "✅ Created and pushed tag $NEW_VERSION"
+
+      - name: Create GitHub Release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
+
+            await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: '${{ steps.bump.outputs.new_version }}',
+              name: 'Release ${{ steps.bump.outputs.new_version }}',
+              body: changelog,
+              draft: false,
+              prerelease: false
+            });
+
+      - name: Summary
+        run: |
+          echo "## 🎉 Version Bumped Successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Old Version:** ${{ steps.current.outputs.current_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**New Version:** ${{ steps.bump.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Bump Type:** ${{ steps.bump.outputs.bump_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f "CHANGELOG.md" ]; then
+            cat CHANGELOG.md >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Actions Completed" >> $GITHUB_STEP_SUMMARY
+          echo "- Updated src/utils/version.ts" >> $GITHUB_STEP_SUMMARY
+          echo "- Updated package.json" >> $GITHUB_STEP_SUMMARY
+          echo "- Created git tag ${{ steps.bump.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Created GitHub Release" >> $GITHUB_STEP_SUMMARY

@@ -8,16 +8,43 @@ export const DEFAULT_PARTICIPANTS = [
 
 export const DEFAULT_PROJECT_PARAMS = {
   totalPurchase: 650000,
-  mesuresConservatoires: 20000,
-  demolition: 40000,
-  infrastructures: 90000,
-  etudesPreparatoires: 59820,
-  fraisEtudesPreparatoires: 27320,
+  mesuresConservatoires: 0,
+  demolition: 0,
+  infrastructures: 0,
+  etudesPreparatoires: 0,
+  fraisEtudesPreparatoires: 0,
   fraisGeneraux3ans: 0,
-  batimentFondationConservatoire: 43700,
-  batimentFondationComplete: 269200,
-  batimentCoproConservatoire: 56000,
-  globalCascoPerM2: 1590
+  batimentFondationConservatoire: 0,
+  batimentFondationComplete: 0,
+  batimentCoproConservatoire: 0,
+  globalCascoPerM2: 1590,
+  expenseCategories: {
+    conservatoire: [
+      { label: 'Traitement Mérule', amount: 40000 },
+      { label: 'Démolition (mérule)', amount: 20000 },
+      { label: 'nettoyage du site', amount: 6000 },
+      { label: 'toitures', amount: 10000 },
+      { label: 'sécurité du site? (portes, accès..)', amount: 2000 },
+    ],
+    habitabiliteSommaire: [
+      { label: 'plomberie', amount: 1000 },
+      { label: 'électricité (refaire un tableau)', amount: 1000 },
+      { label: 'retirer des lignes (électrique)', amount: 2000 },
+      { label: 'isolation thermique', amount: 1000 },
+      { label: 'cloisons', amount: 2000 },
+      { label: 'chauffage', amount: 0 },
+    ],
+    premierTravaux: [
+      { label: 'poulailler', amount: 150 },
+      { label: 'atelier maintenance (et reparation)', amount: 500 },
+      { label: 'stockage ressources/énergie/consommables (eau, bois,...)', amount: 700 },
+      { label: 'verger prix par 1ha', amount: 2000 },
+      { label: 'atelier construction', amount: 2500 },
+      { label: 'Cuisine (commune)', amount: 3000 },
+      { label: 'travaux chapelle rudimentaires', amount: 5000 },
+      { label: 'local + outil jardin', amount: 5000 },
+    ],
+  },
 };
 
 export const DEFAULT_SCENARIO = {

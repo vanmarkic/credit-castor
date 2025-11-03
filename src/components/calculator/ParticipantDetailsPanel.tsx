@@ -445,11 +445,11 @@ export function ParticipantDetailsPanel({
                 {formatCurrency(p.travauxCommunsPerUnit)}
               </FormulaTooltip>
             </p>
-            <p className="text-xs text-purple-500 mt-0.5">Quote-part fixe (÷{participants.length})</p>
+            <p className="text-xs text-purple-500 mt-0.5">Commun fixe (÷{participants.length})</p>
           </div>
 
           <div className="bg-white rounded-lg p-3 border border-purple-200">
-            <p className="text-xs text-gray-500 mb-1">Quote-part</p>
+            <p className="text-xs text-gray-500 mb-1">Commun</p>
             <p className="text-base font-bold text-purple-700">
               <FormulaTooltip formula={getSharedCostsFormula(p, participants.length)}>
                 {formatCurrency(p.sharedCosts)}

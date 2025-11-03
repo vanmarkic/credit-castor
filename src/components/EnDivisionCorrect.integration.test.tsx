@@ -28,11 +28,7 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
       expect(screen.getByText(/Participant 5/i)).toBeInTheDocument();
     });
 
-    // Find all "Détails" buttons and click the last one (new participant)
-    const expandButtons = screen.getAllByRole('button', { name: /Détails/i });
-    fireEvent.click(expandButtons[expandButtons.length - 1]);
-
-    // Should see entry date section
+    // Details panel is now always visible, should see entry date section
     await waitFor(() => {
       expect(screen.getByText(/Date d'entrée dans le projet/i)).toBeInTheDocument();
     });
@@ -54,10 +50,7 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
       expect(screen.getByText(/Participant 5/i)).toBeInTheDocument();
     });
 
-    // Expand the new participant
-    const expandButtons = screen.getAllByRole('button', { name: /Détails/i });
-    fireEvent.click(expandButtons[expandButtons.length - 1]);
-
+    // Details panel is now always visible
     // Uncheck "Fondateur"
     const founderCheckboxes = screen.getAllByRole('checkbox', { name: /Fondateur/i });
     const lastFounderCheckbox = founderCheckboxes[founderCheckboxes.length - 1];
@@ -80,11 +73,7 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
       expect(screen.getByText(/Participant 5/i)).toBeInTheDocument();
     });
 
-    // Expand the newcomer
-    const expandButtons = screen.getAllByRole('button', { name: /Détails/i });
-    const newcomerExpandBtn = expandButtons[expandButtons.length - 1];
-    fireEvent.click(newcomerExpandBtn);
-
+    // Details panel is now always visible
     // Uncheck founder
     const founderCheckboxes = screen.getAllByRole('checkbox', { name: /Fondateur/i });
     const newcomerFounderCheckbox = founderCheckboxes[founderCheckboxes.length - 1];
@@ -105,19 +94,8 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
       fireEvent.change(priceInputs[0], { target: { value: '200000' } });
     }
 
-    // Now expand the first participant (seller - Manuela/Dragan)
-    const firstExpandButton = expandButtons[0];
-    fireEvent.click(firstExpandButton);
-
-    // Should see portage payback section
-    await waitFor(() => {
-      const portageSection = screen.queryByText(/Portage - Remboursements attendus/i);
-      // This may not appear immediately if purchase details aren't fully set
-      // But the section should exist when configured properly
-      if (portageSection) {
-        expect(portageSection).toBeInTheDocument();
-      }
-    });
+    // Note: Portage payback details are now only visible in the fullscreen modal
+    // This test would need to be updated to open the modal to verify portage section
   });
 
   it.skip('should display copropriété redistribution when buying from copropriété', async () => {
@@ -131,11 +109,7 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
       expect(screen.getByText(/Participant 5/i)).toBeInTheDocument();
     });
 
-    // Expand the newcomer
-    const expandButtons = screen.getAllByRole('button', { name: /Détails/i });
-    const newcomerExpandBtn = expandButtons[expandButtons.length - 1];
-    fireEvent.click(newcomerExpandBtn);
-
+    // Details panel is now always visible
     // Uncheck founder
     const founderCheckboxes = screen.getAllByRole('checkbox', { name: /Fondateur/i });
     const newcomerFounderCheckbox = founderCheckboxes[founderCheckboxes.length - 1];
@@ -163,10 +137,6 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
       fireEvent.change(entryDateInput, { target: { value: '2028-06-01' } });
     }
 
-    // Now expand existing founders to check for copro redistribution
-    const firstExpandButton = expandButtons[0];
-    fireEvent.click(firstExpandButton);
-
     // Should see copropri�t� redistribution section
     await waitFor(() => {
       const coproSection = screen.queryByText(/Copropri�t� - Redistributions/i);
@@ -191,10 +161,7 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
       expect(screen.getByText(/Participant 5/i)).toBeInTheDocument();
     });
 
-    // Expand the newcomer
-    const expandButtons = screen.getAllByRole('button', { name: /Détails/i });
-    fireEvent.click(expandButtons[expandButtons.length - 1]);
-
+    // Details panel is now always visible
     // Uncheck founder to enable date picker
     const founderCheckboxes = screen.getAllByRole('checkbox', { name: /Fondateur/i });
     const lastCheckbox = founderCheckboxes[founderCheckboxes.length - 1];
