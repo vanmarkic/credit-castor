@@ -39,4 +39,19 @@ describe('Event Types', () => {
 
     expect(event.type).toBe('APPLY_FOR_LOAN');
   });
+
+  it('should support all event types in union', () => {
+    const purchaseEvent: ProjectEvents = {
+      type: 'COMPROMIS_SIGNED',
+      compromisDate: new Date('2023-01-01'),
+      deposit: 50000
+    };
+
+    const salesEvent: ProjectEvents = {
+      type: 'FIRST_SALE'
+    };
+
+    expect(purchaseEvent.type).toBe('COMPROMIS_SIGNED');
+    expect(salesEvent.type).toBe('FIRST_SALE');
+  });
 });
