@@ -140,3 +140,138 @@ describe('Copropriété Creation Flow', () => {
     expect(context.acpEnterpriseNumber).toBe(acpNumber);
   });
 });
+
+describe('Permit Process Flow', () => {
+  it('should transition through complete permit process: REQUEST_PERMIT → PERMIT_GRANTED → PERMIT_ENACTED', () => {
+    const actor = createActor(creditCastorMachine);
+    actor.start();
+
+    // Navigate to copro_established
+    actor.send({ type: 'COMPROMIS_SIGNED', compromisDate: new Date('2023-01-01'), deposit: 50000 });
+    actor.send({ type: 'ALL_CONDITIONS_MET' });
+    actor.send({ type: 'DEED_SIGNED', deedDate: new Date('2023-05-01'), notaryId: 'notary1' });
+    actor.send({ type: 'DEED_REGISTERED', registrationDate: new Date('2023-05-10') });
+    actor.send({ type: 'START_COPRO_CREATION' });
+    actor.send({ type: 'TECHNICAL_REPORT_READY' });
+    actor.send({ type: 'PRECAD_REQUESTED', referenceNumber: 'PRECAD-2023-001' });
+    actor.send({ type: 'PRECAD_APPROVED', approvalDate: new Date('2023-07-15') });
+    actor.send({ type: 'ACTE_DRAFTED' });
+    actor.send({ type: 'ACTE_SIGNED', signatureDate: new Date('2023-08-01') });
+    actor.send({ type: 'ACTE_TRANSCRIBED', transcriptionDate: new Date('2023-08-15'), acpNumber: 'ACP-BE-123' });
+
+    expect(actor.getSnapshot().matches('copro_established')).toBe(true);
+
+    // Request permit
+    actor.send({ type: 'REQUEST_PERMIT' });
+    const afterRequest = actor.getSnapshot();
+    expect(afterRequest.matches({ permit_process: 'permit_review' })).toBe(true);
+    expect(afterRequest.context.permitRequestedDate).toBeInstanceOf(Date);
+
+    // Permit granted
+    const grantDate = new Date('2023-10-01');
+    actor.send({ type: 'PERMIT_GRANTED', grantDate });
+    const afterGrant = actor.getSnapshot();
+    expect(afterGrant.matches({ permit_process: 'awaiting_enactment' })).toBe(true);
+    expect(afterGrant.context.permitGrantedDate).toEqual(grantDate);
+
+    // Permit enacted
+    const enactmentDate = new Date('2023-11-01');
+    actor.send({ type: 'PERMIT_ENACTED', enactmentDate });
+    const afterEnactment = actor.getSnapshot();
+    expect(afterEnactment.matches('permit_active')).toBe(true);
+    expect(afterEnactment.context.permitEnactedDate).toEqual(enactmentDate);
+  });
+
+  it('should handle permit rejection flow: REQUEST_PERMIT → PERMIT_REJECTED', () => {
+    const actor = createActor(creditCastorMachine);
+    actor.start();
+
+    // Navigate to copro_established
+    actor.send({ type: 'COMPROMIS_SIGNED', compromisDate: new Date('2023-01-01'), deposit: 50000 });
+    actor.send({ type: 'ALL_CONDITIONS_MET' });
+    actor.send({ type: 'DEED_SIGNED', deedDate: new Date('2023-05-01'), notaryId: 'notary1' });
+    actor.send({ type: 'DEED_REGISTERED', registrationDate: new Date('2023-05-10') });
+    actor.send({ type: 'START_COPRO_CREATION' });
+    actor.send({ type: 'TECHNICAL_REPORT_READY' });
+    actor.send({ type: 'PRECAD_REQUESTED', referenceNumber: 'PRECAD-2023-001' });
+    actor.send({ type: 'PRECAD_APPROVED', approvalDate: new Date('2023-07-15') });
+    actor.send({ type: 'ACTE_DRAFTED' });
+    actor.send({ type: 'ACTE_SIGNED', signatureDate: new Date('2023-08-01') });
+    actor.send({ type: 'ACTE_TRANSCRIBED', transcriptionDate: new Date('2023-08-15'), acpNumber: 'ACP-BE-123' });
+
+    // Request permit
+    actor.send({ type: 'REQUEST_PERMIT' });
+    expect(actor.getSnapshot().matches({ permit_process: 'permit_review' })).toBe(true);
+
+    // Permit rejected - should return to permit_process initial state
+    actor.send({ type: 'PERMIT_REJECTED', reason: 'Non-compliance with zoning regulations' });
+    const afterRejection = actor.getSnapshot();
+    expect(afterRejection.matches({ permit_process: 'awaiting_request' })).toBe(true);
+  });
+
+  it('should handle hidden lots declaration: PERMIT_ENACTED → DECLARE_HIDDEN_LOTS → lots_declared', () => {
+    const actor = createActor(creditCastorMachine);
+    actor.start();
+
+    // Navigate to permit_active
+    actor.send({ type: 'COMPROMIS_SIGNED', compromisDate: new Date('2023-01-01'), deposit: 50000 });
+    actor.send({ type: 'ALL_CONDITIONS_MET' });
+    actor.send({ type: 'DEED_SIGNED', deedDate: new Date('2023-05-01'), notaryId: 'notary1' });
+    actor.send({ type: 'DEED_REGISTERED', registrationDate: new Date('2023-05-10') });
+    actor.send({ type: 'START_COPRO_CREATION' });
+    actor.send({ type: 'TECHNICAL_REPORT_READY' });
+    actor.send({ type: 'PRECAD_REQUESTED', referenceNumber: 'PRECAD-2023-001' });
+    actor.send({ type: 'PRECAD_APPROVED', approvalDate: new Date('2023-07-15') });
+    actor.send({ type: 'ACTE_DRAFTED' });
+    actor.send({ type: 'ACTE_SIGNED', signatureDate: new Date('2023-08-01') });
+    actor.send({ type: 'ACTE_TRANSCRIBED', transcriptionDate: new Date('2023-08-15'), acpNumber: 'ACP-BE-123' });
+    actor.send({ type: 'REQUEST_PERMIT' });
+    actor.send({ type: 'PERMIT_GRANTED', grantDate: new Date('2023-10-01') });
+    actor.send({ type: 'PERMIT_ENACTED', enactmentDate: new Date('2023-11-01') });
+
+    expect(actor.getSnapshot().matches('permit_active')).toBe(true);
+
+    // Declare hidden lots
+    actor.send({ type: 'DECLARE_HIDDEN_LOTS', lotIds: ['lot-1', 'lot-2', 'lot-3'] });
+    expect(actor.getSnapshot().matches('lots_declared')).toBe(true);
+  });
+
+  it('should record all permit milestones in context', () => {
+    const actor = createActor(creditCastorMachine);
+    actor.start();
+
+    // Navigate to copro_established
+    actor.send({ type: 'COMPROMIS_SIGNED', compromisDate: new Date('2023-01-01'), deposit: 50000 });
+    actor.send({ type: 'ALL_CONDITIONS_MET' });
+    actor.send({ type: 'DEED_SIGNED', deedDate: new Date('2023-05-01'), notaryId: 'notary1' });
+    actor.send({ type: 'DEED_REGISTERED', registrationDate: new Date('2023-05-10') });
+    actor.send({ type: 'START_COPRO_CREATION' });
+    actor.send({ type: 'TECHNICAL_REPORT_READY' });
+    actor.send({ type: 'PRECAD_REQUESTED', referenceNumber: 'PRECAD-2023-001' });
+    actor.send({ type: 'PRECAD_APPROVED', approvalDate: new Date('2023-07-15') });
+    actor.send({ type: 'ACTE_DRAFTED' });
+    actor.send({ type: 'ACTE_SIGNED', signatureDate: new Date('2023-08-01') });
+    actor.send({ type: 'ACTE_TRANSCRIBED', transcriptionDate: new Date('2023-08-15'), acpNumber: 'ACP-BE-123' });
+
+    // Request permit and track dates
+    actor.send({ type: 'REQUEST_PERMIT' });
+    const requestSnapshot = actor.getSnapshot();
+    expect(requestSnapshot.context.permitRequestedDate).toBeInstanceOf(Date);
+
+    const grantDate = new Date('2023-10-01');
+    actor.send({ type: 'PERMIT_GRANTED', grantDate });
+    const grantSnapshot = actor.getSnapshot();
+    expect(grantSnapshot.context.permitGrantedDate).toEqual(grantDate);
+
+    const enactmentDate = new Date('2023-11-01');
+    actor.send({ type: 'PERMIT_ENACTED', enactmentDate });
+    const enactmentSnapshot = actor.getSnapshot();
+    expect(enactmentSnapshot.context.permitEnactedDate).toEqual(enactmentDate);
+
+    // Verify all permit dates are recorded
+    const context = enactmentSnapshot.context;
+    expect(context.permitRequestedDate).toBeInstanceOf(Date);
+    expect(context.permitGrantedDate).toEqual(grantDate);
+    expect(context.permitEnactedDate).toEqual(enactmentDate);
+  });
+});

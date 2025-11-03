@@ -71,6 +71,26 @@ export const creditCastorMachine = setup({
         if (event.type !== 'ACTE_TRANSCRIBED') return null;
         return event.acpNumber;
       }
+    }),
+
+    recordPermitRequest: assign({
+      permitRequestedDate: () => {
+        return new Date();
+      }
+    }),
+
+    recordPermitGrant: assign({
+      permitGrantedDate: ({ event }) => {
+        if (event.type !== 'PERMIT_GRANTED') return null;
+        return event.grantDate;
+      }
+    }),
+
+    recordPermitEnactment: assign({
+      permitEnactedDate: ({ event }) => {
+        if (event.type !== 'PERMIT_ENACTED') return null;
+        return event.enactmentDate;
+      }
     })
   }
 
@@ -223,9 +243,54 @@ export const creditCastorMachine = setup({
       }
     },
 
-    copro_established: {},
-    permit_process: {},
-    permit_active: {},
+    copro_established: {
+      on: {
+        REQUEST_PERMIT: {
+          target: 'permit_process',
+          actions: ['recordPermitRequest']
+        }
+      }
+    },
+
+    permit_process: {
+      initial: 'permit_review',
+      states: {
+        permit_review: {
+          on: {
+            PERMIT_GRANTED: {
+              target: 'awaiting_enactment',
+              actions: ['recordPermitGrant']
+            },
+            PERMIT_REJECTED: {
+              target: 'awaiting_request'
+            }
+          }
+        },
+        awaiting_request: {
+          on: {
+            REQUEST_PERMIT: {
+              target: 'permit_review',
+              actions: ['recordPermitRequest']
+            }
+          }
+        },
+        awaiting_enactment: {
+          on: {
+            PERMIT_ENACTED: {
+              target: '#creditCastorProject.permit_active',
+              actions: ['recordPermitEnactment']
+            }
+          }
+        }
+      }
+    },
+
+    permit_active: {
+      on: {
+        DECLARE_HIDDEN_LOTS: 'lots_declared'
+      }
+    },
+
     lots_declared: {},
     sales_active: {},
     completed: { type: 'final' }
