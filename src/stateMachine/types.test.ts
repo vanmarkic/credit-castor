@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { Participant, Lot, ProjectContext, PortageSale, CoproSale, ClassicSale } from './types';
+import type { Participant, Lot, PortageSale, CoproSale, ClassicSale, LoanApplication, ACPLoan } from './types';
 
 describe('Type Definitions', () => {
   it('should create valid Participant', () => {
@@ -100,5 +100,56 @@ describe('Sale Types', () => {
 
     expect(sale.type).toBe('classic');
     expect(sale.price).toBeLessThanOrEqual(sale.priceCap);
+  });
+});
+
+describe('Financing Types', () => {
+  it('should create individual loan application', () => {
+    const loan: LoanApplication = {
+      participantId: 'p1',
+      status: 'pending',
+      loanAmount: 200000,
+      interestRate: 0.035,
+      durationYears: 25,
+      purpose: 'purchase',
+      applicationDate: new Date(),
+      bankName: 'KBC'
+    };
+
+    expect(loan.status).toBe('pending');
+  });
+
+  it('should create ACP collective loan with voting', () => {
+    const acpLoan: ACPLoan = {
+      id: 'acp1',
+      purpose: 'roof',
+      description: 'Replace aging roof',
+      totalAmount: 50000,
+      capitalRequired: 15000,
+      capitalGathered: 0,
+      contributions: new Map(),
+      loanAmount: 0,
+      interestRate: 0.035,
+      durationYears: 10,
+      votingRules: {
+        method: 'hybrid',
+        quorumPercentage: 50,
+        majorityPercentage: 50,
+        hybridWeights: {
+          democraticWeight: 0.5,
+          quotiteWeight: 0.5
+        }
+      },
+      votes: new Map(),
+      approvedByCoowners: false,
+      votingDate: null,
+      applicationDate: new Date(),
+      approvalDate: null,
+      disbursementDate: null,
+      status: 'proposed'
+    };
+
+    expect(acpLoan.purpose).toBe('roof');
+    expect(acpLoan.votingRules.method).toBe('hybrid');
   });
 });

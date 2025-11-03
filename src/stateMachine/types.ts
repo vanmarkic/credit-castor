@@ -174,7 +174,108 @@ export interface BuyerApproval {
 
 export type Sale = PortageSale | CoproSale | ClassicSale;
 
+// ============================================
+// LOAN TYPES
+// ============================================
+
+export type LoanStatus = 'not_applied' | 'pending' | 'approved' | 'rejected';
+
+export interface LoanApplication {
+  participantId: string;
+  status: LoanStatus;
+  loanAmount: number;
+  interestRate: number;
+  durationYears: number;
+  purpose: 'purchase' | 'renovation'; // Distinguish between initial purchase and private renovation
+  applicationDate: Date;
+  approvalDate?: Date;
+  disbursementDate?: Date;
+  bankName?: string;
+  rejectionReason?: string;
+}
+
+// ============================================
+// ACP COLLECTIVE LOAN TYPES
+// ============================================
+
+export type ACPLoanPurpose = 'roof' | 'staircases' | 'facade' | 'common_areas' | 'other';
+export type ACPLoanStatus = 'proposed' | 'voting' | 'capital_gathering' | 'loan_application' | 'approved' | 'disbursed' | 'rejected';
+
+export interface ACPLoan {
+  id: string;
+  purpose: ACPLoanPurpose;
+  description: string;
+  totalAmount: number;
+
+  capitalRequired: number;
+  capitalGathered: number;
+  contributions: Map<string, ACPContribution>;
+
+  loanAmount: number;
+  interestRate: number;
+  durationYears: number;
+
+  votingRules: VotingRules;
+  votes: Map<string, ParticipantVote>;
+  votingResults?: VotingResults;
+  approvedByCoowners: boolean;
+  votingDate: Date | null;
+
+  applicationDate: Date;
+  approvalDate: Date | null;
+  disbursementDate: Date | null;
+  status: ACPLoanStatus;
+}
+
+export interface ACPContribution {
+  participantId: string;
+  amountPledged: number;
+  amountPaid: number;
+  quotiteShare: number;
+  paymentDate: Date | null;
+}
+
+// ============================================
+// VOTING TYPES
+// ============================================
+
+export type VotingMethod = 'one_person_one_vote' | 'quotite_weighted' | 'hybrid';
+
+export interface VotingRules {
+  method: VotingMethod;
+  quorumPercentage: number;
+  majorityPercentage: number;
+  hybridWeights?: {
+    democraticWeight: number;
+    quotiteWeight: number;
+  };
+}
+
+export interface ParticipantVote {
+  participantId: string;
+  vote: 'for' | 'against' | 'abstain';
+  quotite: number;
+  timestamp: Date;
+}
+
+export interface VotingResults {
+  totalVoters: number;
+  votesFor: number;
+  votesAgainst: number;
+  abstentions: number;
+
+  totalQuotite: number;
+  quotiteFor: number;
+  quotiteAgainst: number;
+  quotiteAbstained: number;
+
+  hybridScore?: number;
+
+  quorumReached: boolean;
+  majorityReached: boolean;
+  democraticMajority: boolean;
+  quotiteMajority: boolean;
+}
+
 // Stub types (will be filled in later tasks)
-export type LoanApplication = any;
-export type ACPLoan = any;
 export type ProjectFinancials = any;
