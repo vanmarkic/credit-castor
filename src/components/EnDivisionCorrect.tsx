@@ -6,6 +6,7 @@ import { XlsxWriter } from '../utils/exportWriter';
 import { convertCalculatorToInitialPurchaseEvent } from '../utils/calculatorToTimeline';
 import { exportTimelineToJSON } from '../utils/timelineExport';
 import { ParticipantsTimeline } from './calculator/ParticipantsTimeline';
+import PortageLotConfig from './PortageLotConfig';
 
 // Default values for reset functionality
 const DEFAULT_PARTICIPANTS = [
@@ -243,6 +244,51 @@ export default function EnDivisionCorrect() {
   const updateParachevementsSqm = (index: number, value: number | undefined) => {
     const newParticipants = [...participants];
     newParticipants[index].parachevementsSqm = value;
+    setParticipants(newParticipants);
+  };
+
+  const addPortageLot = (participantIndex: number) => {
+    const newLotId = Math.max(
+      ...participants.flatMap((p: any) => p.lotsOwned?.map((l: any) => l.lotId) || []),
+      0
+    ) + 1;
+
+    // Update participant lotsOwned array
+    const newParticipants = [...participants];
+    if (!newParticipants[participantIndex].lotsOwned) {
+      newParticipants[participantIndex].lotsOwned = [];
+    }
+
+    newParticipants[participantIndex].lotsOwned.push({
+      lotId: newLotId,
+      surface: 0,
+      unitId: newParticipants[participantIndex].unitId || 0,
+      isPortage: true,
+      allocatedSurface: 0,
+      acquiredDate: new Date(deedDate)
+    });
+
+    setParticipants(newParticipants);
+  };
+
+  const removePortageLot = (participantIndex: number, lotId: number) => {
+    const newParticipants = [...participants];
+    if (newParticipants[participantIndex].lotsOwned) {
+      newParticipants[participantIndex].lotsOwned =
+        newParticipants[participantIndex].lotsOwned.filter((l: any) => l.lotId !== lotId);
+    }
+    setParticipants(newParticipants);
+  };
+
+  const updatePortageLotSurface = (participantIndex: number, lotId: number, surface: number) => {
+    const newParticipants = [...participants];
+    if (newParticipants[participantIndex].lotsOwned) {
+      const lot = newParticipants[participantIndex].lotsOwned.find((l: any) => l.lotId === lotId);
+      if (lot) {
+        lot.surface = surface;
+        lot.allocatedSurface = surface;
+      }
+    }
     setParticipants(newParticipants);
   };
 
@@ -1096,6 +1142,15 @@ export default function EnDivisionCorrect() {
                         = {formatCurrency(p.notaryFees)}
                       </div>
                     </div>
+
+                {/* Portage Lot Configuration */}
+                <PortageLotConfig
+                  portageLots={participants[idx].lotsOwned?.filter((lot: any) => lot.isPortage) || []}
+                  onAddLot={() => addPortageLot(idx)}
+                  onRemoveLot={(lotId) => removePortageLot(idx, lotId)}
+                  onUpdateSurface={(lotId, surface) => updatePortageLotSurface(idx, lotId, surface)}
+                />
+
                     <div>
                       <label className="block text-xs text-gray-600 mb-1">Taux d'intérêt (%)</label>
                       <input
