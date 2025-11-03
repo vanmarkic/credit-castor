@@ -6,14 +6,14 @@ import { exportCalculations } from '../utils/excelExport';
 import { XlsxWriter } from '../utils/exportWriter';
 import { ParticipantsTimeline } from './calculator/ParticipantsTimeline';
 import { ProjectHeader } from './calculator/ProjectHeader';
+import { VerticalToolbar } from './calculator/VerticalToolbar';
 import { ParticipantDetailsPanel } from './calculator/ParticipantDetailsPanel';
 import ParticipantDetailModal from './calculator/ParticipantDetailModal';
 import { FormulaTooltip } from './FormulaTooltip';
 import { formatCurrency } from '../utils/formatting';
 import {
   getPricePerM2Formula,
-  getTotalProjectCostFormula,
-  getTotalLoansFormula
+  getTotalProjectCostFormula
 } from '../utils/formulaExplanations';
 import {
   DEFAULT_PARTICIPANTS,
@@ -27,10 +27,33 @@ import {
   loadFromLocalStorage,
   clearLocalStorage
 } from '../utils/storage';
+import { RELEASE_VERSION, isCompatibleVersion } from '../utils/version';
+import { VersionMismatchWarning } from './VersionMismatchWarning';
 
 export default function EnDivisionCorrect() {
+  // Check version compatibility on mount
+  const [versionMismatch, setVersionMismatch] = useState<{
+    show: boolean;
+    storedVersion?: string;
+  }>({ show: false });
+
   const [participants, setParticipants] = useState(() => {
     const stored = loadFromLocalStorage();
+
+    // Check version compatibility
+    if (stored && !stored.isCompatible) {
+      setVersionMismatch({
+        show: true,
+        storedVersion: stored.storedVersion
+      });
+      // Return defaults for now, will be reset after user action
+      return DEFAULT_PARTICIPANTS.map((p: any) => ({
+        ...p,
+        isFounder: true,
+        entryDate: new Date(DEFAULT_DEED_DATE)
+      }));
+    }
+
     const baseParticipants = stored ? stored.participants : DEFAULT_PARTICIPANTS;
 
     // Ensure all participants have isFounder and entryDate
@@ -126,8 +149,59 @@ export default function EnDivisionCorrect() {
 
   // Auto-save to localStorage whenever state changes
   useEffect(() => {
-    saveToLocalStorage(participants, projectParams, scenario, deedDate);
-  }, [participants, projectParams, scenario, deedDate]);
+    // Don't save if there's a version mismatch (user needs to resolve it first)
+    if (!versionMismatch.show) {
+      saveToLocalStorage(participants, projectParams, scenario, deedDate);
+    }
+  }, [participants, projectParams, scenario, deedDate, versionMismatch.show]);
+
+  // Handle version mismatch - export data and reset
+  const handleExportAndReset = () => {
+    // Get the old data before clearing
+    const stored = loadFromLocalStorage();
+
+    if (stored) {
+      // Create a blob with the old data
+      const dataStr = JSON.stringify(stored, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+
+      // Create download link
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `credit-castor-backup-v${stored.storedVersion || 'unknown'}-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    // Clear localStorage
+    clearLocalStorage();
+    clearPinnedParticipant();
+
+    // Reset to defaults
+    setParticipants(DEFAULT_PARTICIPANTS.map((p: any) => ({
+      ...p,
+      isFounder: true,
+      entryDate: new Date(DEFAULT_DEED_DATE)
+    })));
+    setProjectParams(DEFAULT_PROJECT_PARAMS);
+    setScenario(DEFAULT_SCENARIO);
+    setDeedDate(DEFAULT_DEED_DATE);
+
+    // Hide the warning
+    setVersionMismatch({ show: false });
+
+    // Reload to ensure clean state
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
+  };
+
+  const handleDismissVersionWarning = () => {
+    setVersionMismatch({ show: false });
+  };
 
   const calculations = useMemo(() => {
     return calculateAll(participants, projectParams, scenario, unitDetails);
@@ -302,11 +376,55 @@ export default function EnDivisionCorrect() {
   // Download scenario as JSON file
   const downloadScenario = () => {
     const data = {
-      version: 1,
+      version: 2,
+      releaseVersion: RELEASE_VERSION,
       timestamp: new Date().toISOString(),
       participants,
       projectParams,
-      scenario
+      scenario,
+      deedDate,
+      unitDetails,
+      calculations: {
+        totalSurface: calculations.totalSurface,
+        pricePerM2: calculations.pricePerM2,
+        sharedCosts: calculations.sharedCosts,
+        sharedPerPerson: calculations.sharedPerPerson,
+        participantBreakdown: calculations.participantBreakdown.map(p => ({
+          name: p.name,
+          unitId: p.unitId,
+          surface: p.surface,
+          quantity: p.quantity,
+          pricePerM2: p.pricePerM2,
+          purchaseShare: p.purchaseShare,
+          notaryFees: p.notaryFees,
+          casco: p.casco,
+          parachevements: p.parachevements,
+          personalRenovationCost: p.personalRenovationCost,
+          constructionCost: p.constructionCost,
+          constructionCostPerUnit: p.constructionCostPerUnit,
+          travauxCommunsPerUnit: p.travauxCommunsPerUnit,
+          sharedCosts: p.sharedCosts,
+          totalCost: p.totalCost,
+          loanNeeded: p.loanNeeded,
+          financingRatio: p.financingRatio,
+          monthlyPayment: p.monthlyPayment,
+          totalRepayment: p.totalRepayment,
+          totalInterest: p.totalInterest
+        })),
+        totals: {
+          purchase: calculations.totals.purchase,
+          totalNotaryFees: calculations.totals.totalNotaryFees,
+          construction: calculations.totals.construction,
+          shared: calculations.totals.shared,
+          totalTravauxCommuns: calculations.totals.totalTravauxCommuns,
+          travauxCommunsPerUnit: calculations.totals.travauxCommunsPerUnit,
+          total: calculations.totals.total,
+          capitalTotal: calculations.totals.capitalTotal,
+          totalLoansNeeded: calculations.totals.totalLoansNeeded,
+          averageLoan: calculations.totals.averageLoan,
+          averageCapital: calculations.totals.averageCapital
+        }
+      }
     };
 
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -348,10 +466,27 @@ export default function EnDivisionCorrect() {
           return;
         }
 
-        // Load the data
+        // Validate release version match
+        if (!isCompatibleVersion(data.releaseVersion)) {
+          const versionMsg = data.releaseVersion
+            ? `ce fichier a été créé avec la version ${data.releaseVersion}, mais vous utilisez la version ${RELEASE_VERSION}`
+            : `ce fichier n'a pas de numéro de version (ancien format)`;
+          alert(`Version incompatible: ${versionMsg}.\n\nEnvoie le fichier à Dragan.`);
+          return;
+        }
+
+        // Load the data (inputs only, ignore calculations)
         setParticipants(data.participants);
         setProjectParams(data.projectParams);
         setScenario(data.scenario);
+
+        // Load deedDate if present (version 2+)
+        if (data.deedDate) {
+          setDeedDate(data.deedDate);
+        }
+
+        // Note: unitDetails are hardcoded in the component, not loaded from file
+        // Note: calculations are derived, not loaded from file
 
         alert('Scénario chargé avec succès!');
       } catch (error) {
@@ -381,14 +516,25 @@ export default function EnDivisionCorrect() {
 
   return (
     <Tooltip.Provider>
+      {/* Version Mismatch Warning Modal */}
+      {versionMismatch.show && (
+        <VersionMismatchWarning
+          storedVersion={versionMismatch.storedVersion}
+          currentVersion={RELEASE_VERSION}
+          onExportAndReset={handleExportAndReset}
+          onDismiss={handleDismissVersionWarning}
+        />
+      )}
+
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-100 p-6">
       <div className="max-w-7xl mx-auto">
 
         <ProjectHeader
-          deedDate={deedDate}
-          onDeedDateChange={setDeedDate}
           calculations={calculations}
           participants={participants}
+        />
+
+        <VerticalToolbar
           onDownloadScenario={downloadScenario}
           onLoadScenario={loadScenario}
           onResetToDefaults={resetToDefaults}

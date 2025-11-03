@@ -32,6 +32,9 @@ export const DEFAULT_DEED_DATE = '2026-02-01';
 export const STORAGE_KEY = 'credit-castor-scenario';
 export const PINNED_PARTICIPANT_KEY = 'credit-castor-pinned-participant';
 
+// Import release version
+import { RELEASE_VERSION, isCompatibleVersion } from './version';
+
 // LocalStorage utilities for pinned participant
 export const savePinnedParticipant = (participantName: string) => {
   try {
@@ -66,7 +69,8 @@ export const clearPinnedParticipant = () => {
 export const saveToLocalStorage = (participants: any[], projectParams: any, scenario: any, deedDate: string) => {
   try {
     const data = {
-      version: 2, // Increment version for deed date
+      releaseVersion: RELEASE_VERSION, // Release version for compatibility check
+      version: 2, // Data version for migrations within same release
       timestamp: new Date().toISOString(),
       participants,
       projectParams,
@@ -85,26 +89,40 @@ export const loadFromLocalStorage = () => {
     if (stored) {
       const data = JSON.parse(stored);
 
-      // Migration: If no globalCascoPerM2, use first participant's value or default
-      if (data.projectParams && !data.projectParams.globalCascoPerM2) {
-        data.projectParams.globalCascoPerM2 =
-          data.participants?.[0]?.cascoPerM2 || 1590;
-      }
+      // Check version compatibility
+      const storedVersion = data.releaseVersion;
+      const isCompatible = isCompatibleVersion(storedVersion);
 
-      // Clean up old participant cascoPerM2 fields
-      if (data.participants) {
-        data.participants = data.participants.map((p: any) => {
-          const { cascoPerM2, ...rest } = p;
-          return rest;
-        });
-      }
-
-      return {
+      // Return data with compatibility flag
+      const result = {
+        isCompatible,
+        storedVersion,
+        currentVersion: RELEASE_VERSION,
         participants: data.participants || DEFAULT_PARTICIPANTS,
         projectParams: data.projectParams || DEFAULT_PROJECT_PARAMS,
         scenario: data.scenario || DEFAULT_SCENARIO,
-        deedDate: data.deedDate // May be undefined for old saved data
+        deedDate: data.deedDate, // May be undefined for old saved data
+        timestamp: data.timestamp
       };
+
+      // If compatible, apply migrations
+      if (isCompatible) {
+        // Migration: If no globalCascoPerM2, use first participant's value or default
+        if (result.projectParams && !result.projectParams.globalCascoPerM2) {
+          result.projectParams.globalCascoPerM2 =
+            result.participants?.[0]?.cascoPerM2 || 1590;
+        }
+
+        // Clean up old participant cascoPerM2 fields
+        if (result.participants) {
+          result.participants = result.participants.map((p: any) => {
+            const { cascoPerM2, ...rest } = p;
+            return rest;
+          });
+        }
+      }
+
+      return result;
     }
   } catch (error) {
     console.error('Failed to load from localStorage:', error);
