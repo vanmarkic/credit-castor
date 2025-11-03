@@ -484,13 +484,14 @@ export const creditCastorMachine = setup({
           const quotite = calculateQuotite(participant, context);
 
           const newContributions = new Map(loan.contributions);
-          newContributions.set(event.participantId, {
+          const contribution: ACPContribution = {
             participantId: event.participantId,
             amountPledged: event.amount,
             amountPaid: 0,
             quotiteShare: quotite,
             paymentDate: null
-          });
+          };
+          newContributions.set(event.participantId, contribution);
 
           newMap.set(context.currentACPLoanId, {
             ...loan,
@@ -514,11 +515,12 @@ export const creditCastorMachine = setup({
 
           if (contribution) {
             const newContributions = new Map(loan.contributions);
-            newContributions.set(event.participantId, {
+            const updatedContribution: ACPContribution = {
               ...contribution,
               amountPaid: event.amount,
               paymentDate: new Date()
-            });
+            };
+            newContributions.set(event.participantId, updatedContribution);
 
             const capitalGathered = Array.from(newContributions.values())
               .reduce((sum, c) => sum + c.amountPaid, 0);
