@@ -15,12 +15,14 @@ interface AvailableLotsViewProps {
   availableLots: AvailableLot[];
   deedDate: Date;
   indexationRate?: number; // Default 2%
+  onSelectLot?: (lot: AvailableLot, price: PortageLotPrice) => void; // Callback when lot is selected
 }
 
 export default function AvailableLotsView({
   availableLots,
   deedDate,
-  indexationRate = 2
+  indexationRate = 2,
+  onSelectLot
 }: AvailableLotsViewProps) {
   // State for copro lot surface inputs
   const [coproSurfaces, setCoproSurfaces] = useState<Record<number, number>>({});
@@ -111,12 +113,20 @@ export default function AvailableLotsView({
               return (
                 <div
                   key={lot.lotId}
-                  className="bg-orange-50 border-2 border-orange-300 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  onClick={() => onSelectLot?.(lot, price)}
+                  className={`bg-orange-50 border-2 border-orange-300 rounded-lg p-4 transition-all ${
+                    onSelectLot
+                      ? 'hover:shadow-lg hover:border-orange-500 cursor-pointer hover:bg-orange-100'
+                      : 'hover:shadow-md'
+                  }`}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div>
                       <div className="font-bold text-orange-900 text-lg">
                         Lot #{lot.lotId}
+                        {onSelectLot && (
+                          <span className="ml-2 text-xs text-orange-600">👆 Cliquez pour sélectionner</span>
+                        )}
                       </div>
                       <div className="text-sm text-orange-700">
                         De {lot.fromParticipant}
@@ -267,6 +277,16 @@ export default function AvailableLotsView({
                           </div>
                         </div>
                       </div>
+
+                      {/* Select Button for Copro Lots */}
+                      {onSelectLot && (
+                        <button
+                          onClick={() => onSelectLot(lot, price)}
+                          className="w-full mt-3 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-colors"
+                        >
+                          👆 Sélectionner ce lot ({chosenSurface}m²)
+                        </button>
+                      )}
                     </>
                   )}
 

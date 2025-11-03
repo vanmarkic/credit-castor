@@ -988,19 +988,52 @@ export default function EnDivisionCorrect() {
                 {/* Purchase Details (only for non-founders) */}
                 {!participants[idx].isFounder && (
                   <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">💰 Détails de l'achat</p>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">💰 Sélection du Lot</p>
 
                     {/* Available Lots for Purchase */}
                     <div className="mb-4">
                       <AvailableLotsView
                         availableLots={getAvailableLotsForNewcomer(participants, [])}
                         deedDate={new Date(deedDate)}
+                        onSelectLot={(lot, price) => {
+                          const updated = [...participants];
+                          updated[idx] = {
+                            ...updated[idx],
+                            purchaseDetails: {
+                              buyingFrom: lot.fromParticipant || 'Copropriété',
+                              lotId: lot.lotId,
+                              purchasePrice: price.totalPrice
+                            }
+                          };
+                          setParticipants(updated);
+                        }}
                       />
                     </div>
 
-                    <div className="border-t border-blue-300 pt-4 mb-3">
+                    {/* Show selected lot details if any */}
+                    {participants[idx].purchaseDetails?.lotId && (
+                      <div className="bg-green-50 border border-green-300 rounded-lg p-3 mt-3">
+                        <p className="text-xs font-semibold text-green-800 mb-2">✅ Lot sélectionné:</p>
+                        <div className="grid grid-cols-3 gap-2 text-xs">
+                          <div>
+                            <span className="text-gray-600">Lot:</span>
+                            <span className="font-semibold ml-1">#{participants[idx].purchaseDetails.lotId}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">De:</span>
+                            <span className="font-semibold ml-1">{participants[idx].purchaseDetails.buyingFrom}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Prix:</span>
+                            <span className="font-semibold ml-1">€{participants[idx].purchaseDetails.purchasePrice?.toLocaleString('fr-BE', { maximumFractionDigits: 0 })}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="border-t border-blue-300 pt-4 mb-3 mt-3">
                       <p className="text-xs text-gray-600 font-semibold mb-2">
-                        Ou saisissez manuellement les détails :
+                        Ou modifiez manuellement :
                       </p>
                     </div>
 
