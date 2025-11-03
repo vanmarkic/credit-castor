@@ -1,7 +1,7 @@
 import { useMemo, useRef } from 'react';
 import { Users } from 'lucide-react';
 import * as Tooltip from '@radix-ui/react-tooltip';
-import { calculateAll } from '../utils/calculatorUtils';
+import { calculateAll, type Participant } from '../utils/calculatorUtils';
 import { exportCalculations } from '../utils/excelExport';
 import { XlsxWriter } from '../utils/exportWriter';
 import { ParticipantsTimeline } from './calculator/ParticipantsTimeline';
@@ -145,7 +145,7 @@ export default function EnDivisionCorrect() {
     clearPinnedParticipant();
 
     // Reset to defaults
-    setParticipants(DEFAULT_PARTICIPANTS.map((p: any) => ({
+    setParticipants(DEFAULT_PARTICIPANTS.map((p: Participant) => ({
       ...p,
       isFounder: p.isFounder !== undefined ? p.isFounder : true,
       entryDate: p.entryDate ? new Date(p.entryDate) : new Date(DEFAULT_DEED_DATE)
@@ -207,7 +207,17 @@ export default function EnDivisionCorrect() {
   };
 
   const addPortageLot = (participantIndex: number) => {
-    setParticipants(participantOps.addPortageLot(participants, participantIndex, deedDate));
+    const participantCalc = calculations.participantBreakdown[participantIndex];
+    setParticipants(participantOps.addPortageLot(
+      participants,
+      participantIndex,
+      deedDate,
+      participantCalc ? {
+        purchaseShare: participantCalc.purchaseShare,
+        notaryFees: participantCalc.notaryFees,
+        casco: participantCalc.casco
+      } : undefined
+    ));
   };
 
   const removePortageLot = (participantIndex: number, lotId: number) => {

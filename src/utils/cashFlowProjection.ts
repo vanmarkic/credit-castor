@@ -7,7 +7,7 @@
 import type { DomainEvent, InitialPurchaseEvent, Lot } from '../types/timeline';
 import type { CashFlowTransaction, ParticipantCashFlow } from '../types/cashFlow';
 import type { Participant } from './calculatorUtils';
-import { monthsBetween } from './timelineCalculations';
+import { calculateMonthsBetween } from './coproRedistribution';
 
 /**
  * Build participant's complete cash flow from events
@@ -122,7 +122,7 @@ function generateRecurringExpenses(
   endDate: Date,
   transactions: CashFlowTransaction[]
 ): void {
-  const monthsToProject = monthsBetween(deedDate, endDate);
+  const monthsToProject = Math.ceil(calculateMonthsBetween(deedDate, endDate));
 
   // Generate monthly expenses for each month
   for (let month = 1; month <= monthsToProject; month++) {

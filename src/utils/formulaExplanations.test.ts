@@ -199,6 +199,7 @@ describe('formulaExplanations', () => {
     it('should return portage lot price breakdown with values', () => {
       const mockPrice = {
         basePrice: 5000,
+        surfaceImposed: true,
         indexation: 280,
         carryingCostRecovery: 1288,
         feesRecovery: 0,

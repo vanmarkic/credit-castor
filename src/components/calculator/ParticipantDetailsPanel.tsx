@@ -18,6 +18,7 @@ import {
   getTotalInterestFormula,
   getExpectedPaybacksFormula
 } from '../../utils/formulaExplanations';
+import { calculateCoproRedistributionForParticipant, type CoproSale } from '../../utils/coproRedistribution';
 import type { Participant, ParticipantCalculation, CalculationResults, ProjectParams, PortageFormulaParams } from '../../utils/calculatorUtils';
 
 interface ParticipantDetailsPanelProps {
@@ -613,8 +614,8 @@ export function ParticipantDetailsPanel({
             description: 'Achat de lot portage'
           }));
 
-        // 2. Calculate copropriété redistributions for this participant
-        const coproSales = participants
+        // 2. Calculate copropriété redistributions for this participant using utility function
+        const coproSales: CoproSale[] = participants
           .filter((buyer: any) => buyer.purchaseDetails?.buyingFrom === 'Copropriété')
           .map((buyer: any) => ({
             buyer: buyer.name,
@@ -622,50 +623,12 @@ export function ParticipantDetailsPanel({
             amount: buyer.purchaseDetails?.purchasePrice || 0
           }));
 
-        const coproRedistributions = coproSales.map((sale: any) => {
-          const saleDate = new Date(sale.entryDate);
-          const participantEntryDate = participants[idx].entryDate
-            ? new Date(participants[idx].entryDate)
-            : new Date(deedDate);
-
-          console.log(`[Copro Redistribution] Participant: ${participants[idx].name}`);
-          console.log(`  - Entry date: ${participantEntryDate.toISOString()}`);
-          console.log(`  - Sale date: ${saleDate.toISOString()}`);
-          console.log(`  - Buyer: ${sale.buyer}`);
-          console.log(`  - Eligible: ${participantEntryDate < saleDate}`);
-
-          // Only participants who entered before the sale date get a share
-          if (participantEntryDate >= saleDate) {
-            return null;
-          }
-
-          // Calculate months in project until sale
-          const monthsInProject = (saleDate.getTime() - participantEntryDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
-
-          // Calculate total months for all eligible participants
-          const eligibleParticipants = participants.filter((p: any) => {
-            const pEntryDate = p.entryDate ? new Date(p.entryDate) : new Date(deedDate);
-            return pEntryDate < saleDate;
-          });
-
-          const totalMonths = eligibleParticipants.reduce((sum: number, p: any) => {
-            const pEntryDate = p.entryDate ? new Date(p.entryDate) : new Date(deedDate);
-            const pMonths = (saleDate.getTime() - pEntryDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
-            return sum + pMonths;
-          }, 0);
-
-          // Calculate this participant's share
-          const shareRatio = totalMonths > 0 ? monthsInProject / totalMonths : 0;
-          const shareAmount = sale.amount * shareRatio;
-
-          return {
-            date: sale.entryDate,
-            buyer: sale.buyer,
-            amount: shareAmount,
-            type: 'copro' as const,
-            description: `Part copropriété (${(shareRatio * 100).toFixed(1)}%)`
-          };
-        }).filter((r: any) => r !== null);
+        const coproRedistributions = calculateCoproRedistributionForParticipant(
+          participants[idx],
+          coproSales,
+          participants,
+          new Date(deedDate)
+        );
 
         // 3. Combine and sort all paybacks
         const allPaybacks = [...portagePaybacks, ...coproRedistributions]

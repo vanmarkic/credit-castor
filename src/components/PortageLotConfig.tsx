@@ -1,6 +1,6 @@
 import type { Lot } from '../types/timeline';
 import type { PortageFormulaParams } from '../utils/calculatorUtils';
-import { calculateCarryingCosts, calculatePortageLotPrice } from '../utils/portageCalculations';
+import { calculateCarryingCosts, calculatePortageLotPrice, calculateYearsHeld } from '../utils/portageCalculations';
 import { formatCurrency } from '../utils/formatting';
 import { FormulaTooltip } from './FormulaTooltip';
 import { getPortageLotPriceFormula } from '../utils/formulaExplanations';
@@ -24,8 +24,8 @@ export default function PortageLotConfig({
   formulaParams,
   participantName: _participantName
 }: PortageLotConfigProps) {
-  // Calculate years held
-  const yearsHeld = (new Date().getTime() - deedDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+  // Calculate years held using utility function
+  const yearsHeld = calculateYearsHeld(deedDate, new Date());
 
   const handleScrollToMarketplace = () => {
     const marketplace = document.getElementById('portage-marketplace');

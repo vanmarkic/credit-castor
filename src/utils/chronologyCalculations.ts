@@ -8,7 +8,8 @@
  */
 
 import { calculateAll } from './calculatorUtils';
-import type { Participant, UnitDetails } from './calculatorUtils';
+import type { Participant, UnitDetails, CalculationResults, ParticipantCalculation } from './calculatorUtils';
+import { AVERAGE_DAYS_PER_MONTH } from './timeConstants';
 import type {
   DomainEvent,
   InitialPurchaseEvent,
@@ -503,7 +504,7 @@ export function projectTimeline(
  */
 function calculateParticipantCashFlow(
   participant: Participant,
-  snapshot: any,
+  snapshot: CalculationResults,
   state: ProjectionState,
   phaseNumber: number,
   durationMonths: number | undefined,
@@ -511,7 +512,7 @@ function calculateParticipantCashFlow(
 ): ParticipantCashFlow {
   // Get participant breakdown from snapshot
   const participantData = snapshot.participantBreakdown.find(
-    (p: any) => p.name === participant.name
+    (p: ParticipantCalculation) => p.name === participant.name
   );
 
   if (!participantData) {
@@ -666,7 +667,7 @@ function calculateParticipantCashFlow(
  */
 function calculateCoproCashFlow(
   state: ProjectionState,
-  snapshot: any,
+  snapshot: CalculationResults,
   durationMonths: number | undefined,
   _unitDetails: UnitDetails
 ): CoproCashFlow {

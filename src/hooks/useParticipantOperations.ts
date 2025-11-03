@@ -79,7 +79,12 @@ export interface ParticipantOperations {
   addPortageLot: (
     participants: Participant[],
     participantIndex: number,
-    deedDate: string
+    deedDate: string,
+    participantCalc?: {
+      purchaseShare: number;
+      notaryFees: number;
+      casco: number;
+    }
   ) => Participant[];
 
   removePortageLot: (
@@ -272,7 +277,12 @@ export function updateParachevementsSqm(
 export function addPortageLot(
   participants: Participant[],
   participantIndex: number,
-  deedDate: string
+  deedDate: string,
+  participantCalc?: {
+    purchaseShare: number;
+    notaryFees: number;
+    casco: number;
+  }
 ): Participant[] {
   const newParticipants = [...participants];
   const participant = { ...newParticipants[participantIndex] };
@@ -298,9 +308,9 @@ export function addPortageLot(
     isPortage: true,
     allocatedSurface: 0,
     acquiredDate: new Date(deedDate),
-    originalPrice: undefined,
-    originalNotaryFees: undefined,
-    originalConstructionCost: undefined
+    originalPrice: participantCalc?.purchaseShare,
+    originalNotaryFees: participantCalc?.notaryFees,
+    originalConstructionCost: participantCalc?.casco
   });
 
   newParticipants[participantIndex] = participant;

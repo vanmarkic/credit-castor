@@ -9,6 +9,7 @@
  */
 
 import type { CoproEntity } from '../types/timeline';
+import { calculateMonthsBetween } from '../utils/coproRedistribution';
 
 interface CoproprietéPanelProps {
   copropropriete: CoproEntity;
@@ -19,7 +20,7 @@ export default function CoproprietéPanel({
   copropropriete,
   deedDate,
 }: CoproprietéPanelProps) {
-  const monthsSinceDeed = monthsBetween(deedDate, new Date());
+  const monthsSinceDeed = Math.ceil(calculateMonthsBetween(deedDate, new Date()));
 
   const totalMonthlyObligations =
     copropropriete.monthlyObligations.loanPayments +
@@ -202,15 +203,6 @@ export default function CoproprietéPanel({
 // ============================================
 // Helper Functions
 // ============================================
-
-function monthsBetween(start: Date, end: Date): number {
-  const startDate = new Date(start);
-  const endDate = new Date(end);
-  return (
-    (endDate.getFullYear() - startDate.getFullYear()) * 12 +
-    (endDate.getMonth() - startDate.getMonth())
-  );
-}
 
 function formatDate(date: Date): string {
   return new Date(date).toLocaleDateString('en-BE', {

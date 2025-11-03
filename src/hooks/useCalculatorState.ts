@@ -61,7 +61,7 @@ function initializeParticipants(
       storedVersion: stored.storedVersion
     });
     // Return defaults for now, will be reset after user action
-    return DEFAULT_PARTICIPANTS.map((p: any) => ({
+    return DEFAULT_PARTICIPANTS.map((p: Participant) => ({
       ...p,
       isFounder: true,
       entryDate: new Date(DEFAULT_DEED_DATE)
@@ -71,7 +71,7 @@ function initializeParticipants(
   const baseParticipants = stored ? stored.participants : DEFAULT_PARTICIPANTS;
 
   // Ensure all participants have isFounder and entryDate
-  return baseParticipants.map((p: any) => ({
+  return baseParticipants.map((p: Participant) => ({
     ...p,
     isFounder: p.isFounder !== undefined ? p.isFounder : true,
     entryDate: p.entryDate || new Date(stored?.deedDate || DEFAULT_DEED_DATE)

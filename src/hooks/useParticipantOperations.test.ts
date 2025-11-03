@@ -235,6 +235,30 @@ describe('useParticipantOperations', () => {
 
       expect(result[0].lotsOwned![1].lotId).toBe(2);
     });
+
+    it('should populate cost fields from participant calculation', () => {
+      const participants = [baseParticipant];
+      const participantCalc = {
+        purchaseShare: 150000,
+        notaryFees: 18750,
+        casco: 30000
+      };
+      const result = addPortageLot(participants, 0, '2023-02-01', participantCalc);
+
+      expect(result[0].lotsOwned).toHaveLength(1);
+      expect(result[0].lotsOwned![0].originalPrice).toBe(150000);
+      expect(result[0].lotsOwned![0].originalNotaryFees).toBe(18750);
+      expect(result[0].lotsOwned![0].originalConstructionCost).toBe(30000);
+    });
+
+    it('should set cost fields to undefined when no calculation provided', () => {
+      const participants = [baseParticipant];
+      const result = addPortageLot(participants, 0, '2023-02-01');
+
+      expect(result[0].lotsOwned![0].originalPrice).toBeUndefined();
+      expect(result[0].lotsOwned![0].originalNotaryFees).toBeUndefined();
+      expect(result[0].lotsOwned![0].originalConstructionCost).toBeUndefined();
+    });
   });
 
   describe('removePortageLot', () => {

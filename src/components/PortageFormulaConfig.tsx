@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { PortageFormulaParams } from '../utils/calculatorUtils';
-import { calculateCarryingCosts } from '../utils/portageCalculations';
+import { calculateCarryingCosts, calculateFormulaPreview } from '../utils/portageCalculations';
 import { formatCurrency } from '../utils/formatting';
 
 interface PortageFormulaConfigProps {
@@ -33,9 +33,12 @@ export default function PortageFormulaConfig({
     Math.round(exampleYears * 12),
     formulaParams.averageInterestRate
   );
-  const exampleIndexation = exampleBase * (Math.pow(1 + formulaParams.indexationRate / 100, exampleYears) - 1);
-  const exampleCarryingRecovery = exampleCarryingCosts.totalForPeriod * (formulaParams.carryingCostRecovery / 100);
-  const exampleTotal = exampleBase + exampleIndexation + exampleCarryingRecovery;
+  const preview = calculateFormulaPreview(
+    exampleBase,
+    exampleYears,
+    formulaParams,
+    exampleCarryingCosts
+  );
 
   return (
     <div className="mb-6 bg-blue-50 rounded-lg border-2 border-blue-200">
@@ -183,7 +186,7 @@ export default function PortageFormulaConfig({
                       Indexation ({formulaParams.indexationRate}% × {exampleYears} ans)
                     </td>
                     <td className="px-4 py-2 text-right font-semibold">
-                      {formatCurrency(exampleIndexation)}
+                      {formatCurrency(preview.indexation)}
                     </td>
                   </tr>
                   <tr className="border-b border-blue-100">
@@ -191,7 +194,7 @@ export default function PortageFormulaConfig({
                       Frais de portage ({exampleYears} ans)
                     </td>
                     <td className="px-4 py-2 text-right font-semibold">
-                      {formatCurrency(exampleCarryingRecovery)}
+                      {formatCurrency(preview.carryingCostRecovery)}
                     </td>
                   </tr>
                   <tr className="border-b border-blue-100 text-xs text-gray-600">
@@ -217,7 +220,7 @@ export default function PortageFormulaConfig({
                   <tr className="bg-blue-50">
                     <td className="px-4 py-3 font-bold text-blue-900">Prix total de vente</td>
                     <td className="px-4 py-3 text-right font-bold text-blue-900">
-                      {formatCurrency(exampleTotal)}
+                      {formatCurrency(preview.totalPrice)}
                     </td>
                   </tr>
                 </tbody>

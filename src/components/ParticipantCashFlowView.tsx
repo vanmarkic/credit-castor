@@ -9,6 +9,7 @@
 
 import { useState } from 'react';
 import type { ParticipantCashFlow } from '../types/cashFlow';
+import { calculateMonthsBetween } from '../utils/coproRedistribution';
 
 interface ParticipantCashFlowViewProps {
   cashFlow: ParticipantCashFlow;
@@ -28,7 +29,7 @@ export default function ParticipantCashFlowView({
     return true;
   });
 
-  const monthsSinceDeed = monthsBetween(deedDate, new Date());
+  const monthsSinceDeed = Math.ceil(calculateMonthsBetween(deedDate, new Date()));
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-6">
@@ -177,15 +178,6 @@ export default function ParticipantCashFlowView({
 // ============================================
 // Helper Functions
 // ============================================
-
-function monthsBetween(start: Date, end: Date): number {
-  const startDate = new Date(start);
-  const endDate = new Date(end);
-  return (
-    (endDate.getFullYear() - startDate.getFullYear()) * 12 +
-    (endDate.getMonth() - startDate.getMonth())
-  );
-}
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString('en-BE', {

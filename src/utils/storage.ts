@@ -1,7 +1,19 @@
+// Import types first
+import { RELEASE_VERSION, isCompatibleVersion } from './version';
+import { DEFAULT_PORTAGE_FORMULA, type PortageFormulaParams, type Participant, type ProjectParams, type Scenario } from './calculatorUtils';
+
+// Default deed date: February 1st, 2026 (future date - deed not signed yet)
+export const DEFAULT_DEED_DATE = '2026-02-01';
+
+// Old participant interface for migration (includes deprecated fields)
+interface OldParticipant extends Participant {
+  cascoPerM2?: number; // Deprecated: moved to globalCascoPerM2 in ProjectParams
+}
+
 // Default values for reset functionality
-export const DEFAULT_PARTICIPANTS = [
-  { name: 'Manuela/Dragan', capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, surface: 112, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500 },
-  { name: 'Cathy/Jim', capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, surface: 134, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500 },
+export const DEFAULT_PARTICIPANTS: Participant[] = [
+  { name: 'Manuela/Dragan', capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, surface: 112, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500, isFounder: true, entryDate: new Date(DEFAULT_DEED_DATE) },
+  { name: 'Cathy/Jim', capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, surface: 134, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500, isFounder: true, entryDate: new Date(DEFAULT_DEED_DATE) },
   {
     name: 'Annabelle/Colin',
     capitalApporte: 200000,
@@ -12,6 +24,8 @@ export const DEFAULT_PARTICIPANTS = [
     durationYears: 25,
     quantity: 2,
     parachevementsPerM2: 500,
+    isFounder: true,
+    entryDate: new Date(DEFAULT_DEED_DATE),
     lotsOwned: [
       {
         lotId: 1,
@@ -27,11 +41,14 @@ export const DEFAULT_PARTICIPANTS = [
         unitId: 5,
         isPortage: true,
         allocatedSurface: 80,
-        acquiredDate: new Date('2026-02-01')
+        acquiredDate: new Date('2026-02-01'),
+        originalPrice: 94200,
+        originalNotaryFees: 11775,
+        originalConstructionCost: 127200
       }
     ]
   },
-  { name: 'Julie/Séverin', capitalApporte: 70000, notaryFeesRate: 12.5, unitId: 6, surface: 108, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500 },
+  { name: 'Julie/Séverin', capitalApporte: 70000, notaryFeesRate: 12.5, unitId: 6, surface: 108, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500, isFounder: true, entryDate: new Date(DEFAULT_DEED_DATE) },
   {
     name: 'Nouveau·elle Arrivant·e',
     capitalApporte: 80000,
@@ -46,7 +63,7 @@ export const DEFAULT_PARTICIPANTS = [
     entryDate: new Date('2027-06-01'),
     purchaseDetails: {
       buyingFrom: 'Annabelle/Colin',
-      isPortageLot: true
+      lotId: 2
     }
   }
 ];
@@ -98,15 +115,8 @@ export const DEFAULT_SCENARIO = {
   purchasePriceReduction: 0
 };
 
-// Default deed date: February 1st, 2023 (past date so portage calculations show meaningful values)
-export const DEFAULT_DEED_DATE = '2023-02-01';
-
 export const STORAGE_KEY = 'credit-castor-scenario';
 export const PINNED_PARTICIPANT_KEY = 'credit-castor-pinned-participant';
-
-// Import release version
-import { RELEASE_VERSION, isCompatibleVersion } from './version';
-import { DEFAULT_PORTAGE_FORMULA, type PortageFormulaParams } from './calculatorUtils';
 
 // LocalStorage utilities for pinned participant
 export const savePinnedParticipant = (participantName: string) => {
@@ -139,7 +149,7 @@ export const clearPinnedParticipant = () => {
 };
 
 // LocalStorage utilities for scenario data
-export const saveToLocalStorage = (participants: any[], projectParams: any, scenario: any, deedDate: string, portageFormula?: PortageFormulaParams) => {
+export const saveToLocalStorage = (participants: Participant[], projectParams: ProjectParams, scenario: Scenario, deedDate: string, portageFormula?: PortageFormulaParams) => {
   try {
     const data = {
       releaseVersion: RELEASE_VERSION, // Release version for compatibility check
@@ -190,9 +200,9 @@ export const loadFromLocalStorage = () => {
 
         // Clean up old participant cascoPerM2 fields
         if (result.participants) {
-          result.participants = result.participants.map((p: any) => {
+          result.participants = result.participants.map((p: OldParticipant) => {
             const { cascoPerM2, ...rest } = p;
-            return rest;
+            return rest as Participant;
           });
         }
       }

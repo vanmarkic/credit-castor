@@ -10,6 +10,7 @@
  */
 
 import type { PortageFormulaParams as PortageFormulaParamsImport } from './calculatorUtils';
+import { DAYS_PER_YEAR } from './timeConstants';
 
 // Re-export for convenience
 export type PortageFormulaParams = PortageFormulaParamsImport;
@@ -141,9 +142,7 @@ export function calculateResalePrice(
   const totalAcquisitionCost = originalPurchaseShare + originalNotaryFees + originalConstructionCost;
 
   // Calculate indexation on total acquisition cost (compound) using formula params
-  const indexationRate = formulaParams.indexationRate;
-  const indexationMultiplier = Math.pow(1 + indexationRate / 100, yearsHeld);
-  const indexation = totalAcquisitionCost * (indexationMultiplier - 1);
+  const indexation = calculateIndexation(totalAcquisitionCost, formulaParams.indexationRate, yearsHeld);
 
   // Fee recovery no longer applicable (fees included in acquisition cost)
   const feesRecovery = 0;
@@ -238,9 +237,7 @@ export function calculatePortageLotPriceFromCopro(
   const basePrice = totalCoproLotOriginalPrice * surfaceRatio;
 
   // Calculate indexation using formula params
-  const indexationRate = formulaParams.indexationRate;
-  const indexationMultiplier = Math.pow(1 + indexationRate / 100, yearsHeld);
-  const indexation = basePrice * (indexationMultiplier - 1);
+  const indexation = calculateIndexation(basePrice, formulaParams.indexationRate, yearsHeld);
 
   // Proportional carrying costs with recovery percentage
   const carryingCostRecovery = totalCarryingCosts * surfaceRatio * (formulaParams.carryingCostRecovery / 100);
@@ -317,8 +314,80 @@ export function calculateRedistribution(
  */
 export function calculateYearsHeld(founderEntryDate: Date, buyerEntryDate: Date): number {
   const diffMs = buyerEntryDate.getTime() - founderEntryDate.getTime();
-  const diffYears = diffMs / (1000 * 60 * 60 * 24 * 365.25);
+  const diffYears = diffMs / (1000 * 60 * 60 * 24 * DAYS_PER_YEAR);
   return Math.max(0, diffYears);
+}
+
+// ============================================
+// Indexation Calculation
+// ============================================
+
+/**
+ * Calculate compound indexation/growth
+ *
+ * Applies compound interest formula: principal × [(1 + rate/100)^years - 1]
+ *
+ * @param principal - Base amount to apply indexation to
+ * @param ratePercentage - Annual rate as percentage (e.g., 2 for 2%, not 0.02)
+ * @param years - Number of years (can be fractional, e.g., 2.5)
+ * @returns Indexation amount (growth only, not including principal)
+ *
+ * @example
+ * calculateIndexation(100000, 2, 2.5) // Returns ~5050.80 (2% for 2.5 years)
+ */
+export function calculateIndexation(
+  principal: number,
+  ratePercentage: number,
+  years: number
+): number {
+  const multiplier = Math.pow(1 + ratePercentage / 100, years);
+  return principal * (multiplier - 1);
+}
+
+// ============================================
+// Formula Preview Calculation
+// ============================================
+
+export interface FormulaPreview {
+  basePrice: number;
+  indexation: number;
+  carryingCostRecovery: number;
+  totalPrice: number;
+}
+
+/**
+ * Calculate preview values for formula visualization
+ *
+ * Simplified version of resale price calculation for UI preview/examples.
+ * Uses the same formulas as calculateResalePrice but with simplified inputs.
+ *
+ * @param basePrice - Base acquisition cost for the example
+ * @param yearsHeld - Years held for the example
+ * @param formulaParams - Global formula parameters
+ * @param carryingCosts - Calculated carrying costs for the period
+ * @returns Breakdown showing indexation and carrying cost recovery
+ */
+export function calculateFormulaPreview(
+  basePrice: number,
+  yearsHeld: number,
+  formulaParams: PortageFormulaParams,
+  carryingCosts: CarryingCosts
+): FormulaPreview {
+  // Calculate indexation using same formula as calculateResalePrice
+  const indexation = calculateIndexation(basePrice, formulaParams.indexationRate, yearsHeld);
+
+  // Apply carrying cost recovery percentage (same as calculateResalePrice)
+  const carryingCostRecovery = carryingCosts.totalForPeriod * (formulaParams.carryingCostRecovery / 100);
+
+  // Total price
+  const totalPrice = basePrice + indexation + carryingCostRecovery;
+
+  return {
+    basePrice,
+    indexation,
+    carryingCostRecovery,
+    totalPrice
+  };
 }
 
 // ============================================
