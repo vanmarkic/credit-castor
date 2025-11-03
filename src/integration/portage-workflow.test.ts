@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { calculatePortageLotPrice, calculatePortageLotPriceFromCopro, calculateCarryingCosts } from '../utils/portageCalculations';
 import { getAvailableLotsForNewcomer } from '../utils/availableLots';
+import { DEFAULT_PORTAGE_FORMULA } from '../utils/calculatorUtils';
 import type { Participant } from '../utils/calculatorUtils';
 import type { CoproLot } from '../types/timeline';
 
@@ -71,7 +72,7 @@ describe('Portage Workflow Integration', () => {
       originalNotaryFees,
       originalConstructionCost,
       2,
-      2,
+      DEFAULT_PORTAGE_FORMULA,
       carryingCosts,
       0
     );
@@ -90,7 +91,7 @@ describe('Portage Workflow Integration', () => {
       300,
       412500,
       2,
-      2,
+      DEFAULT_PORTAGE_FORMULA,
       15000
     );
 

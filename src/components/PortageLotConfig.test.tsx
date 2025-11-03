@@ -80,10 +80,12 @@ describe('PortageLotConfig', () => {
       lotId: 1,
       surface: 45,
       allocatedSurface: 45,
+      unitId: 1,
       isPortage: true,
       originalPrice: 60000,
       originalNotaryFees: 7500,
-      originalConstructionCost: 0
+      originalConstructionCost: 0,
+      acquiredDate: new Date('2023-01-01')
     };
 
     const formulaParams: PortageFormulaParams = {

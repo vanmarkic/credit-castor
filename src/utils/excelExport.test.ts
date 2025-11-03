@@ -116,7 +116,7 @@ describe('Excel Export', () => {
       expect(sheetData.name).toBe('Calculateur Division');
       expect(sheetData.cells.length).toBeGreaterThan(0);
       expect(sheetData.columnWidths).toBeDefined();
-      expect(sheetData.columnWidths?.length).toBe(24);
+      expect(sheetData.columnWidths?.length).toBe(28);
 
       // Check some key cells
       const headerCell = sheetData.cells.find(c => c.row === 1 && c.col === 'A');
@@ -437,6 +437,48 @@ describe('Excel Export', () => {
       expect(parachevM2Header).toBeDefined();
       expect(cascoSqmHeader).toBeDefined();
       expect(parachevSqmHeader).toBeDefined();
+    });
+
+    it('should include timeline columns (founder, entry date)', () => {
+      const sheetData = buildExportSheetData(
+        mockCalculations,
+        mockProjectParams,
+        mockScenario,
+        mockUnitDetails,
+        '10/11/2025'
+      );
+
+      const fondateurHeader = sheetData.cells.find(c => c.data.value === 'Fondateur');
+      const dateEntreeHeader = sheetData.cells.find(c => c.data.value === 'Date entree');
+
+      expect(fondateurHeader).toBeDefined();
+      expect(dateEntreeHeader).toBeDefined();
+    });
+
+    it('should include portage lots column', () => {
+      const sheetData = buildExportSheetData(
+        mockCalculations,
+        mockProjectParams,
+        mockScenario,
+        mockUnitDetails,
+        '10/11/2025'
+      );
+
+      const lotsDetenusHeader = sheetData.cells.find(c => c.data.value === 'Lots detenus');
+      expect(lotsDetenusHeader).toBeDefined();
+    });
+
+    it('should include purchase details column', () => {
+      const sheetData = buildExportSheetData(
+        mockCalculations,
+        mockProjectParams,
+        mockScenario,
+        mockUnitDetails,
+        '10/11/2025'
+      );
+
+      const acheteDeHeader = sheetData.cells.find(c => c.data.value === 'Achete de');
+      expect(acheteDeHeader).toBeDefined();
     });
   });
 });

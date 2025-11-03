@@ -18,7 +18,7 @@ import {
   getTotalInterestFormula,
   getExpectedPaybacksFormula
 } from '../../utils/formulaExplanations';
-import type { Participant, ParticipantCalculation, CalculationResults, ProjectParams } from '../../utils/calculatorUtils';
+import type { Participant, ParticipantCalculation, CalculationResults, ProjectParams, PortageFormulaParams } from '../../utils/calculatorUtils';
 
 interface ParticipantDetailsPanelProps {
   participant: Participant;
@@ -28,6 +28,7 @@ interface ParticipantDetailsPanelProps {
   calculations: CalculationResults;
   projectParams: ProjectParams;
   deedDate: string;
+  formulaParams: PortageFormulaParams;
   pinnedParticipant: string | null;
   onPinParticipant: (name: string) => void;
   onUnpinParticipant: () => void;
@@ -53,6 +54,7 @@ export function ParticipantDetailsPanel({
   calculations,
   projectParams,
   deedDate,
+  formulaParams,
   pinnedParticipant,
   onPinParticipant,
   onUnpinParticipant,
@@ -219,6 +221,7 @@ export function ParticipantDetailsPanel({
                 calculations
               )}
               deedDate={new Date(deedDate)}
+              formulaParams={formulaParams}
               onSelectLot={(lot, price) => {
                 const updated = [...participants];
                 updated[idx] = {
@@ -369,6 +372,8 @@ export function ParticipantDetailsPanel({
               onAddLot={() => addPortageLot(idx)}
               onRemoveLot={(lotId) => removePortageLot(idx, lotId)}
               onUpdateSurface={(lotId, surface) => updatePortageLotSurface(idx, lotId, surface)}
+              deedDate={new Date(deedDate)}
+              formulaParams={formulaParams}
             />
           )}
 

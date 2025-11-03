@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { ParticipantDetailsPanel } from './ParticipantDetailsPanel';
+import { DEFAULT_PORTAGE_FORMULA } from '../../utils/calculatorUtils';
 import type { Participant, ParticipantCalculation, CalculationResults, ProjectParams } from '../../utils/calculatorUtils';
 
 describe('ParticipantDetailsPanel - Remboursements attendus', () => {
@@ -124,6 +125,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
         calculations={mockCalculations}
         projectParams={mockProjectParams}
         deedDate="2026-02-01"
+        formulaParams={DEFAULT_PORTAGE_FORMULA}
         pinnedParticipant={null}
         onPinParticipant={() => {}}
         onUnpinParticipant={() => {}}
@@ -227,6 +229,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
         calculations={mockCalculations}
         projectParams={mockProjectParams}
         deedDate="2026-02-01"
+        formulaParams={DEFAULT_PORTAGE_FORMULA}
         pinnedParticipant={null}
         onPinParticipant={() => {}}
         onUnpinParticipant={() => {}}
@@ -325,6 +328,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
           calculations={mockCalculations}
           projectParams={mockProjectParams}
           deedDate="2026-02-01"
+          formulaParams={DEFAULT_PORTAGE_FORMULA}
           pinnedParticipant={null}
           onPinParticipant={() => {}}
           onUnpinParticipant={() => {}}
@@ -473,6 +477,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
           calculations={mockCalculations}
           projectParams={mockProjectParams}
           deedDate="2026-02-01"
+          formulaParams={DEFAULT_PORTAGE_FORMULA}
           pinnedParticipant={null}
           onPinParticipant={() => {}}
           onUnpinParticipant={() => {}}
@@ -574,6 +579,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
           calculations={mockCalculations}
           projectParams={mockProjectParams}
           deedDate="2026-02-01"
+          formulaParams={DEFAULT_PORTAGE_FORMULA}
           pinnedParticipant={null}
           onPinParticipant={() => {}}
           onUnpinParticipant={() => {}}
@@ -679,6 +685,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
           calculations={mockCalculations}
           projectParams={mockProjectParams}
           deedDate="2026-01-02"
+          formulaParams={DEFAULT_PORTAGE_FORMULA}
           pinnedParticipant={null}
           onPinParticipant={() => {}}
           onUnpinParticipant={() => {}}

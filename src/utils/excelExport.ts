@@ -160,8 +160,9 @@ export function buildExportSheetData(
   const headers = ['Nom', 'Unite', 'Surface', 'Qty', 'Capital', 'Taux notaire', 'Taux interet', 'Duree (ans)',
                    'Part achat', 'Frais notaire', 'CASCO', 'Parachevements', 'Travaux communs',
                    'Construction', 'Commun', 'TOTAL', 'Emprunt', 'Mensualite', 'Total rembourse',
-                   'Reno perso', 'CASCO m2', 'Parachev m2', 'CASCO sqm', 'Parachev sqm'];
-  const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X'];
+                   'Reno perso', 'CASCO m2', 'Parachev m2', 'CASCO sqm', 'Parachev sqm',
+                   'Fondateur', 'Date entree', 'Lots detenus', 'Achete de'];
+  const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'AA', 'AB'];
 
   headers.forEach((header, idx) => {
     addCell(headerRow, cols[idx], header);
@@ -195,6 +196,23 @@ export function buildExportSheetData(
     addCell(r, 'V', projectParams.globalCascoPerM2);
     addCell(r, 'W', p.cascoSqm);
     addCell(r, 'X', p.parachevementsSqm);
+
+    // Timeline fields
+    addCell(r, 'Y', p.isFounder ? 'Oui' : 'Non');
+    addCell(r, 'Z', p.entryDate ? new Date(p.entryDate).toLocaleDateString('fr-BE') : '');
+
+    // Portage lots details
+    if (p.lotsOwned && p.lotsOwned.length > 0) {
+      const lotDetails = p.lotsOwned
+        .map(lot => `Lot ${lot.lotId}${lot.isPortage ? ' (portage)' : ''}: ${lot.surface}m²`)
+        .join('; ');
+      addCell(r, 'AA', lotDetails);
+    } else {
+      addCell(r, 'AA', '');
+    }
+
+    // Purchase details (for newcomers)
+    addCell(r, 'AB', p.purchaseDetails?.buyingFrom || '');
   });
 
   // Totals row
@@ -226,6 +244,10 @@ export function buildExportSheetData(
   addCell(totalRow, 'V', '');
   addCell(totalRow, 'W', '');
   addCell(totalRow, 'X', '');
+  addCell(totalRow, 'Y', '');
+  addCell(totalRow, 'Z', '');
+  addCell(totalRow, 'AA', '');
+  addCell(totalRow, 'AB', '');
 
   // Summary section
   const synthRow = totalRow + 2;
@@ -243,14 +265,15 @@ export function buildExportSheetData(
   addCell(synthRow + 7, 'A', 'Emprunt maximum');
   addCell(synthRow + 7, 'B', null, `MAX(Q${startRow}:Q${endRow})`);
 
-  // Column widths (expanded to 24 columns)
+  // Column widths (expanded to 28 columns)
   const columnWidths = [
     { col: 0, width: 25 }, { col: 1, width: 8 }, { col: 2, width: 10 }, { col: 3, width: 8 },
     { col: 4, width: 15 }, { col: 5, width: 14 }, { col: 6, width: 12 }, { col: 7, width: 12 },
     { col: 8, width: 15 }, { col: 9, width: 15 }, { col: 10, width: 15 }, { col: 11, width: 15 },
     { col: 12, width: 15 }, { col: 13, width: 15 }, { col: 14, width: 15 }, { col: 15, width: 15 },
     { col: 16, width: 15 }, { col: 17, width: 15 }, { col: 18, width: 15 }, { col: 19, width: 15 },
-    { col: 20, width: 12 }, { col: 21, width: 12 }, { col: 22, width: 12 }, { col: 23, width: 12 }
+    { col: 20, width: 12 }, { col: 21, width: 12 }, { col: 22, width: 12 }, { col: 23, width: 12 },
+    { col: 24, width: 10 }, { col: 25, width: 12 }, { col: 26, width: 30 }, { col: 27, width: 20 }
   ];
 
   return {

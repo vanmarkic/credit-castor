@@ -20,7 +20,7 @@ export default function PortageLotConfig({
   onUpdateSurface,
   deedDate,
   formulaParams,
-  participantName
+  participantName: _participantName
 }: PortageLotConfigProps) {
   // Calculate years held
   const yearsHeld = (new Date().getTime() - deedDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);

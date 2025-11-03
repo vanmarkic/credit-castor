@@ -2,8 +2,53 @@
 export const DEFAULT_PARTICIPANTS = [
   { name: 'Manuela/Dragan', capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, surface: 112, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500 },
   { name: 'Cathy/Jim', capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, surface: 134, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500 },
-  { name: 'Annabelle/Colin', capitalApporte: 200000, notaryFeesRate: 12.5, unitId: 5, surface: 118, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500 },
-  { name: 'Julie/Séverin', capitalApporte: 70000, notaryFeesRate: 12.5, unitId: 6, surface: 108, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500 }
+  {
+    name: 'Annabelle/Colin',
+    capitalApporte: 200000,
+    notaryFeesRate: 12.5,
+    unitId: 5,
+    surface: 198,
+    interestRate: 4.5,
+    durationYears: 25,
+    quantity: 2,
+    parachevementsPerM2: 500,
+    lotsOwned: [
+      {
+        lotId: 1,
+        surface: 118,
+        unitId: 5,
+        isPortage: false,
+        allocatedSurface: 118,
+        acquiredDate: '2026-02-01'
+      },
+      {
+        lotId: 2,
+        surface: 80,
+        unitId: 5,
+        isPortage: true,
+        allocatedSurface: 80,
+        acquiredDate: '2026-02-01'
+      }
+    ]
+  },
+  { name: 'Julie/Séverin', capitalApporte: 70000, notaryFeesRate: 12.5, unitId: 6, surface: 108, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500 },
+  {
+    name: 'Nouveau·elle Arrivant·e',
+    capitalApporte: 80000,
+    notaryFeesRate: 12.5,
+    unitId: 5,
+    surface: 80,
+    interestRate: 4.5,
+    durationYears: 25,
+    quantity: 1,
+    parachevementsPerM2: 500,
+    isFounder: false,
+    entryDate: '2027-06-01',
+    purchaseDetails: {
+      buyingFrom: 'Annabelle/Colin',
+      isPortageLot: true
+    }
+  }
 ];
 
 export const DEFAULT_PROJECT_PARAMS = {
@@ -61,6 +106,7 @@ export const PINNED_PARTICIPANT_KEY = 'credit-castor-pinned-participant';
 
 // Import release version
 import { RELEASE_VERSION, isCompatibleVersion } from './version';
+import { DEFAULT_PORTAGE_FORMULA, type PortageFormulaParams } from './calculatorUtils';
 
 // LocalStorage utilities for pinned participant
 export const savePinnedParticipant = (participantName: string) => {
@@ -93,7 +139,7 @@ export const clearPinnedParticipant = () => {
 };
 
 // LocalStorage utilities for scenario data
-export const saveToLocalStorage = (participants: any[], projectParams: any, scenario: any, deedDate: string) => {
+export const saveToLocalStorage = (participants: any[], projectParams: any, scenario: any, deedDate: string, portageFormula?: PortageFormulaParams) => {
   try {
     const data = {
       releaseVersion: RELEASE_VERSION, // Release version for compatibility check
@@ -102,7 +148,8 @@ export const saveToLocalStorage = (participants: any[], projectParams: any, scen
       participants,
       projectParams,
       scenario,
-      deedDate
+      deedDate,
+      portageFormula: portageFormula || DEFAULT_PORTAGE_FORMULA
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch (error) {
@@ -129,6 +176,7 @@ export const loadFromLocalStorage = () => {
         projectParams: data.projectParams || DEFAULT_PROJECT_PARAMS,
         scenario: data.scenario || DEFAULT_SCENARIO,
         deedDate: data.deedDate, // May be undefined for old saved data
+        portageFormula: data.portageFormula || DEFAULT_PORTAGE_FORMULA,
         timestamp: data.timestamp
       };
 

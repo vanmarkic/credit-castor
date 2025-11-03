@@ -13,7 +13,7 @@ interface PortageFormulaConfigProps {
 export default function PortageFormulaConfig({
   formulaParams,
   onUpdateParams,
-  deedDate
+  deedDate: _deedDate
 }: PortageFormulaConfigProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 

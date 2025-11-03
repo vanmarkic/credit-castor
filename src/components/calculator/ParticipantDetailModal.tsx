@@ -4,7 +4,7 @@ import AvailableLotsView from '../AvailableLotsView';
 import PortageLotConfig from '../PortageLotConfig';
 import { getAvailableLotsForNewcomer, type AvailableLot } from '../../utils/availableLots';
 import type { PortageLotPrice } from '../../utils/portageCalculations';
-import type { Participant, ParticipantCalculation, CalculationResults, ProjectParams } from '../../utils/calculatorUtils';
+import type { Participant, ParticipantCalculation, CalculationResults, ProjectParams, PortageFormulaParams } from '../../utils/calculatorUtils';
 
 interface ParticipantDetailModalProps {
   isOpen: boolean;
@@ -16,6 +16,7 @@ interface ParticipantDetailModalProps {
   allParticipants: Participant[];
   calculations: CalculationResults;
   projectParams: ProjectParams;
+  formulaParams: PortageFormulaParams;
   isPinned: boolean;
   onPin: () => void;
   onUnpin: () => void;
@@ -47,6 +48,7 @@ export default function ParticipantDetailModal({
   allParticipants,
   calculations,
   projectParams,
+  formulaParams,
   isPinned,
   onPin,
   onUnpin,
@@ -171,6 +173,7 @@ export default function ParticipantDetailModal({
                   calculations
                 )}
                 deedDate={new Date(deedDate)}
+                formulaParams={formulaParams}
                 onSelectLot={(lot: AvailableLot, price: PortageLotPrice) => {
                   onUpdateParticipant({
                     ...participant,
@@ -314,6 +317,8 @@ export default function ParticipantDetailModal({
                 onAddLot={onAddPortageLot}
                 onRemoveLot={onRemovePortageLot}
                 onUpdateSurface={onUpdatePortageLotSurface}
+                deedDate={new Date(deedDate)}
+                formulaParams={formulaParams}
               />
             )}
 

@@ -13,19 +13,19 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
     // Timeline section should be visible
     expect(screen.getByText(/Timeline des Participants/i)).toBeInTheDocument();
     expect(screen.getAllByText(/Fondateurs/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Nouveaux entrants/i)).toBeInTheDocument();
+    expect(screen.getByText(/Nouveaux.*entrant/i)).toBeInTheDocument();
   });
 
   it('should allow adding a founder participant with automatic deed date', async () => {
     render(<EnDivisionCorrect />);
 
-    // Click "Ajouter un participant"
-    const addButton = screen.getByRole('button', { name: /Ajouter un participant/i });
+    // Click "Ajouter un·e participant·e"
+    const addButton = screen.getByRole('button', { name: /Ajouter.*participant/i });
     fireEvent.click(addButton);
 
-    // Wait for new participant to appear
+    // Wait for new participant to appear (now 6th participant since we have 5 defaults)
     await waitFor(() => {
-      expect(screen.getByText(/Participant 5/i)).toBeInTheDocument();
+      expect(screen.getByText(/Participant.*6/i)).toBeInTheDocument();
     });
 
     // Details panel is now always visible, should see entry date section
@@ -43,11 +43,11 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
     render(<EnDivisionCorrect />);
 
     // Add a new participant
-    const addButton = screen.getByRole('button', { name: /Ajouter un participant/i });
+    const addButton = screen.getByRole('button', { name: /Ajouter.*participant/i });
     fireEvent.click(addButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/Participant 5/i)).toBeInTheDocument();
+      expect(screen.getByText(/Participant.*6/i)).toBeInTheDocument();
     });
 
     // Details panel is now always visible
@@ -70,7 +70,7 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
     fireEvent.click(addButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/Participant 5/i)).toBeInTheDocument();
+      expect(screen.getByText(/Participant.*6/i)).toBeInTheDocument();
     });
 
     // Details panel is now always visible
@@ -106,7 +106,7 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
     fireEvent.click(addButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/Participant 5/i)).toBeInTheDocument();
+      expect(screen.getByText(/Participant.*6/i)).toBeInTheDocument();
     });
 
     // Details panel is now always visible
@@ -158,7 +158,7 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
     fireEvent.click(addButton);
 
     await waitFor(() => {
-      expect(screen.getByText(/Participant 5/i)).toBeInTheDocument();
+      expect(screen.getByText(/Participant.*6/i)).toBeInTheDocument();
     });
 
     // Details panel is now always visible
@@ -193,14 +193,14 @@ describe('EnDivisionCorrect - Newcomer Entry Dates and Redistributions', () => {
     const timelineSection = screen.getByText(/Timeline des Participants/i);
     expect(timelineSection).toBeInTheDocument();
 
-    // Should show founder count (default 4 participants)
+    // Should show founder count (default 4 founders)
     const foundersElements = screen.getAllByText(/Fondateurs/i);
     const founderCountElement = foundersElements.find(el => el.parentElement?.querySelector('.text-2xl'));
     const founderCount = founderCountElement?.parentElement?.querySelector('.text-2xl');
     expect(founderCount).toHaveTextContent('4');
 
-    // Should show newcomer count (default 0)
-    const newcomerCount = screen.getByText(/Nouveaux entrants/i).parentElement?.querySelector('.text-2xl');
-    expect(newcomerCount).toHaveTextContent('0');
+    // Should show newcomer count (default 1 - the 5th participant)
+    const newcomerCount = screen.getByText(/Nouveaux.*entrant/i).parentElement?.querySelector('.text-2xl');
+    expect(newcomerCount).toHaveTextContent('1');
   });
 });

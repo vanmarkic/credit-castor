@@ -9,9 +9,9 @@ describe('EnDivisionCorrect - Integration Tests', () => {
       render(<EnDivisionCorrect />);
 
       // Expected calculations for default state:
-      // 4 participants with surfaces: 112, 134, 118, 108 = 472 m²
-      const totalSurface = 112 + 134 + 118 + 108;
-      expect(totalSurface).toBe(472);
+      // 5 participants with surfaces: 112, 134, 198 (Annabelle/Colin with 2 lots), 108, 80 = 632 m²
+      const totalSurface = 112 + 134 + 198 + 108 + 80;
+      expect(totalSurface).toBe(632);
 
       // Price per m² = 650000 / 472 = 1377.12 EUR/m²
       const pricePerM2 = 650000 / 472;
@@ -32,7 +32,7 @@ describe('EnDivisionCorrect - Integration Tests', () => {
       expect(travauxCommunsPerUnit).toBe(92225);
 
       // Verify key totals are displayed in the UI
-      expect(screen.getByText('472m²')).toBeInTheDocument();
+      expect(screen.getByText('572m²')).toBeInTheDocument();
 
       // Participant 1: Manuela/Dragan
       // Unit 1: casco = 178080, parachevements = 56000
@@ -107,11 +107,11 @@ describe('EnDivisionCorrect - Integration Tests', () => {
       expect(totalLoansNeeded).toBeCloseTo(1970595.63, 1);
 
       // Verify key UI elements are present
-      expect(screen.getByText('472m²')).toBeInTheDocument(); // Total surface
+      expect(screen.getByText('632m²')).toBeInTheDocument(); // Total surface
       expect(screen.getByText('Participants')).toBeInTheDocument();
 
       // The component renders successfully with all calculations
-      const component = screen.getByText('Achat en Division - Acte 1');
+      const component = screen.getByText('Achat Ferme du Temple');
       expect(component).toBeInTheDocument();
     });
   });
@@ -174,13 +174,14 @@ describe('EnDivisionCorrect - Integration Tests', () => {
       expect(screen.getByDisplayValue('Cathy/Jim')).toBeInTheDocument();
       expect(screen.getByDisplayValue('Annabelle/Colin')).toBeInTheDocument();
       expect(screen.getByDisplayValue('Julie/Séverin')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('Nouveau·elle Arrivant·e')).toBeInTheDocument();
 
       // Find and click the add participant button
-      const addButton = screen.getByText('Ajouter un participant');
+      const addButton = screen.getByText('Ajouter un·e participant·e');
       fireEvent.click(addButton);
 
-      // Should now have 5 participants - new one is named "Participant 5"
-      const newParticipant = screen.getByDisplayValue('Participant 5');
+      // Should now have 6 participants - new one is named "Participant 6"
+      const newParticipant = screen.getByDisplayValue('Participant·e 6');
       expect(newParticipant).toBeInTheDocument();
     });
 
@@ -188,37 +189,38 @@ describe('EnDivisionCorrect - Integration Tests', () => {
       render(<EnDivisionCorrect />);
 
       // Add a participant
-      const addButton = screen.getByText('Ajouter un participant');
+      const addButton = screen.getByText('Ajouter un·e participant·e');
       fireEvent.click(addButton);
 
       // The new participant should have unitId 7 (max of 1,3,5,6 + 1)
       // We can verify this by checking that the participant was added successfully
-      const newParticipant = screen.getByDisplayValue('Participant 5');
+      const newParticipant = screen.getByDisplayValue('Participant·e 6');
       expect(newParticipant).toBeInTheDocument();
 
       // Add another participant
       fireEvent.click(addButton);
-      const secondNewParticipant = screen.getByDisplayValue('Participant 6');
+      const secondNewParticipant = screen.getByDisplayValue('Participant·e 7');
       expect(secondNewParticipant).toBeInTheDocument();
     });
 
     it('should remove a participant when remove button is clicked', () => {
       render(<EnDivisionCorrect />);
 
-      // Verify initial state
-      expect(screen.getByDisplayValue('Manuela/Dragan')).toBeInTheDocument();
+      // Verify initial state - should have the 5th participant who is a newcomer
+      expect(screen.getByDisplayValue('Nouveau·elle Arrivant·e')).toBeInTheDocument();
 
-      // Find all "Retirer" buttons (should be 4, one for each participant)
+      // Find all "Retirer" buttons (should be 1, only for the non-founder 5th participant)
       const removeButtons = screen.getAllByText('Retirer');
-      expect(removeButtons.length).toBe(4);
+      expect(removeButtons.length).toBe(1);
 
-      // Remove the first participant
+      // Remove the newcomer participant
       fireEvent.click(removeButtons[0]);
 
-      // Manuela should be gone
-      expect(screen.queryByDisplayValue('Manuela/Dragan')).not.toBeInTheDocument();
+      // Newcomer should be gone
+      expect(screen.queryByDisplayValue('Nouveau·elle Arrivant·e')).not.toBeInTheDocument();
 
-      // Other participants should still be there
+      // Founders should still be there
+      expect(screen.getByDisplayValue('Manuela/Dragan')).toBeInTheDocument();
       expect(screen.getByDisplayValue('Cathy/Jim')).toBeInTheDocument();
       expect(screen.getByDisplayValue('Annabelle/Colin')).toBeInTheDocument();
       expect(screen.getByDisplayValue('Julie/Séverin')).toBeInTheDocument();
@@ -227,30 +229,31 @@ describe('EnDivisionCorrect - Integration Tests', () => {
     it('should not show remove button when only one participant remains', () => {
       render(<EnDivisionCorrect />);
 
-      // Remove 3 participants
+      // Remove the only non-founder participant (Nouveau·elle Arrivant·e)
       const removeButtons = screen.getAllByText('Retirer');
+      expect(removeButtons.length).toBe(1);
       fireEvent.click(removeButtons[0]);
-      fireEvent.click(screen.getAllByText('Retirer')[0]);
-      fireEvent.click(screen.getAllByText('Retirer')[0]);
 
-      // Should have 1 participant left
-      // The remove button should not be present anymore
+      // Should have 4 founders left
+      // The remove button should not be present anymore since founders cannot be removed
       expect(screen.queryByText('Retirer')).not.toBeInTheDocument();
 
-      // One participant should remain
-      const remainingParticipant = screen.getByDisplayValue('Julie/Séverin');
-      expect(remainingParticipant).toBeInTheDocument();
+      // Founders should remain
+      expect(screen.getByDisplayValue('Manuela/Dragan')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('Cathy/Jim')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('Annabelle/Colin')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('Julie/Séverin')).toBeInTheDocument();
     });
 
     it('should add participant with default values', () => {
       render(<EnDivisionCorrect />);
 
       // Add a participant
-      const addButton = screen.getByText('Ajouter un participant');
+      const addButton = screen.getByText('Ajouter un·e participant·e');
       fireEvent.click(addButton);
 
       // Check that default values are applied
-      const newParticipantName = screen.getByDisplayValue('Participant 5');
+      const newParticipantName = screen.getByDisplayValue('Participant·e 6');
       expect(newParticipantName).toBeInTheDocument();
 
       // The participant should have been added successfully and render without errors
@@ -266,6 +269,7 @@ describe('EnDivisionCorrect - Integration Tests', () => {
     it('migrates old data with cascoPerM2 on participants', () => {
       // Mock localStorage with old data format
       const oldData = {
+        releaseVersion: '1.0.0',
         participants: [{ name: 'A', cascoPerM2: 1800, parachevementsPerM2: 500, surface: 100, unitId: 1, capitalApporte: 50000, notaryFeesRate: 12.5, interestRate: 4.5, durationYears: 25, quantity: 1 }],
         projectParams: { totalPurchase: 650000 },
         scenario: { constructionCostChange: 0, infrastructureReduction: 0, purchasePriceReduction: 0 }
@@ -287,6 +291,7 @@ describe('EnDivisionCorrect - Integration Tests', () => {
 
     it('uses default cascoPerM2 when not present in old data', () => {
       const oldData = {
+        releaseVersion: '1.0.0',
         participants: [{ name: 'A', parachevementsPerM2: 500, surface: 100, unitId: 1, capitalApporte: 50000, notaryFeesRate: 12.5, interestRate: 4.5, durationYears: 25, quantity: 1 }],
         projectParams: { totalPurchase: 650000 },
         scenario: { constructionCostChange: 0 }

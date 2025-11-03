@@ -95,6 +95,7 @@ Integration tests in `src/utils/excelExport.integration.test.ts` verify that:
 
 ## What Was Missing Before (Now Fixed)
 
+### Initial Update (Basic Fields)
 1. **Quantity field** - Multi-unit participants couldn't see how many units they own
 2. **Global CASCO rate** - The baseline CASCO/m² rate wasn't exported
 3. **Participant overrides** - Custom rates for parachèvements and partial renovation areas
@@ -102,9 +103,28 @@ Integration tests in `src/utils/excelExport.integration.test.ts` verify that:
 5. **Expense categories detail** - New granular expense tracking wasn't exported
 6. **Unit details reference** - The hardcoded unit type costs weren't documented
 
+### Second Update (Portage & Timeline)
+7. **Portage lots** - `lotsOwned` array with details of each lot (including portage markers)
+8. **Timeline fields** - `isFounder` (founder vs newcomer) and `entryDate` (when participant joined)
+9. **Purchase details** - `buyingFrom` field showing who the participant bought from (for newcomers)
+
+### Portage & Timeline Fields (Second Update)
+
+| UI Field | Export Location | Status | Notes |
+|----------|----------------|--------|-------|
+| **Fondateur (Oui/Non)** | **Column Y** | ✅ **NEW** | **Founder vs newcomer status** |
+| **Date d'entrée** | **Column Z** | ✅ **NEW** | **When participant joined** |
+| **Lots détenus** | **Column AA** | ✅ **NEW** | **List of all lots with portage markers** |
+| **Acheté de** | **Column AB** | ✅ **NEW** | **Who sold to this participant** |
+
+**Portage lots format example:**
+```
+Lot 1: 112m²; Lot 2 (portage): 50m²
+```
+
 ## Test Coverage
 
-**7 integration tests** verify accuracy:
+**10 integration tests** verify accuracy (increased from 7):
 
 1. ✅ `should export all participant input fields from UI` - Verifies 11 input fields
 2. ✅ `should export all calculated values shown in UI` - Verifies calculations match
@@ -113,6 +133,9 @@ Integration tests in `src/utils/excelExport.integration.test.ts` verify that:
 5. ✅ `should export unit details reference` - Verifies unit type documentation
 6. ✅ `should export all summary totals shown in UI` - Verifies 6 summary fields
 7. ✅ `should match calculations between UI and export` - End-to-end accuracy check
+8. ✅ `should export portage lots when present` - Verifies lotsOwned array with portage markers
+9. ✅ `should export timeline fields (founder status, entry date)` - Verifies isFounder & entryDate
+10. ✅ `should export purchase details for newcomers` - Verifies buyingFrom field
 
 ## How to Verify
 
@@ -136,5 +159,6 @@ npm run dev
 - All new features (expense categories, unit details)
 - All summary totals
 
-**Before this update**: ~70% coverage (missing 6 major field categories)
-**After this update**: 100% coverage (all fields captured)
+**Before initial update**: ~65% coverage (missing 9 major field categories)
+**After initial update**: ~85% coverage (added 6 categories)
+**After portage update**: 100% coverage (all fields captured including timeline/portage)

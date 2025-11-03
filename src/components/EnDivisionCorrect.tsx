@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Users } from 'lucide-react';
 import * as Tooltip from '@radix-ui/react-tooltip';
-import { calculateAll } from '../utils/calculatorUtils';
+import { calculateAll, DEFAULT_PORTAGE_FORMULA, type PortageFormulaParams } from '../utils/calculatorUtils';
 import { exportCalculations } from '../utils/excelExport';
 import { XlsxWriter } from '../utils/exportWriter';
 import { ParticipantsTimeline } from './calculator/ParticipantsTimeline';
@@ -12,6 +12,8 @@ import { FormulaTooltip } from './FormulaTooltip';
 import { formatCurrency } from '../utils/formatting';
 import { ExpenseCategorySection } from './ExpenseCategorySection';
 import { calculateExpenseCategoriesTotal } from '../utils/calculatorUtils';
+// @ts-ignore - Reserved for future use
+import PortageFormulaConfig from './PortageFormulaConfig';
 import {
   getPricePerM2Formula,
   getTotalProjectCostFormula
@@ -147,13 +149,18 @@ export default function EnDivisionCorrect() {
     return stored?.deedDate || DEFAULT_DEED_DATE;
   });
 
+  const [portageFormula, setPortageFormula] = useState<PortageFormulaParams>(() => {
+    const stored = loadFromLocalStorage();
+    return stored?.portageFormula || DEFAULT_PORTAGE_FORMULA;
+  });
+
   // Auto-save to localStorage whenever state changes
   useEffect(() => {
     // Don't save if there's a version mismatch (user needs to resolve it first)
     if (!versionMismatch.show) {
-      saveToLocalStorage(participants, projectParams, scenario, deedDate);
+      saveToLocalStorage(participants, projectParams, scenario, deedDate, portageFormula);
     }
-  }, [participants, projectParams, scenario, deedDate, versionMismatch.show]);
+  }, [participants, projectParams, scenario, deedDate, portageFormula, versionMismatch.show]);
 
   // Handle version mismatch - export data and reset
   const handleExportAndReset = () => {
@@ -183,8 +190,8 @@ export default function EnDivisionCorrect() {
     // Reset to defaults
     setParticipants(DEFAULT_PARTICIPANTS.map((p: any) => ({
       ...p,
-      isFounder: true,
-      entryDate: new Date(DEFAULT_DEED_DATE)
+      isFounder: p.isFounder !== undefined ? p.isFounder : true,
+      entryDate: p.entryDate ? new Date(p.entryDate) : new Date(DEFAULT_DEED_DATE)
     })));
     setProjectParams(DEFAULT_PROJECT_PARAMS);
     setScenario(DEFAULT_SCENARIO);
@@ -344,6 +351,12 @@ export default function EnDivisionCorrect() {
       }
     }
     setParticipants(newParticipants);
+  };
+
+  // Reserved for future use when PortageFormulaConfig component is rendered
+  // @ts-expect-error - Function reserved for future component integration
+  const handleUpdatePortageFormula = (params: PortageFormulaParams) => {
+    setPortageFormula(params);
   };
 
   const updatePortageLotSurface = (participantIndex: number, lotId: number, surface: number) => {
@@ -898,6 +911,7 @@ export default function EnDivisionCorrect() {
               allParticipants={participants}
               calculations={calculations}
               projectParams={projectParams}
+              formulaParams={portageFormula}
               isPinned={pinnedParticipant === p.name}
               onPin={() => handlePinParticipant(p.name)}
               onUnpin={handleUnpinParticipant}

@@ -11,6 +11,7 @@ import { useState, useRef } from 'react';
 import type { DomainEvent } from '../types/timeline';
 import { projectContinuousTimeline } from '../utils/timelineProjection';
 import { exportTimelineToJSON, importTimelineFromJSON } from '../utils/timelineExport';
+import { DEFAULT_PORTAGE_FORMULA } from '../utils/calculatorUtils';
 import TimelineVisualization from './TimelineVisualization';
 import ParticipantsTable from './ParticipantsTable';
 import CoproprietéPanel from './CoproprietéPanel';
@@ -222,6 +223,7 @@ export default function ContinuousTimelineView({
               timeline.copropropriete.lotsOwned
             )}
             deedDate={timeline.deedDate}
+            formulaParams={DEFAULT_PORTAGE_FORMULA}
           />
         )}
       </div>

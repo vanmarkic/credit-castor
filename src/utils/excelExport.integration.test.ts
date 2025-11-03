@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { calculateAll } from './calculatorUtils';
 import { buildExportSheetData } from './excelExport';
 import type { Participant, ProjectParams, Scenario, UnitDetails } from './calculatorUtils';
+import type { Lot } from '../types/timeline';
 
 /**
  * Integration test to verify that Excel export accurately reflects UI data
@@ -222,5 +223,89 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
     // Verify participant totals
     expect(calculations.participantBreakdown.length).toBe(2);
     expect(calculations.totals.capitalTotal).toBe(250000); // 100000 + 150000
+  });
+
+  it('should export portage lots when present', () => {
+    // Add portage lots to participant
+    const participantsWithPortage: Participant[] = [
+      {
+        ...participants[0],
+        lotsOwned: [
+          {
+            lotId: 1,
+            surface: 112,
+            unitId: 1,
+            isPortage: false,
+            acquiredDate: new Date('2024-01-15'),
+            allocatedSurface: 112
+          } as Lot,
+          {
+            lotId: 2,
+            surface: 50,
+            unitId: 1,
+            isPortage: true,
+            acquiredDate: new Date('2024-01-15'),
+            allocatedSurface: 50
+          } as Lot
+        ]
+      },
+      participants[1]
+    ];
+
+    const calculations = calculateAll(participantsWithPortage, projectParams, scenario, unitDetails);
+    const sheetData = buildExportSheetData(calculations, projectParams, scenario, unitDetails);
+
+    const p1Row = sheetData.cells.find(c => c.data.value === 'Test Participant 1')!.row;
+
+    // Verify lots details are exported
+    const lotsCell = sheetData.cells.find(c => c.row === p1Row && c.col === 'AA');
+    expect(lotsCell).toBeDefined();
+    expect(lotsCell?.data.value).toContain('Lot 1');
+    expect(lotsCell?.data.value).toContain('Lot 2 (portage)');
+    expect(lotsCell?.data.value).toContain('112m²');
+    expect(lotsCell?.data.value).toContain('50m²');
+  });
+
+  it('should export timeline fields (founder status, entry date)', () => {
+    const calculations = calculateAll(participants, projectParams, scenario, unitDetails);
+    const sheetData = buildExportSheetData(calculations, projectParams, scenario, unitDetails);
+
+    const p1Row = sheetData.cells.find(c => c.data.value === 'Test Participant 1')!.row;
+
+    // Verify founder status
+    const founderCell = sheetData.cells.find(c => c.row === p1Row && c.col === 'Y');
+    expect(founderCell?.data.value).toBe('Oui');
+
+    // Verify entry date
+    const entryDateCell = sheetData.cells.find(c => c.row === p1Row && c.col === 'Z');
+    expect(entryDateCell?.data.value).toBe('15/01/2024');
+  });
+
+  it('should export purchase details for newcomers', () => {
+    const participantWithPurchase: Participant[] = [
+      participants[0],
+      {
+        ...participants[1],
+        isFounder: false,
+        purchaseDetails: {
+          buyingFrom: 'Test Participant 1',
+          lotId: 1,
+          purchasePrice: 150000
+        }
+      }
+    ];
+
+    const calculations = calculateAll(participantWithPurchase, projectParams, scenario, unitDetails);
+    const sheetData = buildExportSheetData(calculations, projectParams, scenario, unitDetails);
+
+    const p2Row = sheetData.cells.find(c => c.data.value === 'Test Participant 2')!.row;
+
+    // Verify purchase details
+    const acheteDeCell = sheetData.cells.find(c => c.row === p2Row && c.col === 'AB');
+    expect(acheteDeCell?.data.value).toBe('Test Participant 1');
+
+    // Verify founder status
+    const founderCell = sheetData.cells.find(c => c.row === p2Row && c.col === 'Y');
+    expect(founderCell?.data.value).toBe('Non');
   });
 });
