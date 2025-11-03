@@ -993,7 +993,10 @@ export default function EnDivisionCorrect() {
                     {/* Available Lots for Purchase */}
                     <div className="mb-4">
                       <AvailableLotsView
-                        availableLots={getAvailableLotsForNewcomer(participants, [])}
+                        availableLots={getAvailableLotsForNewcomer(participants, [
+                          // Mock copropriété lot for testing
+                          { lotId: 999, surface: 300, acquiredDate: new Date(deedDate), soldDate: undefined }
+                        ])}
                         deedDate={new Date(deedDate)}
                         onSelectLot={(lot, price) => {
                           const updated = [...participants];
@@ -1327,6 +1330,12 @@ export default function EnDivisionCorrect() {
                     const participantEntryDate = participants[idx].entryDate
                       ? new Date(participants[idx].entryDate)
                       : new Date(deedDate);
+
+                    console.log(`[Copro Redistribution] Participant: ${participants[idx].name}`);
+                    console.log(`  - Entry date: ${participantEntryDate.toISOString()}`);
+                    console.log(`  - Sale date: ${saleDate.toISOString()}`);
+                    console.log(`  - Buyer: ${sale.buyer}`);
+                    console.log(`  - Eligible: ${participantEntryDate < saleDate}`);
 
                     // Only participants who entered before the sale date get a share
                     if (participantEntryDate >= saleDate) {
