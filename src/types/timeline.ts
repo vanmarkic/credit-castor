@@ -6,7 +6,7 @@
  * Projections = computed views derived from events
  */
 
-import type { Participant, ProjectParams, Scenario, CalculationResults } from '../utils/calculatorUtils';
+import type { Participant, ProjectParams, CalculationResults } from '../utils/calculatorUtils';
 
 // ============================================
 // Lot Type
@@ -108,7 +108,7 @@ export interface InitialPurchaseEvent extends BaseEvent {
   type: 'INITIAL_PURCHASE';
   participants: Participant[]; // Changed from ParticipantDetails[]
   projectParams: ProjectParams;
-  scenario: Scenario;
+  // scenario removed - no longer using percentage-based adjustments
   copropropriete: CoproEntitySetup;
 }
 
@@ -207,7 +207,7 @@ export interface PhaseProjection {
   participants: Participant[];
   copropropriete: CoproEntity;
   projectParams: ProjectParams;
-  scenario: Scenario;
+  // scenario removed - no longer using percentage-based adjustments
 
   // Snapshot calculations (reuse existing calculateAll)
   snapshot: CalculationResults;
@@ -331,6 +331,6 @@ export interface ProjectionState {
   participants: Participant[];
   copropropriete: CoproEntity;
   projectParams: ProjectParams;
-  scenario: Scenario;
+  // scenario removed - no longer using percentage-based adjustments
   transactionHistory: Transaction[];
 }

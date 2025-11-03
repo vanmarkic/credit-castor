@@ -5,7 +5,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { calculateAll } from '../utils/calculatorUtils';
-import type { Participant, ProjectParams, Scenario, UnitDetails } from '../utils/calculatorUtils';
+import type { Participant, ProjectParams, UnitDetails } from '../utils/calculatorUtils';
 import { RELEASE_VERSION } from '../utils/version';
 
 describe('JSON Export Completeness', () => {
@@ -54,12 +54,6 @@ describe('JSON Export Completeness', () => {
     globalCascoPerM2: 1590
   };
 
-  const mockScenario: Scenario = {
-    constructionCostChange: 5,
-    infrastructureReduction: 10,
-    purchasePriceReduction: 2
-  };
-
   const mockUnitDetails: UnitDetails = {
     1: { casco: 178080, parachevements: 56000 },
     3: { casco: 213060, parachevements: 67000 }
@@ -74,14 +68,13 @@ describe('JSON Export Completeness', () => {
     timestamp: new Date().toISOString(),
     participants,
     projectParams: mockProjectParams,
-    scenario: mockScenario,
     deedDate: mockDeedDate,
     unitDetails: mockUnitDetails,
     calculations
   });
 
   it('should include all required top-level fields', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockScenario, mockUnitDetails);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
@@ -89,7 +82,6 @@ describe('JSON Export Completeness', () => {
       timestamp: new Date().toISOString(),
       participants: mockParticipants,
       projectParams: mockProjectParams,
-      scenario: mockScenario,
       deedDate: mockDeedDate,
       unitDetails: mockUnitDetails,
       calculations
@@ -101,7 +93,6 @@ describe('JSON Export Completeness', () => {
     expect(exportData).toHaveProperty('timestamp');
     expect(exportData).toHaveProperty('participants');
     expect(exportData).toHaveProperty('projectParams');
-    expect(exportData).toHaveProperty('scenario');
     expect(exportData).toHaveProperty('deedDate');
     expect(exportData).toHaveProperty('unitDetails');
     expect(exportData).toHaveProperty('calculations');
@@ -114,14 +105,13 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should include all participant input fields', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockScenario, mockUnitDetails);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
       timestamp: new Date().toISOString(),
       participants: mockParticipants,
       projectParams: mockProjectParams,
-      scenario: mockScenario,
       deedDate: mockDeedDate,
       unitDetails: mockUnitDetails,
       calculations
@@ -151,14 +141,13 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should include all projectParams fields', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockScenario, mockUnitDetails);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
       timestamp: new Date().toISOString(),
       participants: mockParticipants,
       projectParams: mockProjectParams,
-      scenario: mockScenario,
       deedDate: mockDeedDate,
       unitDetails: mockUnitDetails,
       calculations
@@ -179,36 +168,16 @@ describe('JSON Export Completeness', () => {
     expect(params).toHaveProperty('globalCascoPerM2');
   });
 
-  it('should include all scenario fields', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockScenario, mockUnitDetails);
-
-    const exportData = {
-      version: 2,
-      timestamp: new Date().toISOString(),
-      participants: mockParticipants,
-      projectParams: mockProjectParams,
-      scenario: mockScenario,
-      deedDate: mockDeedDate,
-      unitDetails: mockUnitDetails,
-      calculations
-    };
-
-    const scenario = exportData.scenario;
-
-    expect(scenario).toHaveProperty('constructionCostChange');
-    expect(scenario).toHaveProperty('infrastructureReduction');
-    expect(scenario).toHaveProperty('purchasePriceReduction');
-  });
+  // Scenario tests removed - scenarios no longer exist
 
   it('should include all calculation summary fields', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockScenario, mockUnitDetails);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
       timestamp: new Date().toISOString(),
       participants: mockParticipants,
       projectParams: mockProjectParams,
-      scenario: mockScenario,
       deedDate: mockDeedDate,
       unitDetails: mockUnitDetails,
       calculations
@@ -226,14 +195,13 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should include all participant calculation fields', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockScenario, mockUnitDetails);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
       timestamp: new Date().toISOString(),
       participants: mockParticipants,
       projectParams: mockProjectParams,
-      scenario: mockScenario,
       deedDate: mockDeedDate,
       unitDetails: mockUnitDetails,
       calculations
@@ -265,14 +233,13 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should include all totals fields', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockScenario, mockUnitDetails);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
       timestamp: new Date().toISOString(),
       participants: mockParticipants,
       projectParams: mockProjectParams,
-      scenario: mockScenario,
       deedDate: mockDeedDate,
       unitDetails: mockUnitDetails,
       calculations
@@ -294,14 +261,13 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should preserve all numeric values with precision', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockScenario, mockUnitDetails);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
       timestamp: new Date().toISOString(),
       participants: mockParticipants,
       projectParams: mockProjectParams,
-      scenario: mockScenario,
       deedDate: mockDeedDate,
       unitDetails: mockUnitDetails,
       calculations
@@ -320,14 +286,13 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should include deedDate for version 2', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockScenario, mockUnitDetails);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
       timestamp: new Date().toISOString(),
       participants: mockParticipants,
       projectParams: mockProjectParams,
-      scenario: mockScenario,
       deedDate: mockDeedDate,
       unitDetails: mockUnitDetails,
       calculations
@@ -337,14 +302,13 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should include unitDetails for reference', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockScenario, mockUnitDetails);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
       timestamp: new Date().toISOString(),
       participants: mockParticipants,
       projectParams: mockProjectParams,
-      scenario: mockScenario,
       deedDate: mockDeedDate,
       unitDetails: mockUnitDetails,
       calculations
@@ -356,14 +320,13 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should be able to round-trip serialize and deserialize', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockScenario, mockUnitDetails);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
       timestamp: new Date().toISOString(),
       participants: mockParticipants,
       projectParams: mockProjectParams,
-      scenario: mockScenario,
       deedDate: mockDeedDate,
       unitDetails: mockUnitDetails,
       calculations
@@ -379,7 +342,7 @@ describe('JSON Export Completeness', () => {
     expect(parsed.version).toBe(2);
     expect(parsed.participants).toBeDefined();
     expect(parsed.projectParams).toBeDefined();
-    expect(parsed.scenario).toBeDefined();
+    // scenario removed - no longer exists
     expect(parsed.deedDate).toBeDefined();
     expect(parsed.unitDetails).toBeDefined();
     expect(parsed.calculations).toBeDefined();
@@ -390,14 +353,13 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should capture all formula inputs for reproducibility', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockScenario, mockUnitDetails);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
       timestamp: new Date().toISOString(),
       participants: mockParticipants,
       projectParams: mockProjectParams,
-      scenario: mockScenario,
       deedDate: mockDeedDate,
       unitDetails: mockUnitDetails,
       calculations
@@ -407,7 +369,6 @@ describe('JSON Export Completeness', () => {
     const recalculated = calculateAll(
       exportData.participants,
       exportData.projectParams,
-      exportData.scenario,
       exportData.unitDetails
     );
 
@@ -454,14 +415,13 @@ describe('JSON Export Completeness', () => {
       ]
     };
 
-    const calculations = calculateAll([participantWithPortage], mockProjectParams, mockScenario, mockUnitDetails);
+    const calculations = calculateAll([participantWithPortage], mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
       timestamp: new Date().toISOString(),
       participants: [participantWithPortage],
       projectParams: mockProjectParams,
-      scenario: mockScenario,
       deedDate: mockDeedDate,
       unitDetails: mockUnitDetails,
       calculations
@@ -523,14 +483,13 @@ describe('JSON Export Completeness', () => {
       }
     };
 
-    const calculations = calculateAll([newcomerParticipant], mockProjectParams, mockScenario, mockUnitDetails);
+    const calculations = calculateAll([newcomerParticipant], mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
       timestamp: new Date().toISOString(),
       participants: [newcomerParticipant],
       projectParams: mockProjectParams,
-      scenario: mockScenario,
       deedDate: mockDeedDate,
       unitDetails: mockUnitDetails,
       calculations
@@ -589,7 +548,6 @@ describe('JSON Export Completeness', () => {
     const calculations = calculateAll(
       [founderParticipant, exitingParticipant],
       mockProjectParams,
-      mockScenario,
       mockUnitDetails
     );
 
@@ -598,7 +556,6 @@ describe('JSON Export Completeness', () => {
       timestamp: new Date().toISOString(),
       participants: [founderParticipant, exitingParticipant],
       projectParams: mockProjectParams,
-      scenario: mockScenario,
       deedDate: mockDeedDate,
       unitDetails: mockUnitDetails,
       calculations
@@ -620,7 +577,7 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should include release version for compatibility checking', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockScenario, mockUnitDetails);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
     const exportData = buildExportData(mockParticipants, calculations);
 
     // Verify release version is present
@@ -635,7 +592,7 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should include version format that matches semantic versioning', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockScenario, mockUnitDetails);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
     const exportData = buildExportData(mockParticipants, calculations);
 
     // Release version should follow semantic versioning (x.y.z)

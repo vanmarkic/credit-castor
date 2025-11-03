@@ -1,6 +1,6 @@
 import type { Participant, CalculationResults } from './calculatorUtils';
 import type { CoproLot } from '../types/timeline';
-import type { ParticipantTimeline } from './timelineProjection';
+// timelineProjection removed - event sourcing feature was dropped
 
 export interface AvailableLot {
   lotId: number;
@@ -28,25 +28,15 @@ export interface AvailableLot {
  * @param calculations - Optional calculation results to dynamically compute acquisition costs
  */
 export function getAvailableLotsForNewcomer(
-  participants: Participant[] | ParticipantTimeline[],
+  participants: Participant[],
   coproLots: CoproLot[],
   calculations?: CalculationResults
 ): AvailableLot[] {
   const available: AvailableLot[] = [];
 
-  // Normalize participants to Participant type
-  const normalizedParticipants: Participant[] = participants.map(p => {
-    // If it's a ParticipantTimeline, extract the participant
-    if ('participant' in p) {
-      return p.participant;
-    }
-    // Otherwise it's already a Participant
-    return p;
-  });
-
   // Add portage lots from founders
-  for (let i = 0; i < normalizedParticipants.length; i++) {
-    const participant = normalizedParticipants[i];
+  for (let i = 0; i < participants.length; i++) {
+    const participant = participants[i];
     if (participant.isFounder && participant.lotsOwned) {
       // Get participant's calculation results if available
       const participantCalc = calculations?.participantBreakdown[i];

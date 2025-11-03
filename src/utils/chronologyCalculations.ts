@@ -61,11 +61,7 @@ export function createInitialState(): ProjectionState {
       batimentCoproConservatoire: 0,
       globalCascoPerM2: 0
     },
-    scenario: {
-      constructionCostChange: 0,
-      infrastructureReduction: 0,
-      purchasePriceReduction: 0
-    },
+    // scenario removed - no longer using percentage-based adjustments
     transactionHistory: []
   };
 }
@@ -142,7 +138,7 @@ function applyInitialPurchase(
       }
     },
     projectParams: event.projectParams,
-    scenario: event.scenario,
+    // scenario removed - no longer using percentage-based adjustments
     transactionHistory: []
   };
 }
@@ -758,7 +754,6 @@ function createPhaseProjection(
   const snapshot = calculateAll(
     state.participants,
     state.projectParams,
-    state.scenario,
     unitDetails
   );
 
@@ -792,7 +787,7 @@ function createPhaseProjection(
     participants: state.participants,
     copropropriete: state.copropropriete,
     projectParams: state.projectParams,
-    scenario: state.scenario,
+    // scenario removed - no longer using percentage-based adjustments
     snapshot,
     participantCashFlows,
     coproproprieteCashFlow,

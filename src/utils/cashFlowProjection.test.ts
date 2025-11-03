@@ -64,11 +64,6 @@ function createInitialPurchaseEvent(deedDate: Date): InitialPurchaseEvent {
       batimentCoproConservatoire: 0,
       globalCascoPerM2: 0,
     },
-    scenario: {
-      constructionCostChange: 0,
-      infrastructureReduction: 0,
-      purchasePriceReduction: 0,
-    },
     copropropriete: {
       name: 'Les Acacias',
       hiddenLots: [],

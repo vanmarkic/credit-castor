@@ -69,11 +69,8 @@ export interface ProjectParams {
   expenseCategories?: ExpenseCategories;
 }
 
-export interface Scenario {
-  constructionCostChange: number; // percentage
-  infrastructureReduction: number; // percentage
-  purchasePriceReduction: number; // percentage
-}
+// Scenario interface removed - no longer using percentage-based adjustments
+// Real numbers are used directly from ProjectParams instead
 
 export interface PortageFormulaParams {
   indexationRate: number; // Annual percentage (default: 2.0)
@@ -141,14 +138,12 @@ export interface CalculationResults {
  */
 export function calculatePricePerM2(
   totalPurchase: number,
-  totalSurface: number,
-  purchasePriceReduction: number = 0
+  totalSurface: number
 ): number {
   if (totalSurface <= 0) {
     throw new Error('Total surface must be greater than zero');
   }
-  const adjustedPurchase = totalPurchase * (1 - purchasePriceReduction / 100);
-  return adjustedPurchase / totalSurface;
+  return totalPurchase / totalSurface;
 }
 
 /**
@@ -189,8 +184,7 @@ export function calculateExpenseCategoriesTotal(
  * Note: If expenseCategories is provided, it replaces the old infrastructure fields
  */
 export function calculateSharedCosts(
-  projectParams: ProjectParams,
-  infrastructureReduction: number = 0
+  projectParams: ProjectParams
 ): number {
   // If new expense categories are defined, use them instead of old fields
   if (projectParams.expenseCategories) {
@@ -202,7 +196,7 @@ export function calculateSharedCosts(
   return (
     projectParams.mesuresConservatoires +
     projectParams.demolition +
-    projectParams.infrastructures * (1 - infrastructureReduction / 100) +
+    projectParams.infrastructures +
     projectParams.etudesPreparatoires +
     projectParams.fraisEtudesPreparatoires +
     projectParams.fraisGeneraux3ans
@@ -358,14 +352,9 @@ export function calculateConstructionCost(
   casco: number,
   parachevements: number,
   travauxCommunsPerUnit: number,
-  constructionCostChange: number = 0,
   quantity: number = 1
 ): number {
-  const constructionCostPerUnit =
-    (casco * (1 + constructionCostChange / 100)) +
-    (parachevements * (1 + constructionCostChange / 100)) +
-    travauxCommunsPerUnit;
-
+  const constructionCostPerUnit = casco + parachevements + travauxCommunsPerUnit;
   return constructionCostPerUnit * quantity;
 }
 
@@ -430,16 +419,10 @@ export function calculateFinancingRatio(
 export function calculateAll(
   participants: Participant[],
   projectParams: ProjectParams,
-  scenario: Scenario,
   unitDetails: UnitDetails
 ): CalculationResults {
   const totalSurface = calculateTotalSurface(participants);
-  const adjustedPurchase = projectParams.totalPurchase * (1 - scenario.purchasePriceReduction / 100);
-  const pricePerM2 = calculatePricePerM2(
-    projectParams.totalPurchase,
-    totalSurface,
-    scenario.purchasePriceReduction
-  );
+  const pricePerM2 = calculatePricePerM2(projectParams.totalPurchase, totalSurface);
 
   // Calculate fraisGeneraux3ans dynamically based on construction costs
   const dynamicFraisGeneraux3ans = calculateFraisGeneraux3ans(
@@ -454,10 +437,7 @@ export function calculateAll(
     fraisGeneraux3ans: dynamicFraisGeneraux3ans,
   };
 
-  const sharedCosts = calculateSharedCosts(
-    updatedProjectParams,
-    scenario.infrastructureReduction
-  );
+  const sharedCosts = calculateSharedCosts(updatedProjectParams);
   const sharedPerPerson = sharedCosts / participants.length;
 
   const travauxCommunsPerUnit = calculateTravauxCommunsPerUnit(
@@ -486,8 +466,8 @@ export function calculateAll(
 
     // Since surface is TOTAL, casco and parachevements are already for total surface
     // Only multiply travauxCommunsPerUnit by quantity (shared building costs per unit)
-    const cascoTotal = casco * (1 + scenario.constructionCostChange / 100);
-    const parachevementsTotal = parachevements * (1 + scenario.constructionCostChange / 100);
+    const cascoTotal = casco;
+    const parachevementsTotal = parachevements;
     const personalRenovationCost = cascoTotal + parachevementsTotal;
     const travauxCommunsTotal = travauxCommunsPerUnit * quantity;
 
@@ -530,13 +510,13 @@ export function calculateAll(
   });
 
   const totals: CalculationTotals = {
-    purchase: adjustedPurchase,
+    purchase: projectParams.totalPurchase,
     totalNotaryFees: participantBreakdown.reduce((sum, p) => sum + p.notaryFees, 0),
     construction: participantBreakdown.reduce((sum, p) => sum + p.constructionCost, 0),
     shared: sharedCosts,
     totalTravauxCommuns: calculateTotalTravauxCommuns(projectParams),
     travauxCommunsPerUnit,
-    total: adjustedPurchase +
+    total: projectParams.totalPurchase +
            participantBreakdown.reduce((sum, p) => sum + p.notaryFees, 0) +
            participantBreakdown.reduce((sum, p) => sum + p.constructionCost, 0) +
            sharedCosts,

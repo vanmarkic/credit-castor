@@ -4,7 +4,7 @@
  * Converts calculator inputs to InitialPurchaseEvent for timeline
  */
 
-import type { Participant, ProjectParams, Scenario, CalculationResults } from './calculatorUtils';
+import type { Participant, ProjectParams, CalculationResults } from './calculatorUtils';
 import type { InitialPurchaseEvent, Lot } from '../types/timeline';
 import { calculateAll } from './calculatorUtils';
 
@@ -13,7 +13,6 @@ import { calculateAll } from './calculatorUtils';
  *
  * @param participants - Calculator participants
  * @param projectParams - Project parameters
- * @param scenario - Scenario adjustments
  * @param deedDate - Deed date (T0)
  * @param coproName - Optional copropriété name
  * @param hiddenLots - Optional hidden lot IDs
@@ -22,7 +21,6 @@ import { calculateAll } from './calculatorUtils';
 export function convertCalculatorToInitialPurchaseEvent(
   participants: Participant[],
   projectParams: ProjectParams,
-  scenario: Scenario,
   deedDate: Date,
   coproName: string = 'Copropriété',
   hiddenLots: number[] = []
@@ -39,7 +37,7 @@ export function convertCalculatorToInitialPurchaseEvent(
   });
 
   // Calculate all financial details
-  const results = calculateAll(participants, projectParams, scenario, unitDetails);
+  const results = calculateAll(participants, projectParams, unitDetails);
 
   // Convert each participant to timeline format
   let lotIdCounter = 1;
@@ -56,8 +54,8 @@ export function convertCalculatorToInitialPurchaseEvent(
       const notaryPerLot = (participantResults.notaryFees || 0) / quantity;
 
       // Construction cost per lot includes:
-      // - CASCO (with scenario adjustments)
-      // - Parachevements (with scenario adjustments)
+      // - CASCO
+      // - Parachevements
       // - Travaux communs (per unit share)
       const constructionCostPerLot = (participantResults.constructionCost || 0) / quantity;
 
@@ -91,7 +89,7 @@ export function convertCalculatorToInitialPurchaseEvent(
     type: 'INITIAL_PURCHASE',
     participants: timelineParticipants,
     projectParams,
-    scenario,
+    // scenario removed - no longer using percentage-based adjustments
     copropropriete: {
       name: coproName,
       hiddenLots,

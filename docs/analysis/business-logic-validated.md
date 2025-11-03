@@ -229,50 +229,53 @@ Base acquisition cost
 
 ## Questions Requiring Clarification
 
-### Q1: Base Acquisition Cost Components
-**User asked**: "Tell me how it's calculated in the code"
+### Q1: Base Acquisition Cost Components ✅ ANSWERED
+**User clarification**: "Where does it come from, where is it in the UI?"
 
 **Current code** (`calculateResalePrice` in portageCalculations.ts):
 ```typescript
 const totalAcquisitionCost = originalPurchaseShare + originalNotaryFees + originalConstructionCost;
 ```
 
-**User indicated**: Should include ALL costs founder paid:
-- Purchase share
-- Registration fees (currently called "notaryFees")
-- Construction costs
-- **Plus**: frais communs
-- **Plus**: recurring costs during holding
-- **Plus**: loan interest
-- **Plus**: real notary fees (when added)
+**UI Location**: Not explicitly shown as "base acquisition cost" in UI. The relevant costs are:
+- Purchase share (divided by surface)
+- Registration fees (3% or 12.5%)
+- Construction costs (CASCO + parachèvements + travaux communs)
+- Frais communs (see expense categories below)
 
-**Action**: Clarify exact components for base acquisition cost
+**Action**: Verify if base acquisition cost needs to be displayed in portage pricing breakdown
 
-### Q2: Frais Généraux Formula
-**User said**: "I need to double-check that"
+### Q2: Frais Généraux Formula ✅ ANSWERED
+**User confirmed**: "They are all added up and then divided among the participants, at equal rate"
 
-**Current formula**: `(Total CASCO × 15% × 30%) + recurring costs × 3 years + one-time costs`
+**Expense Categories** (from UI):
+- CONSERVATOIRE: 78,000€
+- HABITABILITE SOMMAIRE: 7,000€
+- PREMIER TRAVAUX: 18,850€
+- FRAIS GÉNÉRAUX ÉTALÉS SUR 3 ANS: 83,897€ (calculated automatically)
 
-**Action**: Get user confirmation on exact formula
+**Total commun**: 187,747€ → **37,549€ per person**
 
-### Q3: Quotité Calculation
-**Simple model**: `surface / totalSurface`
-**Reality**: "Defined in deed, influenced by lot type, location, etc."
+**Formula confirmed**:
+1. Sum all expense categories (conservatoire + habitabilité + premier travaux)
+2. Add frais généraux: (Total CASCO × 15% × 30%) + recurring costs × 3 years + one-time costs
+3. Divide total equally among participants
 
-**Question**: Should calculator use simple model or support custom quotité values?
+### Q3: Quotité Calculation ✅ ANSWERED
+**User decision**: "Auto calculated"
 
-**Action**: Determine if quotité should be:
-- (a) Auto-calculated from surface (current)
-- (b) User-configurable field
-- (c) Hybrid approach
+**Implementation**: Keep current model
+- Quotité = `participant surface / total building surface`
+- No user override needed
+- Note: In real acte de base, can be influenced by other factors (lot type, location)
 
-### Q4: Travaux Communs Future Distribution
-**Current**: Divided by quantity
-**Future**: Hybrid (part quotité, part quantity)
+### Q4: Travaux Communs Future Distribution ✅ ANSWERED
+**User decision**: "Yes" - design for future hybrid model
 
-**Question**: Should we design for future hybrid model now?
-
-**Action**: Get requirements for hybrid distribution formula
+**Action**: Create architecture to support:
+- Current: Division by quantity (number of units)
+- Future: Hybrid formula (part quotité, part quantity)
+- Design should make this configurable without major refactoring
 
 ---
 

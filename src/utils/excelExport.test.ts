@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildExportSheetData, exportCalculations } from './excelExport';
 import { CsvWriter, XlsxWriter } from './exportWriter';
-import type { CalculationResults, ProjectParams, Scenario } from './calculatorUtils';
+import type { CalculationResults, ProjectParams } from './calculatorUtils';
 
 describe('Excel Export', () => {
   const mockCalculations: CalculationResults = {
@@ -92,12 +92,6 @@ describe('Excel Export', () => {
     globalCascoPerM2: 1590
   };
 
-  const mockScenario: Scenario = {
-    constructionCostChange: 0,
-    infrastructureReduction: 0,
-    purchasePriceReduction: 0,
-  };
-
   const mockUnitDetails = {
     1: { casco: 178080, parachevements: 56000 },
     3: { casco: 213060, parachevements: 67000 },
@@ -108,7 +102,6 @@ describe('Excel Export', () => {
       const sheetData = buildExportSheetData(
         mockCalculations,
         mockProjectParams,
-        mockScenario,
         mockUnitDetails,
         '10/11/2025'
       );
@@ -129,18 +122,14 @@ describe('Excel Export', () => {
       expect(totalPurchaseCell?.data.value).toBe(650000);
 
       // Check formula cells
-      const adjustedPurchaseCell = sheetData.cells.find(c => c.row === 7 && c.col === 'B');
-      expect(adjustedPurchaseCell?.data.formula).toBe('B5*(1-B6/100)');
-
-      const pricePerM2Cell = sheetData.cells.find(c => c.row === 9 && c.col === 'B');
-      expect(pricePerM2Cell?.data.formula).toBe('B7/B8');
+      const pricePerM2Cell = sheetData.cells.find(c => c.row === 7 && c.col === 'B');
+      expect(pricePerM2Cell?.data.formula).toBe('B5/B6');
     });
 
     it('should include participant data with formulas', () => {
       const sheetData = buildExportSheetData(
         mockCalculations,
         mockProjectParams,
-        mockScenario,
         mockUnitDetails,
         '10/11/2025'
       );
@@ -155,7 +144,7 @@ describe('Excel Export', () => {
 
       // Check formulas for participant 1 (using dynamic row)
       const p1PurchaseShareFormula = sheetData.cells.find(c => c.row === p1Row && c.col === 'I');
-      expect(p1PurchaseShareFormula?.data.formula).toBe(`C${p1Row}*$B$9`);
+      expect(p1PurchaseShareFormula?.data.formula).toBe(`C${p1Row}*$B$7`);
 
       const p1NotaryFeesFormula = sheetData.cells.find(c => c.row === p1Row && c.col === 'J');
       expect(p1NotaryFeesFormula?.data.formula).toBe(`I${p1Row}*F${p1Row}/100`);
@@ -168,7 +157,6 @@ describe('Excel Export', () => {
       const sheetData = buildExportSheetData(
         mockCalculations,
         mockProjectParams,
-        mockScenario,
         mockUnitDetails,
         '10/11/2025'
       );
@@ -193,7 +181,6 @@ describe('Excel Export', () => {
       const sheetData = buildExportSheetData(
         mockCalculations,
         mockProjectParams,
-        mockScenario,
         mockUnitDetails,
         '10/11/2025'
       );
@@ -225,7 +212,6 @@ describe('Excel Export', () => {
       const result = exportCalculations(
         mockCalculations,
         mockProjectParams,
-        mockScenario,
         mockUnitDetails,
         csvWriter,
         'test_export.xlsx'
@@ -237,33 +223,12 @@ describe('Excel Export', () => {
       expect(result).toContain('ACHAT EN DIVISION - CALCULATEUR IMMOBILIER');
       expect(result).toContain('Manuela/Dragan');
       expect(result).toContain('Cathy/Jim');
-      expect(result).toContain('=B5*(1-B6/100)');
+      expect(result).toContain('=B5/B6'); // Price per m2 formula
       expect(result).toContain('=PMT(G'); // Check for PMT formula (row number is dynamic)
       expect(result).toContain('SYNTHESE GLOBALE');
     });
 
-    it('should generate CSV snapshot with scenario modifications', () => {
-      const modifiedScenario: Scenario = {
-        constructionCostChange: 15,
-        infrastructureReduction: 20,
-        purchasePriceReduction: 10,
-      };
-
-      const csvWriter = new CsvWriter();
-      const result = exportCalculations(
-        mockCalculations,
-        mockProjectParams,
-        modifiedScenario,
-        mockUnitDetails,
-        csvWriter,
-        'test_modified.xlsx'
-      );
-
-      expect(result).toContain('WORKBOOK: test_modified.xlsx');
-      expect(result).toContain(' 15'); // Construction cost change in B12
-      expect(result).toContain(' 20'); // Infrastructure reduction in B13
-      expect(result).toContain(' 10'); // Purchase price reduction in B6
-    });
+    // Scenario modifications test removed - scenarios no longer exist
   });
 
   describe('CSV export snapshot', () => {
@@ -272,7 +237,6 @@ describe('Excel Export', () => {
       const result = exportCalculations(
         mockCalculations,
         mockProjectParams,
-        mockScenario,
         mockUnitDetails,
         csvWriter,
         'Calculateur_Division_2025.xlsx'
@@ -284,18 +248,16 @@ describe('Excel Export', () => {
       // Find section indices
       const headerIdx = lines.findIndex(l => l.includes('ACHAT EN DIVISION'));
       const paramsIdx = lines.findIndex(l => l.includes('PARAMETRES DU PROJET'));
-      const scenarioIdx = lines.findIndex(l => l.includes('SCENARIOS D OPTIMISATION'));
       const sharedCostsIdx = lines.findIndex(l => l.includes('COUTS PARTAGES'));
       const travauxIdx = lines.findIndex(l => l.includes('TRAVAUX COMMUNS'));
       const decompIdx = lines.findIndex(l => l.includes('DECOMPOSITION DES COUTS'));
       const detailHeaderIdx = lines.findIndex(l => l.includes('Nom') && l.includes('Unite') && l.includes('Surface'));
       const synthIdx = lines.findIndex(l => l.includes('SYNTHESE GLOBALE'));
 
-      // Verify sections appear in expected order
+      // Verify sections appear in expected order (scenario section removed)
       expect(headerIdx).toBeGreaterThan(-1);
       expect(paramsIdx).toBeGreaterThan(headerIdx);
-      expect(scenarioIdx).toBeGreaterThan(paramsIdx);
-      expect(sharedCostsIdx).toBeGreaterThan(scenarioIdx);
+      expect(sharedCostsIdx).toBeGreaterThan(paramsIdx);
       expect(travauxIdx).toBeGreaterThan(sharedCostsIdx);
       expect(decompIdx).toBeGreaterThan(travauxIdx);
       expect(detailHeaderIdx).toBeGreaterThan(decompIdx);
@@ -305,8 +267,7 @@ describe('Excel Export', () => {
       expect(result).toContain('|');
 
       // Snapshot verification: key formulas are present
-      expect(result).toContain('=B5*(1-B6/100)'); // Adjusted purchase
-      expect(result).toContain('=B7/B8'); // Price per m2
+      expect(result).toContain('=B5/B6'); // Price per m2
       expect(result).toContain('TRAVAUX COMMUNS'); // Section exists
       expect(result).toContain('DETAILS PAR TYPE D UNITE'); // Unit details section
       expect(result).toContain('=SUM(C'); // Total surface formula (row dynamic)
@@ -320,7 +281,6 @@ describe('Excel Export', () => {
       const result = exportCalculations(
         mockCalculations,
         mockProjectParams,
-        mockScenario,
         mockUnitDetails,
         csvWriter,
         'test.xlsx'
@@ -340,7 +300,6 @@ describe('Excel Export', () => {
       const sheetData = buildExportSheetData(
         mockCalculations,
         mockProjectParams,
-        mockScenario,
         mockUnitDetails,
         '10/11/2025'
       );
@@ -360,7 +319,6 @@ describe('Excel Export', () => {
       const sheetData = buildExportSheetData(
         mockCalculations,
         mockProjectParams,
-        mockScenario,
         mockUnitDetails,
         '10/11/2025'
       );
@@ -379,12 +337,12 @@ describe('Excel Export', () => {
       const sheetData = buildExportSheetData(
         mockCalculations,
         mockProjectParams,
-        mockScenario,
         mockUnitDetails,
         '10/11/2025'
       );
 
-      const cascoRateCell = sheetData.cells.find(c => c.row === 23 && c.col === 'B');
+      // Row 16 now contains "Prix CASCO/m2 Global" (was row 23 before)
+      const cascoRateCell = sheetData.cells.find(c => c.row === 16 && c.col === 'B');
       expect(cascoRateCell?.data.value).toBe(1590);
     });
 
@@ -392,7 +350,6 @@ describe('Excel Export', () => {
       const sheetData = buildExportSheetData(
         mockCalculations,
         mockProjectParams,
-        mockScenario,
         mockUnitDetails,
         '10/11/2025'
       );
@@ -405,7 +362,6 @@ describe('Excel Export', () => {
       const sheetData = buildExportSheetData(
         mockCalculations,
         mockProjectParams,
-        mockScenario,
         mockUnitDetails,
         '10/11/2025'
       );
@@ -420,7 +376,6 @@ describe('Excel Export', () => {
       const sheetData = buildExportSheetData(
         mockCalculations,
         mockProjectParams,
-        mockScenario,
         mockUnitDetails,
         '10/11/2025'
       );
@@ -443,7 +398,6 @@ describe('Excel Export', () => {
       const sheetData = buildExportSheetData(
         mockCalculations,
         mockProjectParams,
-        mockScenario,
         mockUnitDetails,
         '10/11/2025'
       );
@@ -459,7 +413,6 @@ describe('Excel Export', () => {
       const sheetData = buildExportSheetData(
         mockCalculations,
         mockProjectParams,
-        mockScenario,
         mockUnitDetails,
         '10/11/2025'
       );
@@ -472,7 +425,6 @@ describe('Excel Export', () => {
       const sheetData = buildExportSheetData(
         mockCalculations,
         mockProjectParams,
-        mockScenario,
         mockUnitDetails,
         '10/11/2025'
       );

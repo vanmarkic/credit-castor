@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { calculateAll } from './calculatorUtils';
 import { buildExportSheetData } from './excelExport';
-import type { Participant, ProjectParams, Scenario, UnitDetails } from './calculatorUtils';
+import type { Participant, ProjectParams, UnitDetails } from './calculatorUtils';
 import type { Lot } from '../types/timeline';
 
 /**
@@ -69,20 +69,14 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
     }
   };
 
-  const scenario: Scenario = {
-    constructionCostChange: 10,
-    infrastructureReduction: 5,
-    purchasePriceReduction: 2,
-  };
-
   const unitDetails: UnitDetails = {
     1: { casco: 178080, parachevements: 56000 },
     3: { casco: 213060, parachevements: 67000 },
   };
 
   it('should export all participant input fields from UI', () => {
-    const calculations = calculateAll(participants, projectParams, scenario, unitDetails);
-    const sheetData = buildExportSheetData(calculations, projectParams, scenario, unitDetails);
+    const calculations = calculateAll(participants, projectParams, unitDetails);
+    const sheetData = buildExportSheetData(calculations, projectParams, unitDetails);
 
     // Find participant rows
     const p1Row = sheetData.cells.find(c => c.data.value === 'Test Participant 1')!.row;
@@ -121,8 +115,8 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
   });
 
   it('should export all calculated values shown in UI', () => {
-    const calculations = calculateAll(participants, projectParams, scenario, unitDetails);
-    const sheetData = buildExportSheetData(calculations, projectParams, scenario, unitDetails);
+    const calculations = calculateAll(participants, projectParams, unitDetails);
+    const sheetData = buildExportSheetData(calculations, projectParams, unitDetails);
 
     const p1Row = sheetData.cells.find(c => c.data.value === 'Test Participant 1')!.row;
     const p1Calc = calculations.participantBreakdown[0];
@@ -136,24 +130,22 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
   });
 
   it('should export all project parameters from UI', () => {
-    const calculations = calculateAll(participants, projectParams, scenario, unitDetails);
-    const sheetData = buildExportSheetData(calculations, projectParams, scenario, unitDetails);
+    const calculations = calculateAll(participants, projectParams, unitDetails);
+    const sheetData = buildExportSheetData(calculations, projectParams, unitDetails);
 
     // Verify project params
     expect(sheetData.cells.find(c => c.row === 5 && c.col === 'B')?.data.value).toBe(650000); // totalPurchase
 
     // Global CASCO rate (NEW - was missing before)
-    expect(sheetData.cells.find(c => c.row === 23 && c.col === 'B')?.data.value).toBe(1590);
+    // Row 16 now contains "Prix CASCO/m2 Global" (was row 23 before)
+    expect(sheetData.cells.find(c => c.row === 16 && c.col === 'B')?.data.value).toBe(1590);
 
-    // Scenario params
-    expect(sheetData.cells.find(c => c.row === 6 && c.col === 'B')?.data.value).toBe(2); // purchasePriceReduction
-    expect(sheetData.cells.find(c => c.row === 12 && c.col === 'B')?.data.value).toBe(10); // constructionCostChange
-    expect(sheetData.cells.find(c => c.row === 13 && c.col === 'B')?.data.value).toBe(5); // infrastructureReduction
+    // Scenario params removed - scenarios no longer exist
   });
 
   it('should export expense categories when present', () => {
-    const calculations = calculateAll(participants, projectParams, scenario, unitDetails);
-    const sheetData = buildExportSheetData(calculations, projectParams, scenario, unitDetails);
+    const calculations = calculateAll(participants, projectParams, unitDetails);
+    const sheetData = buildExportSheetData(calculations, projectParams, unitDetails);
 
     // Verify expense categories section exists (NEW - was missing before)
     const detailHeader = sheetData.cells.find(c => c.data.value === 'DETAIL DEPENSES COMMUNES');
@@ -171,8 +163,8 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
   });
 
   it('should export unit details reference', () => {
-    const calculations = calculateAll(participants, projectParams, scenario, unitDetails);
-    const sheetData = buildExportSheetData(calculations, projectParams, scenario, unitDetails);
+    const calculations = calculateAll(participants, projectParams, unitDetails);
+    const sheetData = buildExportSheetData(calculations, projectParams, unitDetails);
 
     // Verify unit details section exists (NEW - was missing before)
     const unitDetailsHeader = sheetData.cells.find(c => c.data.value === 'DETAILS PAR TYPE D UNITE');
@@ -191,8 +183,8 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
   });
 
   it('should export all summary totals shown in UI', () => {
-    const calculations = calculateAll(participants, projectParams, scenario, unitDetails);
-    const sheetData = buildExportSheetData(calculations, projectParams, scenario, unitDetails);
+    const calculations = calculateAll(participants, projectParams, unitDetails);
+    const sheetData = buildExportSheetData(calculations, projectParams, unitDetails);
 
     // Find synthesis section
     const synthHeader = sheetData.cells.find(c => c.data.value === 'SYNTHESE GLOBALE');
@@ -207,13 +199,14 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
   });
 
   it('should match calculations between UI and export', () => {
-    const calculations = calculateAll(participants, projectParams, scenario, unitDetails);
-    const sheetData = buildExportSheetData(calculations, projectParams, scenario, unitDetails);
+    const calculations = calculateAll(participants, projectParams, unitDetails);
+    const sheetData = buildExportSheetData(calculations, projectParams, unitDetails);
 
     // Verify totals match
     expect(calculations.totalSurface).toBe(246); // 112 + 134
 
-    const totalSurfaceCell = sheetData.cells.find(c => c.row === 8 && c.col === 'B');
+    // Row 6 now contains "Surface totale" (was row 8 before)
+    const totalSurfaceCell = sheetData.cells.find(c => c.row === 6 && c.col === 'B');
     expect(totalSurfaceCell?.data.value).toBe(246);
 
     // Verify price per m2
@@ -252,8 +245,8 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
       participants[1]
     ];
 
-    const calculations = calculateAll(participantsWithPortage, projectParams, scenario, unitDetails);
-    const sheetData = buildExportSheetData(calculations, projectParams, scenario, unitDetails);
+    const calculations = calculateAll(participantsWithPortage, projectParams, unitDetails);
+    const sheetData = buildExportSheetData(calculations, projectParams, unitDetails);
 
     const p1Row = sheetData.cells.find(c => c.data.value === 'Test Participant 1')!.row;
 
@@ -267,8 +260,8 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
   });
 
   it('should export timeline fields (founder status, entry date)', () => {
-    const calculations = calculateAll(participants, projectParams, scenario, unitDetails);
-    const sheetData = buildExportSheetData(calculations, projectParams, scenario, unitDetails);
+    const calculations = calculateAll(participants, projectParams, unitDetails);
+    const sheetData = buildExportSheetData(calculations, projectParams, unitDetails);
 
     const p1Row = sheetData.cells.find(c => c.data.value === 'Test Participant 1')!.row;
 
@@ -295,8 +288,8 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
       }
     ];
 
-    const calculations = calculateAll(participantWithPurchase, projectParams, scenario, unitDetails);
-    const sheetData = buildExportSheetData(calculations, projectParams, scenario, unitDetails);
+    const calculations = calculateAll(participantWithPurchase, projectParams, unitDetails);
+    const sheetData = buildExportSheetData(calculations, projectParams, unitDetails);
 
     const p2Row = sheetData.cells.find(c => c.data.value === 'Test Participant 2')!.row;
 

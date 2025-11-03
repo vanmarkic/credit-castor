@@ -63,11 +63,6 @@ function createTestInitialPurchaseEvent(): InitialPurchaseEvent {
       batimentCoproConservatoire: 56000,
       globalCascoPerM2: 1590
     },
-    scenario: {
-      constructionCostChange: 0,
-      infrastructureReduction: 0,
-      purchasePriceReduction: 0
-    },
     copropropriete: {
       name: 'Copropriété Ferme du Temple',
       hiddenLots: [5, 6] // Two lots held collectively
@@ -209,15 +204,7 @@ describe('applyInitialPurchase', () => {
     expect(newState.projectParams.globalCascoPerM2).toBe(1590);
   });
 
-  it('should set scenario from event', () => {
-    const initialState = createInitialState();
-    const event = createTestInitialPurchaseEvent();
-
-    const newState = applyEvent(initialState, event);
-
-    expect(newState.scenario.constructionCostChange).toBe(0);
-    expect(newState.scenario.infrastructureReduction).toBe(0);
-  });
+  // Scenario tests removed - scenarios no longer exist
 
   it('should initialize with empty transaction history', () => {
     const initialState = createInitialState();

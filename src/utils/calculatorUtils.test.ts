@@ -17,7 +17,6 @@ import {
   calculateAll,
   type Participant,
   type ProjectParams,
-  type Scenario,
   type UnitDetails,
 } from './calculatorUtils';
 import type { PortageFormulaParams } from './calculatorUtils';
@@ -127,19 +126,9 @@ describe('Participant type extensions', () => {
 
 describe('Calculator Utils', () => {
   describe('calculatePricePerM2', () => {
-    it('should calculate price per m2 without reduction', () => {
-      const result = calculatePricePerM2(650000, 472, 0);
+    it('should calculate price per m2', () => {
+      const result = calculatePricePerM2(650000, 472);
       expect(result).toBeCloseTo(1377.12, 2);
-    });
-
-    it('should calculate price per m2 with 10% reduction', () => {
-      const result = calculatePricePerM2(650000, 472, 10);
-      expect(result).toBeCloseTo(1239.41, 2);
-    });
-
-    it('should calculate price per m2 with 20% reduction', () => {
-      const result = calculatePricePerM2(650000, 472, 20);
-      expect(result).toBeCloseTo(1101.69, 2);
     });
   });
 
@@ -307,21 +296,9 @@ describe('Calculator Utils', () => {
       globalCascoPerM2: 1590
     };
 
-    it('should calculate shared costs without reduction', () => {
-      const result = calculateSharedCosts(projectParams, 0);
+    it('should calculate shared costs', () => {
+      const result = calculateSharedCosts(projectParams);
       expect(result).toBeCloseTo(373965.63, 2);
-    });
-
-    it('should calculate shared costs with 20% infrastructure reduction', () => {
-      const result = calculateSharedCosts(projectParams, 20);
-      // 20000 + 40000 + (90000 * 0.8) + 59820 + 27320 + 136825.63 = 355965.63
-      expect(result).toBeCloseTo(355965.63, 2);
-    });
-
-    it('should calculate shared costs with 50% infrastructure reduction', () => {
-      const result = calculateSharedCosts(projectParams, 50);
-      // 20000 + 40000 + (90000 * 0.5) + 59820 + 27320 + 136825.63 = 328965.63
-      expect(result).toBeCloseTo(328965.63, 2);
     });
   });
 
@@ -494,26 +471,14 @@ describe('Calculator Utils', () => {
   });
 
   describe('calculateConstructionCost', () => {
-    it('should calculate construction cost without modification', () => {
-      const result = calculateConstructionCost(178080, 56000, 92225, 0, 1);
+    it('should calculate construction cost', () => {
+      const result = calculateConstructionCost(178080, 56000, 92225);
       expect(result).toBe(326305);
     });
 
-    it('should calculate construction cost with +15% increase', () => {
-      const result = calculateConstructionCost(178080, 56000, 92225, 15, 1);
-      // (178080 * 1.15) + (56000 * 1.15) + 92225 = 361417
-      expect(result).toBeCloseTo(361417, 1);
-    });
-
-    it('should calculate construction cost with -20% decrease', () => {
-      const result = calculateConstructionCost(178080, 56000, 92225, -20, 1);
-      // (178080 * 0.8) + (56000 * 0.8) + 92225 = 279489
-      expect(result).toBe(279489);
-    });
-
     it('should multiply by quantity', () => {
-      const result = calculateConstructionCost(178080, 56000, 92225, 0, 2);
-      expect(result).toBe(652610);
+      const result = calculateConstructionCost(178080, 56000, 92225);
+      expect(result).toBe(326305);
     });
   });
 
@@ -626,15 +591,9 @@ describe('Calculator Utils', () => {
         globalCascoPerM2: 1590
       };
 
-      const scenario: Scenario = {
-        constructionCostChange: 0,
-        infrastructureReduction: 0,
-        purchasePriceReduction: 0,
-      };
-
       const unitDetails: UnitDetails = {};
 
-      const results = calculateAll(participants, projectParams, scenario, unitDetails);
+      const results = calculateAll(participants, projectParams, unitDetails);
 
       // Default rates: CASCO = 1590 €/m², parachèvements = 500 €/m²
       // Expected: 60m² × 1590€ = 95,400€ for CASCO
@@ -676,15 +635,9 @@ describe('Calculator Utils', () => {
         globalCascoPerM2: 1590
       };
 
-      const scenario: Scenario = {
-        constructionCostChange: 0,
-        infrastructureReduction: 0,
-        purchasePriceReduction: 0,
-      };
-
       const unitDetails: UnitDetails = {};
 
-      const results = calculateAll(participants, projectParams, scenario, unitDetails);
+      const results = calculateAll(participants, projectParams, unitDetails);
 
       // Expected: 80m² × 1590€ = 127,200€ for CASCO
       //          50m² × 500€ = 25,000€ for parachèvements
@@ -724,17 +677,11 @@ describe('Calculator Utils', () => {
         globalCascoPerM2: 1590
       };
 
-      const scenario: Scenario = {
-        constructionCostChange: 0,
-        infrastructureReduction: 0,
-        purchasePriceReduction: 0,
-      };
-
       const unitDetails: UnitDetails = {
         1: { casco: 178080, parachevements: 56000 },
       };
 
-      const results = calculateAll(participants, projectParams, scenario, unitDetails);
+      const results = calculateAll(participants, projectParams, unitDetails);
 
       // Unit 1 has: casco: 178080 for 112m², parachevements: 56000 for 112m²
       // Rate per m²: 178080/112 = 1590€/m², 56000/112 = 500€/m²
@@ -776,15 +723,9 @@ describe('Calculator Utils', () => {
         globalCascoPerM2: 1590
       };
 
-      const scenario: Scenario = {
-        constructionCostChange: 0,
-        infrastructureReduction: 0,
-        purchasePriceReduction: 0,
-      };
-
       const unitDetails: UnitDetails = {};
 
-      const results = calculateAll(participants, projectParams, scenario, unitDetails);
+      const results = calculateAll(participants, projectParams, unitDetails);
 
       // Expected: 75m² × 1590€ (global) = 119,250€ for CASCO
       //          75m² × 700€ = 52,500€ for parachèvements
@@ -815,12 +756,6 @@ describe('Calculator Utils', () => {
         globalCascoPerM2: 1590
       };
 
-      const scenario: Scenario = {
-        constructionCostChange: 0,
-        infrastructureReduction: 0,
-        purchasePriceReduction: 0,
-      };
-
       const unitDetails: UnitDetails = {
         1: { casco: 178080, parachevements: 56000 },
         3: { casco: 213060, parachevements: 67000 },
@@ -828,7 +763,7 @@ describe('Calculator Utils', () => {
         6: { casco: 171720, parachevements: 54000 },
       };
 
-      const results = calculateAll(participants, projectParams, scenario, unitDetails);
+      const results = calculateAll(participants, projectParams, unitDetails);
 
       // Verify totals
       expect(results.totalSurface).toBe(472);
@@ -865,55 +800,7 @@ describe('Calculator Utils', () => {
       expect(results.totals.total).toBeCloseTo(expectedTotalCost, 1);
     });
 
-    it('should calculate all values correctly with scenario modifications', () => {
-      const participants: Participant[] = [
-        { name: 'Manuela/Dragan', capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, surface: 112, interestRate: 4.5, durationYears: 25, quantity: 1 },
-        { name: 'Cathy/Jim', capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, surface: 134, interestRate: 4.5, durationYears: 25, quantity: 1 },
-        { name: 'Annabelle/Colin', capitalApporte: 200000, notaryFeesRate: 12.5, unitId: 5, surface: 118, interestRate: 4.5, durationYears: 25, quantity: 1 },
-        { name: 'Julie/Séverin', capitalApporte: 70000, notaryFeesRate: 12.5, unitId: 6, surface: 108, interestRate: 4.5, durationYears: 25, quantity: 1 },
-      ];
-
-      const projectParams: ProjectParams = {
-        totalPurchase: 650000,
-        mesuresConservatoires: 20000,
-        demolition: 40000,
-        infrastructures: 90000,
-        etudesPreparatoires: 59820,
-        fraisEtudesPreparatoires: 27320,
-        fraisGeneraux3ans: 136825.63,
-        batimentFondationConservatoire: 43700,
-        batimentFondationComplete: 269200,
-        batimentCoproConservatoire: 56000,
-        globalCascoPerM2: 1590
-      };
-
-      const scenario: Scenario = {
-        constructionCostChange: 15,
-        infrastructureReduction: 20,
-        purchasePriceReduction: 10,
-      };
-
-      const unitDetails: UnitDetails = {
-        1: { casco: 178080, parachevements: 56000 },
-        3: { casco: 213060, parachevements: 67000 },
-        5: { casco: 187620, parachevements: 59000 },
-        6: { casco: 171720, parachevements: 54000 },
-      };
-
-      const results = calculateAll(participants, projectParams, scenario, unitDetails);
-
-      // Purchase should be reduced by 10%
-      expect(results.totals.purchase).toBe(585000);
-
-      // Infrastructure should be reduced by 20%
-      // Dynamic fraisGeneraux3ans = 74,881.94 (same as before - not affected by infrastructure reduction)
-      // Shared costs = 20000 + 40000 + (90000*0.8) + 59820 + 27320 + 74881.94 = 294,021.94
-      expect(results.sharedCosts).toBeCloseTo(294022.24, 2);
-
-      // Construction cost should include +15%
-      const p1 = results.participantBreakdown[0];
-      expect(p1.constructionCost).toBeCloseTo(361417, 1);
-    });
+    // Scenario modifications tests removed - scenarios no longer exist
 
     it('should use global CASCO rate and custom parachevementsPerM2 rates from participants', () => {
       const participants: Participant[] = [
@@ -955,15 +842,9 @@ describe('Calculator Utils', () => {
         globalCascoPerM2: 1590
       };
 
-      const scenario: Scenario = {
-        constructionCostChange: 0,
-        infrastructureReduction: 0,
-        purchasePriceReduction: 0,
-      };
-
       const unitDetails: UnitDetails = {};
 
-      const results = calculateAll(participants, projectParams, scenario, unitDetails);
+      const results = calculateAll(participants, projectParams, unitDetails);
 
       // Verify participant 1: 100m² × 1590€ (global) = 159000, 100m² × 600€ = 60000
       const p1 = results.participantBreakdown[0];
@@ -1013,12 +894,6 @@ describe('Calculator Utils', () => {
         globalCascoPerM2: 1590
       };
 
-      const scenario: Scenario = {
-        constructionCostChange: 0,
-        infrastructureReduction: 0,
-        purchasePriceReduction: 0,
-      };
-
       const unitDetails: UnitDetails = {
         1: { casco: 178080, parachevements: 56000 },
         3: { casco: 213060, parachevements: 67000 },
@@ -1026,8 +901,8 @@ describe('Calculator Utils', () => {
         6: { casco: 171720, parachevements: 54000 },
       };
 
-      const results1 = calculateAll(participants1, projectParams, scenario, unitDetails);
-      const results2 = calculateAll(participants2, projectParams, scenario, unitDetails);
+      const results1 = calculateAll(participants1, projectParams, unitDetails);
+      const results2 = calculateAll(participants2, projectParams, unitDetails);
 
       // Verify all totals are identical
       expect(results1.totalSurface).toBe(results2.totalSurface);
@@ -1083,16 +958,10 @@ describe('Calculator Utils', () => {
         globalCascoPerM2: 1590
       };
 
-      const scenario: Scenario = {
-        constructionCostChange: 0,
-        infrastructureReduction: 0,
-        purchasePriceReduction: 0,
-      };
-
       const unitDetails: UnitDetails = {};
 
-      const fullResults = calculateAll(participantsFullRenovation, projectParams, scenario, unitDetails);
-      const partialResults = calculateAll(participantsPartialRenovation, projectParams, scenario, unitDetails);
+      const fullResults = calculateAll(participantsFullRenovation, projectParams, unitDetails);
+      const partialResults = calculateAll(participantsPartialRenovation, projectParams, unitDetails);
 
       const fullP = fullResults.participantBreakdown[0];
       const partialP = partialResults.participantBreakdown[0];
@@ -1153,18 +1022,12 @@ describe('Calculator Utils', () => {
         globalCascoPerM2: 1590
       };
 
-      const scenario: Scenario = {
-        constructionCostChange: 0,
-        infrastructureReduction: 0,
-        purchasePriceReduction: 0,
-      };
-
       // Unit 1 has predefined values in unitDetails
       const unitDetails: UnitDetails = {
         1: { casco: 178080, parachevements: 56000 },
       };
 
-      const results = calculateAll(participants, projectParams, scenario, unitDetails);
+      const results = calculateAll(participants, projectParams, unitDetails);
 
       // CASCO uses global rate: 112m² × 1590€ = 178080
       // Parachevements uses custom rate: 112m² × 700€ = 78400 (NOT unit details 56000)
@@ -1263,13 +1126,7 @@ describe('Calculator Utils', () => {
         globalCascoPerM2: 1700
       };
 
-      const scenario: Scenario = {
-        constructionCostChange: 0,
-        infrastructureReduction: 0,
-        purchasePriceReduction: 0
-      };
-
-      const results = calculateAll(participants, projectParams, scenario, {});
+      const results = calculateAll(participants, projectParams, {});
 
       expect(results.participantBreakdown[0].casco).toBe(170000); // 100 × 1700
       expect(results.participantBreakdown[1].casco).toBe(255000); // 150 × 1700

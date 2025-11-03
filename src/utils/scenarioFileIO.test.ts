@@ -6,7 +6,7 @@ import {
   createFileUploadHandler,
   type ScenarioData
 } from './scenarioFileIO';
-import type { Participant, ProjectParams, Scenario, CalculationResults } from './calculatorUtils';
+import type { Participant, ProjectParams, CalculationResults } from './calculatorUtils';
 import { RELEASE_VERSION } from './version';
 
 describe('scenarioFileIO', () => {
@@ -38,12 +38,6 @@ describe('scenarioFileIO', () => {
     batimentFondationComplete: 0,
     batimentCoproConservatoire: 0,
     globalCascoPerM2: 1590
-  };
-
-  const mockScenario: Scenario = {
-    constructionCostChange: 0,
-    infrastructureReduction: 0,
-    purchasePriceReduction: 0
   };
 
   const mockUnitDetails = {
@@ -103,7 +97,6 @@ describe('scenarioFileIO', () => {
       const result = serializeScenario(
         mockParticipants,
         mockProjectParams,
-        mockScenario,
         '2023-02-01',
         mockUnitDetails,
         mockCalculations
@@ -116,7 +109,6 @@ describe('scenarioFileIO', () => {
       expect(parsed.participants[0].name).toBe(mockParticipants[0].name);
       expect(parsed.participants[0].capitalApporte).toBe(mockParticipants[0].capitalApporte);
       expect(parsed.projectParams).toEqual(mockProjectParams);
-      expect(parsed.scenario).toEqual(mockScenario);
       expect(parsed.deedDate).toBe('2023-02-01');
       expect(parsed.unitDetails).toEqual(mockUnitDetails);
       expect(parsed.timestamp).toBeDefined();
@@ -126,7 +118,6 @@ describe('scenarioFileIO', () => {
       const result = serializeScenario(
         mockParticipants,
         mockProjectParams,
-        mockScenario,
         '2023-02-01',
         mockUnitDetails,
         mockCalculations
@@ -144,7 +135,6 @@ describe('scenarioFileIO', () => {
       const jsonString = serializeScenario(
         mockParticipants,
         mockProjectParams,
-        mockScenario,
         '2023-02-01',
         mockUnitDetails,
         mockCalculations
@@ -158,7 +148,6 @@ describe('scenarioFileIO', () => {
       expect(result.data?.participants[0].name).toBe(mockParticipants[0].name);
       expect(result.data?.participants[0].capitalApporte).toBe(mockParticipants[0].capitalApporte);
       expect(result.data?.projectParams).toEqual(mockProjectParams);
-      expect(result.data?.scenario).toEqual(mockScenario);
       expect(result.data?.deedDate).toBe('2023-02-01');
     });
 
@@ -174,7 +163,7 @@ describe('scenarioFileIO', () => {
         version: 2,
         releaseVersion: RELEASE_VERSION,
         participants: mockParticipants
-        // Missing projectParams and scenario
+        // Missing projectParams
       });
 
       const result = deserializeScenario(incomplete);
@@ -190,7 +179,6 @@ describe('scenarioFileIO', () => {
         timestamp: new Date().toISOString(),
         participants: mockParticipants,
         projectParams: mockProjectParams,
-        scenario: mockScenario,
         deedDate: '2023-02-01',
         unitDetails: mockUnitDetails
       };
@@ -223,7 +211,6 @@ describe('scenarioFileIO', () => {
       downloadScenarioFile(
         mockParticipants,
         mockProjectParams,
-        mockScenario,
         '2023-02-01',
         mockUnitDetails,
         mockCalculations
@@ -253,7 +240,6 @@ describe('scenarioFileIO', () => {
       const validJson = serializeScenario(
         mockParticipants,
         mockProjectParams,
-        mockScenario,
         '2023-02-01',
         mockUnitDetails,
         mockCalculations
@@ -286,7 +272,6 @@ describe('scenarioFileIO', () => {
       expect(successCallArg.participants[0].name).toBe(mockParticipants[0].name);
       expect(successCallArg.participants[0].capitalApporte).toBe(mockParticipants[0].capitalApporte);
       expect(successCallArg.projectParams).toEqual(mockProjectParams);
-      expect(successCallArg.scenario).toEqual(mockScenario);
       expect(successCallArg.deedDate).toBe('2023-02-01');
       expect(onError).not.toHaveBeenCalled();
       expect(mockEvent.target.value).toBe('');

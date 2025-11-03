@@ -6,7 +6,7 @@
 
 import { describe, it, expect } from 'vitest';
 import type { Lot, CoproLot, InitialPurchaseEvent } from './timeline';
-import type { ProjectParams, Scenario } from '../utils/calculatorUtils';
+import type { ProjectParams } from '../utils/calculatorUtils';
 
 describe('Lot type', () => {
   it('should track lot ownership with acquisition date', () => {
@@ -81,7 +81,6 @@ describe('Event type unification', () => {
         },
       ],
       projectParams: {} as ProjectParams,
-      scenario: {} as Scenario,
       copropropriete: { name: 'Les Acacias', hiddenLots: [] },
     };
     expect(event.date).toEqual(deedDate);

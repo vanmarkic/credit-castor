@@ -7,7 +7,6 @@ import { RELEASE_VERSION, isCompatibleVersion } from './version';
 import type {
   Participant,
   ProjectParams,
-  Scenario,
   CalculationResults
 } from './calculatorUtils';
 import type { UnitDetails } from './calculatorUtils';
@@ -18,7 +17,7 @@ export interface ScenarioData {
   timestamp: string;
   participants: Participant[];
   projectParams: ProjectParams;
-  scenario: Scenario;
+  // scenario removed - backward compatibility maintained for loading old files
   deedDate: string;
   unitDetails: UnitDetails;
   calculations?: {
@@ -69,7 +68,7 @@ export interface LoadScenarioResult {
   data?: {
     participants: Participant[];
     projectParams: ProjectParams;
-    scenario: Scenario;
+    // scenario removed
     deedDate: string;
   };
   error?: string;
@@ -81,7 +80,6 @@ export interface LoadScenarioResult {
 export function serializeScenario(
   participants: Participant[],
   projectParams: ProjectParams,
-  scenario: Scenario,
   deedDate: string,
   unitDetails: UnitDetails,
   calculations: CalculationResults
@@ -92,7 +90,7 @@ export function serializeScenario(
     timestamp: new Date().toISOString(),
     participants,
     projectParams,
-    scenario,
+    // scenario removed - no longer saving percentage-based adjustments
     deedDate,
     unitDetails,
     calculations: {
@@ -149,7 +147,7 @@ export function deserializeScenario(jsonString: string): LoadScenarioResult {
     const data = JSON.parse(jsonString) as ScenarioData;
 
     // Validate the data structure
-    if (!data.participants || !data.projectParams || !data.scenario) {
+    if (!data.participants || !data.projectParams) {
       return {
         success: false,
         error: 'Fichier invalide: structure de données manquante'
@@ -172,7 +170,7 @@ export function deserializeScenario(jsonString: string): LoadScenarioResult {
       data: {
         participants: data.participants,
         projectParams: data.projectParams,
-        scenario: data.scenario,
+        // scenario removed - old files may have it but we ignore it
         deedDate: data.deedDate || ''
       }
     };
@@ -191,7 +189,6 @@ export function deserializeScenario(jsonString: string): LoadScenarioResult {
 export function downloadScenarioFile(
   participants: Participant[],
   projectParams: ProjectParams,
-  scenario: Scenario,
   deedDate: string,
   unitDetails: UnitDetails,
   calculations: CalculationResults
@@ -199,7 +196,6 @@ export function downloadScenarioFile(
   const jsonString = serializeScenario(
     participants,
     projectParams,
-    scenario,
     deedDate,
     unitDetails,
     calculations
@@ -228,7 +224,7 @@ export function createFileUploadHandler(
   onSuccess: (data: {
     participants: Participant[];
     projectParams: ProjectParams;
-    scenario: Scenario;
+    // scenario removed
     deedDate: string;
   }) => void,
   onError: (message: string) => void

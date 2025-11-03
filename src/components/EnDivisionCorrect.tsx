@@ -22,7 +22,6 @@ import {
 import {
   DEFAULT_PARTICIPANTS,
   DEFAULT_PROJECT_PARAMS,
-  DEFAULT_SCENARIO,
   DEFAULT_DEED_DATE,
   loadFromLocalStorage,
   clearLocalStorage,
@@ -41,7 +40,7 @@ export default function EnDivisionCorrect() {
   const {
     participants,
     projectParams,
-    scenario,
+    // scenario removed
     deedDate,
     portageFormula,
     pinnedParticipant,
@@ -49,7 +48,7 @@ export default function EnDivisionCorrect() {
     versionMismatch,
     setParticipants,
     setProjectParams,
-    setScenario,
+    // setScenario removed
     setDeedDate,
     setPortageFormula,
     setFullscreenParticipantIndex,
@@ -113,7 +112,6 @@ export default function EnDivisionCorrect() {
   useStoragePersistence(
     participants,
     projectParams,
-    scenario,
     deedDate,
     portageFormula,
     versionMismatch.show
@@ -151,7 +149,7 @@ export default function EnDivisionCorrect() {
       entryDate: p.entryDate ? new Date(p.entryDate) : new Date(DEFAULT_DEED_DATE)
     })));
     setProjectParams(DEFAULT_PROJECT_PARAMS);
-    setScenario(DEFAULT_SCENARIO);
+    // scenario removed - no longer using percentage-based adjustments
     setDeedDate(DEFAULT_DEED_DATE);
 
     // Hide the warning
@@ -168,8 +166,8 @@ export default function EnDivisionCorrect() {
   };
 
   const calculations = useMemo(() => {
-    return calculateAll(participants, projectParams, scenario, unitDetails);
-  }, [participants, projectParams, scenario]);
+    return calculateAll(participants, projectParams, unitDetails);
+  }, [participants, projectParams]);
 
   // Reorder participant breakdown to show pinned participant first
   const orderedParticipantBreakdown = useOrderedParticipantBreakdown(calculations, pinnedParticipant);
@@ -230,7 +228,7 @@ export default function EnDivisionCorrect() {
 
   const exportToExcel = () => {
     const writer = new XlsxWriter();
-    exportCalculations(calculations, projectParams, scenario, unitDetails, writer);
+    exportCalculations(calculations, projectParams, unitDetails, writer);
   };
 
   // Download scenario as JSON file
@@ -238,7 +236,6 @@ export default function EnDivisionCorrect() {
     downloadScenarioFile(
       participants,
       projectParams,
-      scenario,
       deedDate,
       unitDetails,
       calculations
@@ -256,7 +253,7 @@ export default function EnDivisionCorrect() {
     (data) => {
       setParticipants(data.participants);
       setProjectParams(data.projectParams);
-      setScenario(data.scenario);
+      // scenario removed - no longer using percentage-based adjustments
       if (data.deedDate) {
         setDeedDate(data.deedDate);
       }
@@ -273,7 +270,7 @@ export default function EnDivisionCorrect() {
       clearLocalStorage();
       setParticipants(DEFAULT_PARTICIPANTS);
       setProjectParams(DEFAULT_PROJECT_PARAMS);
-      setScenario(DEFAULT_SCENARIO);
+      // scenario removed - no longer using percentage-based adjustments
       alert('Données réinitialisées aux valeurs par défaut.');
     }
   };

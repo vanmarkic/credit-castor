@@ -1,6 +1,6 @@
 // Import types first
 import { RELEASE_VERSION, isCompatibleVersion } from './version';
-import { DEFAULT_PORTAGE_FORMULA, type PortageFormulaParams, type Participant, type ProjectParams, type Scenario } from './calculatorUtils';
+import { DEFAULT_PORTAGE_FORMULA, type PortageFormulaParams, type Participant, type ProjectParams } from './calculatorUtils';
 
 // Default deed date: February 1st, 2026 (future date - deed not signed yet)
 export const DEFAULT_DEED_DATE = '2026-02-01';
@@ -109,11 +109,7 @@ export const DEFAULT_PROJECT_PARAMS = {
   },
 };
 
-export const DEFAULT_SCENARIO = {
-  constructionCostChange: 0,
-  infrastructureReduction: 0,
-  purchasePriceReduction: 0
-};
+// DEFAULT_SCENARIO removed - no longer using percentage-based adjustments
 
 export const STORAGE_KEY = 'credit-castor-scenario';
 export const PINNED_PARTICIPANT_KEY = 'credit-castor-pinned-participant';
@@ -149,7 +145,7 @@ export const clearPinnedParticipant = () => {
 };
 
 // LocalStorage utilities for scenario data
-export const saveToLocalStorage = (participants: Participant[], projectParams: ProjectParams, scenario: Scenario, deedDate: string, portageFormula?: PortageFormulaParams) => {
+export const saveToLocalStorage = (participants: Participant[], projectParams: ProjectParams, deedDate: string, portageFormula?: PortageFormulaParams) => {
   try {
     const data = {
       releaseVersion: RELEASE_VERSION, // Release version for compatibility check
@@ -157,7 +153,7 @@ export const saveToLocalStorage = (participants: Participant[], projectParams: P
       timestamp: new Date().toISOString(),
       participants,
       projectParams,
-      scenario,
+      // scenario removed - no longer saving percentage-based adjustments
       deedDate,
       portageFormula: portageFormula || DEFAULT_PORTAGE_FORMULA
     };
@@ -184,7 +180,7 @@ export const loadFromLocalStorage = () => {
         currentVersion: RELEASE_VERSION,
         participants: data.participants || DEFAULT_PARTICIPANTS,
         projectParams: data.projectParams || DEFAULT_PROJECT_PARAMS,
-        scenario: data.scenario || DEFAULT_SCENARIO,
+        // scenario removed - old data may have it but we ignore it
         deedDate: data.deedDate, // May be undefined for old saved data
         portageFormula: data.portageFormula || DEFAULT_PORTAGE_FORMULA,
         timestamp: data.timestamp

@@ -3,7 +3,7 @@
  * Pure functions to build export data that can be tested with CSV snapshots
  */
 
-import type { CalculationResults, ProjectParams, Scenario, UnitDetails } from './calculatorUtils';
+import type { CalculationResults, ProjectParams, UnitDetails } from './calculatorUtils';
 import type { ExportWriter, SheetCell, SheetData } from './exportWriter';
 
 /**
@@ -12,7 +12,6 @@ import type { ExportWriter, SheetCell, SheetData } from './exportWriter';
 export function buildExportSheetData(
   calculations: CalculationResults,
   projectParams: ProjectParams,
-  scenario: Scenario,
   unitDetails?: UnitDetails,
   date: string = new Date().toLocaleDateString('fr-FR')
 ): SheetData {
@@ -32,46 +31,35 @@ export function buildExportSheetData(
   addCell(4, 'A', 'PARAMETRES DU PROJET');
   addCell(5, 'A', 'Prix achat total');
   addCell(5, 'B', projectParams.totalPurchase);
-  addCell(6, 'A', 'Reduction negociee (%)');
-  addCell(6, 'B', scenario.purchasePriceReduction);
-  addCell(7, 'A', 'Prix achat ajuste');
-  addCell(7, 'B', null, 'B5*(1-B6/100)');
-  addCell(8, 'A', 'Surface totale (m2)');
-  addCell(8, 'B', calculations.totalSurface);
-  addCell(9, 'A', 'Prix par m2');
-  addCell(9, 'B', null, 'B7/B8');
-
-  // Scenarios
-  addCell(11, 'A', 'SCENARIOS D OPTIMISATION');
-  addCell(12, 'A', 'Variation couts construction (%)');
-  addCell(12, 'B', scenario.constructionCostChange);
-  addCell(13, 'A', 'Reduction infrastructures (%)');
-  addCell(13, 'B', scenario.infrastructureReduction);
+  // scenario removed - no longer using percentage-based adjustments
+  addCell(6, 'A', 'Surface totale (m2)');
+  addCell(6, 'B', calculations.totalSurface);
+  addCell(7, 'A', 'Prix par m2');
+  addCell(7, 'B', null, 'B5/B6');
 
   // Shared costs
-  addCell(15, 'A', 'COUTS PARTAGES');
-  addCell(16, 'A', 'Mesures conservatoires');
-  addCell(16, 'B', projectParams.mesuresConservatoires);
-  addCell(17, 'A', 'Demolition');
-  addCell(17, 'B', projectParams.demolition);
-  addCell(18, 'A', 'Infrastructures');
-  addCell(18, 'B', projectParams.infrastructures);
-  addCell(19, 'A', 'Infrastructures ajustees');
-  addCell(19, 'B', null, 'B18*(1-B13/100)');
-  addCell(20, 'A', 'Etudes preparatoires');
-  addCell(20, 'B', projectParams.etudesPreparatoires);
-  addCell(21, 'A', 'Frais Etudes preparatoires');
-  addCell(21, 'B', projectParams.fraisEtudesPreparatoires);
-  addCell(22, 'A', 'Frais Generaux 3 ans');
-  addCell(22, 'B', projectParams.fraisGeneraux3ans);
-  addCell(23, 'A', 'Prix CASCO/m2 Global');
-  addCell(23, 'B', projectParams.globalCascoPerM2);
+  addCell(9, 'A', 'COUTS PARTAGES');
+  addCell(10, 'A', 'Mesures conservatoires');
+  addCell(10, 'B', projectParams.mesuresConservatoires);
+  addCell(11, 'A', 'Demolition');
+  addCell(11, 'B', projectParams.demolition);
+  addCell(12, 'A', 'Infrastructures');
+  addCell(12, 'B', projectParams.infrastructures);
+  // scenario removed - no longer adjusting infrastructures
+  addCell(13, 'A', 'Etudes preparatoires');
+  addCell(13, 'B', projectParams.etudesPreparatoires);
+  addCell(14, 'A', 'Frais Etudes preparatoires');
+  addCell(14, 'B', projectParams.fraisEtudesPreparatoires);
+  addCell(15, 'A', 'Frais Generaux 3 ans');
+  addCell(15, 'B', projectParams.fraisGeneraux3ans);
+  addCell(16, 'A', 'Prix CASCO/m2 Global');
+  addCell(16, 'B', projectParams.globalCascoPerM2);
 
   // Expense categories detail (if present)
-  let expenseCategoryEndRow = 24;
+  let expenseCategoryEndRow = 17;
   if (projectParams.expenseCategories) {
-    addCell(25, 'A', 'DETAIL DEPENSES COMMUNES');
-    let currentRow = 26;
+    addCell(18, 'A', 'DETAIL DEPENSES COMMUNES');
+    let currentRow = 19;
 
     // Conservatoire
     addCell(currentRow, 'A', 'CONSERVATOIRE');
@@ -107,7 +95,7 @@ export function buildExportSheetData(
   if (projectParams.expenseCategories) {
     addCell(expenseCategoryEndRow, 'B', calculations.sharedCosts);
   } else {
-    addCell(expenseCategoryEndRow, 'B', null, 'B16+B17+B19+B20+B21+B22');
+    addCell(expenseCategoryEndRow, 'B', null, 'B10+B11+B12+B13+B14+B15');
   }
   addCell(expenseCategoryEndRow + 1, 'A', 'Commun par personne');
   addCell(expenseCategoryEndRow + 1, 'B', null, `B${expenseCategoryEndRow}/${participants.length}`);
@@ -143,7 +131,7 @@ export function buildExportSheetData(
   let decompRow = unitDetailsEndRow + 2;
   addCell(decompRow, 'A', 'DECOMPOSITION DES COUTS');
   addCell(decompRow + 1, 'A', 'Achat Total');
-  addCell(decompRow + 1, 'B', null, 'B7');
+  addCell(decompRow + 1, 'B', null, 'B5');
 
   const participantStartRow = decompRow + 6;
   addCell(decompRow + 2, 'A', 'Frais de Notaire');
@@ -179,12 +167,12 @@ export function buildExportSheetData(
     addCell(r, 'F', p.notaryFeesRate);
     addCell(r, 'G', p.interestRate);
     addCell(r, 'H', p.durationYears);
-    addCell(r, 'I', null, `C${r}*$B$9`);
+    addCell(r, 'I', null, `C${r}*$B$7`);
     addCell(r, 'J', null, `I${r}*F${r}/100`);
     addCell(r, 'K', p.casco);
     addCell(r, 'L', p.parachevements);
     addCell(r, 'M', null, `$B$${travauxRow + 5}`);
-    addCell(r, 'N', null, `(K${r}+L${r})*(1+$B$12/100)+M${r}*D${r}`);
+    addCell(r, 'N', null, `(K${r}+L${r})+M${r}*D${r}`);
     addCell(r, 'O', null, `$B$${expenseCategoryEndRow + 1}`);
     addCell(r, 'P', null, `I${r}+J${r}+N${r}+O${r}`);
     addCell(r, 'Q', null, `P${r}-E${r}`);
@@ -289,13 +277,12 @@ export function buildExportSheetData(
 export function exportCalculations(
   calculations: CalculationResults,
   projectParams: ProjectParams,
-  scenario: Scenario,
   unitDetails: UnitDetails | undefined,
   writer: ExportWriter,
   filename: string = 'Calculateur_Division_' + new Date().toLocaleDateString('fr-FR').replace(/\//g, '-') + '.xlsx'
 ): void | string {
   const wb = writer.createWorkbook();
-  const sheetData = buildExportSheetData(calculations, projectParams, scenario, unitDetails);
+  const sheetData = buildExportSheetData(calculations, projectParams, unitDetails);
   writer.addSheet(wb, sheetData);
   return writer.write(wb, filename);
 }

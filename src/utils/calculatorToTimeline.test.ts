@@ -6,7 +6,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { convertCalculatorToInitialPurchaseEvent } from './calculatorToTimeline';
-import type { Participant, ProjectParams, Scenario } from './calculatorUtils';
+import type { Participant, ProjectParams } from './calculatorUtils';
 
 describe('convertCalculatorToInitialPurchaseEvent', () => {
   const deedDate = new Date('2026-02-01');
@@ -50,17 +50,10 @@ describe('convertCalculatorToInitialPurchaseEvent', () => {
     globalCascoPerM2: 1590,
   };
 
-  const mockScenario: Scenario = {
-    constructionCostChange: 0,
-    infrastructureReduction: 0,
-    purchasePriceReduction: 0,
-  };
-
   it('should create InitialPurchaseEvent with deed date', () => {
     const event = convertCalculatorToInitialPurchaseEvent(
       mockParticipants,
       mockProjectParams,
-      mockScenario,
       deedDate
     );
 
@@ -73,7 +66,6 @@ describe('convertCalculatorToInitialPurchaseEvent', () => {
     const event = convertCalculatorToInitialPurchaseEvent(
       mockParticipants,
       mockProjectParams,
-      mockScenario,
       deedDate
     );
 
@@ -88,7 +80,6 @@ describe('convertCalculatorToInitialPurchaseEvent', () => {
     const event = convertCalculatorToInitialPurchaseEvent(
       mockParticipants,
       mockProjectParams,
-      mockScenario,
       deedDate
     );
 
@@ -104,7 +95,6 @@ describe('convertCalculatorToInitialPurchaseEvent', () => {
     const event = convertCalculatorToInitialPurchaseEvent(
       mockParticipants,
       mockProjectParams,
-      mockScenario,
       deedDate
     );
 
@@ -123,7 +113,6 @@ describe('convertCalculatorToInitialPurchaseEvent', () => {
     const event = convertCalculatorToInitialPurchaseEvent(
       mockParticipants,
       mockProjectParams,
-      mockScenario,
       deedDate
     );
 
@@ -138,29 +127,18 @@ describe('convertCalculatorToInitialPurchaseEvent', () => {
     const event = convertCalculatorToInitialPurchaseEvent(
       mockParticipants,
       mockProjectParams,
-      mockScenario,
       deedDate
     );
 
     expect(event.projectParams).toEqual(mockProjectParams);
   });
 
-  it('should preserve scenario', () => {
-    const event = convertCalculatorToInitialPurchaseEvent(
-      mockParticipants,
-      mockProjectParams,
-      mockScenario,
-      deedDate
-    );
-
-    expect(event.scenario).toEqual(mockScenario);
-  });
+  // Scenario tests removed - scenarios no longer exist
 
   it('should create copropriété entity without hidden lots by default', () => {
     const event = convertCalculatorToInitialPurchaseEvent(
       mockParticipants,
       mockProjectParams,
-      mockScenario,
       deedDate
     );
 
@@ -172,7 +150,6 @@ describe('convertCalculatorToInitialPurchaseEvent', () => {
     const event = convertCalculatorToInitialPurchaseEvent(
       mockParticipants,
       mockProjectParams,
-      mockScenario,
       deedDate,
       'Les Acacias'
     );
@@ -184,7 +161,6 @@ describe('convertCalculatorToInitialPurchaseEvent', () => {
     const event = convertCalculatorToInitialPurchaseEvent(
       mockParticipants,
       mockProjectParams,
-      mockScenario,
       deedDate,
       'Les Acacias',
       [10, 11]
@@ -202,7 +178,6 @@ describe('convertCalculatorToInitialPurchaseEvent', () => {
     const event = convertCalculatorToInitialPurchaseEvent(
       singleParticipant,
       mockProjectParams,
-      mockScenario,
       deedDate
     );
 
@@ -214,7 +189,6 @@ describe('convertCalculatorToInitialPurchaseEvent', () => {
     const event = convertCalculatorToInitialPurchaseEvent(
       mockParticipants,
       mockProjectParams,
-      mockScenario,
       deedDate
     );
 

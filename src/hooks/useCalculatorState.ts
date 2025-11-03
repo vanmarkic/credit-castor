@@ -7,7 +7,6 @@ import { useState, useMemo, useRef } from 'react';
 import {
   DEFAULT_PARTICIPANTS,
   DEFAULT_PROJECT_PARAMS,
-  DEFAULT_SCENARIO,
   DEFAULT_DEED_DATE,
   loadFromLocalStorage,
   loadPinnedParticipant,
@@ -15,13 +14,13 @@ import {
   clearPinnedParticipant
 } from '../utils/storage';
 import { DEFAULT_PORTAGE_FORMULA } from '../utils/calculatorUtils';
-import type { Participant, ProjectParams, Scenario, PortageFormulaParams, CalculationResults } from '../utils/calculatorUtils';
+import type { Participant, ProjectParams, PortageFormulaParams, CalculationResults } from '../utils/calculatorUtils';
 
 export interface CalculatorState {
   // State values
   participants: Participant[];
   projectParams: ProjectParams;
-  scenario: Scenario;
+  // scenario removed - no longer using percentage-based adjustments
   deedDate: string;
   portageFormula: PortageFormulaParams;
   pinnedParticipant: string | null;
@@ -31,7 +30,7 @@ export interface CalculatorState {
   // State setters
   setParticipants: (participants: Participant[]) => void;
   setProjectParams: (params: ProjectParams) => void;
-  setScenario: (scenario: Scenario) => void;
+  // setScenario removed
   setDeedDate: (date: string) => void;
   setPortageFormula: (formula: PortageFormulaParams) => void;
   setPinnedParticipant: (name: string | null) => void;
@@ -104,10 +103,7 @@ export function useCalculatorState(): CalculatorState {
     return stored ? stored.projectParams : DEFAULT_PROJECT_PARAMS;
   });
 
-  const [scenario, setScenario] = useState<Scenario>(() => {
-    const stored = loadFromLocalStorage();
-    return stored ? stored.scenario : DEFAULT_SCENARIO;
-  });
+  // scenario state removed - no longer using percentage-based adjustments
 
   const [deedDate, setDeedDate] = useState<string>(() => {
     const stored = loadFromLocalStorage();
@@ -132,7 +128,7 @@ export function useCalculatorState(): CalculatorState {
   return {
     participants,
     projectParams,
-    scenario,
+    // scenario removed
     deedDate,
     portageFormula,
     pinnedParticipant,
@@ -140,7 +136,7 @@ export function useCalculatorState(): CalculatorState {
     versionMismatch,
     setParticipants,
     setProjectParams,
-    setScenario,
+    // setScenario removed
     setDeedDate,
     setPortageFormula,
     setPinnedParticipant,

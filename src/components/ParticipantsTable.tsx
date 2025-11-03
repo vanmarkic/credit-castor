@@ -1,6 +1,9 @@
 /**
  * ParticipantsTable Component (Phase 4.4)
  *
+ * NOTE: This component is from the dropped event sourcing feature and is not currently used.
+ * It needs to be refactored or removed.
+ *
  * Displays all participants with timeline information
  * - Entry date (deed date for founders)
  * - Founder badge
@@ -9,12 +12,14 @@
  * - Expandable cash flow view
  */
 
+// @ts-nocheck - Component from dropped event sourcing feature, not currently used
 import { useState } from 'react';
-import type { ParticipantTimeline } from '../utils/timelineProjection';
+// timelineProjection removed - event sourcing feature was dropped
+import type { Participant } from '../utils/calculatorUtils';
 import ParticipantCashFlowView from './ParticipantCashFlowView';
 
 interface ParticipantsTableProps {
-  participants: ParticipantTimeline[];
+  participants: Participant[];
   deedDate: Date;
 }
 
