@@ -94,6 +94,14 @@ export interface FinancingDetails {
   disbursementDate?: Date;
 }
 
+export interface ParticipantCosts {
+  partAchat: number;              // Purchase share
+  droitEnregistrement: number;    // Registration fees (3% or 12.5%)
+  travauxCommuns: number;         // Common areas costs
+  casco: number;                  // Shell construction
+  parachevements: number;         // Finishing work
+}
+
 // ============================================
 // LOT TYPES
 // ============================================
@@ -557,29 +565,118 @@ git commit -m "feat(state-machine): add financing types for individual and ACP l
 
 **📝 Important Note: Multiple Loans per Participant**
 
-Participants buying before the start of renovations can take **two separate loans**:
+Participants have **two financing options**:
 
-1. **Purchase Loan** (`purpose: 'purchase'`)
-   - For initial property acquisition and construction costs
-   - Disbursed at or shortly after deed signing
-   - Used to pay: purchase share, registration fees, initial construction
+### Option 1: Single Loan (Traditional)
+- One loan covering 100% of all costs:
+  - Part d'achat (purchase share)
+  - Droit d'enregistrement (registration fees)
+  - Travaux communs (common areas)
+  - Casco (shell construction)
+  - Parachèvements (finishing work)
+- Disbursed at deed signing
 
-2. **Private Renovation Loan** (`purpose: 'renovation'`)
-   - For participant's private space renovations (parachèvements)
-   - Disbursed later when renovations begin
-   - NOT for common areas (those are covered by ACP collective loans)
-   - Timing: Typically months/years after purchase when participant is ready to renovate
+### Option 2: Split Loans (Construction-Phased)
 
-**Example Scenario:**
-- Alice buys in January 2023: Takes €150,000 purchase loan
-- Alice starts her private renovations in June 2024: Takes €50,000 renovation loan
-- Both loans tracked in `participant.loans[]` array with different purposes
+**First Loan** (`purpose: 'purchase'`) - Disbursed at deed signing:
+- 100% Part d'achat
+- 100% Droit d'enregistrement
+- 100% Travaux communs
+- **1/3 of (Casco + Parachèvements)**
 
-**Implementation Impact:**
-- `Participant.loans` is an array, not a single optional field
-- Each `FinancingDetails` has a `purpose` field to distinguish loan type
-- Carrying costs calculations must consider all active loans
-- Portage pricing includes interest from all loans held during ownership
+**Second Loan** (`purpose: 'renovation'`) - Disbursed 1-2 years later during renovation:
+- **2/3 of (Casco + Parachèvements)**
+
+### Calculation Formula
+
+```typescript
+// Total costs for participant
+const totalCosts = {
+  partAchat: 100000,              // Purchase share
+  droitEnregistrement: 12500,     // Registration fees (12.5% or 3%)
+  travauxCommuns: 20000,          // Common areas (frais communs)
+  casco: 50000,                   // Shell construction
+  parachevements: 30000           // Finishing work
+};
+
+// Option 1: Single loan
+const singleLoan =
+  totalCosts.partAchat +
+  totalCosts.droitEnregistrement +
+  totalCosts.travauxCommuns +
+  totalCosts.casco +
+  totalCosts.parachevements;
+// = 212,500
+
+// Option 2: Split loans
+const constructionCosts = totalCosts.casco + totalCosts.parachevements; // 80,000
+
+const firstLoan =
+  totalCosts.partAchat +
+  totalCosts.droitEnregistrement +
+  totalCosts.travauxCommuns +
+  (constructionCosts / 3);
+// = 100,000 + 12,500 + 20,000 + 26,667 = 159,167
+
+const secondLoan = (constructionCosts * 2) / 3;
+// = 53,333
+
+// Verify: firstLoan + secondLoan = singleLoan ✓
+```
+
+### Example Scenario
+
+**Alice's costs:**
+- Part d'achat: €80,000
+- Droit d'enregistrement: €10,000 (12.5%)
+- Travaux communs: €15,000
+- Casco: €40,000
+- Parachèvements: €25,000
+- **Total: €170,000**
+
+**Option A: Single loan**
+- January 2023: Takes €170,000 loan
+- Pays interest on full €170,000 from day 1
+
+**Option B: Split loans** (saves interest)
+- January 2023: Takes €126,667 first loan
+  - Covers: €80,000 + €10,000 + €15,000 + €21,667 (1/3 of €65,000)
+- June 2024: Takes €43,333 second loan
+  - Covers: €43,333 (2/3 of €65,000)
+- **Interest savings**: 18 months of interest on €43,333 = ~€2,100 saved
+
+### Implementation Impact
+
+**Type Changes:**
+- `Participant.loans` is an array (not optional single field)
+- Each `FinancingDetails` has `purpose: 'purchase' | 'renovation'`
+- Track which cost components each loan covers
+
+**Calculation Functions Needed:**
+```typescript
+function calculateFirstLoanAmount(costs: ParticipantCosts): number {
+  const constructionCosts = costs.casco + costs.parachevements;
+  return costs.partAchat +
+         costs.droitEnregistrement +
+         costs.travauxCommuns +
+         (constructionCosts / 3);
+}
+
+function calculateSecondLoanAmount(costs: ParticipantCosts): number {
+  const constructionCosts = costs.casco + costs.parachevements;
+  return (constructionCosts * 2) / 3;
+}
+```
+
+**Carrying Costs Impact:**
+- First loan: Interest accrues from deed signing
+- Second loan: Interest accrues from disbursement (1-2 years later)
+- Portage pricing must calculate interest separately for each loan period
+
+**State Machine Impact:**
+- Participants can apply for renovation loan after initial purchase
+- Renovation loan application state separate from purchase loan
+- Track disbursement dates for accurate interest calculation
 
 ---
 
@@ -1143,7 +1240,171 @@ git commit -m "test(state-machine): add carrying costs calculation tests"
 
 ---
 
-### Task 8: Add Voting Calculation Functions
+### Task 8: Add Loan Split Calculation Functions
+
+**Files:**
+- Modify: `src/stateMachine/calculations.ts`
+- Modify: `src/stateMachine/calculations.test.ts`
+
+**Step 1: Write tests for loan split calculations**
+
+Add to `src/stateMachine/calculations.test.ts`:
+
+```typescript
+import { calculateFirstLoanAmount, calculateSecondLoanAmount } from './calculations';
+import type { ParticipantCosts } from './types';
+
+describe('Loan Split Calculations', () => {
+  const costs: ParticipantCosts = {
+    partAchat: 80000,
+    droitEnregistrement: 10000,
+    travauxCommuns: 15000,
+    casco: 40000,
+    parachevements: 25000
+  };
+
+  it('should calculate first loan amount (1/3 construction)', () => {
+    const firstLoan = calculateFirstLoanAmount(costs);
+
+    const constructionCosts = costs.casco + costs.parachevements; // 65,000
+    const expectedFirstLoan =
+      costs.partAchat +                      // 80,000
+      costs.droitEnregistrement +            // 10,000
+      costs.travauxCommuns +                 // 15,000
+      (constructionCosts / 3);               // 21,667
+
+    expect(firstLoan).toBeCloseTo(126667, 0);
+    expect(firstLoan).toBeCloseTo(expectedFirstLoan, 0);
+  });
+
+  it('should calculate second loan amount (2/3 construction)', () => {
+    const secondLoan = calculateSecondLoanAmount(costs);
+
+    const constructionCosts = costs.casco + costs.parachevements; // 65,000
+    const expectedSecondLoan = (constructionCosts * 2) / 3;       // 43,333
+
+    expect(secondLoan).toBeCloseTo(43333, 0);
+    expect(secondLoan).toBeCloseTo(expectedSecondLoan, 0);
+  });
+
+  it('should verify split loans sum equals total', () => {
+    const firstLoan = calculateFirstLoanAmount(costs);
+    const secondLoan = calculateSecondLoanAmount(costs);
+
+    const totalCosts =
+      costs.partAchat +
+      costs.droitEnregistrement +
+      costs.travauxCommuns +
+      costs.casco +
+      costs.parachevements;
+
+    expect(firstLoan + secondLoan).toBeCloseTo(totalCosts, 0);
+  });
+
+  it('should handle zero construction costs', () => {
+    const noConstrucitonCosts: ParticipantCosts = {
+      partAchat: 100000,
+      droitEnregistrement: 12500,
+      travauxCommuns: 20000,
+      casco: 0,
+      parachevements: 0
+    };
+
+    const firstLoan = calculateFirstLoanAmount(noConstrucitonCosts);
+    const secondLoan = calculateSecondLoanAmount(noConstrucitonCosts);
+
+    // When no construction, first loan = all costs, second loan = 0
+    expect(firstLoan).toBe(132500);
+    expect(secondLoan).toBe(0);
+  });
+});
+```
+
+**Step 2: Run test to verify it fails**
+
+Run: `npm run test src/stateMachine/calculations.test.ts`
+Expected: FAIL - "Cannot find name 'calculateFirstLoanAmount'"
+
+**Step 3: Implement loan split functions**
+
+Add to `src/stateMachine/calculations.ts`:
+
+```typescript
+import type { ParticipantCosts } from './types';
+
+/**
+ * Calculate first loan amount (purchase loan)
+ * Covers: 100% purchase + fees + common + 1/3 construction
+ */
+export function calculateFirstLoanAmount(costs: ParticipantCosts): number {
+  const constructionCosts = costs.casco + costs.parachevements;
+
+  return (
+    costs.partAchat +
+    costs.droitEnregistrement +
+    costs.travauxCommuns +
+    (constructionCosts / 3)
+  );
+}
+
+/**
+ * Calculate second loan amount (renovation loan)
+ * Covers: 2/3 of construction costs
+ */
+export function calculateSecondLoanAmount(costs: ParticipantCosts): number {
+  const constructionCosts = costs.casco + costs.parachevements;
+  return (constructionCosts * 2) / 3;
+}
+
+/**
+ * Calculate total financing needed (single loan or sum of split loans)
+ */
+export function calculateTotalFinancing(costs: ParticipantCosts): number {
+  return (
+    costs.partAchat +
+    costs.droitEnregistrement +
+    costs.travauxCommuns +
+    costs.casco +
+    costs.parachevements
+  );
+}
+
+/**
+ * Calculate interest savings from split loan strategy
+ * @param costs - Participant's total costs
+ * @param interestRate - Annual interest rate (e.g., 0.035 for 3.5%)
+ * @param monthsDelayed - Months between first and second loan (typically 18-24)
+ */
+export function calculateSplitLoanSavings(
+  costs: ParticipantCosts,
+  interestRate: number,
+  monthsDelayed: number
+): number {
+  const secondLoanAmount = calculateSecondLoanAmount(costs);
+
+  // Interest saved by not borrowing second loan amount immediately
+  const monthlyInterestRate = interestRate / 12;
+  const interestSaved = secondLoanAmount * monthlyInterestRate * monthsDelayed;
+
+  return interestSaved;
+}
+```
+
+**Step 4: Run test to verify it passes**
+
+Run: `npm run test src/stateMachine/calculations.test.ts`
+Expected: PASS (8 tests total)
+
+**Step 5: Commit**
+
+```bash
+git add src/stateMachine/calculations.ts src/stateMachine/calculations.test.ts
+git commit -m "feat(state-machine): add loan split calculation functions"
+```
+
+---
+
+### Task 9: Add Voting Calculation Functions
 
 **Files:**
 - Modify: `src/stateMachine/calculations.ts`
