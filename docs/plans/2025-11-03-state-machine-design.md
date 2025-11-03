@@ -372,6 +372,55 @@ BUYER_INTERVIEW
 **Timeline**: 2-8 weeks (residents), 4-8 weeks (non-residents)
 **Stages**: 5 (preliminary → file → submit → monitoring → conclusion)
 
+#### Loan Structure Options
+
+Participants have **two financing strategies**:
+
+**Option A: Single Loan (Traditional)**
+- One loan covering 100% of all costs at deed signing
+- Simple but more expensive (interest on full amount from day 1)
+
+**Option B: Split Loans (Construction-Phased)**
+
+**First Loan** (at deed signing):
+- 100% Part d'achat (purchase share)
+- 100% Droit d'enregistrement (registration fees)
+- 100% Travaux communs (common areas)
+- **1/3 of (Casco + Parachèvements)**
+
+**Second Loan** (1-2 years later, during renovation):
+- **2/3 of (Casco + Parachèvements)**
+
+**Formula:**
+```typescript
+interface ParticipantCosts {
+  partAchat: number;              // Purchase share
+  droitEnregistrement: number;    // Registration fees (3% or 12.5%)
+  travauxCommuns: number;         // Common areas costs
+  casco: number;                  // Shell construction
+  parachevements: number;         // Finishing work
+}
+
+function calculateFirstLoan(costs: ParticipantCosts): number {
+  const construction = costs.casco + costs.parachevements;
+  return costs.partAchat +
+         costs.droitEnregistrement +
+         costs.travauxCommuns +
+         (construction / 3);
+}
+
+function calculateSecondLoan(costs: ParticipantCosts): number {
+  const construction = costs.casco + costs.parachevements;
+  return (construction * 2) / 3;
+}
+
+// Example: €170k total
+// Option A: €170k loan immediately
+// Option B: €127k first + €43k second (saves ~€2,100 in interest over 18 months)
+```
+
+**Type Definition:**
+
 ```typescript
 type LoanStatus = 'not_applied' | 'pending' | 'approved' | 'rejected';
 
@@ -381,8 +430,10 @@ interface LoanApplication {
   loanAmount: number;
   interestRate: number;
   durationYears: number;
+  purpose: 'purchase' | 'renovation';  // Distinguish loan type
   applicationDate: Date;
   approvalDate?: Date;
+  disbursementDate?: Date;             // Track when funds released
   bankName?: string;
 }
 ```
@@ -592,7 +643,7 @@ interface Participant {
   isFounder: boolean;                 // GEN1 (portage eligible) vs GEN2+
   entryDate: Date;
   lotsOwned: LotOwnership[];
-  financingDetails?: FinancingDetails;
+  loans: FinancingDetails[];          // Array supports multiple loans (purchase + renovation)
 }
 
 interface LotOwnership {
