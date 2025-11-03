@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import EnDivisionCorrect, { migrateScenarioData, DEFAULT_PARTICIPANTS, loadFromLocalStorage } from './EnDivisionCorrect';
+import EnDivisionCorrect from './EnDivisionCorrect';
+import { loadFromLocalStorage } from '../utils/storage';
 
 describe('EnDivisionCorrect - Integration Tests', () => {
   describe('Default Initial State', () => {
@@ -258,93 +259,12 @@ describe('EnDivisionCorrect - Integration Tests', () => {
     });
   });
 
-  describe('migrateScenarioData', () => {
-    it('migrates v1.0.2 format to v1.0.3', () => {
-      const oldData = {
-        participants: [
-          { name: 'A', cascoPerM2: 1700, parachevementsPerM2: 500, surface: 100, unitId: 1, capitalApporte: 50000, notaryFeesRate: 12.5, interestRate: 4.5, durationYears: 25, quantity: 1 },
-          { name: 'B', cascoPerM2: 1700, parachevementsPerM2: 600, surface: 150, unitId: 2, capitalApporte: 70000, notaryFeesRate: 12.5, interestRate: 4.5, durationYears: 25, quantity: 1 }
-        ],
-        projectParams: {
-          totalPurchase: 650000,
-          mesuresConservatoires: 20000,
-          demolition: 40000,
-          infrastructures: 90000,
-          etudesPreparatoires: 59820,
-          fraisEtudesPreparatoires: 27320,
-          fraisGeneraux3ans: 0,
-          batimentFondationConservatoire: 43700,
-          batimentFondationComplete: 269200,
-          batimentCoproConservatoire: 56000
-          // No globalCascoPerM2
-        },
-        scenario: { constructionCostChange: 0, infrastructureReduction: 0, purchasePriceReduction: 0 }
-      };
-
-      const result = migrateScenarioData(oldData);
-
-      expect(result.projectParams.globalCascoPerM2).toBe(1700);
-      expect(result.participants[0]).not.toHaveProperty('cascoPerM2');
-      expect(result.participants[1]).not.toHaveProperty('cascoPerM2');
-      expect(result.participants[0].parachevementsPerM2).toBe(500);
-    });
-
-    it('handles v1.0.3 format as no-op', () => {
-      const newData = {
-        participants: [
-          { name: 'A', parachevementsPerM2: 500, surface: 100, unitId: 1, capitalApporte: 50000, notaryFeesRate: 12.5, interestRate: 4.5, durationYears: 25, quantity: 1 }
-        ],
-        projectParams: {
-          totalPurchase: 650000,
-          mesuresConservatoires: 20000,
-          demolition: 40000,
-          infrastructures: 90000,
-          etudesPreparatoires: 59820,
-          fraisEtudesPreparatoires: 27320,
-          fraisGeneraux3ans: 0,
-          batimentFondationConservatoire: 43700,
-          batimentFondationComplete: 269200,
-          batimentCoproConservatoire: 56000,
-          globalCascoPerM2: 1590
-        },
-        scenario: { constructionCostChange: 0, infrastructureReduction: 0, purchasePriceReduction: 0 }
-      };
-
-      const result = migrateScenarioData(newData);
-
-      expect(result.projectParams.globalCascoPerM2).toBe(1590);
-      expect(result.participants[0]).not.toHaveProperty('cascoPerM2');
-    });
-
-    it('uses default 1590 when no cascoPerM2 exists', () => {
-      const oldData = {
-        participants: [{ name: 'A', parachevementsPerM2: 500, surface: 100, unitId: 1, capitalApporte: 50000, notaryFeesRate: 12.5, interestRate: 4.5, durationYears: 25, quantity: 1 }],
-        projectParams: { totalPurchase: 650000 },
-        scenario: { constructionCostChange: 0 }
-      };
-
-      const result = migrateScenarioData(oldData);
-
-      expect(result.projectParams.globalCascoPerM2).toBe(1590);
-    });
-
-    it('handles empty participants array', () => {
-      const oldData = {
-        participants: [],
-        projectParams: {},
-        scenario: {}
-      };
-
-      const result = migrateScenarioData(oldData);
-
-      expect(result.participants).toEqual(DEFAULT_PARTICIPANTS);
-      expect(result.projectParams.globalCascoPerM2).toBe(1590);
-    });
-  });
+  // NOTE: Migration tests removed - migration logic is now inline in loadFromLocalStorage
+  // The migration happens automatically when loading old data from localStorage
 
   describe('loadFromLocalStorage', () => {
-    it('uses migration function for v1.0.2 data', () => {
-      // Mock localStorage with v1.0.2 data
+    it('migrates old data with cascoPerM2 on participants', () => {
+      // Mock localStorage with old data format
       const oldData = {
         participants: [{ name: 'A', cascoPerM2: 1800, parachevementsPerM2: 500, surface: 100, unitId: 1, capitalApporte: 50000, notaryFeesRate: 12.5, interestRate: 4.5, durationYears: 25, quantity: 1 }],
         projectParams: { totalPurchase: 650000 },
@@ -355,31 +275,32 @@ describe('EnDivisionCorrect - Integration Tests', () => {
 
       const result = loadFromLocalStorage();
 
+      // Migration should have moved cascoPerM2 to projectParams.globalCascoPerM2
       expect(result?.projectParams.globalCascoPerM2).toBe(1800);
+      // And removed it from participant
       expect(result?.participants[0]).not.toHaveProperty('cascoPerM2');
       expect(result?.participants[0].parachevementsPerM2).toBe(500);
 
       // Cleanup
       global.localStorage.clear();
     });
-  });
 
-  describe('file upload migration', () => {
-    it('file upload uses migration function', () => {
-      // Simulate v1.0.2 file data
-      const oldFileData = {
-        participants: [
-          { name: 'A', cascoPerM2: 1750, parachevementsPerM2: 500, surface: 100, unitId: 1, capitalApporte: 50000, notaryFeesRate: 12.5, interestRate: 4.5, durationYears: 25, quantity: 1 }
-        ],
-        projectParams: { totalPurchase: 650000, mesuresConservatoires: 20000 },
-        scenario: { constructionCostChange: 0, infrastructureReduction: 0, purchasePriceReduction: 0 }
+    it('uses default cascoPerM2 when not present in old data', () => {
+      const oldData = {
+        participants: [{ name: 'A', parachevementsPerM2: 500, surface: 100, unitId: 1, capitalApporte: 50000, notaryFeesRate: 12.5, interestRate: 4.5, durationYears: 25, quantity: 1 }],
+        projectParams: { totalPurchase: 650000 },
+        scenario: { constructionCostChange: 0 }
       };
 
-      const migrated = migrateScenarioData(oldFileData);
+      global.localStorage.setItem('credit-castor-scenario', JSON.stringify(oldData));
 
-      // Verify migration happens
-      expect(migrated.projectParams.globalCascoPerM2).toBe(1750);
-      expect(migrated.participants[0]).not.toHaveProperty('cascoPerM2');
+      const result = loadFromLocalStorage();
+
+      // Should use default of 1590
+      expect(result?.projectParams.globalCascoPerM2).toBe(1590);
+
+      // Cleanup
+      global.localStorage.clear();
     });
   });
 });

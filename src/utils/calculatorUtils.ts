@@ -76,6 +76,7 @@ export interface ParticipantCalculation extends Participant {
   notaryFees: number;
   casco: number;
   parachevements: number;
+  personalRenovationCost: number; // casco + parachevements (personal renovation)
   constructionCost: number;
   constructionCostPerUnit: number;
   travauxCommunsPerUnit: number;
@@ -423,9 +424,10 @@ export function calculateAll(
     // Only multiply travauxCommunsPerUnit by quantity (shared building costs per unit)
     const cascoTotal = casco * (1 + scenario.constructionCostChange / 100);
     const parachevementsTotal = parachevements * (1 + scenario.constructionCostChange / 100);
+    const personalRenovationCost = cascoTotal + parachevementsTotal;
     const travauxCommunsTotal = travauxCommunsPerUnit * quantity;
 
-    const constructionCost = cascoTotal + parachevementsTotal + travauxCommunsTotal;
+    const constructionCost = personalRenovationCost + travauxCommunsTotal;
     const constructionCostPerUnit = constructionCost / quantity;
 
     const totalCost = purchaseShare + notaryFees + constructionCost + sharedPerPerson;
@@ -449,6 +451,7 @@ export function calculateAll(
       notaryFees,
       casco,
       parachevements,
+      personalRenovationCost,
       constructionCost,
       constructionCostPerUnit,
       travauxCommunsPerUnit,

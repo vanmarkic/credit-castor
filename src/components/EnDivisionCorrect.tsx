@@ -1,105 +1,25 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Calculator, Users, DollarSign, Home, Building2, Wallet, Download, Upload, RotateCcw, Save, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react';
+import { ChevronDown, ChevronUp, Users } from 'lucide-react';
 import { calculateAll } from '../utils/calculatorUtils';
 import { exportCalculations } from '../utils/excelExport';
 import { XlsxWriter } from '../utils/exportWriter';
-import { convertCalculatorToInitialPurchaseEvent } from '../utils/calculatorToTimeline';
-import { exportTimelineToJSON } from '../utils/timelineExport';
 import { ParticipantsTimeline } from './calculator/ParticipantsTimeline';
-import PortageLotConfig from './PortageLotConfig';
-import AvailableLotsView from './AvailableLotsView';
-import { getAvailableLotsForNewcomer } from '../utils/availableLots';
-
-// Default values for reset functionality
-const DEFAULT_PARTICIPANTS = [
-  { name: 'Manuela/Dragan', capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, surface: 112, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500 },
-  { name: 'Cathy/Jim', capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, surface: 134, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500 },
-  { name: 'Annabelle/Colin', capitalApporte: 200000, notaryFeesRate: 12.5, unitId: 5, surface: 118, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500 },
-  { name: 'Julie/Séverin', capitalApporte: 70000, notaryFeesRate: 12.5, unitId: 6, surface: 108, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500 }
-];
-
-const DEFAULT_PROJECT_PARAMS = {
-  totalPurchase: 650000,
-  mesuresConservatoires: 20000,
-  demolition: 40000,
-  infrastructures: 90000,
-  etudesPreparatoires: 59820,
-  fraisEtudesPreparatoires: 27320,
-  fraisGeneraux3ans: 0,
-  batimentFondationConservatoire: 43700,
-  batimentFondationComplete: 269200,
-  batimentCoproConservatoire: 56000,
-  globalCascoPerM2: 1590
-};
-
-const DEFAULT_SCENARIO = {
-  constructionCostChange: 0,
-  infrastructureReduction: 0,
-  purchasePriceReduction: 0
-};
-
-// Default deed date: February 1st, 2026
-const DEFAULT_DEED_DATE = '2026-02-01';
-
-const STORAGE_KEY = 'credit-castor-scenario';
-
-// LocalStorage utilities
-const saveToLocalStorage = (participants: any[], projectParams: any, scenario: any, deedDate: string) => {
-  try {
-    const data = {
-      version: 2, // Increment version for deed date
-      timestamp: new Date().toISOString(),
-      participants,
-      projectParams,
-      scenario,
-      deedDate
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch (error) {
-    console.error('Failed to save to localStorage:', error);
-  }
-};
-
-export const loadFromLocalStorage = () => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const data = JSON.parse(stored);
-
-      // Migration: If no globalCascoPerM2, use first participant's value or default
-      if (data.projectParams && !data.projectParams.globalCascoPerM2) {
-        data.projectParams.globalCascoPerM2 =
-          data.participants?.[0]?.cascoPerM2 || 1590;
-      }
-
-      // Clean up old participant cascoPerM2 fields
-      if (data.participants) {
-        data.participants = data.participants.map((p: any) => {
-          const { cascoPerM2, ...rest } = p;
-          return rest;
-        });
-      }
-
-      return {
-        participants: data.participants || DEFAULT_PARTICIPANTS,
-        projectParams: data.projectParams || DEFAULT_PROJECT_PARAMS,
-        scenario: data.scenario || DEFAULT_SCENARIO,
-        deedDate: data.deedDate // May be undefined for old saved data
-      };
-    }
-  } catch (error) {
-    console.error('Failed to load from localStorage:', error);
-  }
-  return null;
-};
-
-const clearLocalStorage = () => {
-  try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch (error) {
-    console.error('Failed to clear localStorage:', error);
-  }
-};
+import { ProjectHeader } from './calculator/ProjectHeader';
+import { ParticipantDetailsPanel } from './calculator/ParticipantDetailsPanel';
+import ParticipantDetailModal from './calculator/ParticipantDetailModal';
+import { formatCurrency } from '../utils/formatting';
+import {
+  DEFAULT_PARTICIPANTS,
+  DEFAULT_PROJECT_PARAMS,
+  DEFAULT_SCENARIO,
+  DEFAULT_DEED_DATE,
+  savePinnedParticipant,
+  loadPinnedParticipant,
+  clearPinnedParticipant,
+  saveToLocalStorage,
+  loadFromLocalStorage,
+  clearLocalStorage
+} from '../utils/storage';
 
 export default function EnDivisionCorrect() {
   const [participants, setParticipants] = useState(() => {
@@ -115,6 +35,8 @@ export default function EnDivisionCorrect() {
   });
 
   const [expandedParticipants, setExpandedParticipants] = useState<{[key: number]: boolean}>({});
+  const [pinnedParticipant, setPinnedParticipant] = useState<string | null>(() => loadPinnedParticipant());
+  const [fullscreenParticipantIndex, setFullscreenParticipantIndex] = useState<number | null>(null);
 
   const participantRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -137,7 +59,7 @@ export default function EnDivisionCorrect() {
     // Scroll to the newly added participant (will be at the last index after state update)
     setTimeout(() => {
       const newIndex = participants.length; // This will be the index of the newly added participant
-      if (participantRefs.current[newIndex]) {
+      if (participantRefs.current[newIndex]?.scrollIntoView) {
         participantRefs.current[newIndex].scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }, 50);
@@ -145,15 +67,26 @@ export default function EnDivisionCorrect() {
 
   const removeParticipant = (index: number) => {
     if (participants.length > 1) {
+      // If removing the pinned participant, clear the pin
+      if (participants[index].name === pinnedParticipant) {
+        handleUnpinParticipant();
+      }
       const newParticipants = participants.filter((_: any, i: number) => i !== index);
       setParticipants(newParticipants);
     }
   };
 
   const updateParticipantName = (index: number, name: string) => {
+    const oldName = participants[index].name;
     const newParticipants = [...participants];
     newParticipants[index].name = name;
     setParticipants(newParticipants);
+
+    // If renaming the pinned participant, update the pin
+    if (oldName === pinnedParticipant) {
+      savePinnedParticipant(name);
+      setPinnedParticipant(name);
+    }
   };
 
   const updateParticipantSurface = (index: number, surface: number) => {
@@ -193,13 +126,28 @@ export default function EnDivisionCorrect() {
     return calculateAll(participants, projectParams, scenario, unitDetails);
   }, [participants, projectParams, scenario]);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'EUR',
-      maximumFractionDigits: 0
-    }).format(value);
-  };
+  // Reorder participant breakdown to show pinned participant first
+  const orderedParticipantBreakdown = useMemo(() => {
+    if (!pinnedParticipant) {
+      return calculations.participantBreakdown;
+    }
+
+    const pinnedIndex = calculations.participantBreakdown.findIndex(
+      (p) => p.name === pinnedParticipant
+    );
+
+    if (pinnedIndex === -1) {
+      // Pinned participant not found, return original order
+      return calculations.participantBreakdown;
+    }
+
+    // Move pinned participant to the front
+    const reordered = [...calculations.participantBreakdown];
+    const [pinnedItem] = reordered.splice(pinnedIndex, 1);
+    reordered.unshift(pinnedItem);
+
+    return reordered;
+  }, [calculations.participantBreakdown, pinnedParticipant]);
 
   const updateCapital = (index: number, value: number) => {
     const newParticipants = [...participants];
@@ -249,6 +197,16 @@ export default function EnDivisionCorrect() {
     setParticipants(newParticipants);
   };
 
+  const handlePinParticipant = (participantName: string) => {
+    savePinnedParticipant(participantName);
+    setPinnedParticipant(participantName);
+  };
+
+  const handleUnpinParticipant = () => {
+    clearPinnedParticipant();
+    setPinnedParticipant(null);
+  };
+
   const addPortageLot = (participantIndex: number) => {
     const newLotId = Math.max(
       ...participants.flatMap((p: any) => p.lotsOwned?.map((l: any) => l.lotId) || []),
@@ -261,13 +219,24 @@ export default function EnDivisionCorrect() {
       newParticipants[participantIndex].lotsOwned = [];
     }
 
+    // Increase quantity (number of lots)
+    const currentQuantity = newParticipants[participantIndex].quantity || 1;
+    newParticipants[participantIndex].quantity = currentQuantity + 1;
+
+    // NOTE: Surface starts at 0, will be updated when user enters portage lot surface
+    // Purchase share will grow when surface is set via updatePortageLotSurface
+
     newParticipants[participantIndex].lotsOwned.push({
       lotId: newLotId,
       surface: 0,
       unitId: newParticipants[participantIndex].unitId || 0,
       isPortage: true,
       allocatedSurface: 0,
-      acquiredDate: new Date(deedDate)
+      acquiredDate: new Date(deedDate),
+      // Acquisition costs will be calculated dynamically based on new total costs
+      originalPrice: undefined,
+      originalNotaryFees: undefined,
+      originalConstructionCost: undefined
     });
 
     setParticipants(newParticipants);
@@ -276,8 +245,22 @@ export default function EnDivisionCorrect() {
   const removePortageLot = (participantIndex: number, lotId: number) => {
     const newParticipants = [...participants];
     if (newParticipants[participantIndex].lotsOwned) {
+      // Find the lot being removed to get its surface
+      const lotToRemove = newParticipants[participantIndex].lotsOwned.find((l: any) => l.lotId === lotId);
+
+      // Remove the lot
       newParticipants[participantIndex].lotsOwned =
         newParticipants[participantIndex].lotsOwned.filter((l: any) => l.lotId !== lotId);
+
+      // Decrease quantity
+      const currentQuantity = newParticipants[participantIndex].quantity || 1;
+      newParticipants[participantIndex].quantity = Math.max(1, currentQuantity - 1);
+
+      // Decrease total surface by the removed lot's surface
+      if (lotToRemove) {
+        const currentSurface = newParticipants[participantIndex].surface || 0;
+        newParticipants[participantIndex].surface = Math.max(0, currentSurface - (lotToRemove.surface || 0));
+      }
     }
     setParticipants(newParticipants);
   };
@@ -287,8 +270,17 @@ export default function EnDivisionCorrect() {
     if (newParticipants[participantIndex].lotsOwned) {
       const lot = newParticipants[participantIndex].lotsOwned.find((l: any) => l.lotId === lotId);
       if (lot) {
+        // Calculate the surface change
+        const oldSurface = lot.surface || 0;
+        const surfaceChange = surface - oldSurface;
+
+        // Update lot surface
         lot.surface = surface;
         lot.allocatedSurface = surface;
+
+        // Update participant's total surface
+        const currentTotalSurface = newParticipants[participantIndex].surface || 0;
+        newParticipants[participantIndex].surface = currentTotalSurface + surfaceChange;
       }
     }
     setParticipants(newParticipants);
@@ -299,40 +291,6 @@ export default function EnDivisionCorrect() {
     exportCalculations(calculations, projectParams, scenario, writer);
   };
 
-  // Continue to Timeline - convert calculator to timeline event
-  const continueToTimeline = () => {
-    try {
-      // Convert calculator inputs to InitialPurchaseEvent
-      const event = convertCalculatorToInitialPurchaseEvent(
-        participants,
-        projectParams,
-        scenario,
-        new Date(deedDate),
-        'Copropriété', // Default name
-        [] // No hidden lots by default
-      );
-
-      // Export as JSON
-      const timelineJSON = exportTimelineToJSON([event]);
-
-      // Download the file
-      const blob = new Blob([timelineJSON], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `timeline-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      // Show success message
-      alert('Timeline exported! You can now import this file in the Timeline view at /continuous-timeline-demo/');
-    } catch (error) {
-      console.error('Timeline export failed:', error);
-      alert('Erreur lors de l\'export vers la timeline');
-    }
-  };
 
   // Download scenario as JSON file
   const downloadScenario = () => {
@@ -418,139 +376,22 @@ export default function EnDivisionCorrect() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-100 p-6">
       <div className="max-w-7xl mx-auto">
 
-        <div className="bg-white rounded-xl shadow-2xl p-8 mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <Building2 className="w-12 h-12 text-blue-600" />
-            <div>
-              <h1 className="text-4xl font-bold text-gray-800">Achat en Division - Acte 1</h1>
-              <p className="text-gray-600">Wallonie, Belgique • Prix d'achat €650,000</p>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-5 mb-6">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <Save className="w-4 h-4 text-gray-600" />
-              Gestion des Scénarios
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              <button
-                onClick={downloadScenario}
-                className="bg-white hover:bg-gray-50 text-gray-700 font-medium px-3 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 border border-gray-300 text-sm"
-              >
-                <Download className="w-4 h-4" />
-                Télécharger
-              </button>
-
-              <button
-                onClick={loadScenario}
-                className="bg-white hover:bg-gray-50 text-gray-700 font-medium px-3 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 border border-gray-300 text-sm"
-              >
-                <Upload className="w-4 h-4" />
-                Charger
-              </button>
-
-              <button
-                onClick={resetToDefaults}
-                className="bg-white hover:bg-gray-50 text-gray-700 font-medium px-3 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 border border-gray-300 text-sm"
-              >
-                <RotateCcw className="w-4 h-4" />
-                Réinitialiser
-              </button>
-
-              <button
-                onClick={exportToExcel}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 border border-blue-600 text-sm"
-              >
-                <Download className="w-4 h-4" />
-                Excel
-              </button>
-
-              <button
-                onClick={continueToTimeline}
-                className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 border border-green-600 text-sm"
-                title="Export to Timeline - Download JSON file for timeline view"
-              >
-                <ArrowRight className="w-4 h-4" />
-                Continue to Timeline
-              </button>
-            </div>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".json"
-              onChange={handleFileUpload}
-              style={{ display: 'none' }}
-            />
-
-            <p className="text-xs text-gray-500 mt-3 text-center">
-              Sauvegarde automatique activée
-            </p>
-          </div>
-
-          {/* Deed Date Field */}
-          <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 mb-6">
-            <div className="flex items-start gap-4">
-              <div className="flex-grow">
-                <label className="block text-sm font-semibold text-gray-800 mb-2">
-                  📅 Date de l'acte / Deed Date
-                </label>
-                <input
-                  type="date"
-                  value={deedDate}
-                  onChange={(e) => setDeedDate(e.target.value)}
-                  className="w-full md:w-64 px-4 py-2 text-base border-2 border-green-300 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-500 focus:outline-none bg-white font-medium"
-                />
-                <p className="text-xs text-gray-600 mt-2">
-                  Date when the property deed will be signed. This is T0 (Time Zero) for your project - all recurring costs and holding duration calculations start from this date.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6">
-            <p className="text-sm text-blue-800">
-              <strong>📐 Principe:</strong> L'achat est fonction des m² (€{calculations.pricePerM2.toFixed(2)}/m²).
-              Le capital apporté est indépendant de la taille du logement.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-              <Users className="w-6 h-6 text-blue-500 mb-2" />
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Participants</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{participants.length}</p>
-            </div>
-
-            <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-              <Home className="w-6 h-6 text-blue-500 mb-2" />
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Surface</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{calculations.totalSurface}m²</p>
-            </div>
-
-            <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-              <DollarSign className="w-6 h-6 text-gray-500 mb-2" />
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Coût Total</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(calculations.totals.total)}</p>
-            </div>
-
-            <div className="bg-white rounded-lg p-4 border border-green-300 shadow-sm">
-              <Wallet className="w-6 h-6 text-green-600 mb-2" />
-              <p className="text-xs text-gray-500 uppercase tracking-wide">Capital Total</p>
-              <p className="text-2xl font-bold text-green-700 mt-1">{formatCurrency(calculations.totals.capitalTotal)}</p>
-            </div>
-
-            <div className="bg-white rounded-lg p-4 border border-red-300 shadow-sm">
-              <Calculator className="w-6 h-6 text-red-600 mb-2" />
-              <p className="text-xs text-gray-500 uppercase tracking-wide">À Emprunter</p>
-              <p className="text-2xl font-bold text-red-700 mt-1">{formatCurrency(calculations.totals.totalLoansNeeded)}</p>
-            </div>
-          </div>
-        </div>
+        <ProjectHeader
+          deedDate={deedDate}
+          onDeedDateChange={setDeedDate}
+          calculations={calculations}
+          participants={participants}
+          onDownloadScenario={downloadScenario}
+          onLoadScenario={loadScenario}
+          onResetToDefaults={resetToDefaults}
+          onExportToExcel={exportToExcel}
+          fileInputRef={fileInputRef}
+          onFileUpload={handleFileUpload}
+        />
 
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <h2 className="text-xl font-bold text-gray-800 mb-4">Décomposition des Coûts</h2>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
             <div className="p-3 bg-white rounded-lg border border-gray-200">
               <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Achat Total</p>
               <p className="text-lg font-bold text-gray-900">{formatCurrency(calculations.totals.purchase)}</p>
@@ -560,6 +401,11 @@ export default function EnDivisionCorrect() {
               <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Frais de Notaire</p>
               <p className="text-lg font-bold text-gray-900">{formatCurrency(calculations.totals.totalNotaryFees)}</p>
               <p className="text-xs text-gray-400 mt-1">taux individuels</p>
+            </div>
+            <div className="p-3 bg-white rounded-lg border border-orange-200">
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Rénovations Perso.</p>
+              <p className="text-lg font-bold text-orange-700">{formatCurrency(calculations.participantBreakdown.reduce((sum, p) => sum + p.personalRenovationCost, 0))}</p>
+              <p className="text-xs text-orange-500 mt-1">CASCO + Parachèv.</p>
             </div>
             <div className="p-3 bg-white rounded-lg border border-gray-200">
               <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Construction</p>
@@ -738,69 +584,6 @@ export default function EnDivisionCorrect() {
               </div>
             </div>
           </div>
-
-          {/* Existing variation sliders - wrapped in subsection */}
-          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            <h3 className="text-sm font-semibold text-gray-800 mb-3">Variations en %</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Réduction Prix d'Achat (%)
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="20"
-                  value={scenario.purchasePriceReduction}
-                  onChange={(e) => setScenario({...scenario, purchasePriceReduction: parseFloat(e.target.value)})}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-sm text-gray-600 mt-1">
-                  <span>0%</span>
-                  <span className="font-bold">{scenario.purchasePriceReduction}%</span>
-                  <span>20%</span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Variation Coûts Construction (%)
-                </label>
-                <input
-                  type="range"
-                  min="-30"
-                  max="30"
-                  value={scenario.constructionCostChange}
-                  onChange={(e) => setScenario({...scenario, constructionCostChange: parseFloat(e.target.value)})}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-sm text-gray-600 mt-1">
-                  <span>-30%</span>
-                  <span className="font-bold">{scenario.constructionCostChange}%</span>
-                  <span>+30%</span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Réduction Infrastructures (%)
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="50"
-                  value={scenario.infrastructureReduction}
-                  onChange={(e) => setScenario({...scenario, infrastructureReduction: parseFloat(e.target.value)})}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-sm text-gray-600 mt-1">
-                  <span>0%</span>
-                  <span className="font-bold">{scenario.infrastructureReduction}%</span>
-                  <span>50%</span>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
         <ParticipantsTimeline
@@ -821,7 +604,9 @@ export default function EnDivisionCorrect() {
           </div>
           
           <div className="space-y-6">
-            {calculations.participantBreakdown.map((p, idx) => {
+            {orderedParticipantBreakdown.map((p) => {
+              // Find the original index in the participants array
+              const idx = participants.findIndex((participant: any) => participant.name === p.name);
               const isExpanded = expandedParticipants[idx];
 
               return (
@@ -831,28 +616,38 @@ export default function EnDivisionCorrect() {
                 className="border border-gray-300 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow">
 
                 {/* Always Visible Header */}
-                <div className="p-6">
-                  <div className="flex justify-between items-start mb-4">
+                <div
+                  className={`cursor-pointer transition-all ${isExpanded ? 'p-6' : 'p-4'}`}
+                  onClick={() => setFullscreenParticipantIndex(idx)}
+                >
+                  <div className="flex justify-between items-center">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
+                      <div className="flex items-center gap-3">
                         <input
                           type="text"
                           value={p.name}
                           onChange={(e) => updateParticipantName(idx, e.target.value)}
-                          className="text-xl font-bold text-gray-900 bg-transparent border-b-2 border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none px-1 py-1"
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-lg font-bold text-gray-900 bg-transparent border-b-2 border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none px-1 py-1"
                           placeholder="Nom du participant"
                         />
                         {participants.length > 1 && (
                           <button
-                            onClick={() => removeParticipant(idx)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeParticipant(idx);
+                            }}
                             className="text-red-600 hover:text-red-700 text-xs font-medium px-2 py-1 rounded border border-red-300 hover:bg-red-50 transition-colors"
                           >
                             Retirer
                           </button>
                         )}
                         <button
-                          onClick={() => setExpandedParticipants(prev => ({...prev, [idx]: !prev[idx]}))}
-                          className="ml-auto text-gray-600 hover:text-gray-800 text-sm font-medium px-3 py-1 rounded border border-gray-300 hover:bg-gray-50 transition-colors flex items-center gap-2"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedParticipants(prev => ({...prev, [idx]: !prev[idx]}));
+                          }}
+                          className="text-gray-600 hover:text-gray-800 text-xs font-medium px-2 py-1 rounded border border-gray-300 hover:bg-gray-50 transition-colors flex items-center gap-1"
                         >
                           {isExpanded ? (
                             <>
@@ -867,7 +662,7 @@ export default function EnDivisionCorrect() {
                           )}
                         </button>
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                      <div className="flex items-center gap-3 text-sm text-gray-600 mt-1">
                         <span className="flex items-center gap-1">
                           <span className="text-gray-400">Unité</span>
                           <span className="font-medium text-blue-600">{p.unitId}</span>
@@ -892,536 +687,103 @@ export default function EnDivisionCorrect() {
                             </span>
                           </>
                         )}
+                        {!isExpanded && (
+                          <>
+                            <span className="text-gray-300">•</span>
+                            <span className="font-semibold text-gray-900">{formatCurrency(p.totalCost)}</span>
+                            {(() => {
+                              // Calculate total expected returns for founders
+                              if (!participants[idx].isFounder) return null;
+
+                              // 1. Portage paybacks
+                              const portagePaybacks = participants
+                                .filter((buyer: any) => buyer.purchaseDetails?.buyingFrom === participants[idx].name)
+                                .map((buyer: any) => buyer.purchaseDetails?.purchasePrice || 0);
+
+                              // 2. Copropriété redistributions
+                              const coproSales = participants
+                                .filter((buyer: any) => buyer.purchaseDetails?.buyingFrom === 'Copropriété')
+                                .map((buyer: any) => ({
+                                  entryDate: buyer.entryDate || new Date(deedDate),
+                                  amount: buyer.purchaseDetails?.purchasePrice || 0
+                                }));
+
+                              const coproRedistributions = coproSales.map((sale: any) => {
+                                const saleDate = new Date(sale.entryDate);
+                                const participantEntryDate = participants[idx].entryDate
+                                  ? new Date(participants[idx].entryDate)
+                                  : new Date(deedDate);
+
+                                if (participantEntryDate >= saleDate) return 0;
+
+                                const monthsInProject = (saleDate.getTime() - participantEntryDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
+                                const eligibleParticipants = participants.filter((p: any) => {
+                                  const pEntryDate = p.entryDate ? new Date(p.entryDate) : new Date(deedDate);
+                                  return pEntryDate < saleDate;
+                                });
+
+                                const totalMonths = eligibleParticipants.reduce((sum: number, p: any) => {
+                                  const pEntryDate = p.entryDate ? new Date(p.entryDate) : new Date(deedDate);
+                                  const pMonths = (saleDate.getTime() - pEntryDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
+                                  return sum + pMonths;
+                                }, 0);
+
+                                const shareRatio = totalMonths > 0 ? monthsInProject / totalMonths : 0;
+                                return sale.amount * shareRatio;
+                              });
+
+                              const totalReturns = portagePaybacks.reduce((sum: number, amt: number) => sum + amt, 0) +
+                                                  coproRedistributions.reduce((sum: number, amt: number) => sum + amt, 0);
+
+                              if (totalReturns > 0) {
+                                return (
+                                  <>
+                                    <span className="text-gray-300">•</span>
+                                    <span className="font-semibold text-purple-700">{formatCurrency(totalReturns)}</span>
+                                  </>
+                                );
+                              }
+                              return null;
+                            })()}
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  {/* Key Financial Metrics - Always Visible */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                      <p className="text-xs text-gray-500 mb-1">Coût Total</p>
-                      <p className="text-lg font-bold text-gray-900">{formatCurrency(p.totalCost)}</p>
-                    </div>
-                    <div className="bg-green-50 rounded-lg p-3 border border-green-300">
-                      <p className="text-xs text-gray-600 mb-1">Capital apporté</p>
-                      <p className="text-lg font-bold text-green-700">{formatCurrency(p.capitalApporte)}</p>
-                    </div>
-                    <div className="bg-red-50 rounded-lg p-3 border border-red-300">
-                      <p className="text-xs text-gray-600 mb-1">Emprunt</p>
-                      <p className="text-lg font-bold text-red-700">{formatCurrency(p.loanNeeded)}</p>
-                    </div>
-                    <div className="bg-white rounded-lg p-3 border border-gray-200">
-                      <p className="text-xs text-gray-500 mb-1">Mensualité</p>
-                      <p className="text-lg font-bold text-red-600">{formatCurrency(p.monthlyPayment)}</p>
-                    </div>
-                  </div>
                 </div>
 
                 {/* Expandable Details */}
                 {isExpanded && (
-                  <div className="px-6 pb-6 border-t border-gray-200 pt-4">
-                {/* Entry Date Section */}
-                <div className="mb-4 p-4 bg-green-50 rounded-lg border border-green-200">
-                  <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">📅 Date d'entrée</p>
-
-                  <div className="mb-4">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={participants[idx].isFounder || false}
-                        onChange={(e) => {
-                          const updated = [...participants];
-                          // When unchecking founder (becoming newcomer), set entry date to 1 year after deed date
-                          const defaultNewcomerDate = new Date(deedDate);
-                          defaultNewcomerDate.setFullYear(defaultNewcomerDate.getFullYear() + 1);
-
-                          updated[idx] = {
-                            ...updated[idx],
-                            isFounder: e.target.checked,
-                            entryDate: e.target.checked
-                              ? new Date(deedDate)
-                              : (updated[idx].entryDate || defaultNewcomerDate),
-                            purchaseDetails: e.target.checked ? undefined : updated[idx].purchaseDetails
-                          };
-                          setParticipants(updated);
-                        }}
-                        className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                      />
-                      <span className="text-sm font-medium text-gray-700">
-                        Fondateur (entre à la date de l'acte)
-                      </span>
-                    </label>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Date d'entrée dans le projet
-                    </label>
-                    <input
-                      type="date"
-                      value={participants[idx].entryDate
-                        ? new Date(participants[idx].entryDate).toISOString().split('T')[0]
-                        : deedDate}
-                      onChange={(e) => {
-                        const newDate = new Date(e.target.value);
-                        if (newDate < new Date(deedDate)) {
-                          alert(`La date d'entrée ne peut pas être avant la date de l'acte (${deedDate})`);
-                          return;
-                        }
-                        const updated = [...participants];
-                        updated[idx] = {
-                          ...updated[idx],
-                          entryDate: newDate
-                        };
-                        setParticipants(updated);
-                      }}
-                      disabled={participants[idx].isFounder}
-                      min={deedDate}
-                      className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none ${
-                        participants[idx].isFounder
-                          ? 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'
-                          : 'bg-white border-green-300 focus:border-green-500 focus:ring-2 focus:ring-green-500'
-                      }`}
-                    />
-                    <p className="text-xs text-gray-600 mt-1">
-                      {participants[idx].isFounder
-                        ? 'Les fondateurs entrent tous à la date de l\'acte'
-                        : 'Date à laquelle ce participant rejoint le projet (doit être >= date de l\'acte)'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Purchase Details (only for non-founders) */}
-                {!participants[idx].isFounder && (
-                  <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">💰 Sélection du Lot</p>
-
-                    {/* Available Lots for Purchase */}
-                    <div className="mb-4">
-                      <AvailableLotsView
-                        availableLots={getAvailableLotsForNewcomer(participants, [
-                          // Mock copropriété lot for testing
-                          { lotId: 999, surface: 300, acquiredDate: new Date(deedDate), soldDate: undefined }
-                        ])}
-                        deedDate={new Date(deedDate)}
-                        onSelectLot={(lot, price) => {
-                          const updated = [...participants];
-                          updated[idx] = {
-                            ...updated[idx],
-                            surface: lot.surface, // Set surface from selected lot
-                            capitalApporte: Math.min(updated[idx].capitalApporte || 0, price.totalPrice), // Ensure capital doesn't exceed price
-                            purchaseDetails: {
-                              buyingFrom: lot.fromParticipant || 'Copropriété',
-                              lotId: lot.lotId,
-                              purchasePrice: price.totalPrice
-                            }
-                          };
-                          setParticipants(updated);
-                        }}
-                      />
-                    </div>
-
-                    {/* Show selected lot details if any */}
-                    {participants[idx].purchaseDetails?.lotId && (
-                      <div className="bg-green-50 border border-green-300 rounded-lg p-3 mt-3">
-                        <div className="flex items-start justify-between mb-2">
-                          <p className="text-xs font-semibold text-green-800">✅ Lot sélectionné:</p>
-                          <button
-                            onClick={() => {
-                              const updated = [...participants];
-                              updated[idx] = {
-                                ...updated[idx],
-                                purchaseDetails: undefined,
-                                surface: 0
-                              };
-                              setParticipants(updated);
-                            }}
-                            className="text-xs text-red-600 hover:text-red-800 font-semibold hover:underline"
-                          >
-                            ✕ Changer de lot
-                          </button>
-                        </div>
-                        <div className="grid grid-cols-3 gap-2 text-xs">
-                          <div>
-                            <span className="text-gray-600">Lot:</span>
-                            <span className="font-semibold ml-1">#{participants[idx].purchaseDetails.lotId}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">De:</span>
-                            <span className="font-semibold ml-1">{participants[idx].purchaseDetails.buyingFrom}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Prix:</span>
-                            <span className="font-semibold ml-1">€{participants[idx].purchaseDetails.purchasePrice?.toLocaleString('fr-BE', { maximumFractionDigits: 0 })}</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Configuration Section */}
-                <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Configuration</p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">
-                        Surface totale (m²)
-                        {!participants[idx].isFounder && participants[idx].purchaseDetails?.buyingFrom &&
-                         participants[idx].purchaseDetails?.buyingFrom !== 'Copropriété' && (
-                          <span className="ml-2 text-orange-600 font-semibold">🔒 Imposée par portage</span>
-                        )}
-                      </label>
-                      <input
-                        type="number"
-                        step="1"
-                        value={p.surface}
-                        onChange={(e) => updateParticipantSurface(idx, parseFloat(e.target.value) || 0)}
-                        disabled={!participants[idx].isFounder && participants[idx].purchaseDetails?.buyingFrom &&
-                                  participants[idx].purchaseDetails?.buyingFrom !== 'Copropriété'}
-                        className={`w-full px-3 py-2 font-medium border rounded-lg focus:outline-none ${
-                          !participants[idx].isFounder && participants[idx].purchaseDetails?.buyingFrom &&
-                          participants[idx].purchaseDetails?.buyingFrom !== 'Copropriété'
-                            ? 'border-orange-300 bg-orange-50 text-gray-700 cursor-not-allowed'
-                            : 'border-gray-300 bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
-                        }`}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">Total pour {p.quantity || 1} {(p.quantity || 1) > 1 ? 'unités' : 'unité'}</p>
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Quantité</label>
-                      <input
-                        type="number"
-                        step="1"
-                        min="1"
-                        value={p.quantity}
-                        onChange={(e) => updateQuantity(idx, parseInt(e.target.value) || 1)}
-                        className="w-full px-3 py-2 font-medium border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Capital apporté</label>
-                      <input
-                        type="number"
-                        step="10000"
-                        value={p.capitalApporte}
-                        onChange={(e) => updateCapital(idx, parseFloat(e.target.value) || 0)}
-                        className="w-full px-3 py-2 text-base font-semibold border border-green-300 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none bg-white text-green-700"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Frais de notaire</label>
-                      <div className="flex items-center gap-2 mb-1">
-                        <label className="flex items-center gap-1.5 cursor-pointer px-3 py-2 border rounded-lg transition-colors hover:bg-gray-100" style={{
-                          borderColor: p.notaryFeesRate === 3 ? '#9ca3af' : '#e5e7eb',
-                          backgroundColor: p.notaryFeesRate === 3 ? '#f3f4f6' : 'white'
-                        }}>
-                          <input
-                            type="radio"
-                            name={`notaryRate-${idx}`}
-                            value="3"
-                            checked={p.notaryFeesRate === 3}
-                            onChange={(e) => updateNotaryRate(idx, parseFloat(e.target.value))}
-                            className="w-4 h-4"
-                          />
-                          <span className="font-medium text-gray-700 text-sm">3%</span>
-                        </label>
-                        <label className="flex items-center gap-1.5 cursor-pointer px-3 py-2 border rounded-lg transition-colors hover:bg-gray-100" style={{
-                          borderColor: p.notaryFeesRate === 12.5 ? '#9ca3af' : '#e5e7eb',
-                          backgroundColor: p.notaryFeesRate === 12.5 ? '#f3f4f6' : 'white'
-                        }}>
-                          <input
-                            type="radio"
-                            name={`notaryRate-${idx}`}
-                            value="12.5"
-                            checked={p.notaryFeesRate === 12.5}
-                            onChange={(e) => updateNotaryRate(idx, parseFloat(e.target.value))}
-                            className="w-4 h-4"
-                          />
-                          <span className="font-medium text-gray-700 text-sm">12.5%</span>
-                        </label>
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        = {formatCurrency(p.notaryFees)}
-                      </div>
-                    </div>
-
-                {/* Portage Lot Configuration (only for founders) */}
-                {participants[idx].isFounder && (
-                  <PortageLotConfig
-                    portageLots={participants[idx].lotsOwned?.filter((lot: any) => lot.isPortage) || []}
-                    onAddLot={() => addPortageLot(idx)}
-                    onRemoveLot={(lotId) => removePortageLot(idx, lotId)}
-                    onUpdateSurface={(lotId, surface) => updatePortageLotSurface(idx, lotId, surface)}
+                  <ParticipantDetailsPanel
+                    participant={participants[idx]}
+                    participantCalc={p}
+                    participantIndex={idx}
+                    allParticipants={participants}
+                    calculations={calculations}
+                    projectParams={projectParams}
+                    deedDate={deedDate}
+                    pinnedParticipant={pinnedParticipant}
+                    onPinParticipant={handlePinParticipant}
+                    onUnpinParticipant={handleUnpinParticipant}
+                    onUpdateParticipant={(index, updates) => {
+                      const newParticipants = [...participants];
+                      newParticipants[index] = { ...newParticipants[index], ...updates };
+                      setParticipants(newParticipants);
+                    }}
+                    onUpdateParticipantSurface={updateParticipantSurface}
+                    onUpdateCapital={updateCapital}
+                    onUpdateNotaryRate={updateNotaryRate}
+                    onUpdateQuantity={updateQuantity}
+                    onUpdateParachevementsPerM2={updateParachevementsPerM2}
+                    onUpdateCascoSqm={updateCascoSqm}
+                    onUpdateParachevementsSqm={updateParachevementsSqm}
+                    onUpdateInterestRate={updateInterestRate}
+                    onUpdateDuration={updateDuration}
+                    onAddPortageLot={addPortageLot}
+                    onRemovePortageLot={removePortageLot}
+                    onUpdatePortageLotSurface={updatePortageLotSurface}
                   />
-                )}
-
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Taux d'intérêt (%)</label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        value={p.interestRate}
-                        onChange={(e) => updateInterestRate(idx, parseFloat(e.target.value) || 0)}
-                        className="w-full px-3 py-2 font-medium border border-gray-300 rounded-lg focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none bg-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Durée (années)</label>
-                      <input
-                        type="number"
-                        value={p.durationYears}
-                        onChange={(e) => updateDuration(idx, parseInt(e.target.value) || 0)}
-                        className="w-full px-3 py-2 font-medium border border-gray-300 rounded-lg focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none bg-white"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Cost Breakdown */}
-                <div className="mb-4">
-                  <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Décomposition des Coûts</p>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-                    <div className="bg-white rounded-lg p-3 border border-gray-200">
-                      <p className="text-xs text-gray-500 mb-1">Part d'achat</p>
-                      <p className="text-base font-bold text-gray-900">{formatCurrency(p.purchaseShare)}</p>
-                      <p className="text-xs text-blue-600 mt-0.5">{p.surface}m²</p>
-                    </div>
-
-                    <div className="bg-white rounded-lg p-3 border border-gray-200">
-                      <p className="text-xs text-gray-500 mb-1">Frais notaire</p>
-                      <p className="text-base font-bold text-gray-900">{formatCurrency(p.notaryFees)}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{p.notaryFeesRate}%</p>
-                    </div>
-
-                    <div className="bg-white rounded-lg p-3 border border-gray-200">
-                      <p className="text-xs text-gray-500 mb-1">Construction</p>
-                      <p className="text-base font-bold text-gray-900">{formatCurrency(p.constructionCost)}</p>
-                      {(p.quantity || 1) > 1 && (
-                        <p className="text-xs text-gray-400 mt-0.5">{formatCurrency(p.constructionCostPerUnit)}/u</p>
-                      )}
-                    </div>
-
-                    <div className="bg-white rounded-lg p-3 border border-purple-200">
-                      <p className="text-xs text-gray-500 mb-1">Quote-part</p>
-                      <p className="text-base font-bold text-purple-700">{formatCurrency(p.sharedCosts)}</p>
-                    </div>
-
-                    <div className="bg-green-50 rounded-lg p-3 border border-green-300">
-                      <p className="text-xs text-gray-600 mb-1">Capital apporté</p>
-                      <p className="text-base font-bold text-green-700">{formatCurrency(p.capitalApporte)}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Construction Detail */}
-                <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Détail Construction</p>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-                    {/* CASCO - Display only (not editable) */}
-                    <div className="bg-white p-3 rounded-lg border border-gray-200">
-                      <p className="text-xs text-gray-500 mb-1">CASCO (gros œuvre)</p>
-                      <p className="text-lg font-bold text-gray-900">{formatCurrency(p.casco)}</p>
-                      <p className="text-xs text-gray-400">
-                        {participants[idx].cascoSqm || p.surface}m² × {projectParams.globalCascoPerM2}€/m² (global)
-                      </p>
-                    </div>
-
-                    {/* Parachèvements - Editable */}
-                    <div className="bg-white p-3 rounded-lg border border-gray-200">
-                      <label className="block text-xs text-gray-500 mb-1">Parachèvements - Prix/m²</label>
-                      <input
-                        type="number"
-                        step="10"
-                        value={participants[idx].parachevementsPerM2}
-                        onChange={(e) => updateParachevementsPerM2(idx, parseFloat(e.target.value) || 0)}
-                        className="w-full px-3 py-2 text-sm font-semibold border border-gray-300 rounded-lg focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none mb-2"
-                      />
-                      <p className="text-xs text-gray-500">Total: <span className="font-bold text-gray-900">{formatCurrency(p.parachevements)}</span></p>
-                      <p className="text-xs text-gray-400">{participants[idx].parachevementsSqm || p.surface}m² × {participants[idx].parachevementsPerM2}€/m²</p>
-                    </div>
-
-                    {/* Travaux communs - unchanged */}
-                    <div className="bg-white p-3 rounded-lg border border-purple-200">
-                      <p className="text-xs text-gray-500 mb-1">Travaux communs</p>
-                      <p className="text-lg font-bold text-purple-700 mt-2">{formatCurrency(p.travauxCommunsPerUnit)}</p>
-                      <p className="text-xs text-purple-500 mt-1">Quote-part fixe (÷{participants.length})</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                      <label className="block text-xs text-blue-700 font-medium mb-1">Surface à rénover CASCO (m²)</label>
-                      <input
-                        type="number"
-                        step="1"
-                        min="0"
-                        max={p.surface}
-                        value={participants[idx].cascoSqm || p.surface}
-                        onChange={(e) => updateCascoSqm(idx, parseFloat(e.target.value) || undefined)}
-                        className="w-full px-3 py-2 text-sm font-semibold border border-blue-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                        placeholder={`${p.surface}m² (total)`}
-                      />
-                      <p className="text-xs text-blue-600 mt-1">Surface totale: {p.surface}m²</p>
-                    </div>
-                    <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                      <label className="block text-xs text-blue-700 font-medium mb-1">Surface à rénover Parachèvements (m²)</label>
-                      <input
-                        type="number"
-                        step="1"
-                        min="0"
-                        max={p.surface}
-                        value={participants[idx].parachevementsSqm || p.surface}
-                        onChange={(e) => updateParachevementsSqm(idx, parseFloat(e.target.value) || undefined)}
-                        className="w-full px-3 py-2 text-sm font-semibold border border-blue-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                        placeholder={`${p.surface}m² (total)`}
-                      />
-                      <p className="text-xs text-blue-600 mt-1">Surface totale: {p.surface}m²</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Financing Result */}
-                <div className="bg-red-50 rounded-lg p-5 border border-red-200">
-                  <div className="flex justify-between items-center mb-4">
-                    <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Emprunt Nécessaire</p>
-                      <p className="text-sm text-gray-600">{p.financingRatio.toFixed(1)}% du coût à financer</p>
-                    </div>
-                    <p className="text-3xl font-bold text-red-700">{formatCurrency(p.loanNeeded)}</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-red-200">
-                    <div className="bg-white rounded-lg p-3 border border-gray-200">
-                      <p className="text-xs text-gray-500 mb-1">Mensualité</p>
-                      <p className="text-lg font-bold text-red-600">{formatCurrency(p.monthlyPayment)}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{p.durationYears} ans @ {p.interestRate}%</p>
-                    </div>
-
-                    <div className="bg-white rounded-lg p-3 border border-gray-200">
-                      <p className="text-xs text-gray-500 mb-1">Total Remboursé</p>
-                      <p className="text-lg font-bold text-gray-900">{formatCurrency(p.totalRepayment)}</p>
-                    </div>
-
-                    <div className="bg-white rounded-lg p-3 border border-red-200">
-                      <p className="text-xs text-gray-500 mb-1">Coût Crédit</p>
-                      <p className="text-lg font-bold text-red-700">{formatCurrency(p.totalInterest)}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Expected Paybacks - Show portage paybacks AND copropriété redistributions */}
-                {(() => {
-                  // 1. Find all participants who are buying from this participant (portage)
-                  const portagePaybacks = participants
-                    .filter((buyer: any) => buyer.purchaseDetails?.buyingFrom === participants[idx].name)
-                    .map((buyer: any) => ({
-                      date: buyer.entryDate || new Date(deedDate),
-                      buyer: buyer.name,
-                      amount: buyer.purchaseDetails?.purchasePrice || 0,
-                      type: 'portage' as const,
-                      description: 'Achat de lot portage'
-                    }));
-
-                  // 2. Calculate copropriété redistributions for this participant
-                  const coproSales = participants
-                    .filter((buyer: any) => buyer.purchaseDetails?.buyingFrom === 'Copropriété')
-                    .map((buyer: any) => ({
-                      buyer: buyer.name,
-                      entryDate: buyer.entryDate || new Date(deedDate),
-                      amount: buyer.purchaseDetails?.purchasePrice || 0
-                    }));
-
-                  const coproRedistributions = coproSales.map((sale: any) => {
-                    const saleDate = new Date(sale.entryDate);
-                    const participantEntryDate = participants[idx].entryDate
-                      ? new Date(participants[idx].entryDate)
-                      : new Date(deedDate);
-
-                    console.log(`[Copro Redistribution] Participant: ${participants[idx].name}`);
-                    console.log(`  - Entry date: ${participantEntryDate.toISOString()}`);
-                    console.log(`  - Sale date: ${saleDate.toISOString()}`);
-                    console.log(`  - Buyer: ${sale.buyer}`);
-                    console.log(`  - Eligible: ${participantEntryDate < saleDate}`);
-
-                    // Only participants who entered before the sale date get a share
-                    if (participantEntryDate >= saleDate) {
-                      return null;
-                    }
-
-                    // Calculate months in project until sale
-                    const monthsInProject = (saleDate.getTime() - participantEntryDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
-
-                    // Calculate total months for all eligible participants
-                    const eligibleParticipants = participants.filter((p: any) => {
-                      const pEntryDate = p.entryDate ? new Date(p.entryDate) : new Date(deedDate);
-                      return pEntryDate < saleDate;
-                    });
-
-                    const totalMonths = eligibleParticipants.reduce((sum: number, p: any) => {
-                      const pEntryDate = p.entryDate ? new Date(p.entryDate) : new Date(deedDate);
-                      const pMonths = (saleDate.getTime() - pEntryDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
-                      return sum + pMonths;
-                    }, 0);
-
-                    // Calculate this participant's share
-                    const shareRatio = totalMonths > 0 ? monthsInProject / totalMonths : 0;
-                    const shareAmount = sale.amount * shareRatio;
-
-                    return {
-                      date: sale.entryDate,
-                      buyer: sale.buyer,
-                      amount: shareAmount,
-                      type: 'copro' as const,
-                      description: `Part copropriété (${(shareRatio * 100).toFixed(1)}%)`
-                    };
-                  }).filter((r: any) => r !== null);
-
-                  // 3. Combine and sort all paybacks
-                  const allPaybacks = [...portagePaybacks, ...coproRedistributions]
-                    .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-                  if (allPaybacks.length > 0) {
-                    const totalRecovered = allPaybacks.reduce((sum: number, pb: any) => sum + pb.amount, 0);
-
-                    return (
-                      <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
-                        <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">💰 Remboursements attendus</p>
-                        <div className="space-y-2">
-                          {allPaybacks.map((pb: any, pbIdx: number) => (
-                            <div key={pbIdx} className="bg-white rounded-lg p-3 border border-purple-100">
-                              <div className="flex justify-between items-center mb-1">
-                                <div>
-                                  <span className="font-medium text-gray-800">{pb.buyer}</span>
-                                  <span className="text-gray-600 text-xs ml-2">
-                                    ({new Date(pb.date).toLocaleDateString('fr-BE', { year: 'numeric', month: 'short', day: 'numeric' })})
-                                  </span>
-                                </div>
-                                <div className="font-bold text-purple-700">
-                                  {formatCurrency(pb.amount)}
-                                </div>
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {pb.type === 'portage' ? '💼 ' : '🏢 '}{pb.description}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="mt-3 pt-3 border-t border-purple-300 flex justify-between items-center">
-                          <span className="text-sm font-semibold text-gray-800">Total récupéré</span>
-                          <span className="text-lg font-bold text-purple-800">
-                            {formatCurrency(totalRecovered)}
-                          </span>
-                        </div>
-                        <p className="text-xs text-purple-600 mt-2">
-                          Ces montants seront versés lorsque les nouveaux participants entreront dans le projet.
-                        </p>
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
-
-                  </div>
                 )}
               </div>
               );
@@ -1501,6 +863,48 @@ export default function EnDivisionCorrect() {
             </div>
           </div>
         </div>
+
+        {/* Full-screen participant detail modal */}
+        {fullscreenParticipantIndex !== null && (() => {
+          const idx = fullscreenParticipantIndex;
+          const p = orderedParticipantBreakdown.find(pb => pb.name === participants[idx].name);
+          if (!p) return null;
+
+          return (
+            <ParticipantDetailModal
+              isOpen={true}
+              onClose={() => setFullscreenParticipantIndex(null)}
+              participantIndex={idx}
+              participant={participants[idx]}
+              participantBreakdown={p}
+              deedDate={deedDate}
+              allParticipants={participants}
+              calculations={calculations}
+              projectParams={projectParams}
+              isPinned={pinnedParticipant === p.name}
+              onPin={() => handlePinParticipant(p.name)}
+              onUnpin={handleUnpinParticipant}
+              onUpdateName={(name) => updateParticipantName(idx, name)}
+              onUpdateSurface={(surface) => updateParticipantSurface(idx, surface)}
+              onUpdateCapital={(value) => updateCapital(idx, value)}
+              onUpdateNotaryRate={(rate) => updateNotaryRate(idx, rate)}
+              onUpdateInterestRate={(rate) => updateInterestRate(idx, rate)}
+              onUpdateDuration={(years) => updateDuration(idx, years)}
+              onUpdateQuantity={(qty) => updateQuantity(idx, qty)}
+              onUpdateParachevementsPerM2={(value) => updateParachevementsPerM2(idx, value)}
+              onUpdateCascoSqm={(value) => updateCascoSqm(idx, value)}
+              onUpdateParachevementsSqm={(value) => updateParachevementsSqm(idx, value)}
+              onUpdateParticipant={(updated) => {
+                const newParticipants = [...participants];
+                newParticipants[idx] = updated;
+                setParticipants(newParticipants);
+              }}
+              onAddPortageLot={() => addPortageLot(idx)}
+              onRemovePortageLot={(lotId) => removePortageLot(idx, lotId)}
+              onUpdatePortageLotSurface={(lotId, surface) => updatePortageLotSurface(idx, lotId, surface)}
+            />
+          );
+        })()}
       </div>
     </div>
   );

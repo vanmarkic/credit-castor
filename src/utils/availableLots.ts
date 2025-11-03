@@ -1,4 +1,4 @@
-import type { Participant } from './calculatorUtils';
+import type { Participant, CalculationResults } from './calculatorUtils';
 import type { CoproLot } from '../types/timeline';
 import type { ParticipantTimeline } from './timelineProjection';
 
@@ -9,6 +9,11 @@ export interface AvailableLot {
   surfaceImposed: boolean;
   fromParticipant?: string; // If source = FOUNDER
   totalCoproSurface?: number; // If source = COPRO (for ratio calculation)
+
+  // Portage lot pricing data (for FOUNDER lots)
+  originalPrice?: number;
+  originalNotaryFees?: number;
+  originalConstructionCost?: number;
 }
 
 /**
@@ -17,10 +22,15 @@ export interface AvailableLot {
  * Rules:
  * - Founders' portage lots (isPortage = true) with imposed surface
  * - Copropriété lots with free surface choice
+ *
+ * @param participants - List of participants
+ * @param coproLots - Copropriété lots
+ * @param calculations - Optional calculation results to dynamically compute acquisition costs
  */
 export function getAvailableLotsForNewcomer(
   participants: Participant[] | ParticipantTimeline[],
-  coproLots: CoproLot[]
+  coproLots: CoproLot[],
+  calculations?: CalculationResults
 ): AvailableLot[] {
   const available: AvailableLot[] = [];
 
@@ -35,16 +45,36 @@ export function getAvailableLotsForNewcomer(
   });
 
   // Add portage lots from founders
-  for (const participant of normalizedParticipants) {
+  for (let i = 0; i < normalizedParticipants.length; i++) {
+    const participant = normalizedParticipants[i];
     if (participant.isFounder && participant.lotsOwned) {
+      // Get participant's calculation results if available
+      const participantCalc = calculations?.participantBreakdown[i];
+      const quantity = participant.quantity || 1;
+
       for (const lot of participant.lotsOwned) {
         if (lot.isPortage && !lot.soldDate) {
+          // Use lot's stored values if available, otherwise calculate dynamically
+          let originalPrice = lot.originalPrice;
+          let originalNotaryFees = lot.originalNotaryFees;
+          let originalConstructionCost = lot.originalConstructionCost;
+
+          // If calculations are provided and lot doesn't have values, calculate them
+          if (participantCalc && (!originalPrice || !originalNotaryFees || !originalConstructionCost)) {
+            originalPrice = (participantCalc.purchaseShare || 0) / quantity;
+            originalNotaryFees = (participantCalc.notaryFees || 0) / quantity;
+            originalConstructionCost = (participantCalc.constructionCost || 0) / quantity;
+          }
+
           available.push({
             lotId: lot.lotId,
             surface: lot.allocatedSurface || lot.surface,
             source: 'FOUNDER',
             surfaceImposed: true,
-            fromParticipant: participant.name
+            fromParticipant: participant.name,
+            originalPrice,
+            originalNotaryFees,
+            originalConstructionCost
           });
         }
       }

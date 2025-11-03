@@ -24,6 +24,7 @@ export interface Lot {
   acquiredDate: Date; // When this lot was legally acquired (deed date)
   originalPrice?: number; // Purchase price when acquired
   originalNotaryFees?: number; // Notary fees paid at acquisition
+  originalConstructionCost?: number; // Construction costs (CASCO + parachevements + travaux communs) invested in this lot
   monthlyCarryingCost?: number; // Monthly cost for portage lots
 
   // Portage lot configuration

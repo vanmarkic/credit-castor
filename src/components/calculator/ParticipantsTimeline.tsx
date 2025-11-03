@@ -1,5 +1,5 @@
-import React from 'react';
-import { Clock, Users } from 'lucide-react';
+import React, { useState } from 'react';
+import { Clock, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Participant } from '../../utils/calculatorUtils';
 
 interface ParticipantsTimelineProps {
@@ -11,6 +11,11 @@ export const ParticipantsTimeline: React.FC<ParticipantsTimelineProps> = ({
   participants,
   deedDate
 }) => {
+  const [expandedParticipant, setExpandedParticipant] = useState<string | null>(null);
+
+  const toggleExpand = (name: string) => {
+    setExpandedParticipant(prev => prev === name ? null : name);
+  };
   // Sort participants by entry date
   const sortedParticipants = [...participants].sort((a, b) => {
     const dateA = a.entryDate ? new Date(a.entryDate) : new Date(deedDate);
@@ -40,7 +45,7 @@ export const ParticipantsTimeline: React.FC<ParticipantsTimelineProps> = ({
     <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
       <div className="flex items-center gap-3 mb-6">
         <Clock className="w-6 h-6 text-blue-600" />
-        <h2 className="text-2xl font-bold text-gray-800">=e Timeline des Participants</h2>
+        <h2 className="text-2xl font-bold text-gray-800">📅 Timeline des Participants</h2>
       </div>
 
       <div className="relative">
@@ -75,26 +80,86 @@ export const ParticipantsTimeline: React.FC<ParticipantsTimelineProps> = ({
 
                 {/* Participant cards */}
                 <div className="flex flex-wrap gap-2">
-                  {pList.map((p, pIdx) => (
-                    <div
-                      key={pIdx}
-                      className={`px-4 py-2 rounded-lg border-2 ${
-                        p.isFounder
-                          ? 'bg-green-50 border-green-300 text-green-800'
-                          : 'bg-blue-50 border-blue-300 text-blue-800'
-                      }`}
-                    >
-                      <div className="font-semibold">{p.name}</div>
-                      <div className="text-xs opacity-75">
-                        Unit� {p.unitId} " {p.surface}m�
-                      </div>
-                      {p.purchaseDetails?.buyingFrom && (
-                        <div className="text-xs mt-1 font-medium">
-                          � Ach�te de {p.purchaseDetails.buyingFrom}
+                  {pList.map((p, pIdx) => {
+                    const isExpanded = expandedParticipant === p.name;
+
+                    return (
+                      <div
+                        key={pIdx}
+                        className={`px-4 py-2 rounded-lg border-2 cursor-pointer transition-all hover:shadow-md ${
+                          p.isFounder
+                            ? 'bg-green-50 border-green-300 text-green-800 hover:bg-green-100'
+                            : 'bg-blue-50 border-blue-300 text-blue-800 hover:bg-blue-100'
+                        }`}
+                        onClick={() => toggleExpand(p.name)}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <div className="font-semibold">{p.name}</div>
+                            <div className="text-xs opacity-75">
+                              Unité {p.unitId} • {p.surface}m²
+                            </div>
+                            {p.purchaseDetails?.buyingFrom && (
+                              <div className="text-xs mt-1 font-medium">
+                                💼 Achète de {p.purchaseDetails.buyingFrom}
+                              </div>
+                            )}
+                          </div>
+                          {isExpanded ? (
+                            <ChevronUp className="w-4 h-4 flex-shrink-0" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4 flex-shrink-0" />
+                          )}
                         </div>
-                      )}
-                    </div>
-                  ))}
+
+                        {/* Expanded details */}
+                        {isExpanded && (
+                          <div className="mt-3 pt-3 border-t border-current border-opacity-20 text-xs space-y-1">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <span className="opacity-75">Capital:</span>
+                                <div className="font-semibold">
+                                  {p.capitalApporte?.toLocaleString('fr-BE')} €
+                                </div>
+                              </div>
+                              <div>
+                                <span className="opacity-75">Frais notaire:</span>
+                                <div className="font-semibold">{p.notaryFeesRate}%</div>
+                              </div>
+                              {p.interestRate && (
+                                <div>
+                                  <span className="opacity-75">Taux:</span>
+                                  <div className="font-semibold">{p.interestRate}%</div>
+                                </div>
+                              )}
+                              {p.durationYears && (
+                                <div>
+                                  <span className="opacity-75">Durée:</span>
+                                  <div className="font-semibold">{p.durationYears} ans</div>
+                                </div>
+                              )}
+                              {p.parachevementsPerM2 && (
+                                <div>
+                                  <span className="opacity-75">Parachèvements:</span>
+                                  <div className="font-semibold">
+                                    {p.parachevementsPerM2} €/m²
+                                  </div>
+                                </div>
+                              )}
+                              {p.purchaseDetails?.purchasePrice && (
+                                <div>
+                                  <span className="opacity-75">Prix d'achat:</span>
+                                  <div className="font-semibold">
+                                    {p.purchaseDetails.purchasePrice.toLocaleString('fr-BE')} €
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );

@@ -90,20 +90,22 @@ export default function AvailableLotsView({
           </p>
           <div className="space-y-3">
             {founderLots.map(lot => {
-              // For MVP, calculate simplified price
-              // In production, you'd get actual lot data with prices
-              const estimatedOriginalPrice = lot.surface * 1377;
-              const estimatedNotaryFees = estimatedOriginalPrice * 0.125;
+              // Use actual lot data if available, otherwise estimate
+              const originalPrice = lot.originalPrice ?? lot.surface * 1377;
+              const originalNotaryFees = lot.originalNotaryFees ?? originalPrice * 0.125;
+              const originalConstructionCost = lot.originalConstructionCost ?? 0;
+
               const carryingCosts = calculateCarryingCosts(
-                estimatedOriginalPrice,
+                originalPrice,
                 0,
                 Math.round(yearsHeld * 12),
                 4.5
               );
 
               const price = calculatePortageLotPrice(
-                estimatedOriginalPrice,
-                estimatedNotaryFees,
+                originalPrice,
+                originalNotaryFees,
+                originalConstructionCost,
                 yearsHeld,
                 indexationRate,
                 carryingCosts,

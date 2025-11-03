@@ -59,10 +59,17 @@ describe('Portage Workflow Integration', () => {
     expect(founderLot!.surface).toBe(50);
 
     // Calculate price for founder portage lot
-    const carryingCosts = calculateCarryingCosts(68850, 0, 24, 4.5);
+    // Should use actual lot data if available from founderLot
+    const originalPrice = founderLot!.originalPrice ?? 68850;
+    const originalNotaryFees = founderLot!.originalNotaryFees ?? 8606.25;
+    const originalConstructionCost = founderLot!.originalConstructionCost ?? 0;
+    const totalAcquisition = originalPrice + originalNotaryFees + originalConstructionCost;
+
+    const carryingCosts = calculateCarryingCosts(originalPrice, 0, 24, 4.5);
     const founderPrice = calculatePortageLotPrice(
-      68850,
-      8606.25,
+      originalPrice,
+      originalNotaryFees,
+      originalConstructionCost,
       2,
       2,
       carryingCosts,
@@ -70,7 +77,7 @@ describe('Portage Workflow Integration', () => {
     );
 
     expect(founderPrice.surfaceImposed).toBe(true);
-    expect(founderPrice.totalPrice).toBeGreaterThan(68850); // Base + indexation + carrying
+    expect(founderPrice.totalPrice).toBeGreaterThan(totalAcquisition); // Base + indexation + carrying
 
     // Check copro lot (free surface)
     const coproLot = availableLots.find(l => l.source === 'COPRO');

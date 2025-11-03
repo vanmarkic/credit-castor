@@ -55,6 +55,12 @@ export function convertCalculatorToInitialPurchaseEvent(
       const pricePerLot = (participantResults.purchaseShare || 0) / quantity;
       const notaryPerLot = (participantResults.notaryFees || 0) / quantity;
 
+      // Construction cost per lot includes:
+      // - CASCO (with scenario adjustments)
+      // - Parachevements (with scenario adjustments)
+      // - Travaux communs (per unit share)
+      const constructionCostPerLot = (participantResults.constructionCost || 0) / quantity;
+
       lotsOwned.push({
         lotId: lotIdCounter++,
         surface: p.surface || 0,
@@ -63,6 +69,7 @@ export function convertCalculatorToInitialPurchaseEvent(
         acquiredDate: deedDate,
         originalPrice: pricePerLot,
         originalNotaryFees: notaryPerLot,
+        originalConstructionCost: constructionCostPerLot,
         monthlyCarryingCost: isPortage ? calculateMonthlyCarryingCost(participantResults, quantity) : undefined,
       });
     }
