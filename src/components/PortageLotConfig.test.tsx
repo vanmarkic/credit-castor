@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import * as Tooltip from '@radix-ui/react-tooltip';
 import PortageLotConfig from './PortageLotConfig';
 import type { PortageFormulaParams } from '../utils/calculatorUtils';
 
@@ -12,14 +13,16 @@ describe('PortageLotConfig', () => {
 
   it('should render empty state when no portage lots', () => {
     render(
-      <PortageLotConfig
-        portageLots={[]}
-        onAddLot={vi.fn()}
-        onRemoveLot={vi.fn()}
-        onUpdateSurface={vi.fn()}
-        deedDate={new Date('2023-01-01')}
-        formulaParams={defaultFormulaParams}
-      />
+      <Tooltip.Provider>
+        <PortageLotConfig
+          portageLots={[]}
+          onAddLot={vi.fn()}
+          onRemoveLot={vi.fn()}
+          onUpdateSurface={vi.fn()}
+          deedDate={new Date('2023-01-01')}
+          formulaParams={defaultFormulaParams}
+        />
+      </Tooltip.Provider>
     );
 
     expect(screen.getByText(/Aucun lot en portage/i)).toBeInTheDocument();
@@ -29,14 +32,16 @@ describe('PortageLotConfig', () => {
     const onAddLot = vi.fn();
 
     render(
-      <PortageLotConfig
-        portageLots={[]}
-        onAddLot={onAddLot}
-        onRemoveLot={vi.fn()}
-        onUpdateSurface={vi.fn()}
-        deedDate={new Date('2023-01-01')}
-        formulaParams={defaultFormulaParams}
-      />
+      <Tooltip.Provider>
+        <PortageLotConfig
+          portageLots={[]}
+          onAddLot={onAddLot}
+          onRemoveLot={vi.fn()}
+          onUpdateSurface={vi.fn()}
+          deedDate={new Date('2023-01-01')}
+          formulaParams={defaultFormulaParams}
+        />
+      </Tooltip.Provider>
     );
 
     const addButton = screen.getByText(/Ajouter lot portage/i);
@@ -61,14 +66,16 @@ describe('PortageLotConfig', () => {
     ];
 
     render(
-      <PortageLotConfig
-        portageLots={lots}
-        onAddLot={vi.fn()}
-        onRemoveLot={vi.fn()}
-        onUpdateSurface={vi.fn()}
-        deedDate={new Date('2023-01-01')}
-        formulaParams={defaultFormulaParams}
-      />
+      <Tooltip.Provider>
+        <PortageLotConfig
+          portageLots={lots}
+          onAddLot={vi.fn()}
+          onRemoveLot={vi.fn()}
+          onUpdateSurface={vi.fn()}
+          deedDate={new Date('2023-01-01')}
+          formulaParams={defaultFormulaParams}
+        />
+      </Tooltip.Provider>
     );
 
     const input = screen.getByDisplayValue('50');
@@ -95,19 +102,58 @@ describe('PortageLotConfig', () => {
     };
 
     render(
-      <PortageLotConfig
-        portageLots={[lot]}
-        onAddLot={() => {}}
-        onRemoveLot={() => {}}
-        onUpdateSurface={() => {}}
-        deedDate={new Date('2023-01-01')}
-        formulaParams={formulaParams}
-      />
+      <Tooltip.Provider>
+        <PortageLotConfig
+          portageLots={[lot]}
+          onAddLot={() => {}}
+          onRemoveLot={() => {}}
+          onUpdateSurface={() => {}}
+          deedDate={new Date('2023-01-01')}
+          formulaParams={formulaParams}
+        />
+      </Tooltip.Provider>
     );
 
     expect(screen.getByText(/Base acquisition/i)).toBeInTheDocument();
     expect(screen.getByText(/Indexation/i)).toBeInTheDocument();
     expect(screen.getByText(/Frais de portage/i)).toBeInTheDocument();
     expect(screen.getByText(/Prix total/i)).toBeInTheDocument();
+  });
+
+  it('should display tooltip icon for Prix total', () => {
+    const lot = {
+      lotId: 1,
+      surface: 45,
+      allocatedSurface: 45,
+      unitId: 1,
+      isPortage: true,
+      originalPrice: 60000,
+      originalNotaryFees: 7500,
+      originalConstructionCost: 0,
+      acquiredDate: new Date('2023-01-01')
+    };
+
+    const formulaParams: PortageFormulaParams = {
+      indexationRate: 2.0,
+      carryingCostRecovery: 100,
+      averageInterestRate: 4.5
+    };
+
+    render(
+      <Tooltip.Provider>
+        <PortageLotConfig
+          portageLots={[lot]}
+          onAddLot={() => {}}
+          onRemoveLot={() => {}}
+          onUpdateSurface={() => {}}
+          deedDate={new Date('2023-01-01')}
+          formulaParams={formulaParams}
+        />
+      </Tooltip.Provider>
+    );
+
+    // Check for Info icon (from FormulaTooltip)
+    const icons = document.querySelectorAll('svg');
+    expect(icons.length).toBeGreaterThan(0);
   });
 });

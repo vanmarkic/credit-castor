@@ -2,6 +2,8 @@ import type { Lot } from '../types/timeline';
 import type { PortageFormulaParams } from '../utils/calculatorUtils';
 import { calculateCarryingCosts, calculatePortageLotPrice } from '../utils/portageCalculations';
 import { formatCurrency } from '../utils/formatting';
+import { FormulaTooltip } from './FormulaTooltip';
+import { getPortageLotPriceFormula } from '../utils/formulaExplanations';
 
 interface PortageLotConfigProps {
   portageLots: Lot[];
@@ -133,7 +135,9 @@ export default function PortageLotConfig({
                           Prix total
                         </td>
                         <td className="px-3 py-2 text-right font-bold text-orange-900">
-                          {formatCurrency(price.totalPrice)}
+                          <FormulaTooltip formula={getPortageLotPriceFormula(price, yearsHeld, formulaParams.indexationRate)}>
+                            {formatCurrency(price.totalPrice)}
+                          </FormulaTooltip>
                         </td>
                       </tr>
                     </tbody>

@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { useMemo, useRef } from 'react';
 import { Users } from 'lucide-react';
 import * as Tooltip from '@radix-ui/react-tooltip';
-import { calculateAll, DEFAULT_PORTAGE_FORMULA, type PortageFormulaParams } from '../utils/calculatorUtils';
+import { calculateAll } from '../utils/calculatorUtils';
 import { exportCalculations } from '../utils/excelExport';
 import { XlsxWriter } from '../utils/exportWriter';
 import { ParticipantsTimeline } from './calculator/ParticipantsTimeline';
@@ -24,70 +24,47 @@ import {
   DEFAULT_PROJECT_PARAMS,
   DEFAULT_SCENARIO,
   DEFAULT_DEED_DATE,
-  savePinnedParticipant,
-  loadPinnedParticipant,
-  clearPinnedParticipant,
-  saveToLocalStorage,
   loadFromLocalStorage,
-  clearLocalStorage
+  clearLocalStorage,
+  clearPinnedParticipant
 } from '../utils/storage';
-import { RELEASE_VERSION, isCompatibleVersion } from '../utils/version';
+import { RELEASE_VERSION } from '../utils/version';
 import { VersionMismatchWarning } from './VersionMismatchWarning';
+import { useCalculatorState, useOrderedParticipantBreakdown } from '../hooks/useCalculatorState';
+import { useParticipantOperations } from '../hooks/useParticipantOperations';
+import { useStoragePersistence } from '../hooks/useStoragePersistence';
+import { downloadScenarioFile, createFileUploadHandler } from '../utils/scenarioFileIO';
 
 export default function EnDivisionCorrect() {
-  // Check version compatibility on mount
-  const [versionMismatch, setVersionMismatch] = useState<{
-    show: boolean;
-    storedVersion?: string;
-  }>({ show: false });
+  // State management
+  const state = useCalculatorState();
+  const {
+    participants,
+    projectParams,
+    scenario,
+    deedDate,
+    portageFormula,
+    pinnedParticipant,
+    fullscreenParticipantIndex,
+    versionMismatch,
+    setParticipants,
+    setProjectParams,
+    setScenario,
+    setDeedDate,
+    setPortageFormula,
+    setFullscreenParticipantIndex,
+    setVersionMismatch,
+    handlePinParticipant,
+    handleUnpinParticipant,
+    participantRefs
+  } = state;
 
-  const [participants, setParticipants] = useState(() => {
-    const stored = loadFromLocalStorage();
-
-    // Check version compatibility
-    if (stored && !stored.isCompatible) {
-      setVersionMismatch({
-        show: true,
-        storedVersion: stored.storedVersion
-      });
-      // Return defaults for now, will be reset after user action
-      return DEFAULT_PARTICIPANTS.map((p: any) => ({
-        ...p,
-        isFounder: true,
-        entryDate: new Date(DEFAULT_DEED_DATE)
-      }));
-    }
-
-    const baseParticipants = stored ? stored.participants : DEFAULT_PARTICIPANTS;
-
-    // Ensure all participants have isFounder and entryDate
-    return baseParticipants.map((p: any) => ({
-      ...p,
-      isFounder: p.isFounder !== undefined ? p.isFounder : true,
-      entryDate: p.entryDate || new Date(stored?.deedDate || DEFAULT_DEED_DATE)
-    }));
-  });
-
-  const [pinnedParticipant, setPinnedParticipant] = useState<string | null>(() => loadPinnedParticipant());
-  const [fullscreenParticipantIndex, setFullscreenParticipantIndex] = useState<number | null>(null);
-
-  const participantRefs = useRef<(HTMLDivElement | null)[]>([]);
+  // Participant operations
+  const participantOps = useParticipantOperations();
 
   const addParticipant = () => {
-    const newId = Math.max(...participants.map((p: any) => p.unitId), 0) + 1;
-    setParticipants([...participants, {
-      name: 'Participant·e ' + (participants.length + 1),
-      capitalApporte: 100000,
-      notaryFeesRate: 12.5,
-      unitId: newId,
-      surface: 100,
-      interestRate: 4.5,
-      durationYears: 25,
-      quantity: 1,
-      parachevementsPerM2: 500,
-      isFounder: true,
-      entryDate: new Date(deedDate)
-    }]);
+    const newParticipants = participantOps.addParticipant(participants, deedDate);
+    setParticipants(newParticipants);
 
     // Scroll to the newly added participant (will be at the last index after state update)
     setTimeout(() => {
@@ -104,27 +81,24 @@ export default function EnDivisionCorrect() {
       if (participants[index].name === pinnedParticipant) {
         handleUnpinParticipant();
       }
-      const newParticipants = participants.filter((_: any, i: number) => i !== index);
+      const newParticipants = participantOps.removeParticipant(participants, index);
       setParticipants(newParticipants);
     }
   };
 
   const updateParticipantName = (index: number, name: string) => {
     const oldName = participants[index].name;
-    const newParticipants = [...participants];
-    newParticipants[index].name = name;
+    const newParticipants = participantOps.updateParticipantName(participants, index, name);
     setParticipants(newParticipants);
 
     // If renaming the pinned participant, update the pin
     if (oldName === pinnedParticipant) {
-      savePinnedParticipant(name);
-      setPinnedParticipant(name);
+      handlePinParticipant(name);
     }
   };
 
   const updateParticipantSurface = (index: number, surface: number) => {
-    const newParticipants = [...participants];
-    newParticipants[index].surface = surface;
+    const newParticipants = participantOps.updateParticipantSurface(participants, index, surface);
     setParticipants(newParticipants);
   };
 
@@ -135,33 +109,15 @@ export default function EnDivisionCorrect() {
     6: { casco: 171720, parachevements: 54000 }
   };
 
-  const [projectParams, setProjectParams] = useState(() => {
-    const stored = loadFromLocalStorage();
-    return stored ? stored.projectParams : DEFAULT_PROJECT_PARAMS;
-  });
-
-  const [scenario, setScenario] = useState(() => {
-    const stored = loadFromLocalStorage();
-    return stored ? stored.scenario : DEFAULT_SCENARIO;
-  });
-
-  const [deedDate, setDeedDate] = useState(() => {
-    const stored = loadFromLocalStorage();
-    return stored?.deedDate || DEFAULT_DEED_DATE;
-  });
-
-  const [portageFormula, setPortageFormula] = useState<PortageFormulaParams>(() => {
-    const stored = loadFromLocalStorage();
-    return stored?.portageFormula || DEFAULT_PORTAGE_FORMULA;
-  });
-
-  // Auto-save to localStorage whenever state changes
-  useEffect(() => {
-    // Don't save if there's a version mismatch (user needs to resolve it first)
-    if (!versionMismatch.show) {
-      saveToLocalStorage(participants, projectParams, scenario, deedDate, portageFormula);
-    }
-  }, [participants, projectParams, scenario, deedDate, portageFormula, versionMismatch.show]);
+  // Auto-save to localStorage
+  useStoragePersistence(
+    participants,
+    projectParams,
+    scenario,
+    deedDate,
+    portageFormula,
+    versionMismatch.show
+  );
 
   // Handle version mismatch - export data and reset
   const handleExportAndReset = () => {
@@ -216,169 +172,50 @@ export default function EnDivisionCorrect() {
   }, [participants, projectParams, scenario]);
 
   // Reorder participant breakdown to show pinned participant first
-  const orderedParticipantBreakdown = useMemo(() => {
-    if (!pinnedParticipant) {
-      return calculations.participantBreakdown;
-    }
-
-    const pinnedIndex = calculations.participantBreakdown.findIndex(
-      (p) => p.name === pinnedParticipant
-    );
-
-    if (pinnedIndex === -1) {
-      // Pinned participant not found, return original order
-      return calculations.participantBreakdown;
-    }
-
-    // Move pinned participant to the front
-    const reordered = [...calculations.participantBreakdown];
-    const [pinnedItem] = reordered.splice(pinnedIndex, 1);
-    reordered.unshift(pinnedItem);
-
-    return reordered;
-  }, [calculations.participantBreakdown, pinnedParticipant]);
+  const orderedParticipantBreakdown = useOrderedParticipantBreakdown(calculations, pinnedParticipant);
 
   const updateCapital = (index: number, value: number) => {
-    const newParticipants = [...participants];
-    newParticipants[index].capitalApporte = value;
-    setParticipants(newParticipants);
+    setParticipants(participantOps.updateCapital(participants, index, value));
   };
 
   const updateNotaryRate = (index: number, value: number) => {
-    const newParticipants = [...participants];
-    newParticipants[index].notaryFeesRate = value;
-    setParticipants(newParticipants);
+    setParticipants(participantOps.updateNotaryRate(participants, index, value));
   };
 
   const updateInterestRate = (index: number, value: number) => {
-    const newParticipants = [...participants];
-    newParticipants[index].interestRate = value;
-    setParticipants(newParticipants);
+    setParticipants(participantOps.updateInterestRate(participants, index, value));
   };
 
   const updateDuration = (index: number, value: number) => {
-    const newParticipants = [...participants];
-    newParticipants[index].durationYears = value;
-    setParticipants(newParticipants);
+    setParticipants(participantOps.updateDuration(participants, index, value));
   };
 
   const updateQuantity = (index: number, value: number) => {
-    const newParticipants = [...participants];
-    newParticipants[index].quantity = Math.max(1, value);
-    setParticipants(newParticipants);
+    setParticipants(participantOps.updateQuantity(participants, index, value));
   };
 
   const updateParachevementsPerM2 = (index: number, value: number) => {
-    const newParticipants = [...participants];
-    newParticipants[index].parachevementsPerM2 = value;
-    setParticipants(newParticipants);
+    setParticipants(participantOps.updateParachevementsPerM2(participants, index, value));
   };
 
   const updateCascoSqm = (index: number, value: number | undefined) => {
-    const newParticipants = [...participants];
-    newParticipants[index].cascoSqm = value;
-    setParticipants(newParticipants);
+    setParticipants(participantOps.updateCascoSqm(participants, index, value));
   };
 
   const updateParachevementsSqm = (index: number, value: number | undefined) => {
-    const newParticipants = [...participants];
-    newParticipants[index].parachevementsSqm = value;
-    setParticipants(newParticipants);
-  };
-
-  const handlePinParticipant = (participantName: string) => {
-    savePinnedParticipant(participantName);
-    setPinnedParticipant(participantName);
-  };
-
-  const handleUnpinParticipant = () => {
-    clearPinnedParticipant();
-    setPinnedParticipant(null);
+    setParticipants(participantOps.updateParachevementsSqm(participants, index, value));
   };
 
   const addPortageLot = (participantIndex: number) => {
-    const newLotId = Math.max(
-      ...participants.flatMap((p: any) => p.lotsOwned?.map((l: any) => l.lotId) || []),
-      0
-    ) + 1;
-
-    // Update participant lotsOwned array
-    const newParticipants = [...participants];
-    if (!newParticipants[participantIndex].lotsOwned) {
-      newParticipants[participantIndex].lotsOwned = [];
-    }
-
-    // Increase quantity (number of lots)
-    const currentQuantity = newParticipants[participantIndex].quantity || 1;
-    newParticipants[participantIndex].quantity = currentQuantity + 1;
-
-    // NOTE: Surface starts at 0, will be updated when user enters portage lot surface
-    // Purchase share will grow when surface is set via updatePortageLotSurface
-
-    newParticipants[participantIndex].lotsOwned.push({
-      lotId: newLotId,
-      surface: 0,
-      unitId: newParticipants[participantIndex].unitId || 0,
-      isPortage: true,
-      allocatedSurface: 0,
-      acquiredDate: new Date(deedDate),
-      // Acquisition costs will be calculated dynamically based on new total costs
-      originalPrice: undefined,
-      originalNotaryFees: undefined,
-      originalConstructionCost: undefined
-    });
-
-    setParticipants(newParticipants);
+    setParticipants(participantOps.addPortageLot(participants, participantIndex, deedDate));
   };
 
   const removePortageLot = (participantIndex: number, lotId: number) => {
-    const newParticipants = [...participants];
-    if (newParticipants[participantIndex].lotsOwned) {
-      // Find the lot being removed to get its surface
-      const lotToRemove = newParticipants[participantIndex].lotsOwned.find((l: any) => l.lotId === lotId);
-
-      // Remove the lot
-      newParticipants[participantIndex].lotsOwned =
-        newParticipants[participantIndex].lotsOwned.filter((l: any) => l.lotId !== lotId);
-
-      // Decrease quantity
-      const currentQuantity = newParticipants[participantIndex].quantity || 1;
-      newParticipants[participantIndex].quantity = Math.max(1, currentQuantity - 1);
-
-      // Decrease total surface by the removed lot's surface
-      if (lotToRemove) {
-        const currentSurface = newParticipants[participantIndex].surface || 0;
-        newParticipants[participantIndex].surface = Math.max(0, currentSurface - (lotToRemove.surface || 0));
-      }
-    }
-    setParticipants(newParticipants);
-  };
-
-  // Reserved for future use when PortageFormulaConfig component is rendered
-  // @ts-expect-error - Function reserved for future component integration
-  const handleUpdatePortageFormula = (params: PortageFormulaParams) => {
-    setPortageFormula(params);
+    setParticipants(participantOps.removePortageLot(participants, participantIndex, lotId));
   };
 
   const updatePortageLotSurface = (participantIndex: number, lotId: number, surface: number) => {
-    const newParticipants = [...participants];
-    if (newParticipants[participantIndex].lotsOwned) {
-      const lot = newParticipants[participantIndex].lotsOwned.find((l: any) => l.lotId === lotId);
-      if (lot) {
-        // Calculate the surface change
-        const oldSurface = lot.surface || 0;
-        const surfaceChange = surface - oldSurface;
-
-        // Update lot surface
-        lot.surface = surface;
-        lot.allocatedSurface = surface;
-
-        // Update participant's total surface
-        const currentTotalSurface = newParticipants[participantIndex].surface || 0;
-        newParticipants[participantIndex].surface = currentTotalSurface + surfaceChange;
-      }
-    }
-    setParticipants(newParticipants);
+    setParticipants(participantOps.updatePortageLotSurface(participants, participantIndex, lotId, surface));
   };
 
   const exportToExcel = () => {
@@ -386,75 +223,16 @@ export default function EnDivisionCorrect() {
     exportCalculations(calculations, projectParams, scenario, unitDetails, writer);
   };
 
-
   // Download scenario as JSON file
   const downloadScenario = () => {
-    const data = {
-      version: 2,
-      releaseVersion: RELEASE_VERSION,
-      timestamp: new Date().toISOString(),
+    downloadScenarioFile(
       participants,
       projectParams,
       scenario,
       deedDate,
       unitDetails,
-      calculations: {
-        totalSurface: calculations.totalSurface,
-        pricePerM2: calculations.pricePerM2,
-        sharedCosts: calculations.sharedCosts,
-        sharedPerPerson: calculations.sharedPerPerson,
-        participantBreakdown: calculations.participantBreakdown.map(p => ({
-          name: p.name,
-          unitId: p.unitId,
-          surface: p.surface,
-          quantity: p.quantity,
-          pricePerM2: p.pricePerM2,
-          purchaseShare: p.purchaseShare,
-          notaryFees: p.notaryFees,
-          casco: p.casco,
-          parachevements: p.parachevements,
-          personalRenovationCost: p.personalRenovationCost,
-          constructionCost: p.constructionCost,
-          constructionCostPerUnit: p.constructionCostPerUnit,
-          travauxCommunsPerUnit: p.travauxCommunsPerUnit,
-          sharedCosts: p.sharedCosts,
-          totalCost: p.totalCost,
-          loanNeeded: p.loanNeeded,
-          financingRatio: p.financingRatio,
-          monthlyPayment: p.monthlyPayment,
-          totalRepayment: p.totalRepayment,
-          totalInterest: p.totalInterest
-        })),
-        totals: {
-          purchase: calculations.totals.purchase,
-          totalNotaryFees: calculations.totals.totalNotaryFees,
-          construction: calculations.totals.construction,
-          shared: calculations.totals.shared,
-          totalTravauxCommuns: calculations.totals.totalTravauxCommuns,
-          travauxCommunsPerUnit: calculations.totals.travauxCommunsPerUnit,
-          total: calculations.totals.total,
-          capitalTotal: calculations.totals.capitalTotal,
-          totalLoansNeeded: calculations.totals.totalLoansNeeded,
-          averageLoan: calculations.totals.averageLoan,
-          averageCapital: calculations.totals.averageCapital
-        }
-      }
-    };
-
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-
-    const now = new Date();
-    const dateStr = now.toISOString().slice(0, 10);
-    const timeStr = now.toTimeString().slice(0, 5).replace(':', '-');
-    link.download = `scenario_${dateStr}_${timeStr}.json`;
-
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+      calculations
+    );
   };
 
   // Load scenario from JSON file
@@ -464,58 +242,20 @@ export default function EnDivisionCorrect() {
     fileInputRef.current?.click();
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const content = e.target?.result as string;
-        const data = JSON.parse(content);
-
-        // Validate the data structure
-        if (!data.participants || !data.projectParams || !data.scenario) {
-          alert('Fichier invalide: structure de données manquante');
-          return;
-        }
-
-        // Validate release version match
-        if (!isCompatibleVersion(data.releaseVersion)) {
-          const versionMsg = data.releaseVersion
-            ? `ce fichier a été créé avec la version ${data.releaseVersion}, mais vous utilisez la version ${RELEASE_VERSION}`
-            : `ce fichier n'a pas de numéro de version (ancien format)`;
-          alert(`Version incompatible: ${versionMsg}.\n\nEnvoie le fichier à Dragan.`);
-          return;
-        }
-
-        // Load the data (inputs only, ignore calculations)
-        setParticipants(data.participants);
-        setProjectParams(data.projectParams);
-        setScenario(data.scenario);
-
-        // Load deedDate if present (version 2+)
-        if (data.deedDate) {
-          setDeedDate(data.deedDate);
-        }
-
-        // Note: unitDetails are hardcoded in the component, not loaded from file
-        // Note: calculations are derived, not loaded from file
-
-        alert('Scénario chargé avec succès!');
-      } catch (error) {
-        console.error('Error loading scenario:', error);
-        alert('Erreur lors du chargement du fichier. Vérifiez que le fichier est valide.');
+  const handleFileUpload = createFileUploadHandler(
+    (data) => {
+      setParticipants(data.participants);
+      setProjectParams(data.projectParams);
+      setScenario(data.scenario);
+      if (data.deedDate) {
+        setDeedDate(data.deedDate);
       }
-    };
-
-    reader.readAsText(file);
-
-    // Reset the input so the same file can be loaded again
-    if (event.target) {
-      event.target.value = '';
+      alert('Scénario chargé avec succès!');
+    },
+    (error) => {
+      alert(error);
     }
-  };
+  );
 
   // Reset to defaults
   const resetToDefaults = () => {
@@ -951,7 +691,7 @@ export default function EnDivisionCorrect() {
           <PortageFormulaConfig
             formulaParams={portageFormula}
             onUpdateParams={setPortageFormula}
-            deedDate={deedDate}
+            deedDate={new Date(deedDate)}
           />
         </div>
 

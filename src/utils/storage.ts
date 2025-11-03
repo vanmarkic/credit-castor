@@ -19,7 +19,7 @@ export const DEFAULT_PARTICIPANTS = [
         unitId: 5,
         isPortage: false,
         allocatedSurface: 118,
-        acquiredDate: '2026-02-01'
+        acquiredDate: new Date('2026-02-01')
       },
       {
         lotId: 2,
@@ -27,7 +27,7 @@ export const DEFAULT_PARTICIPANTS = [
         unitId: 5,
         isPortage: true,
         allocatedSurface: 80,
-        acquiredDate: '2026-02-01'
+        acquiredDate: new Date('2026-02-01')
       }
     ]
   },
@@ -43,7 +43,7 @@ export const DEFAULT_PARTICIPANTS = [
     quantity: 1,
     parachevementsPerM2: 500,
     isFounder: false,
-    entryDate: '2027-06-01',
+    entryDate: new Date('2027-06-01'),
     purchaseDetails: {
       buyingFrom: 'Annabelle/Colin',
       isPortageLot: true

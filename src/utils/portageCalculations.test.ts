@@ -15,10 +15,14 @@ import {
   calculateRedistribution,
   calculatePortageLotPrice,
   calculatePortageLotPriceFromCopro,
+  calculateYearsHeld,
+  calculateCoproEstimatedPrice,
+  COPRO_BASE_PRICE_PER_M2,
+  COPRO_CARRYING_COST_RATE,
   type CarryingCosts,
   // ResalePrice, Redistribution - unused type imports removed
 } from './portageCalculations';
-import type { PortageFormulaParams } from './calculatorUtils';
+import type { PortageFormulaParams } from './portageCalculations';
 
 describe('calculateCarryingCosts', () => {
   it('should calculate monthly interest correctly', () => {
@@ -551,5 +555,231 @@ describe('calculateResalePrice with formula params', () => {
     const totalAcquisition = 60000 + 7500 + 0; // 67,500
     const expectedIndexation = totalAcquisition * (Math.pow(1.03, 2.5) - 1);
     expect(result.indexation).toBeCloseTo(expectedIndexation, 0);
+  });
+});
+
+describe('calculateYearsHeld', () => {
+  it('should calculate years held between two dates', () => {
+    const founderEntry = new Date('2020-01-01');
+    const buyerEntry = new Date('2022-01-01');
+
+    const result = calculateYearsHeld(founderEntry, buyerEntry);
+
+    // Exactly 2 years
+    expect(result).toBeCloseTo(2.0, 2);
+  });
+
+  it('should handle fractional years correctly', () => {
+    const founderEntry = new Date('2020-01-01');
+    const buyerEntry = new Date('2021-07-01');
+
+    const result = calculateYearsHeld(founderEntry, buyerEntry);
+
+    // Approximately 1.5 years (6 months = 0.5 years)
+    expect(result).toBeCloseTo(1.5, 1);
+  });
+
+  it('should handle same date (zero years)', () => {
+    const sameDate = new Date('2020-01-01');
+
+    const result = calculateYearsHeld(sameDate, sameDate);
+
+    expect(result).toBe(0);
+  });
+
+  it('should handle dates very close together', () => {
+    const founderEntry = new Date('2020-01-01');
+    const buyerEntry = new Date('2020-01-02'); // 1 day later
+
+    const result = calculateYearsHeld(founderEntry, buyerEntry);
+
+    // Should be very small but positive
+    expect(result).toBeGreaterThan(0);
+    expect(result).toBeLessThan(0.01); // Less than 1% of a year
+  });
+
+  it('should handle leap years correctly', () => {
+    const founderEntry = new Date('2020-02-29'); // Leap year
+    const buyerEntry = new Date('2021-02-28');
+
+    const result = calculateYearsHeld(founderEntry, buyerEntry);
+
+    // Should be approximately 1 year (using 365.25 days/year average)
+    expect(result).toBeCloseTo(1.0, 2);
+  });
+
+  it('should return 0 if buyer entry is before founder entry', () => {
+    const founderEntry = new Date('2022-01-01');
+    const buyerEntry = new Date('2020-01-01');
+
+    const result = calculateYearsHeld(founderEntry, buyerEntry);
+
+    // Should clamp to 0 (no negative time)
+    expect(result).toBe(0);
+  });
+
+  it('should match real-world scenario from AvailableLotsView', () => {
+    // This test ensures backward compatibility with the original calculation
+    const deedDate = new Date('2020-06-15');
+    const buyerEntryDate = new Date('2022-09-15');
+
+    const result = calculateYearsHeld(deedDate, buyerEntryDate);
+
+    // Approximately 2.25 years (2 years + 3 months)
+    expect(result).toBeCloseTo(2.25, 1);
+  });
+});
+
+describe('calculateCoproEstimatedPrice', () => {
+  const formulaParams: PortageFormulaParams = {
+    indexationRate: 2,
+    carryingCostRecovery: 100,
+    averageInterestRate: 4.5
+  };
+
+  it('should return null for zero surface', () => {
+    const result = calculateCoproEstimatedPrice(
+      0,
+      300,
+      2.5,
+      formulaParams
+    );
+
+    expect(result).toBeNull();
+  });
+
+  it('should return null for negative surface', () => {
+    const result = calculateCoproEstimatedPrice(
+      -50,
+      300,
+      2.5,
+      formulaParams
+    );
+
+    expect(result).toBeNull();
+  });
+
+  it('should return null if chosen surface exceeds available surface', () => {
+    const result = calculateCoproEstimatedPrice(
+      350,
+      300, // max available
+      2.5,
+      formulaParams
+    );
+
+    expect(result).toBeNull();
+  });
+
+  it('should calculate price using default constants', () => {
+    // Choose 100m² from 300m² available, held for 2 years
+    const result = calculateCoproEstimatedPrice(
+      100,
+      300,
+      2,
+      formulaParams
+    );
+
+    expect(result).not.toBeNull();
+    expect(result!.surfaceImposed).toBe(false);
+    // Surface ratio = 100/300 = 1/3
+    // Should use constants: 1377€/m² and 5% carrying cost rate
+    expect(result!.totalPrice).toBeGreaterThan(0);
+  });
+
+  it('should calculate proportional price for partial surface', () => {
+    // Choose 75m² from 300m² available (25%)
+    const result = calculateCoproEstimatedPrice(
+      75,
+      300,
+      2,
+      formulaParams
+    );
+
+    expect(result).not.toBeNull();
+
+    // Base should be 25% of total
+    const totalEstimated = 300 * COPRO_BASE_PRICE_PER_M2;
+    const expectedBase = totalEstimated * (75 / 300);
+    expect(result!.basePrice).toBeCloseTo(expectedBase, 0);
+  });
+
+  it('should handle fractional years correctly', () => {
+    const result = calculateCoproEstimatedPrice(
+      100,
+      300,
+      2.5, // 2.5 years
+      formulaParams
+    );
+
+    expect(result).not.toBeNull();
+    // Carrying costs should scale with years
+    expect(result!.carryingCostRecovery).toBeGreaterThan(0);
+  });
+
+  it('should use custom formula params', () => {
+    const customParams: PortageFormulaParams = {
+      indexationRate: 3.0, // Higher indexation
+      carryingCostRecovery: 50, // Only recover 50%
+      averageInterestRate: 5.0
+    };
+
+    const result = calculateCoproEstimatedPrice(
+      100,
+      300,
+      2,
+      customParams
+    );
+
+    expect(result).not.toBeNull();
+    // With 3% indexation, should have higher indexation component
+    expect(result!.indexation).toBeGreaterThan(0);
+  });
+
+  it('should match AvailableLotsView calculation logic', () => {
+    // This test ensures backward compatibility with the component logic
+    const lotSurface = 200;
+    const surfaceChosen = 75;
+    const yearsHeld = 2.0;
+
+    const result = calculateCoproEstimatedPrice(
+      surfaceChosen,
+      lotSurface,
+      yearsHeld,
+      formulaParams
+    );
+
+    expect(result).not.toBeNull();
+
+    // Original logic:
+    // estimatedOriginalPrice = 200 * 1377 = 275,400€
+    // estimatedCarryingCosts = 275,400 * 0.05 * 2 = 27,540€
+    const estimatedOriginalPrice = lotSurface * COPRO_BASE_PRICE_PER_M2;
+    const estimatedCarryingCosts = estimatedOriginalPrice * COPRO_CARRYING_COST_RATE * yearsHeld;
+
+    // Then calls calculatePortageLotPriceFromCopro
+    const expected = calculatePortageLotPriceFromCopro(
+      surfaceChosen,
+      lotSurface,
+      estimatedOriginalPrice,
+      yearsHeld,
+      formulaParams,
+      estimatedCarryingCosts
+    );
+
+    expect(result!.totalPrice).toBeCloseTo(expected.totalPrice, 0);
+    expect(result!.basePrice).toBeCloseTo(expected.basePrice, 0);
+    expect(result!.indexation).toBeCloseTo(expected.indexation, 0);
+  });
+
+  it('should handle edge case of exactly available surface', () => {
+    const result = calculateCoproEstimatedPrice(
+      300,
+      300, // exactly all available
+      2,
+      formulaParams
+    );
+
+    expect(result).not.toBeNull();
+    expect(result!.surfaceImposed).toBe(false);
   });
 });

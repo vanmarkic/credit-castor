@@ -12,6 +12,7 @@ import {
   getPricePerM2Formula,
   getTotalProjectCostFormula,
   getTotalLoansFormula,
+  getPortageLotPriceFormula,
 } from './formulaExplanations';
 
 // Mock participant calculation data
@@ -191,6 +192,37 @@ describe('formulaExplanations', () => {
       expect(result[0]).toContain('Somme');
       expect(result[1]).toContain('Total');
       expect(result[1]).toContain('emprunt');
+    });
+  });
+
+  describe('getPortageLotPriceFormula', () => {
+    it('should return portage lot price breakdown with values', () => {
+      const mockPrice = {
+        basePrice: 5000,
+        indexation: 280,
+        carryingCostRecovery: 1288,
+        feesRecovery: 0,
+        totalPrice: 6568,
+        pricePerM2: 0
+      };
+      const yearsHeld = 2.8;
+      const indexationRate = 2;
+
+      const result = getPortageLotPriceFormula(mockPrice, yearsHeld, indexationRate);
+
+      expect(result).toHaveLength(5);
+      expect(result[0]).toBe('Calcul du prix de vente du lot en portage');
+      expect(result[1]).toContain('Base acquisition');
+      expect(result[1]).toContain('5,000');
+      expect(result[2]).toContain('Indexation');
+      expect(result[2]).toContain('2%');
+      expect(result[2]).toContain('2.8');
+      expect(result[2]).toContain('280');
+      expect(result[3]).toContain('Frais de portage');
+      expect(result[3]).toContain('2.8');
+      expect(result[3]).toContain('1,288');
+      expect(result[4]).toContain('Prix total');
+      expect(result[4]).toContain('6,568');
     });
   });
 });

@@ -9,7 +9,10 @@
  * All functions are pure (no side effects) for testability.
  */
 
-import type { PortageFormulaParams } from './calculatorUtils';
+import type { PortageFormulaParams as PortageFormulaParamsImport } from './calculatorUtils';
+
+// Re-export for convenience
+export type PortageFormulaParams = PortageFormulaParamsImport;
 
 // ============================================
 // Types
@@ -296,4 +299,88 @@ export function calculateRedistribution(
       amount
     };
   });
+}
+
+// ============================================
+// Date Calculations
+// ============================================
+
+/**
+ * Calculate years held between two dates
+ *
+ * Used to determine the portage period for pricing calculations.
+ * Returns fractional years (e.g., 2.5 for 2 years and 6 months).
+ *
+ * @param founderEntryDate - Date when the founder acquired the property (deed date)
+ * @param buyerEntryDate - Date when the buyer is purchasing (or current date)
+ * @returns Years held as a decimal number (minimum 0, no negative values)
+ */
+export function calculateYearsHeld(founderEntryDate: Date, buyerEntryDate: Date): number {
+  const diffMs = buyerEntryDate.getTime() - founderEntryDate.getTime();
+  const diffYears = diffMs / (1000 * 60 * 60 * 24 * 365.25);
+  return Math.max(0, diffYears);
+}
+
+// ============================================
+// Copropriété Estimation Constants
+// ============================================
+
+/**
+ * Estimated base price per m² for copropriété lots (MVP simplified pricing)
+ * This is used when actual copropriété acquisition costs are not available.
+ */
+export const COPRO_BASE_PRICE_PER_M2 = 1377;
+
+/**
+ * Estimated annual carrying cost rate for copropriété lots (as percentage of price)
+ * This is used when actual carrying costs are not available.
+ * Default: 5% per year
+ */
+export const COPRO_CARRYING_COST_RATE = 0.05;
+
+// ============================================
+// Copropriété Price Estimation
+// ============================================
+
+/**
+ * Calculate estimated price for copropriété lot with free surface choice
+ *
+ * This is a simplified estimation used when detailed copropriété financials
+ * are not available. It uses hardcoded constants for base price and carrying costs.
+ *
+ * **MVP Simplification**: In production, actual copropriété acquisition costs
+ * and carrying costs should be used instead of estimates.
+ *
+ * @param surfaceChosen - Surface area chosen by the buyer (in m²)
+ * @param availableSurface - Total available surface of the copro lot (in m²)
+ * @param yearsHeld - Years the copropriété held the lot
+ * @param formulaParams - Global formula parameters (indexation rate, etc.)
+ * @returns PortageLotPrice with calculated breakdown, or null if invalid input
+ */
+export function calculateCoproEstimatedPrice(
+  surfaceChosen: number,
+  availableSurface: number,
+  yearsHeld: number,
+  formulaParams: PortageFormulaParams
+): PortageLotPrice | null {
+  // Validate input
+  if (!surfaceChosen || surfaceChosen <= 0 || surfaceChosen > availableSurface) {
+    return null;
+  }
+
+  // Estimate total original price for the copro lot using standard rate
+  const estimatedOriginalPrice = availableSurface * COPRO_BASE_PRICE_PER_M2;
+
+  // Estimate carrying costs: 5% per year of the original price
+  const estimatedCarryingCosts = estimatedOriginalPrice * COPRO_CARRYING_COST_RATE * yearsHeld;
+
+  // Calculate proportional price using the existing function
+  return calculatePortageLotPriceFromCopro(
+    surfaceChosen,
+    availableSurface,
+    estimatedOriginalPrice,
+    yearsHeld,
+    formulaParams,
+    estimatedCarryingCosts
+  );
 }

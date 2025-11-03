@@ -4,6 +4,7 @@
  */
 
 import type { ParticipantCalculation, CalculationTotals } from './calculatorUtils';
+import type { PortageLotPrice } from './portageCalculations';
 
 /**
  * Get formula explanation for total cost calculation
@@ -182,5 +183,22 @@ export function getExpectedPaybacksFormula(totalRecovered: number, paybackCount:
     "Revenus attendus du portage & ventes copropriété",
     `Somme de ${paybackCount} paiement(s) = €${totalRecovered.toLocaleString()}`,
     "Reçus lorsque de nouveaux participants rejoignent"
+  ];
+}
+
+/**
+ * Get formula explanation for portage lot price calculation
+ */
+export function getPortageLotPriceFormula(
+  price: PortageLotPrice,
+  yearsHeld: number,
+  indexationRate: number
+): string[] {
+  return [
+    "Calcul du prix de vente du lot en portage",
+    `Base acquisition (achat+notaire+casco): €${price.basePrice.toLocaleString()}`,
+    `Indexation (${indexationRate}% × ${yearsHeld.toFixed(1)} ans): €${price.indexation.toLocaleString()}`,
+    `Frais de portage (${yearsHeld.toFixed(1)} ans): €${price.carryingCostRecovery.toLocaleString()}`,
+    `Prix total: €${price.totalPrice.toLocaleString()}`
   ];
 }

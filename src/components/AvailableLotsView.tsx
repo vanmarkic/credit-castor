@@ -10,7 +10,12 @@ import { useState } from 'react';
 import type { AvailableLot } from '../utils/availableLots';
 import type { PortageLotPrice } from '../utils/portageCalculations';
 import type { PortageFormulaParams } from '../utils/calculatorUtils';
-import { calculatePortageLotPrice, calculatePortageLotPriceFromCopro, calculateCarryingCosts } from '../utils/portageCalculations';
+import {
+  calculatePortageLotPrice,
+  calculateCarryingCosts,
+  calculateYearsHeld,
+  calculateCoproEstimatedPrice
+} from '../utils/portageCalculations';
 import { formatCurrency } from '../utils/formatting';
 
 interface AvailableLotsViewProps {
@@ -61,27 +66,6 @@ export default function AvailableLotsView({
       ...prev,
       [lotId]: surface
     }));
-  };
-
-  // Calculate price for copro lot based on user input
-  const calculateCoproPrice = (lot: AvailableLot, surfaceChosen: number): PortageLotPrice | null => {
-    if (!surfaceChosen || surfaceChosen <= 0 || surfaceChosen > lot.surface) {
-      return null;
-    }
-
-    // For this MVP, we'll use simplified pricing
-    // In production, you'd need actual carrying costs from copro entity
-    const estimatedOriginalPrice = lot.surface * 1377; // Base price per m²
-    const estimatedCarryingCosts = estimatedOriginalPrice * 0.05 * yearsHeld; // 5% per year estimate
-
-    return calculatePortageLotPriceFromCopro(
-      surfaceChosen,
-      lot.totalCoproSurface || lot.surface,
-      estimatedOriginalPrice,
-      yearsHeld,
-      formulaParams,
-      estimatedCarryingCosts
-    );
   };
 
   if (availableLots.length === 0) {
@@ -247,7 +231,12 @@ export default function AvailableLotsView({
           <div className="space-y-3">
             {coproLots.map(lot => {
               const chosenSurface = coproSurfaces[lot.lotId] || 0;
-              const price = calculateCoproPrice(lot, chosenSurface);
+              const price = calculateCoproEstimatedPrice(
+                chosenSurface,
+                lot.totalCoproSurface || lot.surface,
+                yearsHeld,
+                formulaParams
+              );
 
               return (
                 <div
@@ -377,14 +366,4 @@ export default function AvailableLotsView({
       </div>
     </div>
   );
-}
-
-// ============================================
-// Helper Functions
-// ============================================
-
-function calculateYearsHeld(founderEntryDate: Date, buyerEntryDate: Date): number {
-  const diffMs = buyerEntryDate.getTime() - founderEntryDate.getTime();
-  const diffYears = diffMs / (1000 * 60 * 60 * 24 * 365.25);
-  return Math.max(0, diffYears);
 }
