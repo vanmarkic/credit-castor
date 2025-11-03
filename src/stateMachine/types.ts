@@ -104,8 +104,77 @@ export interface ProjectContext {
   projectFinancials: ProjectFinancials;
 }
 
+// ============================================
+// SALE TYPES
+// ============================================
+
+export type SaleType = 'portage' | 'copro' | 'classic';
+
+interface BaseSale {
+  lotId: string;
+  buyer: string;
+  saleDate: Date;
+}
+
+export interface PortageSale extends BaseSale {
+  type: 'portage';
+  seller: string;
+  pricing: PortagePricing;
+}
+
+export interface PortagePricing {
+  baseAcquisitionCost: number;
+  indexation: number;
+  carryingCosts: CarryingCosts;
+  renovations: number;
+  registrationFeesRecovery: number;
+  fraisCommunsRecovery: number;
+  loanInterestRecovery: number;
+  totalPrice: number;
+}
+
+export interface CarryingCosts {
+  monthlyLoanInterest: number;
+  propertyTax: number;
+  buildingInsurance: number;
+  syndicFees: number;
+  chargesCommunes: number;
+  totalMonths: number;
+  total: number;
+}
+
+export interface CoproSale extends BaseSale {
+  type: 'copro';
+  surface: number;
+  pricing: CoproPricing;
+}
+
+export interface CoproPricing {
+  baseCostPerSqm: number;
+  gen1CompensationPerSqm: number;
+  pricePerSqm: number;
+  surface: number;
+  totalPrice: number;
+}
+
+export interface ClassicSale extends BaseSale {
+  type: 'classic';
+  seller: string;
+  price: number;
+  buyerApproval: BuyerApproval;
+  priceCap: number;
+}
+
+export interface BuyerApproval {
+  candidateId: string;
+  interviewDate: Date;
+  approved: boolean;
+  notes: string;
+}
+
+export type Sale = PortageSale | CoproSale | ClassicSale;
+
 // Stub types (will be filled in later tasks)
-export type Sale = any;
 export type LoanApplication = any;
 export type ACPLoan = any;
 export type ProjectFinancials = any;
