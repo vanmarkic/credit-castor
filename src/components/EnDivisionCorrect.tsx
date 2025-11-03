@@ -931,10 +931,16 @@ export default function EnDivisionCorrect() {
                         checked={participants[idx].isFounder || false}
                         onChange={(e) => {
                           const updated = [...participants];
+                          // When unchecking founder (becoming newcomer), set entry date to 1 year after deed date
+                          const defaultNewcomerDate = new Date(deedDate);
+                          defaultNewcomerDate.setFullYear(defaultNewcomerDate.getFullYear() + 1);
+
                           updated[idx] = {
                             ...updated[idx],
                             isFounder: e.target.checked,
-                            entryDate: e.target.checked ? new Date(deedDate) : updated[idx].entryDate,
+                            entryDate: e.target.checked
+                              ? new Date(deedDate)
+                              : (updated[idx].entryDate || defaultNewcomerDate),
                             purchaseDetails: e.target.checked ? undefined : updated[idx].purchaseDetails
                           };
                           setParticipants(updated);
