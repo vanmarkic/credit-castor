@@ -166,6 +166,90 @@ export function calculateResalePrice(
 }
 
 // ============================================
+// Portage Lot Pricing
+// ============================================
+
+export interface PortageLotPrice {
+  basePrice: number;
+  surfaceImposed: boolean;
+  indexation: number;
+  carryingCostRecovery: number;
+  feesRecovery: number;
+  totalPrice: number;
+  pricePerM2: number;
+}
+
+/**
+ * Calculate price for portage lot from founder (surface imposed)
+ */
+export function calculatePortageLotPrice(
+  originalPrice: number,
+  originalNotaryFees: number,
+  yearsHeld: number,
+  indexationRate: number,
+  carryingCosts: CarryingCosts,
+  renovations: number = 0
+): PortageLotPrice {
+  const resale = calculateResalePrice(
+    originalPrice,
+    originalNotaryFees,
+    yearsHeld,
+    indexationRate,
+    carryingCosts,
+    renovations
+  );
+
+  return {
+    basePrice: resale.basePrice,
+    surfaceImposed: true,
+    indexation: resale.indexation,
+    carryingCostRecovery: resale.carryingCostRecovery,
+    feesRecovery: resale.feesRecovery,
+    totalPrice: resale.totalPrice,
+    pricePerM2: 0 // Not applicable - surface is imposed
+  };
+}
+
+/**
+ * Calculate price for portage lot from copropriété (surface free)
+ */
+export function calculatePortageLotPriceFromCopro(
+  surfaceChosen: number,
+  totalCoproLotSurface: number,
+  totalCoproLotOriginalPrice: number,
+  yearsHeld: number,
+  indexationRate: number,
+  totalCarryingCosts: number
+): PortageLotPrice {
+  // Calculate proportional base price
+  const surfaceRatio = surfaceChosen / totalCoproLotSurface;
+  const basePrice = totalCoproLotOriginalPrice * surfaceRatio;
+
+  // Calculate indexation
+  const indexationMultiplier = Math.pow(1 + indexationRate / 100, yearsHeld);
+  const indexation = basePrice * (indexationMultiplier - 1);
+
+  // Proportional carrying costs
+  const carryingCostRecovery = totalCarryingCosts * surfaceRatio;
+
+  // No fee recovery for copro lots (copro doesn't recover fees)
+  const feesRecovery = 0;
+
+  const totalPrice = basePrice + indexation + carryingCostRecovery;
+  const pricePerM2 = totalPrice / surfaceChosen;
+
+  return {
+    basePrice,
+    surfaceImposed: false,
+    indexation,
+    carryingCostRecovery,
+    feesRecovery,
+    totalPrice,
+    pricePerM2
+  };
+}
+
+// ============================================
 // Redistribution Calculation
 // ============================================
 

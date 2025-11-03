@@ -13,6 +13,8 @@ import {
   calculateCarryingCosts,
   calculateResalePrice,
   calculateRedistribution,
+  calculatePortageLotPrice,
+  calculatePortageLotPriceFromCopro,
   type CarryingCosts,
   // ResalePrice, Redistribution - unused type imports removed
 } from './portageCalculations';
@@ -275,5 +277,57 @@ describe('calculateRedistribution', () => {
     expect(result.find(r => r.participantName === 'Buyer B')?.amount).toBeCloseTo(175000 * (134/472), 0);
     expect(result.find(r => r.participantName === 'Buyer C')?.amount).toBeCloseTo(175000 * (118/472), 0);
     expect(result.find(r => r.participantName === 'Buyer D')?.amount).toBeCloseTo(175000 * (108/472), 0);
+  });
+});
+
+describe('calculatePortageLotPrice', () => {
+  it('should calculate price for lot from founder with imposed surface', () => {
+    // Founder allocated 50m² for portage at deed date
+    // Original price: 50m² × 1377€/m² = 68,850€
+    // Held for 2 years with 2% indexation
+    // Carrying costs: calculated based on lot value and loan
+
+    const carryingCosts: CarryingCosts = {
+      monthlyInterest: 200,
+      monthlyTax: 32.37,
+      monthlyInsurance: 166.67,
+      totalMonthly: 399.04,
+      totalForPeriod: 9577 // 24 months
+    };
+
+    const result = calculatePortageLotPrice(
+      68850,    // original price (50m² × 1377)
+      8606.25,  // notary fees (12.5%)
+      2,        // years held
+      2,        // indexation rate
+      carryingCosts,
+      0         // no renovations
+    );
+
+    // Expected: base + indexation + carrying + fee recovery
+    expect(result.basePrice).toBe(68850);
+    expect(result.surfaceImposed).toBe(true);
+    expect(result.totalPrice).toBeGreaterThan(68850);
+  });
+
+  it('should calculate price for lot from copropriété with free surface', () => {
+    // Newcomer chooses 75m² from copropriété lot
+    // Base calculation: 75m² × indexed price/m²
+    // Plus portage costs proportional to surface ratio
+
+    const result = calculatePortageLotPriceFromCopro(
+      75,        // surface chosen by newcomer
+      300,       // total copro lot surface
+      412500,    // total copro lot original price
+      2,         // years held
+      2,         // indexation
+      15000      // total carrying costs for whole copro lot
+    );
+
+    // Expected: proportional base + indexation + carrying
+    const expectedBase = 412500 * (75 / 300); // 103,125
+    expect(result.basePrice).toBeCloseTo(expectedBase, 0);
+    expect(result.surfaceImposed).toBe(false);
+    expect(result.totalPrice).toBeGreaterThan(expectedBase);
   });
 });
