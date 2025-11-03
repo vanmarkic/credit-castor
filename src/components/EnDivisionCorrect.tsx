@@ -1,8 +1,10 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Calculator, Users, DollarSign, Home, Building2, Wallet, Download, Upload, RotateCcw, Save, ChevronDown, ChevronUp } from 'lucide-react';
+import { Calculator, Users, DollarSign, Home, Building2, Wallet, Download, Upload, RotateCcw, Save, ChevronDown, ChevronUp, ArrowRight } from 'lucide-react';
 import { calculateAll } from '../utils/calculatorUtils';
 import { exportCalculations } from '../utils/excelExport';
 import { XlsxWriter } from '../utils/exportWriter';
+import { convertCalculatorToInitialPurchaseEvent } from '../utils/calculatorToTimeline';
+import { exportTimelineToJSON } from '../utils/timelineExport';
 
 // Default values for reset functionality
 export const DEFAULT_PARTICIPANTS = [
@@ -32,6 +34,9 @@ export const DEFAULT_SCENARIO = {
   purchasePriceReduction: 0
 };
 
+// Default deed date: February 1st, 2026
+const DEFAULT_DEED_DATE = '2026-02-01';
+
 const STORAGE_KEY = 'credit-castor-scenario';
 
 // Migration function to handle v1.0.2 -> v1.0.3 scenario format
@@ -39,6 +44,7 @@ export const migrateScenarioData = (data: any): {
   participants: any[];
   projectParams: any;
   scenario: any;
+  deedDate?: string;
 } => {
   // Clone to avoid mutations
   const migrated = { ...data };
@@ -62,19 +68,21 @@ export const migrateScenarioData = (data: any): {
   return {
     participants: (migrated.participants && migrated.participants.length > 0) ? migrated.participants : DEFAULT_PARTICIPANTS,
     projectParams: migrated.projectParams || DEFAULT_PROJECT_PARAMS,
-    scenario: migrated.scenario || DEFAULT_SCENARIO
+    scenario: migrated.scenario || DEFAULT_SCENARIO,
+    deedDate: migrated.deedDate // Preserve deed date from feature branch
   };
 };
 
 // LocalStorage utilities
-const saveToLocalStorage = (participants: any[], projectParams: any, scenario: any) => {
+const saveToLocalStorage = (participants: any[], projectParams: any, scenario: any, deedDate: string) => {
   try {
     const data = {
-      version: 1,
+      version: 2, // Increment version for deed date
       timestamp: new Date().toISOString(),
       participants,
       projectParams,
-      scenario
+      scenario,
+      deedDate
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch (error) {
@@ -172,10 +180,15 @@ export default function EnDivisionCorrect() {
     return stored ? stored.scenario : DEFAULT_SCENARIO;
   });
 
+  const [deedDate, setDeedDate] = useState(() => {
+    const stored = loadFromLocalStorage();
+    return stored?.deedDate || DEFAULT_DEED_DATE;
+  });
+
   // Auto-save to localStorage whenever state changes
   useEffect(() => {
-    saveToLocalStorage(participants, projectParams, scenario);
-  }, [participants, projectParams, scenario]);
+    saveToLocalStorage(participants, projectParams, scenario, deedDate);
+  }, [participants, projectParams, scenario, deedDate]);
 
   const calculations = useMemo(() => {
     return calculateAll(participants, projectParams, scenario, unitDetails);
@@ -240,6 +253,41 @@ export default function EnDivisionCorrect() {
   const exportToExcel = () => {
     const writer = new XlsxWriter();
     exportCalculations(calculations, projectParams, scenario, writer);
+  };
+
+  // Continue to Timeline - convert calculator to timeline event
+  const continueToTimeline = () => {
+    try {
+      // Convert calculator inputs to InitialPurchaseEvent
+      const event = convertCalculatorToInitialPurchaseEvent(
+        participants,
+        projectParams,
+        scenario,
+        new Date(deedDate),
+        'Copropriété', // Default name
+        [] // No hidden lots by default
+      );
+
+      // Export as JSON
+      const timelineJSON = exportTimelineToJSON([event]);
+
+      // Download the file
+      const blob = new Blob([timelineJSON], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `timeline-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      // Show success message
+      alert('Timeline exported! You can now import this file in the Timeline view at /continuous-timeline-demo/');
+    } catch (error) {
+      console.error('Timeline export failed:', error);
+      alert('Erreur lors de l\'export vers la timeline');
+    }
   };
 
   // Download scenario as JSON file
@@ -373,6 +421,15 @@ export default function EnDivisionCorrect() {
                 <Download className="w-4 h-4" />
                 Excel
               </button>
+
+              <button
+                onClick={continueToTimeline}
+                className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 border border-green-600 text-sm"
+                title="Export to Timeline - Download JSON file for timeline view"
+              >
+                <ArrowRight className="w-4 h-4" />
+                Continue to Timeline
+              </button>
             </div>
 
             <input
@@ -386,6 +443,26 @@ export default function EnDivisionCorrect() {
             <p className="text-xs text-gray-500 mt-3 text-center">
               Sauvegarde automatique activée
             </p>
+          </div>
+
+          {/* Deed Date Field */}
+          <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start gap-4">
+              <div className="flex-grow">
+                <label className="block text-sm font-semibold text-gray-800 mb-2">
+                  📅 Date de l'acte / Deed Date
+                </label>
+                <input
+                  type="date"
+                  value={deedDate}
+                  onChange={(e) => setDeedDate(e.target.value)}
+                  className="w-full md:w-64 px-4 py-2 text-base border-2 border-green-300 rounded-lg focus:border-green-500 focus:ring-2 focus:ring-green-500 focus:outline-none bg-white font-medium"
+                />
+                <p className="text-xs text-gray-600 mt-2">
+                  Date when the property deed will be signed. This is T0 (Time Zero) for your project - all recurring costs and holding duration calculations start from this date.
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6">
@@ -750,7 +827,7 @@ export default function EnDivisionCorrect() {
                         <span className="text-gray-300">•</span>
                         <span>{p.surface}m²</span>
                         <span className="text-gray-300">•</span>
-                        <span>{p.quantity} {p.quantity > 1 ? 'unités' : 'unité'}</span>
+                        <span>{p.quantity || 1} {(p.quantity || 1) > 1 ? 'unités' : 'unité'}</span>
                       </div>
                     </div>
                   </div>
@@ -791,7 +868,7 @@ export default function EnDivisionCorrect() {
                         onChange={(e) => updateParticipantSurface(idx, parseFloat(e.target.value) || 0)}
                         className="w-full px-3 py-2 font-medium border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white"
                       />
-                      <p className="text-xs text-gray-500 mt-1">Total pour {p.quantity} {p.quantity > 1 ? 'unités' : 'unité'}</p>
+                      <p className="text-xs text-gray-500 mt-1">Total pour {p.quantity || 1} {(p.quantity || 1) > 1 ? 'unités' : 'unité'}</p>
                     </div>
                     <div>
                       <label className="block text-xs text-gray-600 mb-1">Quantité</label>
@@ -891,7 +968,7 @@ export default function EnDivisionCorrect() {
                     <div className="bg-white rounded-lg p-3 border border-gray-200">
                       <p className="text-xs text-gray-500 mb-1">Construction</p>
                       <p className="text-base font-bold text-gray-900">{formatCurrency(p.constructionCost)}</p>
-                      {p.quantity > 1 && (
+                      {(p.quantity || 1) > 1 && (
                         <p className="text-xs text-gray-400 mt-0.5">{formatCurrency(p.constructionCostPerUnit)}/u</p>
                       )}
                     </div>
