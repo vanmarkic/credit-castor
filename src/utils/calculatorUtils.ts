@@ -115,6 +115,15 @@ export interface ParticipantCalculation extends Participant {
   monthlyPayment: number;
   totalRepayment: number;
   totalInterest: number;
+
+  // Two-loan breakdown (only populated if useTwoLoans = true)
+  loan1Amount?: number;
+  loan1MonthlyPayment?: number;
+  loan1Interest?: number;
+  loan2Amount?: number;
+  loan2DurationYears?: number;  // Calculated to match loan 1 end date
+  loan2MonthlyPayment?: number;
+  loan2Interest?: number;
 }
 
 export interface CalculationTotals {
