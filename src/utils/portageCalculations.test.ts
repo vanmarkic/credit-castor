@@ -18,6 +18,7 @@ import {
   type CarryingCosts,
   // ResalePrice, Redistribution - unused type imports removed
 } from './portageCalculations';
+import type { PortageFormulaParams } from './calculatorUtils';
 
 describe('calculateCarryingCosts', () => {
   it('should calculate monthly interest correctly', () => {
@@ -94,12 +95,18 @@ describe('calculateResalePrice', () => {
       totalForPeriod: 13147 // 24 months × 547.79
     };
 
+    const formulaParams: PortageFormulaParams = {
+      indexationRate: 2,
+      carryingCostRecovery: 100,
+      averageInterestRate: 4.5
+    };
+
     const result = calculateResalePrice(
       originalPrice,
       originalNotaryFees,
       originalConstructionCost,
       2,       // years held
-      2,       // indexation rate
+      formulaParams,
       carryingCosts,
       0        // no renovations
     );
@@ -122,12 +129,18 @@ describe('calculateResalePrice', () => {
     const originalNotaryFees = 12500;
     const originalConstructionCost = 0;
 
+    const formulaParams: PortageFormulaParams = {
+      indexationRate: 2,
+      carryingCostRecovery: 100,
+      averageInterestRate: 4.5
+    };
+
     const result = calculateResalePrice(
       originalPrice,
       originalNotaryFees,
       originalConstructionCost,
       3,       // years
-      2,       // 2% indexation
+      formulaParams,
       { totalForPeriod: 0 } as CarryingCosts,
       0
     );
@@ -141,12 +154,18 @@ describe('calculateResalePrice', () => {
     const originalNotaryFees = 17875;
     const originalConstructionCost = 0;
 
+    const formulaParams: PortageFormulaParams = {
+      indexationRate: 2,
+      carryingCostRecovery: 100,
+      averageInterestRate: 4.5
+    };
+
     const result = calculateResalePrice(
       originalPrice,
       originalNotaryFees,
       originalConstructionCost,
       2,  // 2 years
-      2,
+      formulaParams,
       { totalForPeriod: 0 } as CarryingCosts,
       0
     );
@@ -157,12 +176,18 @@ describe('calculateResalePrice', () => {
   });
 
   it('should NOT apply fee recovery (fees are in base)', () => {
+    const formulaParams: PortageFormulaParams = {
+      indexationRate: 2,
+      carryingCostRecovery: 100,
+      averageInterestRate: 4.5
+    };
+
     const result = calculateResalePrice(
       143000,
       17875,
       0, // construction
       2.1,  // Just over 2 years
-      2,
+      formulaParams,
       { totalForPeriod: 0 } as CarryingCosts,
       0
     );
@@ -176,12 +201,18 @@ describe('calculateResalePrice', () => {
     const originalNotaryFees = 17875;
     const originalConstructionCost = 0;
 
+    const formulaParams: PortageFormulaParams = {
+      indexationRate: 2,
+      carryingCostRecovery: 100,
+      averageInterestRate: 4.5
+    };
+
     const result = calculateResalePrice(
       originalPrice,
       originalNotaryFees,
       originalConstructionCost,
       1,
-      2,
+      formulaParams,
       { totalForPeriod: 5000 } as CarryingCosts,
       15000  // renovations
     );
@@ -196,6 +227,12 @@ describe('calculateResalePrice', () => {
     const originalConstructionCost = 0;
     const totalAcquisition = originalPrice + originalNotaryFees + originalConstructionCost;
 
+    const formulaParams: PortageFormulaParams = {
+      indexationRate: 2,
+      carryingCostRecovery: 100,
+      averageInterestRate: 4.5
+    };
+
     const carryingCosts: CarryingCosts = {
       monthlyInterest: 300,
       monthlyTax: 30,
@@ -209,7 +246,7 @@ describe('calculateResalePrice', () => {
       originalNotaryFees,
       originalConstructionCost,
       2,
-      2,
+      formulaParams,
       carryingCosts,
       10000
     );
@@ -437,12 +474,18 @@ describe('calculatePortageLotPrice', () => {
       totalForPeriod: 9577 // 24 months
     };
 
+    const formulaParams: PortageFormulaParams = {
+      indexationRate: 2,
+      carryingCostRecovery: 100,
+      averageInterestRate: 4.5
+    };
+
     const result = calculatePortageLotPrice(
       originalPrice,
       originalNotaryFees,
       originalConstructionCost,
       2,        // years held
-      2,        // indexation rate
+      formulaParams,
       carryingCosts,
       0         // no renovations
     );
@@ -462,12 +505,18 @@ describe('calculatePortageLotPrice', () => {
     // Base calculation: 75m² × indexed price/m²
     // Plus portage costs proportional to surface ratio
 
+    const formulaParams: PortageFormulaParams = {
+      indexationRate: 2,
+      carryingCostRecovery: 100,
+      averageInterestRate: 4.5
+    };
+
     const result = calculatePortageLotPriceFromCopro(
       75,        // surface chosen by newcomer
       300,       // total copro lot surface
       412500,    // total copro lot original price
       2,         // years held
-      2,         // indexation
+      formulaParams,
       15000      // total carrying costs for whole copro lot
     );
 
@@ -476,5 +525,31 @@ describe('calculatePortageLotPrice', () => {
     expect(result.basePrice).toBeCloseTo(expectedBase, 0);
     expect(result.surfaceImposed).toBe(false);
     expect(result.totalPrice).toBeGreaterThan(expectedBase);
+  });
+});
+
+describe('calculateResalePrice with formula params', () => {
+  it('should use custom indexation rate from formula params', () => {
+    const customFormula: PortageFormulaParams = {
+      indexationRate: 3.0, // Custom rate
+      carryingCostRecovery: 100,
+      averageInterestRate: 4.5
+    };
+
+    const carryingCosts = calculateCarryingCosts(60000, 0, 30, 4.5);
+    const result = calculateResalePrice(
+      60000,
+      7500,
+      0,
+      2.5,
+      customFormula,
+      carryingCosts,
+      0
+    );
+
+    // With 3% indexation over 2.5 years on total acquisition cost
+    const totalAcquisition = 60000 + 7500 + 0; // 67,500
+    const expectedIndexation = totalAcquisition * (Math.pow(1.03, 2.5) - 1);
+    expect(result.indexation).toBeCloseTo(expectedIndexation, 0);
   });
 });

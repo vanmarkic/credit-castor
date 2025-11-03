@@ -9,6 +9,8 @@
  * All functions are pure (no side effects) for testability.
  */
 
+import type { PortageFormulaParams } from './calculatorUtils';
+
 // ============================================
 // Types
 // ============================================
@@ -110,17 +112,15 @@ export function calculateCarryingCosts(
  *
  * Formula breakdown:
  * - Base acquisition cost (purchase price + notary fees + construction costs)
- * - + Indexation (compound interest at 2%/year default on total acquisition)
+ * - + Indexation (compound interest using rate from formula params)
  * - + Carrying cost recovery
  * - + Additional renovations after initial acquisition
- *
- * Note: Fee recovery removed as notary fees are now included in base acquisition
  *
  * @param originalPurchaseShare - Original purchase price
  * @param originalNotaryFees - Notary fees paid at purchase
  * @param originalConstructionCost - Construction costs (CASCO + parachevements + travaux communs)
  * @param yearsHeld - Years the lot was carried
- * @param indexationRate - Annual indexation rate (default 2%)
+ * @param formulaParams - Global formula parameters (indexation rate, etc.)
  * @param carryingCosts - Calculated carrying costs
  * @param renovationsConducted - Any additional renovation costs after acquisition
  * @returns Complete breakdown of resale price
@@ -130,40 +130,43 @@ export function calculateResalePrice(
   originalNotaryFees: number,
   originalConstructionCost: number,
   yearsHeld: number,
-  indexationRate: number = 2,
+  formulaParams: PortageFormulaParams,
   carryingCosts: CarryingCosts,
   renovationsConducted: number = 0
 ): ResalePrice {
   // Total acquisition cost = purchase + notary + construction
-  // This represents the "as if buying 2 apartments" cost
   const totalAcquisitionCost = originalPurchaseShare + originalNotaryFees + originalConstructionCost;
 
-  // Calculate indexation on total acquisition cost (compound)
+  // Calculate indexation on total acquisition cost (compound) using formula params
+  const indexationRate = formulaParams.indexationRate;
   const indexationMultiplier = Math.pow(1 + indexationRate / 100, yearsHeld);
   const indexation = totalAcquisitionCost * (indexationMultiplier - 1);
 
   // Fee recovery no longer applicable (fees included in acquisition cost)
   const feesRecovery = 0;
 
+  // Apply carrying cost recovery percentage from formula params
+  const carryingCostRecovery = carryingCosts.totalForPeriod * (formulaParams.carryingCostRecovery / 100);
+
   // Total price
   const totalPrice =
     totalAcquisitionCost +
     indexation +
-    carryingCosts.totalForPeriod +
+    carryingCostRecovery +
     renovationsConducted;
 
   return {
     basePrice: totalAcquisitionCost,
     feesRecovery,
     indexation,
-    carryingCostRecovery: carryingCosts.totalForPeriod,
+    carryingCostRecovery,
     renovations: renovationsConducted,
     totalPrice,
     breakdown: {
       base: totalAcquisitionCost,
       fees: feesRecovery,
       indexation,
-      carrying: carryingCosts.totalForPeriod,
+      carrying: carryingCostRecovery,
       renovations: renovationsConducted
     }
   };
@@ -191,7 +194,7 @@ export function calculatePortageLotPrice(
   originalNotaryFees: number,
   originalConstructionCost: number,
   yearsHeld: number,
-  indexationRate: number,
+  formulaParams: PortageFormulaParams,
   carryingCosts: CarryingCosts,
   renovations: number = 0
 ): PortageLotPrice {
@@ -200,7 +203,7 @@ export function calculatePortageLotPrice(
     originalNotaryFees,
     originalConstructionCost,
     yearsHeld,
-    indexationRate,
+    formulaParams,
     carryingCosts,
     renovations
   );
@@ -224,19 +227,20 @@ export function calculatePortageLotPriceFromCopro(
   totalCoproLotSurface: number,
   totalCoproLotOriginalPrice: number,
   yearsHeld: number,
-  indexationRate: number,
+  formulaParams: PortageFormulaParams,
   totalCarryingCosts: number
 ): PortageLotPrice {
   // Calculate proportional base price
   const surfaceRatio = surfaceChosen / totalCoproLotSurface;
   const basePrice = totalCoproLotOriginalPrice * surfaceRatio;
 
-  // Calculate indexation
+  // Calculate indexation using formula params
+  const indexationRate = formulaParams.indexationRate;
   const indexationMultiplier = Math.pow(1 + indexationRate / 100, yearsHeld);
   const indexation = basePrice * (indexationMultiplier - 1);
 
-  // Proportional carrying costs
-  const carryingCostRecovery = totalCarryingCosts * surfaceRatio;
+  // Proportional carrying costs with recovery percentage
+  const carryingCostRecovery = totalCarryingCosts * surfaceRatio * (formulaParams.carryingCostRecovery / 100);
 
   // No fee recovery for copro lots (copro doesn't recover fees)
   const feesRecovery = 0;
