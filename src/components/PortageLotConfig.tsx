@@ -54,7 +54,7 @@ export default function PortageLotConfig({
             const hasSaleDate = lot.soldDate !== undefined;
 
             // Calculate years held only if there's a sale date
-            const yearsHeld = hasSaleDate
+            const yearsHeld = hasSaleDate && lot.soldDate
               ? calculateYearsHeld(deedDate, lot.soldDate)
               : 0;
 

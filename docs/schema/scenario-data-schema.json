@@ -1,0 +1,364 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Credit Castor Scenario Data Schema",
+  "description": "JSON schema for Credit Castor scenario files (v2)",
+  "type": "object",
+  "required": ["version", "releaseVersion", "timestamp", "participants", "projectParams", "deedDate"],
+  "properties": {
+    "version": {
+      "type": "number",
+      "description": "Schema version number",
+      "const": 2
+    },
+    "releaseVersion": {
+      "type": "string",
+      "description": "Application release version that created this file",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO timestamp when file was created"
+    },
+    "deedDate": {
+      "type": "string",
+      "format": "date",
+      "description": "Property deed date (YYYY-MM-DD)"
+    },
+    "participants": {
+      "type": "array",
+      "description": "List of all participants (founders and newcomers)",
+      "items": {
+        "$ref": "#/definitions/Participant"
+      }
+    },
+    "projectParams": {
+      "$ref": "#/definitions/ProjectParams"
+    },
+    "unitDetails": {
+      "type": "object",
+      "description": "Construction costs per unit type",
+      "additionalProperties": {
+        "$ref": "#/definitions/UnitDetail"
+      }
+    },
+    "calculations": {
+      "type": "object",
+      "description": "Pre-calculated results (optional, for reference)",
+      "properties": {
+        "totalSurface": { "type": "number" },
+        "pricePerM2": { "type": "number" },
+        "sharedCosts": { "type": "number" },
+        "sharedPerPerson": { "type": "number" },
+        "participantBreakdown": { "type": "array" },
+        "totals": { "type": "object" }
+      }
+    }
+  },
+  "definitions": {
+    "Participant": {
+      "type": "object",
+      "required": ["name", "capitalApporte", "notaryFeesRate", "interestRate", "durationYears"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Participant name"
+        },
+        "capitalApporte": {
+          "type": "number",
+          "description": "Down payment amount (€)",
+          "minimum": 0
+        },
+        "notaryFeesRate": {
+          "type": "number",
+          "description": "Notary fees rate (%)",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "interestRate": {
+          "type": "number",
+          "description": "Loan interest rate (%)",
+          "minimum": 0
+        },
+        "durationYears": {
+          "type": "number",
+          "description": "Loan duration in years",
+          "minimum": 1
+        },
+        "isFounder": {
+          "type": "boolean",
+          "description": "True if participant entered at deed date"
+        },
+        "entryDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date when participant joined (ISO 8601)"
+        },
+        "exitDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date when participant left (ISO 8601, optional)"
+        },
+        "lotsOwned": {
+          "type": "array",
+          "description": "Array of lots owned by this participant",
+          "items": {
+            "$ref": "#/definitions/Lot"
+          }
+        },
+        "purchaseDetails": {
+          "type": "object",
+          "description": "Purchase information for newcomers",
+          "properties": {
+            "buyingFrom": {
+              "type": "string",
+              "description": "Seller name or 'Copropriété'"
+            },
+            "lotId": {
+              "type": "number",
+              "description": "ID of lot being purchased"
+            },
+            "purchasePrice": {
+              "type": "number",
+              "description": "Total purchase price (€)",
+              "minimum": 0
+            },
+            "breakdown": {
+              "type": "object",
+              "description": "Price breakdown (optional)",
+              "properties": {
+                "basePrice": { "type": "number" },
+                "indexation": { "type": "number" },
+                "carryingCostRecovery": { "type": "number" },
+                "feesRecovery": { "type": "number" },
+                "renovations": { "type": "number" }
+              }
+            }
+          }
+        },
+        "useTwoLoans": {
+          "type": "boolean",
+          "description": "Enable two-loan financing"
+        },
+        "loan2DelayYears": {
+          "type": "number",
+          "description": "Years before second loan starts (default: 2)"
+        },
+        "loan2RenovationAmount": {
+          "type": "number",
+          "description": "Amount of construction costs in second loan (€)"
+        },
+        "capitalForLoan1": {
+          "type": "number",
+          "description": "Down payment allocated to first loan (€)"
+        },
+        "capitalForLoan2": {
+          "type": "number",
+          "description": "Down payment allocated to second loan (€)"
+        },
+        "unitId": {
+          "type": "number",
+          "description": "Legacy: unit type ID"
+        },
+        "surface": {
+          "type": "number",
+          "description": "Legacy: surface area (m²)"
+        },
+        "quantity": {
+          "type": "number",
+          "description": "Legacy: number of units"
+        },
+        "parachevementsPerM2": {
+          "type": "number",
+          "description": "Custom finishing cost per m² (€/m²)"
+        },
+        "cascoSqm": {
+          "type": "number",
+          "description": "Custom shell surface (m²)"
+        },
+        "parachevementsSqm": {
+          "type": "number",
+          "description": "Custom finishing surface (m²)"
+        }
+      }
+    },
+    "Lot": {
+      "type": "object",
+      "required": ["lotId", "surface", "unitId", "isPortage", "acquiredDate"],
+      "properties": {
+        "lotId": {
+          "type": "number",
+          "description": "Unique lot identifier"
+        },
+        "surface": {
+          "type": "number",
+          "description": "Total lot surface (m²)",
+          "minimum": 0
+        },
+        "unitId": {
+          "type": "number",
+          "description": "Unit type ID for construction costs"
+        },
+        "isPortage": {
+          "type": "boolean",
+          "description": "True if lot is held in portage (for resale)"
+        },
+        "acquiredDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date when lot was legally acquired (ISO 8601)"
+        },
+        "originalPrice": {
+          "type": "number",
+          "description": "Purchase price when acquired (€)",
+          "minimum": 0
+        },
+        "originalNotaryFees": {
+          "type": "number",
+          "description": "Notary fees paid at acquisition (€)",
+          "minimum": 0
+        },
+        "originalConstructionCost": {
+          "type": "number",
+          "description": "Construction costs: CASCO + parachèvements + travaux communs (€)",
+          "minimum": 0
+        },
+        "monthlyCarryingCost": {
+          "type": "number",
+          "description": "Monthly carrying cost for portage lots (€/month)"
+        },
+        "allocatedSurface": {
+          "type": "number",
+          "description": "Surface allocated for portage (if isPortage=true, m²)"
+        },
+        "soldDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date when lot was sold to buyer (ISO 8601, NEW in v2.1)"
+        },
+        "soldTo": {
+          "type": "string",
+          "description": "Buyer's name (optional)"
+        },
+        "salePrice": {
+          "type": "number",
+          "description": "Final sale price (€)"
+        },
+        "carryingCosts": {
+          "type": "number",
+          "description": "Total carrying costs accumulated (€)"
+        }
+      }
+    },
+    "ProjectParams": {
+      "type": "object",
+      "required": ["totalPurchase"],
+      "properties": {
+        "totalPurchase": {
+          "type": "number",
+          "description": "Total property purchase price (€)",
+          "minimum": 0
+        },
+        "mesuresConservatoires": {
+          "type": "number",
+          "description": "Conservatory measures (€)",
+          "minimum": 0
+        },
+        "demolition": {
+          "type": "number",
+          "description": "Demolition costs (€)",
+          "minimum": 0
+        },
+        "infrastructures": {
+          "type": "number",
+          "description": "Infrastructure costs (€)",
+          "minimum": 0
+        },
+        "etudesPreparatoires": {
+          "type": "number",
+          "description": "Preparatory studies (€)",
+          "minimum": 0
+        },
+        "fraisEtudesPreparatoires": {
+          "type": "number",
+          "description": "Study fees (€)",
+          "minimum": 0
+        },
+        "fraisGeneraux3ans": {
+          "type": "number",
+          "description": "3-year general expenses (€)",
+          "minimum": 0
+        },
+        "globalCascoPerM2": {
+          "type": "number",
+          "description": "Global shell cost per m² (€/m²)",
+          "minimum": 0
+        },
+        "batimentFondationConservatoire": {
+          "type": "number",
+          "description": "Building foundation conservatory (€)",
+          "minimum": 0
+        },
+        "batimentFondationComplete": {
+          "type": "number",
+          "description": "Building foundation complete (€)",
+          "minimum": 0
+        },
+        "batimentCoproConservatoire": {
+          "type": "number",
+          "description": "Copropriété building conservatory (€)",
+          "minimum": 0
+        },
+        "expenseCategories": {
+          "type": "object",
+          "description": "Detailed expense line items (optional)",
+          "properties": {
+            "conservatoire": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ExpenseLineItem" }
+            },
+            "habitabiliteSommaire": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ExpenseLineItem" }
+            },
+            "premierTravaux": {
+              "type": "array",
+              "items": { "$ref": "#/definitions/ExpenseLineItem" }
+            }
+          }
+        }
+      }
+    },
+    "UnitDetail": {
+      "type": "object",
+      "required": ["casco", "parachevements"],
+      "properties": {
+        "casco": {
+          "type": "number",
+          "description": "Shell construction cost per m² (€/m²)",
+          "minimum": 0
+        },
+        "parachevements": {
+          "type": "number",
+          "description": "Finishing cost per m² (€/m²)",
+          "minimum": 0
+        }
+      }
+    },
+    "ExpenseLineItem": {
+      "type": "object",
+      "required": ["label", "amount"],
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "Expense description"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount in euros (€)",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
