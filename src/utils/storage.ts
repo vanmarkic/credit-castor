@@ -201,6 +201,36 @@ export const loadFromLocalStorage = () => {
             return rest as Participant;
           });
         }
+
+        // Migration: Convert date strings back to Date objects
+        if (result.participants) {
+          result.participants = result.participants.map((p: Participant) => {
+            // Convert participant dates
+            const participant = { ...p };
+            if (participant.entryDate && typeof participant.entryDate === 'string') {
+              participant.entryDate = new Date(participant.entryDate);
+            }
+            if (participant.exitDate && typeof participant.exitDate === 'string') {
+              participant.exitDate = new Date(participant.exitDate);
+            }
+
+            // Convert lot dates
+            if (participant.lotsOwned) {
+              participant.lotsOwned = participant.lotsOwned.map(lot => {
+                const updatedLot = { ...lot };
+                if (updatedLot.acquiredDate && typeof updatedLot.acquiredDate === 'string') {
+                  updatedLot.acquiredDate = new Date(updatedLot.acquiredDate);
+                }
+                if (updatedLot.soldDate && typeof updatedLot.soldDate === 'string') {
+                  updatedLot.soldDate = new Date(updatedLot.soldDate);
+                }
+                return updatedLot;
+              });
+            }
+
+            return participant;
+          });
+        }
       }
 
       return result;
