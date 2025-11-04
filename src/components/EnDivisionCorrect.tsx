@@ -33,6 +33,7 @@ import { useParticipantOperations } from '../hooks/useParticipantOperations';
 import { useStoragePersistence } from '../hooks/useStoragePersistence';
 import { downloadScenarioFile, createFileUploadHandler } from '../utils/scenarioFileIO';
 import HorizontalSwimLaneTimeline from './HorizontalSwimLaneTimeline';
+import { updateBuyerWithRecalculatedPrice } from '../utils/portageRecalculation';
 
 export default function EnDivisionCorrect() {
   // State management
@@ -586,23 +587,44 @@ export default function EnDivisionCorrect() {
                 // Update buyer participant
                 newParticipants[idx] = updated;
 
+                // Check if entry date changed
+                const entryDateChanged = oldParticipant.entryDate?.getTime() !== updated.entryDate?.getTime();
+
                 // Handle seller's lot soldDate updates
                 const oldPurchase = oldParticipant.purchaseDetails;
                 const newPurchase = updated.purchaseDetails;
 
-                // If buyer selected a portage lot, set seller's soldDate
-                if (newPurchase?.buyingFrom && newPurchase?.lotId) {
+                // If buyer has a portage lot purchase
+                if (newPurchase?.buyingFrom && newPurchase?.lotId && newPurchase.buyingFrom !== 'Copropriété') {
                   const sellerIdx = newParticipants.findIndex(p => p.name === newPurchase.buyingFrom);
                   if (sellerIdx !== -1 && newParticipants[sellerIdx].lotsOwned) {
+                    const seller = newParticipants[sellerIdx];
+
+                    // Update seller's lot soldDate
                     newParticipants[sellerIdx] = {
-                      ...newParticipants[sellerIdx],
-                      lotsOwned: newParticipants[sellerIdx].lotsOwned?.map(lot =>
+                      ...seller,
+                      lotsOwned: seller.lotsOwned?.map(lot =>
                         lot.lotId === newPurchase.lotId
                           ? { ...lot, soldDate: updated.entryDate }
                           : lot
                       )
                     };
+
+                    // Recalculate buyer's purchase price if entry date changed
+                    if (entryDateChanged) {
+                      newParticipants[idx] = updateBuyerWithRecalculatedPrice(
+                        newParticipants[idx],
+                        newParticipants[sellerIdx],
+                        deedDate,
+                        portageFormula
+                      );
+                    }
                   }
+                }
+                // If buyer has copro purchase, just update soldDate
+                else if (newPurchase?.buyingFrom === 'Copropriété' && newPurchase?.lotId) {
+                  // Copro purchases don't need price recalculation
+                  // They're sold at a fixed price from the copropriété inventory
                 }
                 // If buyer unselected a portage lot, clear seller's soldDate
                 else if (oldPurchase?.buyingFrom && oldPurchase?.lotId && !newPurchase) {
