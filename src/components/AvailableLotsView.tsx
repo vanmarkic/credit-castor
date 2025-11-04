@@ -12,7 +12,9 @@ import type { PortageLotPrice } from '../utils/portageCalculations';
 import type { PortageFormulaParams } from '../utils/calculatorUtils';
 import {
   calculateYearsHeld,
-  calculateCoproEstimatedPrice
+  calculateCoproEstimatedPrice,
+  calculatePortageLotPrice,
+  calculateCarryingCosts
 } from '../utils/portageCalculations';
 
 interface AvailableLotsViewProps {
@@ -41,6 +43,7 @@ export default function AvailableLotsView({
 }: AvailableLotsViewProps) {
   const [coproSurfaces, setCoproSurfaces] = useState<Record<number, number>>({});
 
+  const portageLots = availableLots.filter(lot => lot.source === 'FOUNDER');
   const coproLots = availableLots.filter(lot => lot.source === 'COPRO');
 
   // Determine sale date with proper validation
@@ -95,6 +98,87 @@ export default function AvailableLotsView({
 
   return (
     <div id="portage-marketplace" className="space-y-6 scroll-mt-6">
+      {/* Portage Lots (from Founders) */}
+      {portageLots.length > 0 && (
+        <div className="bg-orange-50 rounded-lg border-2 border-orange-200 p-6">
+          <h3 className="text-lg font-semibold text-orange-700 mb-3 flex items-center gap-2">
+            <span>🏠</span>
+            Lots en Portage (Surface imposée)
+          </h3>
+          <div className="space-y-3">
+            {portageLots.map(lot => {
+              // Calculate portage price with indexation and carrying costs
+              const baseAcquisitionCost = (lot.originalPrice || 0) + (lot.originalNotaryFees || 0) + (lot.originalConstructionCost || 0);
+              const carryingCosts = calculateCarryingCosts(
+                baseAcquisitionCost,
+                0, // Assume no capital for pricing display
+                yearsHeld * 12,
+                formulaParams.averageInterestRate
+              );
+
+              const price = calculatePortageLotPrice(
+                lot.originalPrice || 0,
+                lot.originalNotaryFees || 0,
+                lot.originalConstructionCost || 0,
+                yearsHeld,
+                formulaParams,
+                carryingCosts
+              );
+
+              return (
+                <div
+                  key={lot.lotId}
+                  className="bg-white border-2 border-orange-300 rounded-lg p-4 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h4 className="font-semibold text-orange-800">Lot #{lot.lotId}</h4>
+                      <p className="text-sm text-gray-600">De: {lot.fromParticipant}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-600">Surface imposée</p>
+                      <p className="text-xl font-bold text-orange-700">{lot.surface}m²</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-orange-100 rounded p-3 mb-3">
+                    <div className="text-xs text-gray-600 mb-2">Prix de vente</div>
+                    <div className="text-2xl font-bold text-orange-800">
+                      {price.totalPrice.toLocaleString('fr-BE', { maximumFractionDigits: 0 })} €
+                    </div>
+                    <div className="text-xs text-gray-600 mt-2 space-y-1">
+                      <div className="flex justify-between">
+                        <span>Base (achat+notaire+casco):</span>
+                        <span className="font-semibold">
+                          {((lot.originalPrice || 0) + (lot.originalNotaryFees || 0) + (lot.originalConstructionCost || 0)).toLocaleString('fr-BE')} €
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Indexation ({formulaParams.indexationRate}% × {yearsHeld.toFixed(1)} ans):</span>
+                        <span className="font-semibold">{price.indexation.toLocaleString('fr-BE')} €</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Frais de portage ({yearsHeld.toFixed(1)} ans):</span>
+                        <span className="font-semibold">{price.carryingCostRecovery.toLocaleString('fr-BE')} €</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {onSelectLot && (
+                    <button
+                      onClick={() => onSelectLot(lot, price)}
+                      className="w-full px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white font-semibold rounded-lg transition-colors"
+                    >
+                      👆 Sélectionner ce lot ({lot.surface}m²)
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Copropriété Lots */}
       {coproLots.length > 0 && (
         <div className="bg-purple-50 rounded-lg border-2 border-purple-200 p-6">
