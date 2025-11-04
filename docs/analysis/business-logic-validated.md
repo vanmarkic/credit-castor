@@ -306,6 +306,24 @@ const totalAcquisitionCost = originalPurchaseShare + originalNotaryFees + origin
 - **Other professionals**: Not yet included (stability, PEB, etc.)
 - **Duration**: ~3 years typical construction period
 
+### Q5: Transaction Delta Calculation ✅ VALIDATED
+
+**User decision**: Transactions are explicit domain objects with calculated deltas
+
+**Implementation**:
+- Portage sale delta = seller receives lot price, reduces total cost by that amount
+- Buyer purchase delta = buyer pays lot price, increases total cost by that amount
+- Lot price calculated using portageCalculations formula at buyer's entry date
+- Copro sale delta = shared costs redistributed among participants
+- Transaction object embedded in timeline snapshot
+- Business logic in utils/transactionCalculations.ts (pure functions)
+- View layer calls transaction functions reactively during snapshot generation
+
+**Formula Reference**:
+- Lot price = originalPurchaseShare + originalNotaryFees + originalConstructionCost + indexation + carrying costs
+- Indexation based on years held (buyer entry date - seller entry date)
+- Carrying costs recovered per configured percentage (default 100%)
+
 ---
 
 ## Next Steps
