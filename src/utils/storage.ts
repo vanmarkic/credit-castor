@@ -63,7 +63,13 @@ export const DEFAULT_PARTICIPANTS: Participant[] = [
     entryDate: new Date('2027-06-01'),
     purchaseDetails: {
       buyingFrom: 'Annabelle/Colin',
-      lotId: 2
+      lotId: 2,
+      // Calculated: 16 months (1.33 years) of portage on lot 2
+      // Base: €233,175 (94,200 + 11,775 + 127,200)
+      // Indexation (2% × 1.33 years): €6,212
+      // Carrying costs recovery (100%): €17,103
+      // Total: €256,490
+      purchasePrice: 256490
     }
   }
 ];

@@ -26,10 +26,11 @@ export interface Participant {
   lotsOwned?: Lot[]; // Array of lots owned (replaces quantity + surface + unitId)
 
   // Purchase details (for newcomers only)
+  // When set, lotId and purchasePrice are REQUIRED for type safety
   purchaseDetails?: {
     buyingFrom: string; // Participant name or "Copropriété"
-    lotId?: number;
-    purchasePrice?: number;
+    lotId: number;  // REQUIRED: ID of lot being purchased
+    purchasePrice: number;  // REQUIRED: total purchase price in euros
     breakdown?: {
       basePrice: number;
       indexation: number;
