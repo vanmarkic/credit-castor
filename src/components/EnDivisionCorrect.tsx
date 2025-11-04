@@ -600,7 +600,7 @@ export default function EnDivisionCorrect() {
                   if (sellerIdx !== -1 && newParticipants[sellerIdx].lotsOwned) {
                     const seller = newParticipants[sellerIdx];
 
-                    // Update seller's lot soldDate
+                    // Update seller's lot soldDate (always, even if date didn't change)
                     newParticipants[sellerIdx] = {
                       ...seller,
                       lotsOwned: seller.lotsOwned?.map(lot =>
@@ -610,15 +610,23 @@ export default function EnDivisionCorrect() {
                       )
                     };
 
-                    // Recalculate buyer's purchase price if entry date changed
-                    if (entryDateChanged) {
-                      newParticipants[idx] = updateBuyerWithRecalculatedPrice(
-                        newParticipants[idx],
-                        newParticipants[sellerIdx],
-                        deedDate,
-                        portageFormula
-                      );
-                    }
+                    // ALWAYS recalculate buyer's purchase price for portage lots
+                    // This ensures reactive updates when entry date changes
+                    console.log('🔄 Recalculating portage price for', updated.name, {
+                      oldDate: oldParticipant.entryDate?.toISOString(),
+                      newDate: updated.entryDate?.toISOString(),
+                      entryDateChanged,
+                      oldPrice: newParticipants[idx].purchaseDetails?.purchasePrice
+                    });
+
+                    newParticipants[idx] = updateBuyerWithRecalculatedPrice(
+                      newParticipants[idx],
+                      newParticipants[sellerIdx],
+                      deedDate,
+                      portageFormula
+                    );
+
+                    console.log('✅ New purchase price:', newParticipants[idx].purchaseDetails?.purchasePrice);
                   }
                 }
                 // If buyer has copro purchase, just update soldDate
