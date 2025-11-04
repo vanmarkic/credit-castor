@@ -112,18 +112,52 @@ export default function HorizontalSwimLaneTimeline({
       p.entryDate ? new Date(p.entryDate).toISOString().split('T')[0] : deedDate
     ))].sort();
 
-    // For each date, create snapshots for ALL active participants at that moment
+    // For each date, create snapshots ONLY for affected participants
     dates.forEach((dateStr, dateIdx) => {
       const date = new Date(dateStr);
 
-      // Find all participants active at this date
-      const activeParticipants = participants.filter(p => {
+      // Find participants who joined at this exact date
+      const joiningParticipants = participants.filter(p => {
         const pEntryDate = p.entryDate ? new Date(p.entryDate) : new Date(deedDate);
-        return pEntryDate <= date;
+        return pEntryDate.toISOString().split('T')[0] === dateStr;
       });
 
-      // For each active participant, create a snapshot showing their state at this moment
-      activeParticipants.forEach((p) => {
+      // Determine who is affected at this moment
+      let affectedParticipants: Participant[];
+
+      if (dateIdx === 0) {
+        // T0: All founders get cards
+        affectedParticipants = joiningParticipants.filter(p => p.isFounder);
+      } else {
+        // Later events: only show affected participants
+        affectedParticipants = [];
+
+        joiningParticipants.forEach(newcomer => {
+          // Add the newcomer
+          affectedParticipants.push(newcomer);
+
+          if (newcomer.purchaseDetails?.buyingFrom === 'Copropriété') {
+            // Copro sale: ALL active participants are affected (shared costs redistribute)
+            const allActive = participants.filter(p => {
+              const pEntryDate = p.entryDate ? new Date(p.entryDate) : new Date(deedDate);
+              return pEntryDate < date; // Active before this date
+            });
+            affectedParticipants.push(...allActive);
+          } else if (newcomer.purchaseDetails?.buyingFrom) {
+            // Portage sale: only buyer and seller affected
+            const seller = participants.find(p => p.name === newcomer.purchaseDetails!.buyingFrom);
+            if (seller) {
+              affectedParticipants.push(seller);
+            }
+          }
+        });
+
+        // Remove duplicates
+        affectedParticipants = Array.from(new Set(affectedParticipants));
+      }
+
+      // Create snapshots for affected participants
+      affectedParticipants.forEach((p) => {
         const pIdx = participants.indexOf(p);
         const breakdown = calculations.participantBreakdown[pIdx];
 
@@ -138,15 +172,28 @@ export default function HorizontalSwimLaneTimeline({
           const loanChange = breakdown.loanNeeded - prevSnapshot.loanNeeded;
 
           if (Math.abs(costChange) > 0.01 || Math.abs(loanChange) > 0.01) {
-            // Find who joined at this date to explain the change
-            const newcomers = participants.filter(np => {
-              const npEntryDate = np.entryDate ? new Date(np.entryDate) : new Date(deedDate);
-              return npEntryDate.toISOString().split('T')[0] === dateStr && !np.isFounder;
-            });
+            // Determine reason for change
+            let reason = 'Updated';
 
-            const reason = newcomers.length > 0
-              ? `${newcomers.map(n => n.name).join(', ')} joined`
-              : 'Shared costs updated';
+            // Check if this participant is selling a portage lot
+            const isSeller = joiningParticipants.some(np =>
+              np.purchaseDetails?.buyingFrom === p.name
+            );
+
+            // Check if this is a copro sale affecting everyone
+            const coproSale = joiningParticipants.find(np =>
+              np.purchaseDetails?.buyingFrom === 'Copropriété'
+            );
+
+            if (isSeller) {
+              const buyer = joiningParticipants.find(np => np.purchaseDetails?.buyingFrom === p.name);
+              reason = `Sold portage lot to ${buyer?.name}`;
+            } else if (coproSale) {
+              reason = `${coproSale.name} joined (copro sale)`;
+            } else if (joiningParticipants.includes(p)) {
+              const seller = p.purchaseDetails?.buyingFrom;
+              reason = seller ? `Purchased from ${seller}` : 'Joined';
+            }
 
             delta = {
               totalCost: costChange,
