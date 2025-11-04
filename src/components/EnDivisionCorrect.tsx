@@ -581,7 +581,44 @@ export default function EnDivisionCorrect() {
               onUpdateParachevementsSqm={(value) => updateParachevementsSqm(idx, value)}
               onUpdateParticipant={(updated) => {
                 const newParticipants = [...participants];
+                const oldParticipant = newParticipants[idx];
+
+                // Update buyer participant
                 newParticipants[idx] = updated;
+
+                // Handle seller's lot soldDate updates
+                const oldPurchase = oldParticipant.purchaseDetails;
+                const newPurchase = updated.purchaseDetails;
+
+                // If buyer selected a portage lot, set seller's soldDate
+                if (newPurchase?.buyingFrom && newPurchase?.lotId) {
+                  const sellerIdx = newParticipants.findIndex(p => p.name === newPurchase.buyingFrom);
+                  if (sellerIdx !== -1 && newParticipants[sellerIdx].lotsOwned) {
+                    newParticipants[sellerIdx] = {
+                      ...newParticipants[sellerIdx],
+                      lotsOwned: newParticipants[sellerIdx].lotsOwned?.map(lot =>
+                        lot.lotId === newPurchase.lotId
+                          ? { ...lot, soldDate: updated.entryDate }
+                          : lot
+                      )
+                    };
+                  }
+                }
+                // If buyer unselected a portage lot, clear seller's soldDate
+                else if (oldPurchase?.buyingFrom && oldPurchase?.lotId && !newPurchase) {
+                  const sellerIdx = newParticipants.findIndex(p => p.name === oldPurchase.buyingFrom);
+                  if (sellerIdx !== -1 && newParticipants[sellerIdx].lotsOwned) {
+                    newParticipants[sellerIdx] = {
+                      ...newParticipants[sellerIdx],
+                      lotsOwned: newParticipants[sellerIdx].lotsOwned?.map(lot =>
+                        lot.lotId === oldPurchase.lotId
+                          ? { ...lot, soldDate: undefined }
+                          : lot
+                      )
+                    };
+                  }
+                }
+
                 setParticipants(newParticipants);
               }}
               onAddPortageLot={() => addPortageLot(idx)}

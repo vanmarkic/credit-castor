@@ -228,6 +228,8 @@ export function ParticipantDetailsPanel({
               formulaParams={formulaParams}
               onSelectLot={(lot, price) => {
                 const updated = [...participants];
+
+                // Update buyer (current participant)
                 updated[idx] = {
                   ...updated[idx],
                   surface: lot.surface, // Set surface from selected lot
@@ -238,6 +240,22 @@ export function ParticipantDetailsPanel({
                     purchasePrice: price.totalPrice
                   }
                 };
+
+                // Update seller's lot with soldDate (if buying from a founder)
+                if (lot.source === 'FOUNDER' && lot.fromParticipant) {
+                  const sellerIdx = updated.findIndex(p => p.name === lot.fromParticipant);
+                  if (sellerIdx !== -1 && updated[sellerIdx].lotsOwned) {
+                    updated[sellerIdx] = {
+                      ...updated[sellerIdx],
+                      lotsOwned: updated[sellerIdx].lotsOwned?.map(sellerLot =>
+                        sellerLot.lotId === lot.lotId
+                          ? { ...sellerLot, soldDate: updated[idx].entryDate }
+                          : sellerLot
+                      )
+                    };
+                  }
+                }
+
                 setParticipants(() => updated);
               }}
             />
@@ -251,11 +269,30 @@ export function ParticipantDetailsPanel({
                 <button
                   onClick={() => {
                     const updated = [...participants];
+                    const oldPurchaseDetails = participants[idx].purchaseDetails;
+
+                    // Clear buyer's selection
                     updated[idx] = {
                       ...updated[idx],
                       purchaseDetails: undefined,
                       surface: 0
                     };
+
+                    // Clear seller's soldDate if this was a portage lot
+                    if (oldPurchaseDetails?.buyingFrom && oldPurchaseDetails?.lotId) {
+                      const sellerIdx = updated.findIndex(p => p.name === oldPurchaseDetails.buyingFrom);
+                      if (sellerIdx !== -1 && updated[sellerIdx].lotsOwned) {
+                        updated[sellerIdx] = {
+                          ...updated[sellerIdx],
+                          lotsOwned: updated[sellerIdx].lotsOwned?.map(lot =>
+                            lot.lotId === oldPurchaseDetails.lotId
+                              ? { ...lot, soldDate: undefined }
+                              : lot
+                          )
+                        };
+                      }
+                    }
+
                     setParticipants(() => updated);
                   }}
                   className="text-xs text-red-600 hover:text-red-800 font-semibold hover:underline"
