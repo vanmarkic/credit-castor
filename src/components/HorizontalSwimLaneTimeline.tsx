@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
 import { Users } from 'lucide-react';
-import type { Participant, CalculationResults, ProjectParams } from '../utils/calculatorUtils';
+import type { Participant, CalculationResults, ProjectParams, PortageFormulaParams } from '../utils/calculatorUtils';
+import { DEFAULT_PORTAGE_FORMULA } from '../utils/calculatorUtils';
 import type { TimelineTransaction } from '../types/timeline';
+import { calculatePortageTransaction, calculateCooproTransaction } from '../utils/transactionCalculations';
 import { formatCurrency } from '../utils/formatting';
 
 interface TimelineSnapshot {
@@ -33,7 +35,7 @@ export default function HorizontalSwimLaneTimeline({
   onAddParticipant
 }: HorizontalSwimLaneTimelineProps) {
   // Helper to get background color for color zones
-  const getZoneBackgroundClass = (zoneIndex: number, isT0: boolean, isFounder: boolean) => {
+  const getZoneBackgroundClass = (zoneIndex: number, isT0: boolean, _isFounder: boolean) => {
     if (isT0) {
       return 'bg-green-50';
     }
@@ -180,48 +182,76 @@ export default function HorizontalSwimLaneTimeline({
 
         if (!breakdown) return;
 
-        // Calculate delta from previous snapshot
-        const prevSnapshot = previousSnapshots.get(p.name);
-        let delta: TimelineSnapshot['delta'] | undefined;
+        // Detect if participant is involved in a transaction
+        let transaction: TimelineTransaction | undefined;
 
-        if (prevSnapshot) {
-          const costChange = breakdown.totalCost - prevSnapshot.totalCost;
-          const loanChange = breakdown.loanNeeded - prevSnapshot.loanNeeded;
+        // Check if selling portage lot
+        const isSeller = joiningParticipants.some(np =>
+          np.purchaseDetails?.buyingFrom === p.name
+        );
 
-          // Check if this participant is involved in a transaction
-          const isSeller = joiningParticipants.some(np =>
-            np.purchaseDetails?.buyingFrom === p.name
-          );
+        // Check if buying portage lot
+        const isBuyer = joiningParticipants.includes(p) &&
+          p.purchaseDetails?.buyingFrom &&
+          p.purchaseDetails.buyingFrom !== 'Copropriété';
 
-          const coproSale = joiningParticipants.find(np =>
-            np.purchaseDetails?.buyingFrom === 'Copropriété'
-          );
+        // Check if affected by copro sale
+        const coproSale = joiningParticipants.find(np =>
+          np.purchaseDetails?.buyingFrom === 'Copropriété'
+        );
 
-          const isBuyer = joiningParticipants.includes(p);
+        // Use default portage formula params (could be passed as prop in future)
+        const formulaParams: PortageFormulaParams = DEFAULT_PORTAGE_FORMULA;
 
-          // Create delta if there's a financial change OR if participant is involved in a transaction
-          const hasFinancialChange = Math.abs(costChange) > 0.01 || Math.abs(loanChange) > 0.01;
-          const isInvolvedInTransaction = isSeller || coproSale || isBuyer;
+        if (isSeller) {
+          const buyer = joiningParticipants.find(np => np.purchaseDetails?.buyingFrom === p.name);
+          if (buyer) {
+            const buyerIdx = participants.indexOf(buyer);
+            const buyerBreakdown = calculations.participantBreakdown[buyerIdx];
+            const sellerEntryDate = p.entryDate ? new Date(p.entryDate) : new Date(deedDate);
 
-          if (hasFinancialChange || isInvolvedInTransaction) {
-            // Determine reason for change
-            let reason = 'Updated';
-
-            if (isSeller) {
-              const buyer = joiningParticipants.find(np => np.purchaseDetails?.buyingFrom === p.name);
-              reason = `Sold portage lot to ${buyer?.name}`;
-            } else if (coproSale) {
-              reason = `${coproSale.name} joined (copro sale)`;
-            } else if (isBuyer) {
-              const seller = p.purchaseDetails?.buyingFrom;
-              reason = seller ? `Purchased from ${seller}` : 'Joined';
+            if (buyerBreakdown) {
+              transaction = calculatePortageTransaction(
+                p,
+                buyer,
+                date,
+                breakdown,
+                buyerBreakdown,
+                sellerEntryDate,
+                formulaParams,
+                participants.length
+              );
             }
+          }
+        } else if (isBuyer) {
+          const seller = participants.find(ps => ps.name === p.purchaseDetails?.buyingFrom);
+          if (seller) {
+            const sellerIdx = participants.indexOf(seller);
+            const sellerBreakdown = calculations.participantBreakdown[sellerIdx];
+            const sellerEntryDate = seller.entryDate ? new Date(seller.entryDate) : new Date(deedDate);
 
-            delta = {
-              totalCost: costChange,
-              loanNeeded: loanChange,
-              reason
-            };
+            if (sellerBreakdown) {
+              transaction = calculatePortageTransaction(
+                seller,
+                p,
+                date,
+                sellerBreakdown,
+                breakdown,
+                sellerEntryDate,
+                formulaParams,
+                participants.length
+              );
+            }
+          }
+        } else if (coproSale) {
+          const prevSnapshot = previousSnapshots.get(p.name);
+          if (prevSnapshot) {
+            transaction = calculateCooproTransaction(
+              p,
+              coproSale,
+              prevSnapshot,
+              participants.length
+            );
           }
         }
 
@@ -234,7 +264,7 @@ export default function HorizontalSwimLaneTimeline({
           monthlyPayment: breakdown.monthlyPayment,
           isT0: dateIdx === 0 && (p.isFounder === true),
           colorZone: dateIdx, // Each date gets its own color zone
-          delta
+          transaction
         };
 
         if (!result.has(p.name)) {
@@ -396,17 +426,22 @@ export default function HorizontalSwimLaneTimeline({
                             </div>
                           )}
 
-                          {snapshot.delta && (
+                          {snapshot.transaction && (
                             <div className="mt-2 pt-2 border-t border-current border-opacity-20">
                               <div className={`text-xs font-semibold ${
-                                snapshot.delta.totalCost < 0 ? 'text-green-700' : 'text-red-700'
+                                snapshot.transaction.delta.totalCost < 0 ? 'text-green-700' : 'text-red-700'
                               }`}>
-                                {snapshot.delta.totalCost < 0 ? '📉' : '📈'}{' '}
-                                {formatCurrency(Math.abs(snapshot.delta.totalCost))}
+                                {snapshot.transaction.delta.totalCost < 0 ? '📉' : '📈'}{' '}
+                                {formatCurrency(Math.abs(snapshot.transaction.delta.totalCost))}
                               </div>
                               <div className="text-xs text-gray-600 mt-1">
-                                {snapshot.delta.reason}
+                                {snapshot.transaction.delta.reason}
                               </div>
+                              {snapshot.transaction.lotPrice && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  Lot price: {formatCurrency(snapshot.transaction.lotPrice)}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
