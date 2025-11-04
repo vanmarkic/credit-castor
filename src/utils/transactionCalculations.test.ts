@@ -16,7 +16,7 @@ describe('transactionCalculations', () => {
         entryDate: new Date('2026-02-01'),
         lotsOwned: [
           {
-            lotId: 1,
+            lotId: 2,  // Match buyer's purchaseDetails.lotId
             surface: 80,
             unitId: 1,
             isPortage: true,
@@ -49,7 +49,8 @@ describe('transactionCalculations', () => {
           }
         ],
         purchaseDetails: {
-          buyingFrom: 'Annabelle/Colin'
+          buyingFrom: 'Annabelle/Colin',
+          lotId: 2  // Buying the portage lot (lotId: 2)
         }
       }
 
@@ -112,7 +113,7 @@ describe('transactionCalculations', () => {
         entryDate: new Date('2026-02-01'),
         lotsOwned: [
           {
-            lotId: 1,
+            lotId: 2,  // Match buyer's purchaseDetails.lotId
             surface: 80,
             unitId: 1,
             isPortage: true,
@@ -145,7 +146,8 @@ describe('transactionCalculations', () => {
           }
         ],
         purchaseDetails: {
-          buyingFrom: 'Annabelle/Colin'
+          buyingFrom: 'Annabelle/Colin',
+          lotId: 2  // Buying the portage lot (lotId: 2)
         }
       }
 

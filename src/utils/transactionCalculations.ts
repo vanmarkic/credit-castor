@@ -48,10 +48,10 @@ export function calculatePortageTransaction(
   // Calculate years held
   const yearsHeld = (buyerEntryDate.getTime() - sellerEntryDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25)
 
-  // Get seller's lot
-  const sellerLot = seller.lotsOwned?.[0]
+  // Get the specific lot being sold (match by lotId from buyer's purchaseDetails)
+  const sellerLot = seller.lotsOwned?.find(lot => lot.lotId === buyer.purchaseDetails?.lotId)
   if (!sellerLot) {
-    throw new Error(`Seller ${seller.name} has no lots to sell`)
+    throw new Error(`Seller ${seller.name} has no lot with ID ${buyer.purchaseDetails?.lotId}`)
   }
 
   // Calculate carrying costs using existing function
