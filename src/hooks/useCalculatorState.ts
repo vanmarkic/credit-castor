@@ -15,6 +15,7 @@ import {
 } from '../utils/storage';
 import { DEFAULT_PORTAGE_FORMULA } from '../utils/calculatorUtils';
 import type { Participant, ProjectParams, PortageFormulaParams, CalculationResults } from '../utils/calculatorUtils';
+import { syncSoldDatesFromPurchaseDetails } from '../utils/participantSync';
 
 export interface CalculatorState {
   // State values
@@ -70,11 +71,14 @@ function initializeParticipants(
   const baseParticipants = stored ? stored.participants : DEFAULT_PARTICIPANTS;
 
   // Ensure all participants have isFounder and entryDate
-  return baseParticipants.map((p: Participant) => ({
+  const participantsWithDefaults = baseParticipants.map((p: Participant) => ({
     ...p,
     isFounder: p.isFounder !== undefined ? p.isFounder : true,
     entryDate: p.entryDate || new Date(stored?.deedDate || DEFAULT_DEED_DATE)
   }));
+
+  // Sync soldDate fields from purchaseDetails
+  return syncSoldDatesFromPurchaseDetails(participantsWithDefaults);
 }
 
 /**

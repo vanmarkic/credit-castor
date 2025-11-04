@@ -10,6 +10,7 @@ import type {
   CalculationResults
 } from './calculatorUtils';
 import type { UnitDetails } from './calculatorUtils';
+import { syncSoldDatesFromPurchaseDetails } from './participantSync';
 
 export interface ScenarioData {
   version: number;
@@ -165,10 +166,13 @@ export function deserializeScenario(jsonString: string): LoadScenarioResult {
       };
     }
 
+    // Sync soldDate fields from purchaseDetails to ensure consistency
+    const syncedParticipants = syncSoldDatesFromPurchaseDetails(data.participants);
+
     return {
       success: true,
       data: {
-        participants: data.participants,
+        participants: syncedParticipants,
         projectParams: data.projectParams,
         // scenario removed - old files may have it but we ignore it
         deedDate: data.deedDate || ''
