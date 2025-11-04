@@ -105,6 +105,19 @@ export default function PortageLotConfig({
                 {/* Price Display */}
                 {hasSaleDate && price ? (
                   <>
+                    <div className="bg-blue-50 border border-blue-200 rounded p-2 mb-2">
+                      <div className="text-xs text-blue-700 mb-1">
+                        📅 Date de vente prévue:
+                      </div>
+                      <div className="text-sm font-semibold text-blue-900">
+                        {lot.soldDate?.toLocaleDateString('fr-BE', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </div>
+                    </div>
+
                     <div className="text-sm">
                       <div className="text-gray-700 mb-1">
                         Prix de vente ({yearsHeld.toFixed(1)} ans de portage):
