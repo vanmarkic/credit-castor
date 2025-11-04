@@ -205,7 +205,8 @@ describe('Portage Payback Calculations', () => {
         isFounder: false,
         entryDate: new Date('2027-06-01'),
         purchaseDetails: {
-          buyingFrom: 'Copropri�t�',
+          buyingFrom: 'Copropriété',
+          lotId: 100,
           purchasePrice: 200000
         }
       }
@@ -242,6 +243,7 @@ describe('Portage Payback Calculations', () => {
         entryDate: new Date('2027-06-01'),
         purchaseDetails: {
           buyingFrom: 'Alice',
+          lotId: 2,
           purchasePrice: 200000
         }
       },
@@ -257,6 +259,7 @@ describe('Portage Payback Calculations', () => {
         entryDate: new Date('2028-01-15'),
         purchaseDetails: {
           buyingFrom: 'Alice',
+          lotId: 3,
           purchasePrice: 180000
         }
       }
@@ -306,7 +309,8 @@ describe('Copropri�t� Redistribution Calculations', () => {
         isFounder: false,
         entryDate: new Date('2027-06-01'),
         purchaseDetails: {
-          buyingFrom: 'Copropri�t�',
+          buyingFrom: 'Copropriété',
+          lotId: 100,
           purchasePrice: 200000
         }
       }
@@ -363,7 +367,8 @@ describe('Copropri�t� Redistribution Calculations', () => {
         isFounder: false,
         entryDate: new Date('2027-06-01'),
         purchaseDetails: {
-          buyingFrom: 'Copropri�t�',
+          buyingFrom: 'Copropriété',
+          lotId: 100,
           purchasePrice: 200000
         }
       },
@@ -421,7 +426,8 @@ describe('Copropri�t� Redistribution Calculations', () => {
         isFounder: false,
         entryDate: new Date('2027-07-01'), // Sale date
         purchaseDetails: {
-          buyingFrom: 'Copropri�t�',
+          buyingFrom: 'Copropriété',
+          lotId: 100,
           purchasePrice: 240000
         }
       }
@@ -479,7 +485,8 @@ describe('Copropri�t� Redistribution Calculations', () => {
         isFounder: false,
         entryDate: new Date('2027-06-01'),
         purchaseDetails: {
-          buyingFrom: 'Copropri�t�',
+          buyingFrom: 'Copropriété',
+          lotId: 100,
           purchasePrice: 200000
         }
       },
@@ -494,7 +501,8 @@ describe('Copropri�t� Redistribution Calculations', () => {
         isFounder: false,
         entryDate: new Date('2028-01-01'),
         purchaseDetails: {
-          buyingFrom: 'Copropri�t�',
+          buyingFrom: 'Copropriété',
+          lotId: 100,
           purchasePrice: 180000
         }
       }
@@ -543,7 +551,8 @@ describe('Copropri�t� Redistribution Calculations', () => {
         isFounder: false,
         entryDate: new Date('2027-06-01'),
         purchaseDetails: {
-          buyingFrom: 'Copropri�t�',
+          buyingFrom: 'Copropriété',
+          lotId: 100,
           purchasePrice: 200000
         }
       }

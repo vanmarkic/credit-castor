@@ -45,6 +45,7 @@ describe('HorizontalSwimLaneTimeline', () => {
       quantity: 1,
       purchaseDetails: {
         buyingFrom: 'Copropriété',
+        lotId: 100,
         purchasePrice: 150000
       }
     }
@@ -151,6 +152,7 @@ describe('HorizontalSwimLaneTimeline', () => {
         totalInterest: 140000,
         purchaseDetails: {
           buyingFrom: 'Copropriété',
+          lotId: 100,
           purchasePrice: 150000
         }
       }

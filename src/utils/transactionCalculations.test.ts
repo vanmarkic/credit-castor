@@ -27,7 +27,9 @@ describe('transactionCalculations', () => {
           }
         ],
         purchaseDetails: {
-          buyingFrom: 'Deed'
+          buyingFrom: 'Deed',
+          lotId: 1,
+          purchasePrice: 233175
         }
       }
 
@@ -50,7 +52,8 @@ describe('transactionCalculations', () => {
         ],
         purchaseDetails: {
           buyingFrom: 'Annabelle/Colin',
-          lotId: 2  // Buying the portage lot (lotId: 2)
+          lotId: 2,  // Buying the portage lot (lotId: 2)
+          purchasePrice: 256490
         }
       }
 
@@ -124,7 +127,9 @@ describe('transactionCalculations', () => {
           }
         ],
         purchaseDetails: {
-          buyingFrom: 'Deed'
+          buyingFrom: 'Deed',
+          lotId: 1,
+          purchasePrice: 233175
         }
       }
 
@@ -147,7 +152,8 @@ describe('transactionCalculations', () => {
         ],
         purchaseDetails: {
           buyingFrom: 'Annabelle/Colin',
-          lotId: 2  // Buying the portage lot (lotId: 2)
+          lotId: 2,  // Buying the portage lot (lotId: 2)
+          purchasePrice: 256490
         }
       }
 
@@ -225,7 +231,9 @@ describe('transactionCalculations', () => {
           }
         ],
         purchaseDetails: {
-          buyingFrom: 'Deed'
+          buyingFrom: 'Deed',
+          lotId: 1,
+          purchasePrice: 233175
         }
       }
 
@@ -247,7 +255,9 @@ describe('transactionCalculations', () => {
           }
         ],
         purchaseDetails: {
-          buyingFrom: 'Copropriété'
+          buyingFrom: 'Copropriété',
+          lotId: 100,
+          purchasePrice: 150000
         }
       }
 
