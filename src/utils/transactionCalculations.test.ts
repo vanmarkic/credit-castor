@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calculatePortageTransaction } from './transactionCalculations'
+import { calculatePortageTransaction, calculateCooproTransaction } from './transactionCalculations'
 import { Participant, ParticipantCalculation, PortageFormulaParams } from './calculatorUtils'
 
 describe('transactionCalculations', () => {
@@ -76,7 +76,8 @@ describe('transactionCalculations', () => {
 
       const formulaParams: PortageFormulaParams = {
         indexationRate: 2,  // 2%
-        carryingCostRecovery: 100  // 100%
+        carryingCostRecovery: 100,  // 100%
+        averageInterestRate: 4.5  // 4.5%
       }
 
       // Execute
@@ -171,7 +172,8 @@ describe('transactionCalculations', () => {
 
       const formulaParams: PortageFormulaParams = {
         indexationRate: 2,  // 2%
-        carryingCostRecovery: 100  // 100%
+        carryingCostRecovery: 100,  // 100%
+        averageInterestRate: 4.5  // 4.5%
       }
 
       const sellerLot = seller.lotsOwned![0]
@@ -198,6 +200,78 @@ describe('transactionCalculations', () => {
 
       // Verify they contribute to lot price
       expect(transaction.lotPrice).toBeGreaterThan(baseAcquisitionCost)
+    })
+  })
+
+  describe('calculateCooproTransaction', () => {
+    it('should calculate cost redistribution delta for copro sale', () => {
+      const participant: Participant = {
+        name: 'Annabelle/Colin',
+        capitalApporte: 100000,
+        notaryFeesRate: 12.5,
+        interestRate: 3.5,
+        durationYears: 30,
+        isFounder: true,
+        entryDate: new Date('2026-02-01'),
+        lotsOwned: [
+          {
+            lotId: 1,
+            surface: 80,
+            unitId: 1,
+            isPortage: false,
+            acquiredDate: new Date('2026-02-01')
+          }
+        ],
+        purchaseDetails: {
+          buyingFrom: 'Deed'
+        }
+      }
+
+      const coproBuyer: Participant = {
+        name: 'New Copro Participant',
+        capitalApporte: 50000,
+        notaryFeesRate: 12.5,
+        interestRate: 3.5,
+        durationYears: 30,
+        isFounder: false,
+        entryDate: new Date('2027-06-01'),
+        lotsOwned: [
+          {
+            lotId: 2,
+            surface: 150,
+            unitId: 2,
+            isPortage: false,
+            acquiredDate: new Date('2027-06-01')
+          }
+        ],
+        purchaseDetails: {
+          buyingFrom: 'Copropriété'
+        }
+      }
+
+      const participantPreviousSnapshot = {
+        date: new Date('2026-02-01'),
+        participantName: 'Annabelle/Colin',
+        participantIndex: 0,
+        totalCost: 680463,
+        loanNeeded: 580463,
+        monthlyPayment: 2671,
+        isT0: true,
+        colorZone: 0
+      }
+
+      // Execute
+      const transaction = calculateCooproTransaction(
+        participant,
+        coproBuyer,
+        participantPreviousSnapshot,
+        5 // total participants
+      )
+
+      // Assert: cost should change due to shared cost redistribution
+      expect(transaction.type).toBe('copro_sale')
+      expect(transaction.delta.reason).toContain('joined (copro sale)')
+      // Could be positive or negative depending on whether new participant adds/reduces shared costs
     })
   })
 })

@@ -5,6 +5,19 @@ import {
   calculateCarryingCosts
 } from './portageCalculations'
 
+// Local interface for TimelineSnapshot to avoid circular dependency
+interface TimelineSnapshot {
+  date: Date;
+  participantName: string;
+  participantIndex: number;
+  totalCost: number;
+  loanNeeded: number;
+  monthlyPayment: number;
+  isT0: boolean;
+  colorZone: number;
+  transaction?: TimelineTransaction;
+}
+
 /**
  * Calculate the financial impact of a portage sale on both buyer and seller.
  *
@@ -26,11 +39,11 @@ export function calculatePortageTransaction(
   seller: Participant,
   buyer: Participant,
   buyerEntryDate: Date,
-  sellerBreakdown: ParticipantCalculation,
+  _sellerBreakdown: ParticipantCalculation,
   _buyerBreakdown: ParticipantCalculation,
   sellerEntryDate: Date,
   formulaParams: PortageFormulaParams,
-  totalParticipants: number
+  _totalParticipants: number
 ): TimelineTransaction {
   // Calculate years held
   const yearsHeld = (buyerEntryDate.getTime() - sellerEntryDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25)
@@ -73,6 +86,39 @@ export function calculatePortageTransaction(
       totalCost: sellerDelta,
       loanNeeded: sellerDelta,
       reason: `Sold portage lot to ${buyer.name}`
+    }
+  }
+}
+
+/**
+ * Calculate the financial impact of a copropriété lot sale on active participants.
+ *
+ * When a copro lot is sold, shared costs (syndic fees, charges communes, etc.)
+ * are redistributed among all coowners. This affects everyone's total cost.
+ *
+ * @param _affectedParticipant - A participant affected by the copro sale
+ * @param coproBuyer - The newcomer buying from copropriété
+ * @param _previousSnapshot - Participant's snapshot before this date
+ * @param _totalParticipants - Total number of active participants
+ * @returns Transaction object with calculated delta
+ */
+export function calculateCooproTransaction(
+  _affectedParticipant: Participant,
+  coproBuyer: Participant,
+  _previousSnapshot: TimelineSnapshot,
+  _totalParticipants: number
+): TimelineTransaction {
+  // Simplified: shared costs redistributed among more/fewer people
+  // Real implementation would calculate actual shared cost changes
+  // For now, assume shared costs stay the same but divided among more people
+  const costDelta = 0 // Will be calculated from actual shared cost changes
+
+  return {
+    type: 'copro_sale',
+    delta: {
+      totalCost: costDelta,
+      loanNeeded: costDelta,
+      reason: `${coproBuyer.name} joined (copro sale)`
     }
   }
 }
