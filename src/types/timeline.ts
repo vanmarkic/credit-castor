@@ -323,6 +323,28 @@ export interface Transaction {
 }
 
 // ============================================
+// Timeline Transaction (for snapshots)
+// ============================================
+
+export interface TimelineTransaction {
+  type: 'portage_sale' | 'copro_sale' | 'founder_entry';
+
+  // Portage-specific fields
+  seller?: string;
+  lotPrice?: number;
+  indexation?: number;
+  carryingCosts?: number;
+  registrationFees?: number;
+
+  // All transactions
+  delta: {
+    totalCost: number;
+    loanNeeded: number;
+    reason: string;
+  };
+}
+
+// ============================================
 // Projection State (internal, for reducers)
 // ============================================
 

@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { Lot, CoproLot, InitialPurchaseEvent } from './timeline';
+import type { Lot, CoproLot, InitialPurchaseEvent, TimelineTransaction } from './timeline';
 import type { ProjectParams } from '../utils/calculatorUtils';
 
 describe('Lot type', () => {
@@ -87,5 +87,34 @@ describe('Event type unification', () => {
     expect(event.participants[0].isFounder).toBe(true);
     expect(event.participants[0].entryDate).toEqual(deedDate);
     expect(event.participants[0].lotsOwned?.[0].acquiredDate).toEqual(deedDate);
+  });
+});
+
+describe('TimelineTransaction', () => {
+  it('should define portage_sale transaction type', () => {
+    const transaction: TimelineTransaction = {
+      type: 'portage_sale',
+      seller: 'Annabelle/Colin',
+      lotPrice: 680000,
+      delta: {
+        totalCost: -680000,
+        loanNeeded: -680000,
+        reason: 'Sold portage lot to Nouveau·elle'
+      }
+    };
+    expect(transaction.type).toBe('portage_sale');
+    expect(transaction.delta.totalCost).toBeLessThan(0);
+  });
+
+  it('should define copro_sale transaction type', () => {
+    const transaction: TimelineTransaction = {
+      type: 'copro_sale',
+      delta: {
+        totalCost: -50000,
+        loanNeeded: -50000,
+        reason: 'Participant X joined (copro sale)'
+      }
+    };
+    expect(transaction.type).toBe('copro_sale');
   });
 });

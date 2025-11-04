@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { Users } from 'lucide-react';
 import type { Participant, CalculationResults, ProjectParams } from '../utils/calculatorUtils';
+import type { TimelineTransaction } from '../types/timeline';
 import { formatCurrency } from '../utils/formatting';
 
 interface TimelineSnapshot {
@@ -12,11 +13,7 @@ interface TimelineSnapshot {
   monthlyPayment: number;
   isT0: boolean;
   colorZone: number; // Index for color-coding related events
-  delta?: {
-    totalCost: number;
-    loanNeeded: number;
-    reason: string;
-  };
+  transaction?: TimelineTransaction;
 }
 
 interface HorizontalSwimLaneTimelineProps {
@@ -53,7 +50,7 @@ export default function HorizontalSwimLaneTimeline({
     return colors[zoneIndex % colors.length];
   };
 
-  // Generate copropriété snapshots
+  // Generate copropriété snapshots - ONLY show cards when copro inventory changes
   const coproSnapshots = useMemo(() => {
     const snapshots: Array<{
       date: Date;
@@ -66,6 +63,9 @@ export default function HorizontalSwimLaneTimeline({
     const dates = [...new Set(participants.map(p =>
       p.entryDate ? new Date(p.entryDate).toISOString().split('T')[0] : deedDate
     ))].sort();
+
+    let previousLots = 0;
+    let previousSurface = 0;
 
     dates.forEach((dateStr, idx) => {
       const date = new Date(dateStr);
@@ -90,17 +90,34 @@ export default function HorizontalSwimLaneTimeline({
         })
         .reduce((sum, p) => sum + (p.surface || 0), 0);
 
-      snapshots.push({
-        date,
-        availableLots: Math.max(0, participants.length - soldLots), // Rough estimate
-        totalSurface: calculations.totalSurface - soldSurface,
-        soldThisDate: joinedFromCopro.map(p => p.name),
-        colorZone: idx
-      });
+      const availableLots = Math.max(0, participants.length - soldLots);
+      const totalSurface = calculations.totalSurface - soldSurface;
+
+      // Only add snapshot if copro inventory changed or it's T0
+      if (idx === 0 || availableLots !== previousLots || totalSurface !== previousSurface) {
+        snapshots.push({
+          date,
+          availableLots,
+          totalSurface,
+          soldThisDate: joinedFromCopro.map(p => p.name),
+          colorZone: idx
+        });
+
+        previousLots = availableLots;
+        previousSurface = totalSurface;
+      }
     });
 
     return snapshots;
   }, [participants, calculations, deedDate]);
+
+  // Get all unique dates sorted
+  const allDates = useMemo(() => {
+    const dates = [...new Set(participants.map(p =>
+      p.entryDate ? new Date(p.entryDate).toISOString().split('T')[0] : deedDate
+    ))].sort();
+    return dates.map(d => new Date(d));
+  }, [participants, deedDate]);
 
   // Generate snapshots from participants - showing ALL participants at each moment
   const snapshots = useMemo(() => {
@@ -171,26 +188,31 @@ export default function HorizontalSwimLaneTimeline({
           const costChange = breakdown.totalCost - prevSnapshot.totalCost;
           const loanChange = breakdown.loanNeeded - prevSnapshot.loanNeeded;
 
-          if (Math.abs(costChange) > 0.01 || Math.abs(loanChange) > 0.01) {
+          // Check if this participant is involved in a transaction
+          const isSeller = joiningParticipants.some(np =>
+            np.purchaseDetails?.buyingFrom === p.name
+          );
+
+          const coproSale = joiningParticipants.find(np =>
+            np.purchaseDetails?.buyingFrom === 'Copropriété'
+          );
+
+          const isBuyer = joiningParticipants.includes(p);
+
+          // Create delta if there's a financial change OR if participant is involved in a transaction
+          const hasFinancialChange = Math.abs(costChange) > 0.01 || Math.abs(loanChange) > 0.01;
+          const isInvolvedInTransaction = isSeller || coproSale || isBuyer;
+
+          if (hasFinancialChange || isInvolvedInTransaction) {
             // Determine reason for change
             let reason = 'Updated';
-
-            // Check if this participant is selling a portage lot
-            const isSeller = joiningParticipants.some(np =>
-              np.purchaseDetails?.buyingFrom === p.name
-            );
-
-            // Check if this is a copro sale affecting everyone
-            const coproSale = joiningParticipants.find(np =>
-              np.purchaseDetails?.buyingFrom === 'Copropriété'
-            );
 
             if (isSeller) {
               const buyer = joiningParticipants.find(np => np.purchaseDetails?.buyingFrom === p.name);
               reason = `Sold portage lot to ${buyer?.name}`;
             } else if (coproSale) {
               reason = `${coproSale.name} joined (copro sale)`;
-            } else if (joiningParticipants.includes(p)) {
+            } else if (isBuyer) {
               const seller = p.purchaseDetails?.buyingFrom;
               reason = seller ? `Purchased from ${seller}` : 'Joined';
             }
@@ -265,45 +287,53 @@ export default function HorizontalSwimLaneTimeline({
           ))}
         </div>
 
-        {/* Timeline cards area */}
+        {/* Timeline cards area - column-based layout */}
         <div className="flex-1 min-w-0">
           {/* Copropriété lane */}
-          <div className="h-40 flex items-center gap-4 border-b border-gray-200 swimlane-row bg-purple-50">
-            {coproSnapshots.map((snapshot, idx) => (
-              <div
-                key={idx}
-                className={`
-                  w-56 p-4 rounded-lg border-2 border-purple-300 transition-shadow hover:shadow-md
-                  ${getZoneBackgroundClass(snapshot.colorZone, idx === 0, false)}
-                `}
-              >
-                <div className="text-xs text-gray-500 mb-2">
-                  {snapshot.date.toLocaleDateString('fr-BE')}
-                </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-purple-600">Lots disponibles</span>
-                    <span className="text-sm font-bold text-purple-800">
-                      {snapshot.availableLots}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs text-purple-600">Surface totale</span>
-                    <span className="text-sm font-bold text-purple-800">
-                      {snapshot.totalSurface}m²
-                    </span>
-                  </div>
-                </div>
+          <div className="h-40 flex items-center border-b border-gray-200 swimlane-row bg-purple-50">
+            {allDates.map((date, dateIdx) => {
+              const dateStr = date.toISOString().split('T')[0];
+              const snapshot = coproSnapshots.find(s => s.date.toISOString().split('T')[0] === dateStr);
 
-                {snapshot.soldThisDate.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-purple-200">
-                    <div className="text-xs font-semibold text-red-700">
-                      📉 Vendu à {snapshot.soldThisDate.join(', ')}
+              return (
+                <div key={dateIdx} className="w-56 flex-shrink-0 px-2">
+                  {snapshot && (
+                    <div
+                      className={`
+                        w-full p-4 rounded-lg border-2 border-purple-300 transition-shadow hover:shadow-md
+                        ${getZoneBackgroundClass(snapshot.colorZone, dateIdx === 0, false)}
+                      `}
+                    >
+                      <div className="text-xs text-gray-500 mb-2">
+                        {snapshot.date.toLocaleDateString('fr-BE')}
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-purple-600">Lots disponibles</span>
+                          <span className="text-sm font-bold text-purple-800">
+                            {snapshot.availableLots}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs text-purple-600">Surface totale</span>
+                          <span className="text-sm font-bold text-purple-800">
+                            {snapshot.totalSurface}m²
+                          </span>
+                        </div>
+                      </div>
+
+                      {snapshot.soldThisDate.length > 0 && (
+                        <div className="mt-2 pt-2 border-t border-purple-200">
+                          <div className="text-xs font-semibold text-red-700">
+                            📉 Vendu à {snapshot.soldThisDate.join(', ')}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                )}
-              </div>
-            ))}
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           {/* Participant lanes */}
@@ -313,69 +343,77 @@ export default function HorizontalSwimLaneTimeline({
             return (
               <div
                 key={idx}
-                className="h-40 flex items-center gap-4 border-b border-gray-200 swimlane-row"
+                className="h-40 flex items-center border-b border-gray-200 swimlane-row"
               >
-                {participantSnapshots.map((snapshot, sIdx) => (
-                  <div
-                    key={sIdx}
-                    className={`
-                      w-56 p-4 rounded-lg border-2 transition-shadow hover:shadow-md cursor-pointer
-                      ${snapshot.isT0 ? 'timeline-card-t0' : ''}
-                      ${getZoneBackgroundClass(snapshot.colorZone, snapshot.isT0, p.isFounder === true)}
-                      ${snapshot.isT0
-                        ? 'border-green-300'
-                        : p.isFounder ? 'border-green-200' : 'border-blue-200'
-                      }
-                    `}
-                    onClick={() => {
-                      onOpenParticipantDetails(snapshot.participantIndex);
-                    }}
-                  >
-                    <div className="text-xs text-gray-500 mb-2">
-                      {snapshot.date.toLocaleDateString('fr-BE')}
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs text-gray-600">Coût Total</span>
-                        <span className="text-sm font-bold text-gray-900">
-                          {formatCurrency(snapshot.totalCost)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs text-gray-600">À emprunter</span>
-                        <span className="text-sm font-bold text-red-700">
-                          {formatCurrency(snapshot.loanNeeded)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs text-gray-600">Mensualité</span>
-                        <span className="text-sm font-bold text-red-600">
-                          {formatCurrency(snapshot.monthlyPayment)}
-                        </span>
-                      </div>
-                    </div>
+                {allDates.map((date, dateIdx) => {
+                  const dateStr = date.toISOString().split('T')[0];
+                  const snapshot = participantSnapshots.find(s => s.date.toISOString().split('T')[0] === dateStr);
 
-                    {snapshot.isT0 && (
-                      <div className="mt-2 text-xs text-green-700 font-medium">
-                        Cliquer pour détails →
-                      </div>
-                    )}
+                  return (
+                    <div key={dateIdx} className="w-56 flex-shrink-0 px-2">
+                      {snapshot && (
+                        <div
+                          className={`
+                            w-full p-4 rounded-lg border-2 transition-shadow hover:shadow-md cursor-pointer
+                            ${snapshot.isT0 ? 'timeline-card-t0' : ''}
+                            ${getZoneBackgroundClass(snapshot.colorZone, snapshot.isT0, p.isFounder === true)}
+                            ${snapshot.isT0
+                              ? 'border-green-300'
+                              : p.isFounder ? 'border-green-200' : 'border-blue-200'
+                            }
+                          `}
+                          onClick={() => {
+                            onOpenParticipantDetails(snapshot.participantIndex);
+                          }}
+                        >
+                          <div className="text-xs text-gray-500 mb-2">
+                            {snapshot.date.toLocaleDateString('fr-BE')}
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-gray-600">Coût Total</span>
+                              <span className="text-sm font-bold text-gray-900">
+                                {formatCurrency(snapshot.totalCost)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-gray-600">À emprunter</span>
+                              <span className="text-sm font-bold text-red-700">
+                                {formatCurrency(snapshot.loanNeeded)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-gray-600">Mensualité</span>
+                              <span className="text-sm font-bold text-red-600">
+                                {formatCurrency(snapshot.monthlyPayment)}
+                              </span>
+                            </div>
+                          </div>
 
-                    {snapshot.delta && (
-                      <div className="mt-2 pt-2 border-t border-current border-opacity-20">
-                        <div className={`text-xs font-semibold ${
-                          snapshot.delta.totalCost < 0 ? 'text-green-700' : 'text-red-700'
-                        }`}>
-                          {snapshot.delta.totalCost < 0 ? '📉' : '📈'}{' '}
-                          {formatCurrency(Math.abs(snapshot.delta.totalCost))}
+                          {snapshot.isT0 && (
+                            <div className="mt-2 text-xs text-green-700 font-medium">
+                              Cliquer pour détails →
+                            </div>
+                          )}
+
+                          {snapshot.delta && (
+                            <div className="mt-2 pt-2 border-t border-current border-opacity-20">
+                              <div className={`text-xs font-semibold ${
+                                snapshot.delta.totalCost < 0 ? 'text-green-700' : 'text-red-700'
+                              }`}>
+                                {snapshot.delta.totalCost < 0 ? '📉' : '📈'}{' '}
+                                {formatCurrency(Math.abs(snapshot.delta.totalCost))}
+                              </div>
+                              <div className="text-xs text-gray-600 mt-1">
+                                {snapshot.delta.reason}
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <div className="text-xs text-gray-600 mt-1">
-                          {snapshot.delta.reason}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             );
           })}
