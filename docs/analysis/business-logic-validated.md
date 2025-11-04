@@ -308,21 +308,44 @@ const totalAcquisitionCost = originalPurchaseShare + originalNotaryFees + origin
 
 ### Q5: Transaction Delta Calculation ✅ VALIDATED
 
+**Related**: See Q2 for frais généraux calculation, Q6 for portage pricing details
+
+**Implementation Plan**: See `docs/plans/2025-11-04-transaction-driven-timeline-implementation.md`
+
 **User decision**: Transactions are explicit domain objects with calculated deltas
 
 **Implementation**:
 - Portage sale delta = seller receives lot price, reduces total cost by that amount
 - Buyer purchase delta = buyer pays lot price, increases total cost by that amount
 - Lot price calculated using portageCalculations formula at buyer's entry date
-- Copro sale delta = shared costs redistributed among participants
+- Copro sale delta = shared costs redistributed among participants (⚠️ currently stub/placeholder)
 - Transaction object embedded in timeline snapshot
 - Business logic in utils/transactionCalculations.ts (pure functions)
 - View layer calls transaction functions reactively during snapshot generation
 
 **Formula Reference**:
-- Lot price = originalPurchaseShare + originalNotaryFees + originalConstructionCost + indexation + carrying costs
-- Indexation based on years held (buyer entry date - seller entry date)
-- Carrying costs recovered per configured percentage (default 100%)
+
+**Lot Price Calculation**:
+```
+totalAcquisitionCost = originalPurchaseShare + originalNotaryFees + originalConstructionCost
+indexation = totalAcquisitionCost × [(1 + rate/100)^yearsHeld - 1]  // compound interest
+carryingCostRecovery = monthlyCarryingCosts × monthsHeld × recoveryPercent / 100
+lotPrice = totalAcquisitionCost + indexation + carryingCostRecovery + renovations
+```
+
+**Carrying Costs** (per month):
+```
+loanAmount = totalAcquisitionCost - capitalContributed
+monthlyInterest = loanAmount × annualRate / 12 / 100
+monthlyTax = 388.38 / 12  // Belgian property tax
+monthlyInsurance = 2000 / 12  // Building insurance (shared)
+monthlyCarryingCosts = monthlyInterest + monthlyTax + monthlyInsurance
+```
+
+**Parameters**:
+- Years held: Fractional time between seller's entry date and buyer's entry date
+- Recovery percent: Configurable (default 100%)
+- Indexation rate: From formula params (not hardcoded 2%)
 
 ---
 
