@@ -363,6 +363,79 @@ BUYER_INTERVIEW
 - ~5 years: Transition to Community Land Trust model
 - CLT may impose additional restrictions (affordability, resale formulas)
 
+### 4. Rent-to-Own (Location-Accession) - Trial Period Wrapper
+
+**Note**: See detailed design in [2025-11-05-rent-to-own-design.md](./2025-11-05-rent-to-own-design.md)
+
+**Who**: Any buyer and seller (works with all three sale types above)
+**When**: Can wrap portage, copropriété, or classic sales
+**Purpose**: Trial period before commitment, with equity buildup
+
+Rent-to-own is a **compositional wrapper** around existing sale types, not a fourth distinct sale type.
+
+```typescript
+interface RentToOwnAgreement {
+  id: string;
+  underlyingSale: Sale;  // PortageSale | CoproSale | ClassicSale
+
+  // Trial period
+  trialStartDate: Date;
+  trialEndDate: Date;
+  trialDurationMonths: number;  // 3-24 months (configurable)
+
+  // Financial tracking
+  monthlyPayment: number;
+  equityAccumulated: number;  // Builds toward purchase
+  rentPaid: number;           // Compensates seller
+
+  // Formula plugin (like portageFormula)
+  rentToOwnFormula: RentToOwnFormulaParams;
+
+  // Provisional buyer status
+  provisionalBuyer: ProvisionalParticipant;  // Observer, no voting rights
+}
+```
+
+**State Flow (Spawned Actor):**
+
+```
+TRIAL_ACTIVE
+    │
+    │ (monthly payments → accumulate equity)
+    │
+    │ (auto-transition at 30 days remaining)
+    ▼
+TRIAL_ENDING
+    │
+    ├─ BUYER_REQUEST_PURCHASE → COMMUNITY_VOTE
+    │                                ├─ APPROVED → PURCHASE_FINALIZATION
+    │                                │                  └─ COMPLETED
+    │                                │
+    │                                └─ REJECTED → COMMUNITY_REJECTED
+    │                                                (equity refunded)
+    │
+    ├─ BUYER_DECLINE_PURCHASE → BUYER_DECLINED
+    │                                (equity forfeited)
+    │
+    └─ REQUEST_EXTENSION → EXTENSION_VOTE
+                               ├─ APPROVED → TRIAL_ACTIVE (extended)
+                               └─ REJECTED → TRIAL_ENDING (must decide)
+```
+
+**Key Features:**
+- **Reuses pricing**: Underlying sale (portage/copro/classic) provides base price
+- **Equity reduces price**: Final purchase price = base price - accumulated equity
+- **Provisional status**: Buyer is observer (attends meetings, no voting rights, excluded from quotité)
+- **Configurable formula**: Equity/rent split is pluggable (default 50/50)
+- **Fairness rules**: Buyer walks away = forfeits equity, community rejects = equity refunded
+
+**Example: Rent-to-Own Portage Sale**
+- Base portage price: €256,490
+- Trial: 12 months × €1,500/month = €18,000 total paid
+- Equity accumulated (50%): €9,000
+- Rent to seller (50%): €9,000
+- Final purchase price: €256,490 - €9,000 = €247,490
+
 ---
 
 ## Phase C: Financing Flows
@@ -644,6 +717,13 @@ interface Participant {
   entryDate: Date;
   lotsOwned: LotOwnership[];
   loans: FinancingDetails[];          // Array supports multiple loans (purchase + renovation)
+
+  // Rent-to-own provisional status (NEW)
+  participantStatus?: 'provisional' | 'full';  // Default 'full'
+  hasVotingRights?: boolean;          // Default true, false for provisional
+  excludeFromQuotite?: boolean;       // Default false, true for provisional
+  canAttendMeetings?: boolean;        // Default true
+  rentToOwnAgreementId?: string;      // Link to agreement if provisional
 }
 
 interface LotOwnership {
@@ -685,6 +765,54 @@ interface Lot {
 // Sales
 type SaleType = 'portage' | 'copro' | 'classic';
 type Sale = PortageSale | CoproSale | ClassicSale;
+
+// Rent-to-Own (NEW - wraps any sale type)
+interface RentToOwnAgreement {
+  id: string;
+  underlyingSale: Sale;  // Wraps portage/copro/classic sale
+
+  // Trial configuration
+  trialStartDate: Date;
+  trialEndDate: Date;
+  trialDurationMonths: number;  // 3-24 months
+
+  // Financial tracking
+  monthlyPayment: number;
+  totalPaid: number;
+  equityAccumulated: number;
+  rentPaid: number;
+
+  // Formula plugin
+  rentToOwnFormula: RentToOwnFormulaParams;
+
+  // Participants
+  provisionalBuyer: Participant;  // With participantStatus: 'provisional'
+  seller: string;
+
+  // Status
+  status: 'active' | 'ending_soon' | 'decision_pending' | 'completed' | 'cancelled';
+  extensionRequests: ExtensionRequest[];
+}
+
+interface RentToOwnFormulaParams {
+  version: 'v1';
+  equityPercentage: number;  // Default 50
+  rentPercentage: number;    // Default 50
+  minTrialMonths: number;    // Default 3
+  maxTrialMonths: number;    // Default 24
+  equityForfeitureOnBuyerExit: number;    // Default 100 (loses all)
+  equityReturnOnCommunityReject: number;  // Default 100 (full refund)
+  allowExtensions: boolean;
+  maxExtensions?: number;
+  extensionIncrementMonths?: number;
+}
+
+interface ExtensionRequest {
+  requestDate: Date;
+  additionalMonths: number;
+  approved: boolean | null;
+  votingResults?: VotingResults;
+}
 
 // Project Financials
 interface ProjectFinancials {
@@ -1219,6 +1347,7 @@ on: {
 ### Business Logic
 - [business-logic-validated.md](../analysis/business-logic-validated.md) - Validated business requirements
 - [business-logic-assertions.md](../analysis/business-logic-assertions.md) - Original Q&A session
+- [2025-11-05-rent-to-own-design.md](./2025-11-05-rent-to-own-design.md) - Rent-to-own (location-accession) feature design
 
 ### XState Documentation
 - [Guards](https://stately.ai/docs/guards) - Best practices for guards
@@ -1243,9 +1372,10 @@ on: {
 See implementation for full type system including:
 
 - `ProjectContext` - Complete state machine context
-- `ProjectEvents` - All event types (purchase, sales, financing, voting)
+- `ProjectEvents` - All event types (purchase, sales, financing, voting, rent-to-own)
 - `Participant`, `Lot`, `Sale` types with all variants
 - `PortagePricing`, `CoproPricing`, `ClassicSale` pricing models
+- `RentToOwnAgreement`, `RentToOwnFormulaParams` rent-to-own types
 - `LoanApplication`, `ACPLoan` financing types
 - `VotingRules`, `VotingResults` governance types
 - `Warning`, `ProjectPhase` monitoring types
