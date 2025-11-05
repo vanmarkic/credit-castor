@@ -1,11 +1,10 @@
-import { setup, assign } from 'xstate';
+import { setup, assign, spawnChild, stopChild } from 'xstate';
 import type { ProjectContext, PortagePricing, CoproPricing, CarryingCosts, LoanApplication, ACPLoan, ACPContribution, VotingRules, RentToOwnAgreement } from './types';
 import { DEFAULT_RENT_TO_OWN_FORMULA } from './types';
 import type { ProjectEvents } from './events';
 import { queries } from './queries';
 import { calculateQuotite, calculateVotingResults } from './calculations';
-// TODO: Import and spawn rentToOwnMachine actors when implementing invoke configuration
-// import { rentToOwnMachine } from './rentToOwnMachine';
+import { rentToOwnMachine } from './rentToOwnMachine';
 
 // Temporary storage for current sale in progress
 interface CurrentSale {
@@ -34,6 +33,10 @@ export const creditCastorMachine = setup({
   types: {} as {
     context: ExtendedContext;
     events: ProjectEvents;
+  },
+
+  actors: {
+    rentToOwn: rentToOwnMachine
   },
 
   guards: {
@@ -717,13 +720,24 @@ export const creditCastorMachine = setup({
       const newAgreements = new Map(context.rentToOwnAgreements);
       newAgreements.set(agreementId, agreement);
 
-      // TODO: Spawn rentToOwnMachine actor via invoke in state configuration
-      // For now, just store the agreement in context
-
       return {
         rentToOwnAgreements: newAgreements,
         currentSale: undefined
       };
+    }),
+
+    spawnRentToOwnActor: spawnChild('rentToOwn', {
+      id: ({ context, event }) => {
+        if (event.type !== 'INITIATE_RENT_TO_OWN') return '';
+        // Find the most recently added agreement
+        const agreements = Array.from(context.rentToOwnAgreements.values());
+        return agreements[agreements.length - 1]?.id || '';
+      },
+      input: ({ context }) => {
+        // Get the most recently added agreement
+        const agreements = Array.from(context.rentToOwnAgreements.values());
+        return agreements[agreements.length - 1];
+      }
     }),
 
     completeRentToOwn: assign({
@@ -756,6 +770,13 @@ export const creditCastorMachine = setup({
 
         return newMap;
       }
+    }),
+
+    stopRentToOwnActor: stopChild(({ event }) => {
+      if (event.type === 'RENT_TO_OWN_COMPLETED' || event.type === 'RENT_TO_OWN_CANCELLED') {
+        return event.agreementId;
+      }
+      return '';
     })
   }
 
@@ -1036,7 +1057,7 @@ export const creditCastorMachine = setup({
             },
             INITIATE_RENT_TO_OWN: {
               target: 'awaiting_sale',
-              actions: ['initiateRentToOwn']
+              actions: ['initiateRentToOwn', 'spawnRentToOwnActor']
             }
           }
         },
@@ -1058,10 +1079,10 @@ export const creditCastorMachine = setup({
           target: 'completed'
         },
         RENT_TO_OWN_COMPLETED: {
-          actions: ['completeRentToOwn']
+          actions: ['stopRentToOwnActor', 'completeRentToOwn']
         },
         RENT_TO_OWN_CANCELLED: {
-          actions: ['cancelRentToOwn']
+          actions: ['stopRentToOwnActor', 'cancelRentToOwn']
         }
       }
     },
