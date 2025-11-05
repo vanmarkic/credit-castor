@@ -317,3 +317,79 @@ export interface IndexRate {
   year: number;
   rate: number;
 }
+
+// ============================================
+// RENT-TO-OWN TYPES
+// ============================================
+
+export interface RentToOwnFormulaParams {
+  version: 'v1';
+
+  // Equity/rent split configuration
+  equityPercentage: number;  // 0-100, e.g., 50 = 50% to equity
+  rentPercentage: number;    // Must sum to 100 with equityPercentage
+
+  // Duration bounds
+  minTrialMonths: number;    // Default: 3
+  maxTrialMonths: number;    // Default: 24
+
+  // Termination rules
+  equityForfeitureOnBuyerExit: number;  // 0-100, e.g., 100 = loses all equity
+  equityReturnOnCommunityReject: number; // 0-100, e.g., 100 = gets all equity back
+
+  // Extension rules
+  allowExtensions: boolean;
+  maxExtensions?: number;
+  extensionIncrementMonths?: number;  // e.g., 6 months per extension
+}
+
+export const DEFAULT_RENT_TO_OWN_FORMULA: RentToOwnFormulaParams = {
+  version: 'v1',
+
+  equityPercentage: 50,  // 50/50 split
+  rentPercentage: 50,
+
+  minTrialMonths: 3,
+  maxTrialMonths: 24,
+
+  equityForfeitureOnBuyerExit: 100,  // Buyer walks = loses all equity
+  equityReturnOnCommunityReject: 100, // Community rejects = full refund
+
+  allowExtensions: true,
+  maxExtensions: 2,
+  extensionIncrementMonths: 6
+};
+
+export interface ExtensionRequest {
+  requestDate: Date;
+  additionalMonths: number;
+  approved: boolean | null;  // null = pending vote
+  votingResults?: VotingResults;
+}
+
+export interface RentToOwnAgreement {
+  id: string;
+  underlyingSale: Sale;  // Wraps portage/copro/classic sale
+
+  // Trial configuration
+  trialStartDate: Date;
+  trialEndDate: Date;
+  trialDurationMonths: number;  // 3-24 months
+
+  // Financial tracking
+  monthlyPayment: number;
+  totalPaid: number;
+  equityAccumulated: number;
+  rentPaid: number;
+
+  // Formula plugin
+  rentToOwnFormula: RentToOwnFormulaParams;
+
+  // Participants
+  provisionalBuyerId: string;  // Participant ID
+  sellerId: string;  // Participant ID or 'copropriete'
+
+  // Status
+  status: 'active' | 'ending_soon' | 'decision_pending' | 'completed' | 'cancelled';
+  extensionRequests: ExtensionRequest[];
+}
