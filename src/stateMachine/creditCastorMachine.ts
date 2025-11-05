@@ -1,8 +1,11 @@
 import { setup, assign } from 'xstate';
-import type { ProjectContext, PortagePricing, CoproPricing, CarryingCosts, LoanApplication, ACPLoan, ACPContribution, VotingRules } from './types';
+import type { ProjectContext, PortagePricing, CoproPricing, CarryingCosts, LoanApplication, ACPLoan, ACPContribution, VotingRules, RentToOwnAgreement } from './types';
+import { DEFAULT_RENT_TO_OWN_FORMULA } from './types';
 import type { ProjectEvents } from './events';
 import { queries } from './queries';
 import { calculateQuotite, calculateVotingResults } from './calculations';
+// TODO: Import and spawn rentToOwnMachine actors when implementing invoke configuration
+// import { rentToOwnMachine } from './rentToOwnMachine';
 
 // Temporary storage for current sale in progress
 interface CurrentSale {
@@ -601,6 +604,158 @@ export const creditCastorMachine = setup({
 
         return context.acpBankAccount;
       }
+    }),
+
+    // Rent-to-Own actions
+    initiateRentToOwn: assign(({ context, event }) => {
+      if (event.type !== 'INITIATE_RENT_TO_OWN') return {};
+
+      // Find the sale from currentSale
+      const { currentSale } = context as ExtendedContext;
+      if (!currentSale) return {};
+
+      const agreementId = `rto-${Date.now()}`;
+      const trialStartDate = new Date();
+      const trialEndDate = new Date(trialStartDate);
+      trialEndDate.setMonth(trialEndDate.getMonth() + event.trialMonths);
+
+      // Create the underlying sale object
+      const lot = context.lots.find(l => l.id === currentSale.lotId);
+      if (!lot) return {};
+
+      let underlyingSale: any;
+
+      if (currentSale.saleType === 'portage') {
+        const carryingCosts: CarryingCosts = {
+          monthlyLoanInterest: 500,
+          propertyTax: 100,
+          buildingInsurance: 50,
+          syndicFees: 100,
+          chargesCommunes: 50,
+          totalMonths: 12,
+          total: 800 * 12
+        };
+
+        const pricing: PortagePricing = {
+          baseAcquisitionCost: lot.acquisition?.totalCost || 0,
+          indexation: (lot.acquisition?.totalCost || 0) * 0.05,
+          carryingCosts,
+          renovations: lot.renovationCosts || 0,
+          registrationFeesRecovery: lot.acquisition?.registrationFees || 0,
+          fraisCommunsRecovery: lot.acquisition?.fraisCommuns || 0,
+          loanInterestRecovery: carryingCosts.monthlyLoanInterest * carryingCosts.totalMonths,
+          totalPrice: (lot.acquisition?.totalCost || 0) + carryingCosts.total + (lot.acquisition?.registrationFees || 0) + (lot.acquisition?.fraisCommuns || 0)
+        };
+
+        underlyingSale = {
+          type: 'portage',
+          lotId: currentSale.lotId,
+          buyer: currentSale.buyerId,
+          seller: currentSale.sellerId,
+          saleDate: currentSale.saleDate,
+          pricing
+        };
+      } else if (currentSale.saleType === 'copro') {
+        const baseCostPerSqm = 1000;
+        const gen1CompensationPerSqm = baseCostPerSqm * 0.10;
+        const pricePerSqm = baseCostPerSqm + gen1CompensationPerSqm;
+
+        const pricing: CoproPricing = {
+          baseCostPerSqm,
+          gen1CompensationPerSqm,
+          pricePerSqm,
+          surface: lot.surface,
+          totalPrice: pricePerSqm * lot.surface
+        };
+
+        underlyingSale = {
+          type: 'copro',
+          lotId: currentSale.lotId,
+          buyer: currentSale.buyerId,
+          saleDate: currentSale.saleDate,
+          surface: lot.surface,
+          pricing
+        };
+      } else {
+        const acquisitionCost = lot.acquisition?.totalCost || 0;
+        const priceCap = acquisitionCost * 1.10;
+
+        underlyingSale = {
+          type: 'classic',
+          lotId: currentSale.lotId,
+          buyer: currentSale.buyerId,
+          seller: currentSale.sellerId,
+          saleDate: currentSale.saleDate,
+          price: currentSale.proposedPrice,
+          buyerApproval: currentSale.buyerApproval || {
+            candidateId: currentSale.buyerId,
+            interviewDate: new Date(),
+            approved: true,
+            notes: ''
+          },
+          priceCap
+        };
+      }
+
+      const agreement: RentToOwnAgreement = {
+        id: agreementId,
+        underlyingSale,
+        trialStartDate,
+        trialEndDate,
+        trialDurationMonths: event.trialMonths,
+        monthlyPayment: event.monthlyPayment,
+        totalPaid: 0,
+        equityAccumulated: 0,
+        rentPaid: 0,
+        rentToOwnFormula: DEFAULT_RENT_TO_OWN_FORMULA,
+        provisionalBuyerId: currentSale.buyerId,
+        sellerId: currentSale.sellerId,
+        status: 'active',
+        extensionRequests: []
+      };
+
+      const newAgreements = new Map(context.rentToOwnAgreements);
+      newAgreements.set(agreementId, agreement);
+
+      // TODO: Spawn rentToOwnMachine actor via invoke in state configuration
+      // For now, just store the agreement in context
+
+      return {
+        rentToOwnAgreements: newAgreements,
+        currentSale: undefined
+      };
+    }),
+
+    completeRentToOwn: assign({
+      rentToOwnAgreements: ({ context, event }) => {
+        if (event.type !== 'RENT_TO_OWN_COMPLETED') return context.rentToOwnAgreements;
+
+        const newMap = new Map(context.rentToOwnAgreements);
+        newMap.delete(event.agreementId);
+
+        return newMap;
+      },
+      salesHistory: ({ context, event }) => {
+        if (event.type !== 'RENT_TO_OWN_COMPLETED') return context.salesHistory;
+
+        const agreement = context.rentToOwnAgreements.get(event.agreementId);
+        if (agreement) {
+          return [...context.salesHistory, agreement.underlyingSale];
+        }
+
+        return context.salesHistory;
+      }
+    }),
+
+    cancelRentToOwn: assign({
+      rentToOwnAgreements: ({ context, event }) => {
+        if (event.type !== 'RENT_TO_OWN_CANCELLED') return context.rentToOwnAgreements;
+
+        const newMap = new Map(context.rentToOwnAgreements);
+        newMap.delete(event.agreementId);
+
+        return newMap;
+      }
     })
   }
 
@@ -637,6 +792,9 @@ export const creditCastorMachine = setup({
     // ACP loans
     acpLoans: new Map(),
     acpBankAccount: 0,
+
+    // Rent-to-own agreements
+    rentToOwnAgreements: new Map(),
 
     // Project financials
     projectFinancials: {
@@ -875,6 +1033,10 @@ export const creditCastorMachine = setup({
             COMPLETE_SALE: {
               target: 'awaiting_sale',
               actions: ['recordCompletedSale']
+            },
+            INITIATE_RENT_TO_OWN: {
+              target: 'awaiting_sale',
+              actions: ['initiateRentToOwn']
             }
           }
         },
@@ -894,6 +1056,12 @@ export const creditCastorMachine = setup({
       on: {
         ALL_LOTS_SOLD: {
           target: 'completed'
+        },
+        RENT_TO_OWN_COMPLETED: {
+          actions: ['completeRentToOwn']
+        },
+        RENT_TO_OWN_CANCELLED: {
+          actions: ['cancelRentToOwn']
         }
       }
     },

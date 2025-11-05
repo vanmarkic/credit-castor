@@ -101,6 +101,9 @@ export interface ProjectContext {
   acpLoans: Map<string, ACPLoan>;
   acpBankAccount: number;
 
+  // Rent-to-own agreements (spawned actors)
+  rentToOwnAgreements: Map<string, RentToOwnAgreement>;
+
   // Project financials
   projectFinancials: ProjectFinancials;
 }

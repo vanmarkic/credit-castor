@@ -93,6 +93,19 @@ export type ACPLoanEvents =
   | { type: 'DISBURSE_ACP_LOAN'; loanId: string };
 
 // ============================================
+// RENT-TO-OWN EVENTS
+// ============================================
+
+export type RentToOwnEvents =
+  | { type: 'INITIATE_RENT_TO_OWN'; saleId: string; trialMonths: number; monthlyPayment: number }
+  | { type: 'RENT_TO_OWN_PAYMENT_RECORDED'; agreementId: string; amount: number; date: Date }
+  | { type: 'RENT_TO_OWN_BUYER_REQUESTS_PURCHASE'; agreementId: string }
+  | { type: 'RENT_TO_OWN_BUYER_DECLINES'; agreementId: string }
+  | { type: 'RENT_TO_OWN_EXTENSION_REQUESTED'; agreementId: string; additionalMonths: number }
+  | { type: 'RENT_TO_OWN_COMPLETED'; agreementId: string }
+  | { type: 'RENT_TO_OWN_CANCELLED'; agreementId: string };
+
+// ============================================
 // ALL EVENTS
 // ============================================
 
@@ -102,4 +115,5 @@ export type ProjectEvents =
   | PermitEvents
   | SalesEvents
   | FinancingEvents
-  | ACPLoanEvents;
+  | ACPLoanEvents
+  | RentToOwnEvents;
