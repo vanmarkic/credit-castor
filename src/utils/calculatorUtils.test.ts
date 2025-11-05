@@ -20,7 +20,7 @@ import {
   type ProjectParams,
   type UnitDetails,
 } from './calculatorUtils';
-import type { PortageFormulaParams, RentToOwnFormulaParams, RentToOwnAgreement } from './calculatorUtils';
+import type { PortageFormulaParams, RentToOwnFormulaParams } from './calculatorUtils';
 
 // ============================================
 // Portage Formula Parameters
