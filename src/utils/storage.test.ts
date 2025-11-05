@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { saveToLocalStorage, loadFromLocalStorage, DEFAULT_DEED_DATE } from './storage';
+import { saveToLocalStorage, loadFromLocalStorage, DEFAULT_PROJECT_PARAMS } from './storage';
 import { DEFAULT_RENT_TO_OWN_FORMULA, DEFAULT_PORTAGE_FORMULA } from './calculatorUtils';
 
 describe('Rent-to-Own Storage Migration', () => {
@@ -14,7 +14,7 @@ describe('Rent-to-Own Storage Migration', () => {
   it('should add rentToOwnFormula to new saves', () => {
     const testData = {
       participants: [],
-      projectParams: {},
+      projectParams: DEFAULT_PROJECT_PARAMS,
       deedDate: '2026-02-01',
       portageFormula: DEFAULT_PORTAGE_FORMULA
     };
@@ -32,7 +32,7 @@ describe('Rent-to-Own Storage Migration', () => {
       releaseVersion: '1.0.0',
       version: 2,
       participants: [],
-      projectParams: {},
+      projectParams: DEFAULT_PROJECT_PARAMS,
       deedDate: '2026-02-01',
       portageFormula: DEFAULT_PORTAGE_FORMULA
     };
@@ -56,7 +56,7 @@ describe('Rent-to-Own Storage Migration', () => {
         durationYears: 25
         // Missing: participantStatus, hasVotingRights, etc.
       }],
-      projectParams: {},
+      projectParams: DEFAULT_PROJECT_PARAMS,
       deedDate: '2026-02-01',
       portageFormula: DEFAULT_PORTAGE_FORMULA
     };
