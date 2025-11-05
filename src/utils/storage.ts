@@ -1,6 +1,6 @@
 // Import types first
 import { RELEASE_VERSION, isCompatibleVersion } from './version';
-import { DEFAULT_PORTAGE_FORMULA, type PortageFormulaParams, type Participant, type ProjectParams } from './calculatorUtils';
+import { DEFAULT_PORTAGE_FORMULA, DEFAULT_RENT_TO_OWN_FORMULA, type PortageFormulaParams, type RentToOwnFormulaParams, type Participant, type ProjectParams } from './calculatorUtils';
 
 // Default deed date: February 1st, 2026 (future date - deed not signed yet)
 export const DEFAULT_DEED_DATE = '2026-02-01';
@@ -69,7 +69,7 @@ export const DEFAULT_PARTICIPANTS: Participant[] = [
       // Indexation (2% × 1.33 years): €6,212
       // Carrying costs recovery (100%): €17,103
       // Total: €256,490
-      purchasePrice: 256490
+      purchasePrice: 256563
     }
   }
 ];
@@ -151,7 +151,7 @@ export const clearPinnedParticipant = () => {
 };
 
 // LocalStorage utilities for scenario data
-export const saveToLocalStorage = (participants: Participant[], projectParams: ProjectParams, deedDate: string, portageFormula?: PortageFormulaParams) => {
+export const saveToLocalStorage = (participants: Participant[], projectParams: ProjectParams, deedDate: string, portageFormula?: PortageFormulaParams, rentToOwnFormula: RentToOwnFormulaParams = DEFAULT_RENT_TO_OWN_FORMULA) => {
   try {
     const data = {
       releaseVersion: RELEASE_VERSION, // Release version for compatibility check
@@ -161,7 +161,8 @@ export const saveToLocalStorage = (participants: Participant[], projectParams: P
       projectParams,
       // scenario removed - no longer saving percentage-based adjustments
       deedDate,
-      portageFormula: portageFormula || DEFAULT_PORTAGE_FORMULA
+      portageFormula: portageFormula || DEFAULT_PORTAGE_FORMULA,
+      rentToOwnFormula  // NEW
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch (error) {
@@ -189,10 +190,34 @@ export const loadFromLocalStorage = () => {
         // scenario removed - old data may have it but we ignore it
         deedDate: data.deedDate, // May be undefined for old saved data
         portageFormula: data.portageFormula || DEFAULT_PORTAGE_FORMULA,
+        rentToOwnFormula: data.rentToOwnFormula || DEFAULT_RENT_TO_OWN_FORMULA,  // NEW: Add default if missing
         timestamp: data.timestamp
       };
 
-      // If compatible, apply migrations
+      // Always apply provisional participant field migration (for backward compatibility)
+      if (result.participants) {
+        result.participants = result.participants.map((p: Participant) => {
+          const participant = { ...p };
+
+          // Migration: Add provisional participant fields if missing
+          if (participant.participantStatus === undefined) {
+            participant.participantStatus = 'full';
+          }
+          if (participant.hasVotingRights === undefined) {
+            participant.hasVotingRights = true;
+          }
+          if (participant.excludeFromQuotite === undefined) {
+            participant.excludeFromQuotite = false;
+          }
+          if (participant.canAttendMeetings === undefined) {
+            participant.canAttendMeetings = true;
+          }
+
+          return participant;
+        });
+      }
+
+      // If compatible, apply additional migrations
       if (isCompatible) {
         // Migration: If no globalCascoPerM2, use first participant's value or default
         if (result.projectParams && !result.projectParams.globalCascoPerM2) {
