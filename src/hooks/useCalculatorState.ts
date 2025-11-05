@@ -13,8 +13,8 @@ import {
   savePinnedParticipant,
   clearPinnedParticipant
 } from '../utils/storage';
-import { DEFAULT_PORTAGE_FORMULA, DEFAULT_RENT_TO_OWN_FORMULA } from '../utils/calculatorUtils';
-import type { Participant, ProjectParams, PortageFormulaParams, RentToOwnFormulaParams, CalculationResults } from '../utils/calculatorUtils';
+import { DEFAULT_PORTAGE_FORMULA } from '../utils/calculatorUtils';
+import type { Participant, ProjectParams, PortageFormulaParams, CalculationResults } from '../utils/calculatorUtils';
 import { syncSoldDatesFromPurchaseDetails } from '../utils/participantSync';
 
 export interface CalculatorState {
@@ -24,7 +24,6 @@ export interface CalculatorState {
   // scenario removed - no longer using percentage-based adjustments
   deedDate: string;
   portageFormula: PortageFormulaParams;
-  rentToOwnFormula: RentToOwnFormulaParams;
   pinnedParticipant: string | null;
   fullscreenParticipantIndex: number | null;
   versionMismatch: { show: boolean; storedVersion?: string };
@@ -35,7 +34,6 @@ export interface CalculatorState {
   // setScenario removed
   setDeedDate: (date: string) => void;
   setPortageFormula: (formula: PortageFormulaParams) => void;
-  setRentToOwnFormula: (formula: RentToOwnFormulaParams) => void;
   setPinnedParticipant: (name: string | null) => void;
   setFullscreenParticipantIndex: (index: number | null) => void;
   setVersionMismatch: (mismatch: { show: boolean; storedVersion?: string }) => void;
@@ -121,11 +119,6 @@ export function useCalculatorState(): CalculatorState {
     return stored?.portageFormula || DEFAULT_PORTAGE_FORMULA;
   });
 
-  const [rentToOwnFormula, setRentToOwnFormula] = useState<RentToOwnFormulaParams>(() => {
-    const stored = loadFromLocalStorage();
-    return stored?.rentToOwnFormula || DEFAULT_RENT_TO_OWN_FORMULA;
-  });
-
   const handlePinParticipant = (participantName: string) => {
     savePinnedParticipant(participantName);
     setPinnedParticipant(participantName);
@@ -142,7 +135,6 @@ export function useCalculatorState(): CalculatorState {
     // scenario removed
     deedDate,
     portageFormula,
-    rentToOwnFormula,
     pinnedParticipant,
     fullscreenParticipantIndex,
     versionMismatch,
@@ -151,7 +143,6 @@ export function useCalculatorState(): CalculatorState {
     // setScenario removed
     setDeedDate,
     setPortageFormula,
-    setRentToOwnFormula,
     setPinnedParticipant,
     setFullscreenParticipantIndex,
     setVersionMismatch,
