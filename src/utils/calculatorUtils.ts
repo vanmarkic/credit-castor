@@ -49,6 +49,13 @@ export interface Participant {
   parachevementsPerM2?: number;
   cascoSqm?: number;
   parachevementsSqm?: number;
+
+  // Rent-to-own provisional status (NEW)
+  participantStatus?: 'provisional' | 'full';  // Default 'full'
+  hasVotingRights?: boolean;          // Default true, false for provisional
+  excludeFromQuotite?: boolean;       // Default false, true for provisional
+  canAttendMeetings?: boolean;        // Default true
+  rentToOwnAgreementId?: string;      // Link to agreement if provisional
 }
 
 export interface ExpenseLineItem {
@@ -91,6 +98,81 @@ export const DEFAULT_PORTAGE_FORMULA: PortageFormulaParams = {
   carryingCostRecovery: 100,
   averageInterestRate: 4.5
 };
+
+// Rent-to-Own Formula (pluggable like portageFormula)
+export interface RentToOwnFormulaParams {
+  version: 'v1';  // For future evolution
+
+  // Equity/rent split configuration
+  equityPercentage: number;  // 0-100, e.g., 50 = 50% to equity
+  rentPercentage: number;    // Must sum to 100 with equityPercentage
+
+  // Duration bounds
+  minTrialMonths: number;    // Default: 3
+  maxTrialMonths: number;    // Default: 24
+
+  // Termination rules
+  equityForfeitureOnBuyerExit: number;  // 0-100, e.g., 100 = loses all equity
+  equityReturnOnCommunityReject: number; // 0-100, e.g., 100 = gets all equity back
+
+  // Extension rules
+  allowExtensions: boolean;
+  maxExtensions?: number;
+  extensionIncrementMonths?: number;  // e.g., 6 months per extension
+}
+
+export const DEFAULT_RENT_TO_OWN_FORMULA: RentToOwnFormulaParams = {
+  version: 'v1',
+
+  equityPercentage: 50,  // 50/50 split
+  rentPercentage: 50,
+
+  minTrialMonths: 3,
+  maxTrialMonths: 24,
+
+  equityForfeitureOnBuyerExit: 100,  // Buyer walks = loses all equity
+  equityReturnOnCommunityReject: 100, // Community rejects = full refund
+
+  allowExtensions: true,
+  maxExtensions: 2,
+  extensionIncrementMonths: 6
+};
+
+// Extension request tracking
+export interface ExtensionRequest {
+  requestDate: Date;
+  additionalMonths: number;
+  approved: boolean | null;  // null = pending vote
+}
+
+// Rent-to-Own Agreement (wraps any sale type)
+export interface RentToOwnAgreement {
+  id: string;
+  // underlyingSale would reference Sale type from state machine
+  // For now, we'll add basic structure
+
+  // Trial configuration
+  trialStartDate: Date;
+  trialEndDate: Date;
+  trialDurationMonths: number;  // 3-24 months
+
+  // Financial tracking
+  monthlyPayment: number;
+  totalPaid: number;
+  equityAccumulated: number;
+  rentPaid: number;
+
+  // Formula plugin
+  rentToOwnFormula: RentToOwnFormulaParams;
+
+  // Participants
+  provisionalBuyerId: string;  // Participant ID
+  sellerId: string;  // Participant ID or 'copropriete'
+
+  // Status
+  status: 'active' | 'ending_soon' | 'decision_pending' | 'completed' | 'cancelled';
+  extensionRequests: ExtensionRequest[];
+}
 
 export interface UnitDetails {
   [unitId: number]: {
@@ -534,8 +616,20 @@ export function calculateAll(
       p.parachevementsSqm
     );
 
-    const purchaseShare = calculatePurchaseShare(surface, pricePerM2);
-    const notaryFees = calculateNotaryFees(purchaseShare, p.notaryFeesRate);
+    // For newcomer buyers purchasing portage lots, use the recalculated purchase price
+    // instead of calculating from surface × pricePerM²
+    let purchaseShare: number;
+    let notaryFees: number;
+
+    if (p.purchaseDetails?.purchasePrice) {
+      // Newcomer buying portage lot or copro lot - use the specified purchase price
+      purchaseShare = p.purchaseDetails.purchasePrice;
+      notaryFees = calculateNotaryFees(purchaseShare, p.notaryFeesRate);
+    } else {
+      // Founder participant - calculate from surface share
+      purchaseShare = calculatePurchaseShare(surface, pricePerM2);
+      notaryFees = calculateNotaryFees(purchaseShare, p.notaryFeesRate);
+    }
 
     // Since surface is TOTAL, casco and parachevements are already for total surface
     // Only multiply travauxCommunsPerUnit by quantity (shared building costs per unit)

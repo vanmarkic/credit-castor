@@ -20,7 +20,7 @@ import {
   type ProjectParams,
   type UnitDetails,
 } from './calculatorUtils';
-import type { PortageFormulaParams } from './calculatorUtils';
+import type { PortageFormulaParams, RentToOwnFormulaParams, RentToOwnAgreement } from './calculatorUtils';
 
 // ============================================
 // Portage Formula Parameters
@@ -1331,5 +1331,44 @@ describe('calculateAll with two-loan financing', () => {
     expect(p.loanNeeded).toBeGreaterThan(0);
     expect(p.monthlyPayment).toBeGreaterThan(0);
     expect(p.totalInterest).toBeGreaterThan(0);
+  });
+});
+
+// ============================================
+// Rent-to-Own Types
+// ============================================
+
+describe('Rent-to-Own Types', () => {
+  it('should accept valid RentToOwnFormulaParams', () => {
+    const formula: RentToOwnFormulaParams = {
+      version: 'v1',
+      equityPercentage: 50,
+      rentPercentage: 50,
+      minTrialMonths: 3,
+      maxTrialMonths: 24,
+      equityForfeitureOnBuyerExit: 100,
+      equityReturnOnCommunityReject: 100,
+      allowExtensions: true,
+      maxExtensions: 2,
+      extensionIncrementMonths: 6
+    };
+
+    expect(formula.version).toBe('v1');
+    expect(formula.equityPercentage + formula.rentPercentage).toBe(100);
+  });
+
+  it('should validate equity/rent split sums to 100', () => {
+    const formula: RentToOwnFormulaParams = {
+      version: 'v1',
+      equityPercentage: 60,
+      rentPercentage: 40,
+      minTrialMonths: 3,
+      maxTrialMonths: 24,
+      equityForfeitureOnBuyerExit: 100,
+      equityReturnOnCommunityReject: 100,
+      allowExtensions: true
+    };
+
+    expect(formula.equityPercentage + formula.rentPercentage).toBe(100);
   });
 });
