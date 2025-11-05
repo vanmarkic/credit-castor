@@ -46,6 +46,7 @@ interface ParticipantDetailsPanelProps {
   onAddPortageLot: (participantIndex: number) => void;
   onRemovePortageLot: (participantIndex: number, lotId: number) => void;
   onUpdatePortageLotSurface: (participantIndex: number, lotId: number, surface: number) => void;
+  onUpdatePortageLotConstructionPayment?: (participantIndex: number, lotId: number, founderPaysCasco: boolean, founderPaysParachèvement: boolean) => void;
 }
 
 export function ParticipantDetailsPanel({
@@ -72,6 +73,7 @@ export function ParticipantDetailsPanel({
   onAddPortageLot: addPortageLot,
   onRemovePortageLot: removePortageLot,
   onUpdatePortageLotSurface: updatePortageLotSurface,
+  onUpdatePortageLotConstructionPayment: updatePortageLotConstructionPayment,
 }: ParticipantDetailsPanelProps) {
   // Helper to update the entire participant list - delegates to parent
   const setParticipants = (updater: (prev: Participant[]) => Participant[]) => {
@@ -79,6 +81,19 @@ export function ParticipantDetailsPanel({
     // Update the specific participant at this index
     onUpdateParticipant(idx, updated[idx]);
   };
+
+  // Check if participant is buying a portage lot and get construction payment info
+  const portageLotInfo = participants[idx].purchaseDetails?.lotId
+    ? (() => {
+        const portageLot = participants
+          .flatMap(seller => seller.lotsOwned || [])
+          .find(lot => lot.lotId === participants[idx].purchaseDetails!.lotId && lot.isPortage);
+        return portageLot ? {
+          founderPaysCasco: portageLot.founderPaysCasco || false,
+          founderPaysParachèvement: portageLot.founderPaysParachèvement || false
+        } : null;
+      })()
+    : null;
 
   return (
     <div
@@ -435,6 +450,8 @@ export function ParticipantDetailsPanel({
               onAddLot={() => addPortageLot(idx)}
               onRemoveLot={(lotId) => removePortageLot(idx, lotId)}
               onUpdateSurface={(lotId, surface) => updatePortageLotSurface(idx, lotId, surface)}
+              onUpdateConstructionPayment={updatePortageLotConstructionPayment ? (lotId, founderPaysCasco, founderPaysParachèvement) =>
+                updatePortageLotConstructionPayment(idx, lotId, founderPaysCasco, founderPaysParachèvement) : undefined}
               deedDate={new Date(deedDate)}
               formulaParams={formulaParams}
             />
@@ -473,7 +490,12 @@ export function ParticipantDetailsPanel({
                 {formatCurrency(p.casco)}
               </FormulaTooltip>
             </p>
-            <p className="text-xs text-orange-500 mt-0.5">{participants[idx].cascoSqm || p.surface}m²</p>
+            <p className="text-xs text-orange-500 mt-0.5">
+              {participants[idx].cascoSqm || p.surface}m²
+              {portageLotInfo?.founderPaysCasco && p.casco === 0 && (
+                <span className="ml-1 text-blue-600 font-medium">(payé par porteur)</span>
+              )}
+            </p>
           </div>
 
           <div className="bg-white rounded-lg p-3 border border-orange-200">
@@ -483,7 +505,12 @@ export function ParticipantDetailsPanel({
                 {formatCurrency(p.parachevements)}
               </FormulaTooltip>
             </p>
-            <p className="text-xs text-orange-500 mt-0.5">{participants[idx].parachevementsSqm || p.surface}m²</p>
+            <p className="text-xs text-orange-500 mt-0.5">
+              {participants[idx].parachevementsSqm || p.surface}m²
+              {portageLotInfo?.founderPaysParachèvement && p.parachevements === 0 && (
+                <span className="ml-1 text-blue-600 font-medium">(payé par porteur)</span>
+              )}
+            </p>
           </div>
 
           <div className="bg-white rounded-lg p-3 border border-purple-200">
@@ -513,7 +540,12 @@ export function ParticipantDetailsPanel({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
           {/* CASCO - Display only (not editable) */}
           <div className="bg-white p-3 rounded-lg border border-gray-200">
-            <p className="text-xs text-gray-500 mb-1">CASCO (gros œuvre)</p>
+            <p className="text-xs text-gray-500 mb-1">
+              CASCO (gros œuvre)
+              {portageLotInfo?.founderPaysCasco && p.casco === 0 && (
+                <span className="ml-2 text-blue-600 font-medium">(payé par porteur)</span>
+              )}
+            </p>
             <p className="text-lg font-bold text-gray-900">
               <FormulaTooltip formula={getCascoFormula(p, participants[idx].cascoSqm, projectParams.globalCascoPerM2)}>
                 {formatCurrency(p.casco)}
@@ -526,7 +558,12 @@ export function ParticipantDetailsPanel({
 
           {/* Parachèvements - Editable */}
           <div className="bg-white p-3 rounded-lg border border-gray-200">
-            <label className="block text-xs text-gray-500 mb-1">Parachèvements - Prix/m²</label>
+            <label className="block text-xs text-gray-500 mb-1">
+              Parachèvements - Prix/m²
+              {portageLotInfo?.founderPaysParachèvement && p.parachevements === 0 && (
+                <span className="ml-2 text-blue-600 font-medium">(payé par porteur)</span>
+              )}
+            </label>
             <input
               type="number"
               step="10"

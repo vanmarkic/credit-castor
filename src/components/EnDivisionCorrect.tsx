@@ -115,6 +115,7 @@ export default function EnDivisionCorrect() {
     projectParams,
     deedDate,
     portageFormula,
+    state.rentToOwnFormula,
     versionMismatch.show
   );
 
@@ -225,6 +226,10 @@ export default function EnDivisionCorrect() {
 
   const updatePortageLotSurface = (participantIndex: number, lotId: number, surface: number) => {
     setParticipants(participantOps.updatePortageLotSurface(participants, participantIndex, lotId, surface));
+  };
+
+  const updatePortageLotConstructionPayment = (participantIndex: number, lotId: number, founderPaysCasco: boolean, founderPaysParachèvement: boolean) => {
+    setParticipants(participantOps.updatePortageLotConstructionPayment(participants, participantIndex, lotId, founderPaysCasco, founderPaysParachèvement));
   };
 
   const exportToExcel = () => {
@@ -654,6 +659,8 @@ export default function EnDivisionCorrect() {
               onAddPortageLot={() => addPortageLot(idx)}
               onRemovePortageLot={(lotId) => removePortageLot(idx, lotId)}
               onUpdatePortageLotSurface={(lotId, surface) => updatePortageLotSurface(idx, lotId, surface)}
+              onUpdatePortageLotConstructionPayment={(lotId, founderPaysCasco, founderPaysParachèvement) =>
+                updatePortageLotConstructionPayment(idx, lotId, founderPaysCasco, founderPaysParachèvement)}
               onRemove={() => removeParticipant(idx)}
               totalParticipants={participants.length}
             />

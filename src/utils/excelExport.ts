@@ -150,8 +150,9 @@ export function buildExportSheetData(
                    'Construction', 'Commun', 'TOTAL', 'Emprunt', 'Mensualite', 'Total rembourse',
                    'Reno perso', 'CASCO m2', 'Parachev m2', 'CASCO sqm', 'Parachev sqm',
                    'Fondateur', 'Date entree', 'Lots detenus', 'Date vente lot', 'Achete de', 'Lot ID achete', 'Prix achat lot',
-                   '2 prets', 'Pret1 montant', 'Pret1 mens', 'Pret2 montant', 'Pret2 mens', 'Pret2 duree'];
-  const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH', 'AI', 'AJ', 'AK'];
+                   '2 prets', 'Pret1 montant', 'Pret1 mens', 'Pret2 montant', 'Pret2 mens', 'Pret2 duree',
+                   'Porteur paie CASCO', 'Porteur paie Parachev'];
+  const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH', 'AI', 'AJ', 'AK', 'AL', 'AM'];
 
   headers.forEach((header, idx) => {
     addCell(headerRow, cols[idx], header);
@@ -229,6 +230,25 @@ export function buildExportSheetData(
       addCell(r, 'AJ', '');
       addCell(r, 'AK', '');
     }
+
+    // Construction payment details (for portage buyers)
+    if (p.purchaseDetails?.lotId) {
+      // Find the portage lot from all participants' lotsOwned
+      const portageLot = participants
+        .flatMap(seller => seller.lotsOwned || [])
+        .find(lot => lot.lotId === p.purchaseDetails!.lotId && lot.isPortage);
+
+      if (portageLot) {
+        addCell(r, 'AL', portageLot.founderPaysCasco ? 'Oui' : 'Non');
+        addCell(r, 'AM', portageLot.founderPaysParachèvement ? 'Oui' : 'Non');
+      } else {
+        addCell(r, 'AL', '');
+        addCell(r, 'AM', '');
+      }
+    } else {
+      addCell(r, 'AL', '');
+      addCell(r, 'AM', '');
+    }
   });
 
   // Totals row
@@ -273,6 +293,8 @@ export function buildExportSheetData(
   addCell(totalRow, 'AI', '');
   addCell(totalRow, 'AJ', '');
   addCell(totalRow, 'AK', '');
+  addCell(totalRow, 'AL', '');
+  addCell(totalRow, 'AM', '');
 
   // Summary section
   const synthRow = totalRow + 2;
@@ -290,7 +312,7 @@ export function buildExportSheetData(
   addCell(synthRow + 7, 'A', 'Emprunt maximum');
   addCell(synthRow + 7, 'B', null, `MAX(Q${startRow}:Q${endRow})`);
 
-  // Column widths (expanded to 37 columns for portage lot tracking and two-loan financing)
+  // Column widths (expanded to 39 columns for portage lot tracking, two-loan financing, and construction payment tracking)
   const columnWidths = [
     { col: 0, width: 25 }, { col: 1, width: 8 }, { col: 2, width: 10 }, { col: 3, width: 8 },
     { col: 4, width: 15 }, { col: 5, width: 14 }, { col: 6, width: 12 }, { col: 7, width: 12 },
@@ -301,7 +323,7 @@ export function buildExportSheetData(
     { col: 24, width: 10 }, { col: 25, width: 12 }, { col: 26, width: 30 }, { col: 27, width: 20 },
     { col: 28, width: 20 }, { col: 29, width: 12 }, { col: 30, width: 15 },
     { col: 31, width: 10 }, { col: 32, width: 15 }, { col: 33, width: 15 }, { col: 34, width: 15 },
-    { col: 35, width: 15 }, { col: 36, width: 25 }
+    { col: 35, width: 15 }, { col: 36, width: 25 }, { col: 37, width: 18 }, { col: 38, width: 20 }
   ];
 
   return {

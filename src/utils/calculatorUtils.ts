@@ -376,6 +376,43 @@ export function calculateConstructionCost(
 }
 
 /**
+ * Adjust construction costs for portage buyer
+ * Removes costs already paid by founder during portage period
+ */
+export function adjustPortageBuyerConstructionCosts(
+  baseCasco: number,
+  baseParachevements: number,
+  portageLot?: { founderPaysCasco?: boolean; founderPaysParachèvement?: boolean }
+): { casco: number; parachevements: number } {
+  if (!portageLot) {
+    return { casco: baseCasco, parachevements: baseParachevements };
+  }
+
+  const casco = portageLot.founderPaysCasco ? 0 : baseCasco;
+  const parachevements = portageLot.founderPaysParachèvement ? 0 : baseParachevements;
+
+  return { casco, parachevements };
+}
+
+/**
+ * Get construction costs paid by founder (for display/export)
+ */
+export function getFounderPaidConstructionCosts(
+  portageLot: { founderPaysCasco?: boolean; founderPaysParachèvement?: boolean; surface: number },
+  globalCascoPerM2: number,
+  parachevementsPerM2: number
+): { casco: number; parachevements: number } {
+  const surface = portageLot.surface || 0;
+
+  const casco = portageLot.founderPaysCasco ? surface * globalCascoPerM2 : 0;
+  const parachevements = portageLot.founderPaysParachèvement
+    ? surface * parachevementsPerM2
+    : 0;
+
+  return { casco, parachevements };
+}
+
+/**
  * Calculate loan amount needed
  */
 export function calculateLoanAmount(
@@ -524,7 +561,7 @@ export function calculateAll(
     const surface = p.surface || 0;
     const quantity = p.quantity || 1;
 
-    const { casco, parachevements } = calculateCascoAndParachevements(
+    let { casco, parachevements } = calculateCascoAndParachevements(
       unitId,
       surface,
       unitDetails,
@@ -533,6 +570,21 @@ export function calculateAll(
       p.cascoSqm,
       p.parachevementsSqm
     );
+
+    // Check if participant is buying a portage lot and adjust construction costs
+    if (p.purchaseDetails?.lotId) {
+      // Find the portage lot from all participants' lotsOwned
+      const portageLot = participants
+        .flatMap(seller => seller.lotsOwned || [])
+        .find(lot => lot.lotId === p.purchaseDetails!.lotId && lot.isPortage);
+
+      if (portageLot) {
+        // Adjust construction costs based on what founder paid
+        const adjusted = adjustPortageBuyerConstructionCosts(casco, parachevements, portageLot);
+        casco = adjusted.casco;
+        parachevements = adjusted.parachevements;
+      }
+    }
 
     const purchaseShare = calculatePurchaseShare(surface, pricePerM2);
     const notaryFees = calculateNotaryFees(purchaseShare, p.notaryFeesRate);

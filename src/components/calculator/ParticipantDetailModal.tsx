@@ -36,6 +36,7 @@ interface ParticipantDetailModalProps {
   onAddPortageLot: () => void;
   onRemovePortageLot: (lotId: number) => void;
   onUpdatePortageLotSurface: (lotId: number, surface: number) => void;
+  onUpdatePortageLotConstructionPayment?: (lotId: number, founderPaysCasco: boolean, founderPaysParachèvement: boolean) => void;
   onRemove?: () => void;
   totalParticipants: number;
 }
@@ -68,6 +69,7 @@ export default function ParticipantDetailModal({
   onAddPortageLot,
   onRemovePortageLot,
   onUpdatePortageLotSurface,
+  onUpdatePortageLotConstructionPayment,
   onRemove,
   totalParticipants,
 }: ParticipantDetailModalProps) {
@@ -327,6 +329,7 @@ export default function ParticipantDetailModal({
                 onAddLot={onAddPortageLot}
                 onRemoveLot={onRemovePortageLot}
                 onUpdateSurface={onUpdatePortageLotSurface}
+                onUpdateConstructionPayment={onUpdatePortageLotConstructionPayment}
                 deedDate={new Date(deedDate)}
                 formulaParams={formulaParams}
               />

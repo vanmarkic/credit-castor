@@ -29,6 +29,8 @@ export interface Lot {
 
   // Portage lot configuration
   allocatedSurface?: number; // Surface allocated to portage (if isPortage=true)
+  founderPaysCasco?: boolean; // Founder pays for CASCO during portage period (default: false)
+  founderPaysParachèvement?: boolean; // Founder pays for parachèvement during portage period (default: false, requires founderPaysCasco=true)
 
   // Sale tracking
   soldDate?: Date;

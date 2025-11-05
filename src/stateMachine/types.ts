@@ -65,6 +65,10 @@ export interface Lot {
 
   renovationCosts?: number;
   permitAllowsModification?: boolean;
+
+  // Portage construction payment configuration
+  founderPaysCasco?: boolean; // Founder pays for CASCO during portage period (default: false)
+  founderPaysParachèvement?: boolean; // Founder pays for parachèvement during portage period (default: false, requires founderPaysCasco=true)
 }
 
 // ============================================

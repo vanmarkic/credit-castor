@@ -99,6 +99,14 @@ export interface ParticipantOperations {
     lotId: number,
     surface: number
   ) => Participant[];
+
+  updatePortageLotConstructionPayment: (
+    participants: Participant[],
+    participantIndex: number,
+    lotId: number,
+    founderPaysCasco: boolean,
+    founderPaysParachèvement: boolean
+  ) => Participant[];
 }
 
 /**
@@ -382,6 +390,37 @@ export function updatePortageLotSurface(
 }
 
 /**
+ * Update portage lot construction payment configuration
+ * Enforces dependency: parachèvement requires CASCO
+ */
+export function updatePortageLotConstructionPayment(
+  participants: Participant[],
+  participantIndex: number,
+  lotId: number,
+  founderPaysCasco: boolean,
+  founderPaysParachèvement: boolean
+): Participant[] {
+  const newParticipants = [...participants];
+  const participant = { ...newParticipants[participantIndex] };
+
+  if (!participant.lotsOwned) {
+    return participants;
+  }
+
+  participant.lotsOwned = [...participant.lotsOwned];
+  const lot = participant.lotsOwned.find(l => l.lotId === lotId);
+
+  if (lot) {
+    // Enforce dependency: if parachèvement is checked, CASCO must be checked
+    lot.founderPaysCasco = founderPaysCasco;
+    lot.founderPaysParachèvement = founderPaysParachèvement && founderPaysCasco;
+  }
+
+  newParticipants[participantIndex] = participant;
+  return newParticipants;
+}
+
+/**
  * Hook that provides participant operation functions
  */
 export function useParticipantOperations(): ParticipantOperations {
@@ -400,6 +439,7 @@ export function useParticipantOperations(): ParticipantOperations {
     updateParachevementsSqm,
     addPortageLot,
     removePortageLot,
-    updatePortageLotSurface
+    updatePortageLotSurface,
+    updatePortageLotConstructionPayment
   };
 }

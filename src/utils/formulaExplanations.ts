@@ -202,3 +202,78 @@ export function getPortageLotPriceFormula(
     `Prix total: €${price.totalPrice.toLocaleString()}`
   ];
 }
+
+/**
+ * Get formula explanation for portage construction payment configuration
+ */
+export function getPortageConstructionPaymentFormula(
+  founderPaysCasco: boolean,
+  founderPaysParachèvement: boolean,
+  casco: number,
+  parachevements: number
+): string[] {
+  if (founderPaysParachèvement && founderPaysCasco) {
+    return [
+      "Configuration de paiement de construction",
+      "Le porteur (fondateur) a payé CASCO et parachèvement pendant la période de portage",
+      `CASCO: €${casco.toLocaleString()} (récupéré via le prix de portage)`,
+      `Parachèvement: €${parachevements.toLocaleString()} (récupéré via le prix de portage)`,
+      "L'acheteur ne paie PAS ces coûts séparément - ils sont déjà inclus dans le prix d'achat du lot"
+    ];
+  } else if (founderPaysCasco && !founderPaysParachèvement) {
+    return [
+      "Configuration de paiement de construction",
+      "Le porteur (fondateur) a payé le CASCO pendant la période de portage",
+      `CASCO: €${casco.toLocaleString()} (récupéré via le prix de portage)`,
+      `Parachèvement: €${parachevements.toLocaleString()} (payé par l'acheteur)`,
+      "L'acheteur ne paie PAS le CASCO séparément, mais PAIE pour le parachèvement"
+    ];
+  } else {
+    return [
+      "Configuration de paiement de construction",
+      "L'acheteur paie pour tous les travaux de construction",
+      `CASCO: €${casco.toLocaleString()} (payé par l'acheteur)`,
+      `Parachèvement: €${parachevements.toLocaleString()} (payé par l'acheteur)`,
+      "Le prix de portage couvre seulement l'achat initial + frais de portage"
+    ];
+  }
+}
+
+/**
+ * Get formula explanation for buyer's construction cost adjustment (portage)
+ */
+export function getBuyerConstructionCostAdjustmentFormula(
+  originalCasco: number,
+  originalParachevements: number,
+  adjustedCasco: number,
+  adjustedParachevements: number,
+  founderPaysCasco: boolean,
+  founderPaysParachèvement: boolean
+): string[] {
+  const cascoReduction = originalCasco - adjustedCasco;
+  const parachevementsReduction = originalParachevements - adjustedParachevements;
+
+  if (cascoReduction > 0 || parachevementsReduction > 0) {
+    const lines = [
+      "Ajustement des coûts de construction (achat de portage)",
+      "Pour éviter de payer deux fois:"
+    ];
+
+    if (founderPaysCasco) {
+      lines.push(`CASCO: €${originalCasco.toLocaleString()} → €${adjustedCasco.toLocaleString()} (payé par porteur)`);
+    }
+    if (founderPaysParachèvement) {
+      lines.push(`Parachèvement: €${originalParachevements.toLocaleString()} → €${adjustedParachevements.toLocaleString()} (payé par porteur)`);
+    }
+
+    const totalReduction = cascoReduction + parachevementsReduction;
+    lines.push(`Économie totale: €${totalReduction.toLocaleString()}`);
+
+    return lines;
+  }
+
+  return [
+    "Aucun ajustement de coût de construction",
+    "L'acheteur paie tous les coûts de construction séparément"
+  ];
+}

@@ -10,6 +10,7 @@ interface PortageLotConfigProps {
   onAddLot: () => void;
   onRemoveLot: (lotId: number) => void;
   onUpdateSurface: (lotId: number, surface: number) => void;
+  onUpdateConstructionPayment?: (lotId: number, founderPaysCasco: boolean, founderPaysParachèvement: boolean) => void;
   deedDate: Date;
   formulaParams: PortageFormulaParams;
   participantName?: string; // For anchor link
@@ -20,6 +21,7 @@ export default function PortageLotConfig({
   onAddLot,
   onRemoveLot,
   onUpdateSurface,
+  onUpdateConstructionPayment,
   deedDate,
   formulaParams,
   participantName: _participantName
@@ -101,6 +103,70 @@ export default function PortageLotConfig({
                     className="w-full px-3 py-2 text-sm font-semibold border border-orange-300 rounded-lg focus:border-orange-500 focus:ring-1 focus:ring-orange-500 focus:outline-none"
                   />
                 </div>
+
+                {/* Construction Payment Configuration */}
+                {onUpdateConstructionPayment && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+                    <div className="text-xs font-semibold text-blue-900 mb-2">
+                      Paiement des travaux de construction
+                    </div>
+                    <p className="text-xs text-blue-700 mb-2">
+                      Qui paie pour les travaux pendant la période de portage?
+                    </p>
+
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={lot.founderPaysCasco || false}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          // If unchecking CASCO, also uncheck Parachèvement
+                          const parachevementValue = checked ? (lot.founderPaysParachèvement || false) : false;
+                          onUpdateConstructionPayment(lot.lotId, checked, parachevementValue);
+                        }}
+                        className="mt-0.5 w-4 h-4 text-blue-600 border-blue-300 rounded focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">
+                        Le porteur (fondateur) paie le CASCO
+                      </span>
+                    </label>
+
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={lot.founderPaysParachèvement || false}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          if (checked) {
+                            // Auto-check CASCO when Parachèvement is checked
+                            onUpdateConstructionPayment(lot.lotId, true, true);
+                          } else {
+                            // Just uncheck Parachèvement, keep CASCO as-is
+                            onUpdateConstructionPayment(lot.lotId, lot.founderPaysCasco || false, false);
+                          }
+                        }}
+                        disabled={!lot.founderPaysCasco}
+                        className="mt-0.5 w-4 h-4 text-blue-600 border-blue-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                      <span className={`text-sm ${!lot.founderPaysCasco ? 'text-gray-400' : 'text-gray-700'}`}>
+                        Le porteur (fondateur) paie les parachèvements
+                        {!lot.founderPaysCasco && (
+                          <span className="block text-xs text-gray-400 italic">
+                            (nécessite CASCO)
+                          </span>
+                        )}
+                      </span>
+                    </label>
+
+                    {(lot.founderPaysCasco || lot.founderPaysParachèvement) && (
+                      <div className="mt-2 p-2 bg-blue-100 rounded text-xs text-blue-800">
+                        ℹ️ L'acheteur ne paiera pas pour le{' '}
+                        {lot.founderPaysParachèvement ? 'CASCO ni les parachèvements' : 'CASCO'}
+                        {' '}car le porteur les a déjà payés.
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Price Display */}
                 {hasSaleDate && price ? (
