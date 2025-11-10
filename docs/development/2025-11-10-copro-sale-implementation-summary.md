@@ -157,16 +157,27 @@ Added dedicated UI component for copro sale distribution display:
   - Table with individual founder distributions (name, quotité %, amount)
   - Explanatory note about frozen T0 quotité
 
-**Bug Fix**: Timeline "0 €" Display Issue
+**Bug Fix #1**: Timeline "0 €" Display Issue
 - **Problem**: Founders' timeline cards showed "0 €" instead of their distribution amount when newcomer joined via copro sale
 - **Root Cause**: `calculateCooproTransaction()` was a stub that always returned 0
 - **Solution**: Implemented actual calculation:
   - Extracts purchase price from `coproBuyer.purchaseDetails.purchasePrice`
   - Calculates 70% distribution amount
-  - Divides among founders (equal distribution for now)
   - Returns negative delta (cash received)
-- **Limitation**: Uses equal distribution; quotité-based would require access to all participants
 - **Tests**: 15 comprehensive RTL tests + 14 transaction calculation tests all passing
+
+**Bug Fix #2**: Equal Distribution Instead of Quotité-Based
+- **Problem**: All founders received equal distribution from copro sales regardless of surface ownership
+- **Root Cause**: `calculateCooproTransaction()` divided 70% equally instead of by quotité
+- **Solution**: Implemented quotité-based calculation:
+  - Function now accepts full participants array
+  - Calculates total founder surface (excluding buyer)
+  - Computes each founder's quotité: `surface / totalFounderSurface`
+  - Distributes 70% proportionally by quotité
+- **Example**: For €150,000 sale with 70% = €105,000:
+  - Founder A (80m² / 200m² = 40%): receives €42,000
+  - Founder B (120m² / 200m² = 60%): receives €63,000
+- **Tests**: Updated test to verify quotité calculation with specific assertions
 
 **Enhancement**: Copro Reserve Display
 - **Feature**: Copropriété lane now displays the 30% cash reserve increase when a sale occurs
@@ -182,8 +193,12 @@ Added dedicated UI component for copro sale distribution display:
 4. `feat(timeline): add copro sale transaction projection` - Phase 4
 5. `fix(tests): add lotsOwned data to copro sale test founders` - Test fixes
 6. `feat(ui): add copro sale distribution view with RTL tests` - Phase 7
-7. `fix(timeline): calculate 70% founder distribution for copro sales` - Bug fix
+7. `fix(timeline): calculate 70% founder distribution for copro sales` - Bug fix #1 (0€ display)
 8. `feat(timeline): display 30% copro reserve increase on sales` - UI enhancement
+9. `refactor(timeline): hide financing details for portage sellers` - UI cleanup
+10. `refactor(timeline): remove redundant lot price display` - UI cleanup
+11. `refactor(timeline): extract timeline card components` - Code organization
+12. `fix(timeline): use quotité-based distribution for copro sales` - Bug fix #2 (equal vs quotité)
 
 ## Future Enhancements
 
