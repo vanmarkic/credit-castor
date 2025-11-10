@@ -248,14 +248,14 @@ export default function HorizontalSwimLaneTimeline({
               );
             }
           }
-        } else if (coproSale) {
+        } else if (coproSale && !isCoproBuyer) {
           const prevSnapshot = previousSnapshots.get(p.name);
           if (prevSnapshot) {
             transaction = calculateCooproTransaction(
               p,
               coproSale,
               prevSnapshot,
-              participants.length
+              participants
             );
           }
         }

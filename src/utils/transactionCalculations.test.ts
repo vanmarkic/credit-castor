@@ -224,6 +224,7 @@ describe('transactionCalculations', () => {
         interestRate: 3.5,
         durationYears: 30,
         isFounder: true,
+        surface: 80, // Founder surface for quotité calculation
         entryDate: new Date('2026-02-01'),
         lotsOwned: [
           {
@@ -273,21 +274,38 @@ describe('transactionCalculations', () => {
         loanNeeded: 580463,
         monthlyPayment: 2671,
         isT0: true,
-        colorZone: 0
+        colorZone: 0,
+        showFinancingDetails: true
       }
+
+      // Create mock participants array with founders
+      const allParticipants: Participant[] = [
+        participant, // Annabelle/Colin with 80m²
+        {
+          ...participant,
+          name: 'Other Founder',
+          surface: 120, // Other founder with 120m²
+          isFounder: true
+        },
+        coproBuyer // The newcomer
+      ]
 
       // Execute
       const transaction = calculateCooproTransaction(
         participant,
         coproBuyer,
         participantPreviousSnapshot,
-        5 // total participants
+        allParticipants
       )
 
-      // Assert: cost should change due to shared cost redistribution
+      // Assert: Should calculate based on quotité
       expect(transaction.type).toBe('copro_sale')
       expect(transaction.delta.reason).toContain('joined (copro sale)')
-      // Could be positive or negative depending on whether new participant adds/reduces shared costs
+
+      // Verify calculation: 150000 * 0.7 * (80 / 200) = 42000
+      // Participant has 80m² out of 200m² total founder surface (40% quotité)
+      // 70% of 150000 = 105000, participant gets 40% = 42000
+      expect(transaction.delta.totalCost).toBe(-42000)
     })
   })
 

@@ -101,14 +101,14 @@ export function calculatePortageTransaction(
  * @param affectedParticipant - A founder receiving distribution from the copro sale
  * @param coproBuyer - The newcomer buying from copropriété
  * @param _previousSnapshot - Participant's snapshot before this date (unused for now)
- * @param totalParticipants - Total number of active participants
+ * @param allParticipants - All participants (to calculate total founder surface and quotité)
  * @returns Transaction object with calculated delta (negative = cash received)
  */
 export function calculateCooproTransaction(
-  _affectedParticipant: Participant,
+  affectedParticipant: Participant,
   coproBuyer: Participant,
   _previousSnapshot: TimelineSnapshot,
-  totalParticipants: number
+  allParticipants: Participant[]
 ): TimelineTransaction {
   // Get the purchase price from buyer's purchase details
   const purchasePrice = coproBuyer.purchaseDetails?.purchasePrice || 0
@@ -128,13 +128,32 @@ export function calculateCooproTransaction(
   // Calculate 70% distribution amount
   const distributionAmount = purchasePrice * 0.7
 
-  // Calculate affected participant's share
-  // NOTE: This is a simplified calculation that assumes equal distribution among founders.
-  // The actual distribution should be calculated by quotité (surface / total surface),
-  // but we don't have access to all participants' surfaces in this function.
-  // The state machine implementation uses the correct quotité-based calculation.
-  const founderCount = totalParticipants - 1 // Exclude the buyer
-  const participantShare = distributionAmount / founderCount
+  // Calculate total founder surface (founders only, excluding the buyer)
+  const founders = allParticipants.filter(p =>
+    p.isFounder === true && p.name !== coproBuyer.name
+  )
+  const totalFounderSurface = founders.reduce((sum, p) => sum + (p.surface || 0), 0)
+
+  if (totalFounderSurface === 0) {
+    // No founder surface data - fall back to equal distribution
+    const founderCount = founders.length
+    const participantShare = distributionAmount / founderCount
+    const cashReceived = -participantShare
+
+    return {
+      type: 'copro_sale',
+      delta: {
+        totalCost: cashReceived,
+        loanNeeded: cashReceived,
+        reason: `${coproBuyer.name} joined (copro sale)`
+      }
+    }
+  }
+
+  // Calculate affected participant's quotité and share
+  const participantSurface = affectedParticipant.surface || 0
+  const quotite = participantSurface / totalFounderSurface
+  const participantShare = distributionAmount * quotite
 
   // Negative delta = cash received (reduces participant's net position)
   const cashReceived = -participantShare
