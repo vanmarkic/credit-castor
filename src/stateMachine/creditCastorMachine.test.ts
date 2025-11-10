@@ -414,8 +414,48 @@ describe('Sales Flows', () => {
       navigateToLotsDelared(actor);
       actor.send({ type: 'FIRST_SALE' });
 
-      // Setup copro lot in context
+      // Setup copro lot, founders, and financials in context
       const snapshot = actor.getSnapshot();
+
+      // Add minimal founder data
+      snapshot.context.participants = [
+        {
+          id: 'p1',
+          name: 'Founder1',
+          isFounder: true,
+          entryDate: new Date('2023-01-01'),
+          surface: 100,
+          lotsOwned: [],
+          loans: []
+        }
+      ];
+
+      // Add minimal project financials
+      snapshot.context.projectFinancials = {
+        totalPurchasePrice: 100000,
+        fraisGeneraux: {
+          architectFees: 0,
+          recurringCosts: {
+            propertyTax: 388.38,
+            accountant: 0,
+            podio: 0,
+            buildingInsurance: 2000,
+            reservationFees: 0,
+            contingencies: 0
+          },
+          oneTimeCosts: 0,
+          total3Years: 0
+        },
+        travauxCommuns: 0,
+        expenseCategories: {
+          conservatoire: 0,
+          habitabiliteSommaire: 0,
+          premierTravaux: 0
+        },
+        globalCascoPerM2: 0,
+        indexRates: []
+      };
+
       snapshot.context.lots = [{
         id: 'copro-lot-1',
         origin: 'copro',
@@ -452,15 +492,38 @@ describe('Sales Flows', () => {
       expect(sale.buyer).toBe('buyer2');
     });
 
-    it('should verify copro sale has dynamic per-m² pricing with GEN1 compensation', () => {
+    it('should verify copro sale with new pricing formula (base + indexation + carrying)', () => {
       const actor = createActor(creditCastorMachine);
       actor.start();
 
       navigateToLotsDelared(actor);
       actor.send({ type: 'FIRST_SALE' });
 
-      // Setup copro lot
+      // Setup copro lot, founders, and project financials
       const snapshot = actor.getSnapshot();
+
+      // Add founder participants for distribution
+      snapshot.context.participants = [
+        {
+          id: 'p1',
+          name: 'Alice',
+          isFounder: true,
+          entryDate: new Date('2023-01-01'),
+          surface: 100,
+          lotsOwned: [],
+          loans: []
+        },
+        {
+          id: 'p2',
+          name: 'Bob',
+          isFounder: true,
+          entryDate: new Date('2023-01-01'),
+          surface: 150,
+          lotsOwned: [],
+          loans: []
+        }
+      ];
+
       snapshot.context.lots = [{
         id: 'copro-lot-1',
         origin: 'copro',
@@ -469,6 +532,35 @@ describe('Sales Flows', () => {
         surface: 60,
         heldForPortage: false
       }];
+
+      // Setup minimal project financials for calculation
+      snapshot.context.projectFinancials = {
+        totalPurchasePrice: 500000, // Total project cost
+        fraisGeneraux: {
+          architectFees: 0,
+          recurringCosts: {
+            propertyTax: 388.38,
+            accountant: 1000,
+            podio: 600,
+            buildingInsurance: 2000,
+            reservationFees: 2000,
+            contingencies: 2000
+          },
+          oneTimeCosts: 0,
+          total3Years: 0
+        },
+        travauxCommuns: 0,
+        expenseCategories: {
+          conservatoire: 0,
+          habitabiliteSommaire: 0,
+          premierTravaux: 0
+        },
+        globalCascoPerM2: 0,
+        indexRates: []
+      };
+
+      // Add acte transcription date for years held calculation
+      snapshot.context.acteTranscriptionDate = new Date('2023-01-01');
 
       // Initiate and complete sale
       actor.send({
@@ -487,12 +579,28 @@ describe('Sales Flows', () => {
       if (sale.type === 'copro') {
         expect(sale.pricing).toBeDefined();
         expect(sale.pricing.baseCostPerSqm).toBeGreaterThan(0);
-        expect(sale.pricing.gen1CompensationPerSqm).toBeGreaterThan(0);
-        expect(sale.pricing.pricePerSqm).toBe(
-          sale.pricing.baseCostPerSqm + sale.pricing.gen1CompensationPerSqm
-        );
+        expect(sale.pricing.pricePerSqm).toBeGreaterThan(0);
         expect(sale.pricing.surface).toBe(60);
-        expect(sale.pricing.totalPrice).toBe(sale.pricing.pricePerSqm * sale.pricing.surface);
+        expect(sale.pricing.totalPrice).toBeGreaterThan(0);
+
+        // NEW: Verify breakdown structure
+        expect(sale.pricing.breakdown).toBeDefined();
+        expect(sale.pricing.breakdown?.basePrice).toBeGreaterThan(0);
+        expect(sale.pricing.breakdown?.indexation).toBeGreaterThanOrEqual(0);
+        expect(sale.pricing.breakdown?.carryingCostRecovery).toBeGreaterThanOrEqual(0);
+
+        // NEW: Verify distribution structure
+        expect(sale.pricing.distribution).toBeDefined();
+        expect(sale.pricing.distribution?.toCoproReserves).toBeGreaterThan(0);
+        expect(sale.pricing.distribution?.toParticipants).toBeDefined();
+
+        // Verify 30/70 split
+        const reserves = sale.pricing.distribution?.toCoproReserves || 0;
+        const toParticipantsTotal = Array.from(sale.pricing.distribution?.toParticipants.values() || [])
+          .reduce((sum, amount) => sum + amount, 0);
+        expect(reserves + toParticipantsTotal).toBeCloseTo(sale.pricing.totalPrice, 0);
+        expect(reserves).toBeCloseTo(sale.pricing.totalPrice * 0.30, 0);
+        expect(toParticipantsTotal).toBeCloseTo(sale.pricing.totalPrice * 0.70, 0);
       }
     });
   });

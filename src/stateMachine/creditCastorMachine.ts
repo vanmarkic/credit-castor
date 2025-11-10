@@ -5,6 +5,8 @@ import type { ProjectEvents } from './events';
 import { queries } from './queries';
 import { calculateQuotite, calculateVotingResults } from './calculations';
 import { rentToOwnMachine } from './rentToOwnMachine';
+import { calculateCoproSalePrice, distributeCoproProceeds, calculateYearsHeld } from '../utils/portageCalculations';
+import type { ParticipantSurface } from '../utils/portageCalculations';
 
 // Temporary storage for current sale in progress
 interface CurrentSale {
@@ -14,6 +16,7 @@ interface CurrentSale {
   proposedPrice: number;
   saleDate: Date;
   saleType: 'portage' | 'copro' | 'classic';
+  surfacePurchased?: number; // For copro sales (free choice)
   buyerApproval?: {
     candidateId: string;
     interviewDate: Date;
@@ -237,17 +240,73 @@ export const creditCastorMachine = setup({
             pricing
           };
         } else if (currentSale.saleType === 'copro') {
-          // Calculate copro pricing
-          const baseCostPerSqm = 1000;
-          const gen1CompensationPerSqm = baseCostPerSqm * 0.10;
-          const pricePerSqm = baseCostPerSqm + gen1CompensationPerSqm;
+          // NEW: Calculate copro sale pricing with distribution
 
+          // Get total project cost from context
+          const totalProjectCost = context.projectFinancials.totalPurchasePrice;
+
+          // Calculate total building surface from all participants (founders)
+          const totalBuildingSurface = context.participants
+            .filter(p => p.isFounder)
+            .reduce((sum, p) => sum + p.surface, 0);
+
+          // Calculate years held from acte transcription date (T0)
+          const yearsHeld = context.acteTranscriptionDate
+            ? calculateYearsHeld(context.acteTranscriptionDate, currentSale.saleDate)
+            : 0;
+
+          // Get total carrying costs (simplified for MVP - could be tracked more precisely)
+          // This is a rough estimate: total monthly obligations × months
+          const monthlyObligations = context.projectFinancials.fraisGeneraux.recurringCosts.propertyTax / 12 +
+            context.projectFinancials.fraisGeneraux.recurringCosts.buildingInsurance / 12;
+          const totalCarryingCosts = monthlyObligations * yearsHeld * 12;
+
+          // Default formula params (should be configurable in production)
+          const formulaParams = {
+            indexationRate: 2, // 2% per year
+            carryingCostRecovery: 100 // 100% recovery
+          };
+
+          // Calculate surface purchased (default to lot surface if not specified)
+          const surfacePurchased = currentSale.surfacePurchased || lot.surface;
+
+          // Calculate price using new formula
+          const coproSalePricing = calculateCoproSalePrice(
+            surfacePurchased,
+            totalProjectCost,
+            totalBuildingSurface,
+            yearsHeld,
+            formulaParams,
+            totalCarryingCosts
+          );
+
+          // Distribute 70% to founders based on T0 quotité
+          const founders: ParticipantSurface[] = context.participants
+            .filter(p => p.isFounder)
+            .map(p => ({ name: p.name, surface: p.surface }));
+
+          const participantDistribution = distributeCoproProceeds(
+            coproSalePricing.distribution.toParticipants,
+            founders,
+            totalBuildingSurface
+          );
+
+          // Build pricing object with both old and new formats for backward compatibility
           const pricing: CoproPricing = {
-            baseCostPerSqm,
-            gen1CompensationPerSqm,
-            pricePerSqm,
-            surface: lot.surface,
-            totalPrice: pricePerSqm * lot.surface
+            baseCostPerSqm: coproSalePricing.basePrice / surfacePurchased,
+            gen1CompensationPerSqm: 0, // Deprecated
+            pricePerSqm: coproSalePricing.pricePerM2,
+            surface: surfacePurchased,
+            totalPrice: coproSalePricing.totalPrice,
+            breakdown: {
+              basePrice: coproSalePricing.basePrice,
+              indexation: coproSalePricing.indexation,
+              carryingCostRecovery: coproSalePricing.carryingCostRecovery
+            },
+            distribution: {
+              toCoproReserves: coproSalePricing.distribution.toCoproReserves,
+              toParticipants: participantDistribution
+            }
           };
 
           sale = {
@@ -255,7 +314,7 @@ export const creditCastorMachine = setup({
             lotId: currentSale.lotId,
             buyer: currentSale.buyerId,
             saleDate: currentSale.saleDate,
-            surface: lot.surface,
+            surface: surfacePurchased,
             pricing
           };
         } else {
@@ -282,6 +341,22 @@ export const creditCastorMachine = setup({
 
         return [...context.salesHistory, sale];
       },
+
+      // NEW: Update copro cash reserves with 30% from copro sales
+      acpBankAccount: ({ context }) => {
+        if (!context.currentSale || context.currentSale.saleType !== 'copro') {
+          return context.acpBankAccount;
+        }
+
+        // Get the last sale (the one we just added)
+        const sale = context.salesHistory[context.salesHistory.length - 1];
+        if (sale?.type !== 'copro' || !sale.pricing.distribution) {
+          return context.acpBankAccount;
+        }
+
+        return context.acpBankAccount + sale.pricing.distribution.toCoproReserves;
+      },
+
       currentSale: undefined
     }),
 

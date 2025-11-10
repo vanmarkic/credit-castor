@@ -17,6 +17,8 @@ import {
   calculatePortageLotPriceFromCopro,
   calculateYearsHeld,
   calculateCoproEstimatedPrice,
+  calculateCoproSalePrice,
+  distributeCoproProceeds,
   COPRO_BASE_PRICE_PER_M2,
   COPRO_CARRYING_COST_RATE,
   type CarryingCosts,
@@ -781,5 +783,418 @@ describe('calculateCoproEstimatedPrice', () => {
 
     expect(result).not.toBeNull();
     expect(result!.surfaceImposed).toBe(false);
+  });
+});
+
+// ============================================
+// Copropriété Sale Price Tests
+// ============================================
+
+describe('calculateCoproSalePrice', () => {
+  const formulaParams: PortageFormulaParams = {
+    indexationRate: 2, // 2% per year
+    carryingCostRecovery: 100 // 100% recovery
+  };
+
+  it('should calculate price using proportional project cost as base', () => {
+    // Project: 500,000€ total cost, 500m² building
+    // Buyer purchases 50m² (10% of building)
+    // Expected base: 50,000€
+    const totalProjectCost = 500000;
+    const totalBuildingSurface = 500;
+    const surfacePurchased = 50;
+    const yearsHeld = 0;
+    const totalCarryingCosts = 0;
+
+    const result = calculateCoproSalePrice(
+      surfacePurchased,
+      totalProjectCost,
+      totalBuildingSurface,
+      yearsHeld,
+      formulaParams,
+      totalCarryingCosts
+    );
+
+    expect(result.basePrice).toBeCloseTo(50000, 0);
+  });
+
+  it('should apply indexation correctly using compound growth', () => {
+    // Base: 100,000€, 2 years at 2%/year
+    // Expected indexation: 100,000 × [(1.02)^2 - 1] = 4,040€
+    const totalProjectCost = 500000;
+    const totalBuildingSurface = 500;
+    const surfacePurchased = 100; // 100,000€ base
+    const yearsHeld = 2;
+    const totalCarryingCosts = 0;
+
+    const result = calculateCoproSalePrice(
+      surfacePurchased,
+      totalProjectCost,
+      totalBuildingSurface,
+      yearsHeld,
+      formulaParams,
+      totalCarryingCosts
+    );
+
+    // Indexation should be ~4,040€
+    expect(result.indexation).toBeCloseTo(4040, 0);
+  });
+
+  it('should calculate carrying cost recovery proportionally', () => {
+    // Total carrying costs: 10,000€
+    // Surface purchased: 50m² out of 500m² (10%)
+    // Expected recovery: 10,000 × 0.1 × 100% = 1,000€
+    const totalProjectCost = 500000;
+    const totalBuildingSurface = 500;
+    const surfacePurchased = 50;
+    const yearsHeld = 2;
+    const totalCarryingCosts = 10000;
+
+    const result = calculateCoproSalePrice(
+      surfacePurchased,
+      totalProjectCost,
+      totalBuildingSurface,
+      yearsHeld,
+      formulaParams,
+      totalCarryingCosts
+    );
+
+    expect(result.carryingCostRecovery).toBeCloseTo(1000, 0);
+  });
+
+  it('should respect carrying cost recovery percentage', () => {
+    // With 60% recovery instead of 100%
+    const customParams: PortageFormulaParams = {
+      indexationRate: 2,
+      carryingCostRecovery: 60
+    };
+
+    const totalProjectCost = 500000;
+    const totalBuildingSurface = 500;
+    const surfacePurchased = 50;
+    const yearsHeld = 2;
+    const totalCarryingCosts = 10000;
+
+    const result = calculateCoproSalePrice(
+      surfacePurchased,
+      totalProjectCost,
+      totalBuildingSurface,
+      yearsHeld,
+      customParams,
+      totalCarryingCosts
+    );
+
+    // Expected: 10,000 × 0.1 × 0.6 = 600€
+    expect(result.carryingCostRecovery).toBeCloseTo(600, 0);
+  });
+
+  it('should calculate total price correctly', () => {
+    // Base: 50,000€, Indexation: ~2,020€, Carrying: 1,000€
+    const totalProjectCost = 500000;
+    const totalBuildingSurface = 500;
+    const surfacePurchased = 50;
+    const yearsHeld = 2;
+    const totalCarryingCosts = 10000;
+
+    const result = calculateCoproSalePrice(
+      surfacePurchased,
+      totalProjectCost,
+      totalBuildingSurface,
+      yearsHeld,
+      formulaParams,
+      totalCarryingCosts
+    );
+
+    const expectedTotal = result.basePrice + result.indexation + result.carryingCostRecovery;
+    expect(result.totalPrice).toBeCloseTo(expectedTotal, 0);
+  });
+
+  it('should calculate price per m² correctly', () => {
+    const totalProjectCost = 500000;
+    const totalBuildingSurface = 500;
+    const surfacePurchased = 50;
+    const yearsHeld = 2;
+    const totalCarryingCosts = 10000;
+
+    const result = calculateCoproSalePrice(
+      surfacePurchased,
+      totalProjectCost,
+      totalBuildingSurface,
+      yearsHeld,
+      formulaParams,
+      totalCarryingCosts
+    );
+
+    const expectedPricePerM2 = result.totalPrice / surfacePurchased;
+    expect(result.pricePerM2).toBeCloseTo(expectedPricePerM2, 2);
+  });
+
+  it('should distribute 30% to copro reserves and 70% to participants', () => {
+    const totalProjectCost = 500000;
+    const totalBuildingSurface = 500;
+    const surfacePurchased = 50;
+    const yearsHeld = 2;
+    const totalCarryingCosts = 10000;
+
+    const result = calculateCoproSalePrice(
+      surfacePurchased,
+      totalProjectCost,
+      totalBuildingSurface,
+      yearsHeld,
+      formulaParams,
+      totalCarryingCosts
+    );
+
+    expect(result.distribution.toCoproReserves).toBeCloseTo(result.totalPrice * 0.30, 0);
+    expect(result.distribution.toParticipants).toBeCloseTo(result.totalPrice * 0.70, 0);
+  });
+
+  it('should match portage formula structure (base + indexation + carrying)', () => {
+    // This test verifies the formula matches portage pricing structure
+    const totalProjectCost = 500000;
+    const totalBuildingSurface = 500;
+    const surfacePurchased = 50;
+    const yearsHeld = 2;
+    const totalCarryingCosts = 10000;
+
+    const result = calculateCoproSalePrice(
+      surfacePurchased,
+      totalProjectCost,
+      totalBuildingSurface,
+      yearsHeld,
+      formulaParams,
+      totalCarryingCosts
+    );
+
+    // Verify structure
+    expect(result).toHaveProperty('basePrice');
+    expect(result).toHaveProperty('indexation');
+    expect(result).toHaveProperty('carryingCostRecovery');
+    expect(result).toHaveProperty('totalPrice');
+    expect(result).toHaveProperty('pricePerM2');
+    expect(result).toHaveProperty('distribution');
+
+    // Verify formula: total = base + indexation + carrying
+    const calculatedTotal = result.basePrice + result.indexation + result.carryingCostRecovery;
+    expect(result.totalPrice).toBeCloseTo(calculatedTotal, 0);
+  });
+
+  it('should throw error for zero building surface', () => {
+    expect(() => {
+      calculateCoproSalePrice(
+        50,
+        500000,
+        0, // Invalid
+        2,
+        formulaParams,
+        10000
+      );
+    }).toThrow('Total building surface must be greater than zero');
+  });
+
+  it('should throw error for negative surface purchased', () => {
+    expect(() => {
+      calculateCoproSalePrice(
+        -10, // Invalid
+        500000,
+        500,
+        2,
+        formulaParams,
+        10000
+      );
+    }).toThrow('Invalid surface purchased');
+  });
+
+  it('should throw error when surface purchased exceeds building surface', () => {
+    expect(() => {
+      calculateCoproSalePrice(
+        600, // Exceeds 500m²
+        500000,
+        500,
+        2,
+        formulaParams,
+        10000
+      );
+    }).toThrow('Invalid surface purchased');
+  });
+
+  it('should handle zero carrying costs', () => {
+    const result = calculateCoproSalePrice(
+      50,
+      500000,
+      500,
+      2,
+      formulaParams,
+      0 // No carrying costs
+    );
+
+    expect(result.carryingCostRecovery).toBe(0);
+    expect(result.totalPrice).toBeCloseTo(result.basePrice + result.indexation, 0);
+  });
+
+  it('should handle zero years held', () => {
+    const result = calculateCoproSalePrice(
+      50,
+      500000,
+      500,
+      0, // No time passed
+      formulaParams,
+      10000
+    );
+
+    expect(result.indexation).toBe(0);
+  });
+});
+
+// ============================================
+// Copropriété Proceeds Distribution Tests
+// ============================================
+
+describe('distributeCoproProceeds', () => {
+  it('should distribute to single founder (100%)', () => {
+    const totalAmount = 70000;
+    const founders = [
+      { name: 'Alice', surface: 100 }
+    ];
+    const totalBuildingSurface = 100;
+
+    const distribution = distributeCoproProceeds(
+      totalAmount,
+      founders,
+      totalBuildingSurface
+    );
+
+    expect(distribution.size).toBe(1);
+    expect(distribution.get('Alice')).toBeCloseTo(70000, 0);
+  });
+
+  it('should distribute equally with equal quotités', () => {
+    const totalAmount = 70000;
+    const founders = [
+      { name: 'Alice', surface: 100 },
+      { name: 'Bob', surface: 100 }
+    ];
+    const totalBuildingSurface = 200;
+
+    const distribution = distributeCoproProceeds(
+      totalAmount,
+      founders,
+      totalBuildingSurface
+    );
+
+    expect(distribution.size).toBe(2);
+    expect(distribution.get('Alice')).toBeCloseTo(35000, 0); // 50%
+    expect(distribution.get('Bob')).toBeCloseTo(35000, 0);   // 50%
+  });
+
+  it('should distribute proportionally with unequal quotités', () => {
+    const totalAmount = 70000;
+    const founders = [
+      { name: 'Alice', surface: 40 },  // 40% quotité
+      { name: 'Bob', surface: 30 },    // 30% quotité
+      { name: 'Carol', surface: 30 }   // 30% quotité
+    ];
+    const totalBuildingSurface = 100;
+
+    const distribution = distributeCoproProceeds(
+      totalAmount,
+      founders,
+      totalBuildingSurface
+    );
+
+    expect(distribution.size).toBe(3);
+    expect(distribution.get('Alice')).toBeCloseTo(28000, 0); // 40%
+    expect(distribution.get('Bob')).toBeCloseTo(21000, 0);   // 30%
+    expect(distribution.get('Carol')).toBeCloseTo(21000, 0); // 30%
+  });
+
+  it('should sum to total amount (no rounding errors)', () => {
+    const totalAmount = 70000;
+    const founders = [
+      { name: 'Alice', surface: 40 },
+      { name: 'Bob', surface: 30 },
+      { name: 'Carol', surface: 30 }
+    ];
+    const totalBuildingSurface = 100;
+
+    const distribution = distributeCoproProceeds(
+      totalAmount,
+      founders,
+      totalBuildingSurface
+    );
+
+    const sum = Array.from(distribution.values()).reduce((a, b) => a + b, 0);
+    expect(sum).toBeCloseTo(totalAmount, 0);
+  });
+
+  it('should use frozen T0 quotité (founder surface / total building)', () => {
+    // This test verifies the quotité formula
+    const totalAmount = 70000;
+    const founders = [
+      { name: 'Alice', surface: 150 },
+      { name: 'Bob', surface: 350 }
+    ];
+    const totalBuildingSurface = 500;
+
+    const distribution = distributeCoproProceeds(
+      totalAmount,
+      founders,
+      totalBuildingSurface
+    );
+
+    // Alice quotité: 150/500 = 30%
+    // Bob quotité: 350/500 = 70%
+    expect(distribution.get('Alice')).toBeCloseTo(21000, 0); // 30% of 70k
+    expect(distribution.get('Bob')).toBeCloseTo(49000, 0);   // 70% of 70k
+  });
+
+  it('should throw error for zero building surface', () => {
+    expect(() => {
+      distributeCoproProceeds(
+        70000,
+        [{ name: 'Alice', surface: 100 }],
+        0 // Invalid
+      );
+    }).toThrow('Total building surface must be greater than zero');
+  });
+
+  it('should handle multiple founders with precise quotités', () => {
+    const totalAmount = 100000;
+    const founders = [
+      { name: 'Alice', surface: 25 },
+      { name: 'Bob', surface: 25 },
+      { name: 'Carol', surface: 25 },
+      { name: 'Dave', surface: 25 }
+    ];
+    const totalBuildingSurface = 100;
+
+    const distribution = distributeCoproProceeds(
+      totalAmount,
+      founders,
+      totalBuildingSurface
+    );
+
+    expect(distribution.size).toBe(4);
+    distribution.forEach((amount) => {
+      expect(amount).toBeCloseTo(25000, 0); // Each gets 25%
+    });
+  });
+
+  it('should handle large amounts without precision loss', () => {
+    const totalAmount = 1000000; // 1M€
+    const founders = [
+      { name: 'Alice', surface: 100 },
+      { name: 'Bob', surface: 100 }
+    ];
+    const totalBuildingSurface = 200;
+
+    const distribution = distributeCoproProceeds(
+      totalAmount,
+      founders,
+      totalBuildingSurface
+    );
+
+    expect(distribution.get('Alice')).toBeCloseTo(500000, 0);
+    expect(distribution.get('Bob')).toBeCloseTo(500000, 0);
   });
 });

@@ -186,6 +186,35 @@ export interface ParticipantExitsEvent extends BaseEvent {
   salePrice: number;
 }
 
+export interface CoproSaleEvent extends BaseEvent {
+  type: 'COPRO_SALE';
+  buyer: Participant;
+  lotId: number;
+  surfacePurchased: number; // Buyer chooses surface (free choice)
+  salePrice: number;
+  breakdown: {
+    basePrice: number;
+    indexation: number;
+    carryingCostRecovery: number;
+  };
+  distribution: {
+    toCoproReserves: number; // 30%
+    toParticipants: { // 70% split by quotité
+      [participantName: string]: {
+        quotite: number;
+        amount: number;
+      };
+    };
+  };
+  notaryFees: number;
+  financing: {
+    capitalApporte: number;
+    loanAmount: number;
+    interestRate: number;
+    durationYears: number;
+  };
+}
+
 // Union type for all events
 export type DomainEvent =
   | InitialPurchaseEvent
@@ -193,7 +222,8 @@ export type DomainEvent =
   | HiddenLotRevealedEvent
   | PortageSettlementEvent
   | CoproTakesLoanEvent
-  | ParticipantExitsEvent;
+  | ParticipantExitsEvent
+  | CoproSaleEvent;
 
 // ============================================
 // Projections (Computed Views)
@@ -331,12 +361,21 @@ export interface Transaction {
 export interface TimelineTransaction {
   type: 'portage_sale' | 'copro_sale' | 'founder_entry';
 
+  // Common fields
+  buyer?: string;
+  date?: Date;
+
   // Portage-specific fields
   seller?: string;
   lotPrice?: number;
   indexation?: number;
   carryingCosts?: number;
   registrationFees?: number;
+
+  // Copro sale-specific fields
+  surfacePurchased?: number;
+  distributionToCopro?: number;
+  distributionToParticipants?: Map<string, number>;
 
   // All transactions
   delta: {
