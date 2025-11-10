@@ -105,7 +105,7 @@ export function calculatePortageTransaction(
  * @returns Transaction object with calculated delta (negative = cash received)
  */
 export function calculateCooproTransaction(
-  affectedParticipant: Participant,
+  _affectedParticipant: Participant,
   coproBuyer: Participant,
   _previousSnapshot: TimelineSnapshot,
   totalParticipants: number
