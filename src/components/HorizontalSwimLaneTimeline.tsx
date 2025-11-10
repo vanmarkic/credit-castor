@@ -4,7 +4,8 @@ import type { Participant, CalculationResults, ProjectParams, PortageFormulaPara
 import { DEFAULT_PORTAGE_FORMULA } from '../utils/calculatorUtils';
 import type { TimelineTransaction } from '../types/timeline';
 import { calculatePortageTransaction, calculateCooproTransaction } from '../utils/transactionCalculations';
-import { formatCurrency } from '../utils/formatting';
+import CoproInventoryCard from './timeline/CoproInventoryCard';
+import ParticipantFinancingCard from './timeline/ParticipantFinancingCard';
 
 interface TimelineSnapshot {
   date: Date;
@@ -16,6 +17,7 @@ interface TimelineSnapshot {
   isT0: boolean;
   colorZone: number; // Index for color-coding related events
   transaction?: TimelineTransaction;
+  showFinancingDetails: boolean; // Hide for redistribution cards
 }
 
 interface HorizontalSwimLaneTimelineProps {
@@ -34,23 +36,6 @@ export default function HorizontalSwimLaneTimeline({
   onOpenParticipantDetails,
   onAddParticipant
 }: HorizontalSwimLaneTimelineProps) {
-  // Helper to get background color for color zones
-  const getZoneBackgroundClass = (zoneIndex: number, isT0: boolean, _isFounder: boolean) => {
-    if (isT0) {
-      return 'bg-green-50';
-    }
-
-    // Alternate subtle background colors for different zones
-    const colors = [
-      'bg-blue-50',
-      'bg-purple-50',
-      'bg-indigo-50',
-      'bg-cyan-50',
-      'bg-teal-50'
-    ];
-
-    return colors[zoneIndex % colors.length];
-  };
 
   // Generate copropriété snapshots - ONLY show cards when copro inventory changes
   const coproSnapshots = useMemo(() => {
@@ -203,10 +188,22 @@ export default function HorizontalSwimLaneTimeline({
           p.purchaseDetails?.buyingFrom &&
           p.purchaseDetails.buyingFrom !== 'Copropriété';
 
-        // Check if affected by copro sale
+        // Check if buying from copro
+        const isCoproBuyer = joiningParticipants.includes(p) &&
+          p.purchaseDetails?.buyingFrom === 'Copropriété';
+
+        // Check if affected by copro sale (but not the buyer)
         const coproSale = joiningParticipants.find(np =>
           np.purchaseDetails?.buyingFrom === 'Copropriété'
         );
+
+        // Show financing details only for:
+        // - T0 founders
+        // - Direct buyers (portage or copro)
+        // Hide for:
+        // - Direct sellers (portage) - they only see the transaction delta
+        // - Participants only affected by redistribution
+        const showFinancingDetails = dateIdx === 0 || isBuyer || isCoproBuyer;
 
         // Use default portage formula params (could be passed as prop in future)
         const formulaParams: PortageFormulaParams = DEFAULT_PORTAGE_FORMULA;
@@ -272,7 +269,8 @@ export default function HorizontalSwimLaneTimeline({
           monthlyPayment: breakdown.monthlyPayment,
           isT0: dateIdx === 0 && (p.isFounder === true),
           colorZone: dateIdx, // Each date gets its own color zone
-          transaction
+          transaction,
+          showFinancingDetails
         };
 
         if (!result.has(p.name)) {
@@ -336,43 +334,15 @@ export default function HorizontalSwimLaneTimeline({
               return (
                 <div key={dateIdx} className="w-56 flex-shrink-0 px-2">
                   {snapshot && (
-                    <div
-                      className={`
-                        w-full p-4 rounded-lg border-2 border-purple-300 transition-shadow hover:shadow-md
-                        ${getZoneBackgroundClass(snapshot.colorZone, dateIdx === 0, false)}
-                      `}
-                    >
-                      <div className="text-xs text-gray-500 mb-2">
-                        {snapshot.date.toLocaleDateString('fr-BE')}
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-purple-600">Lots disponibles</span>
-                          <span className="text-sm font-bold text-purple-800">
-                            {snapshot.availableLots}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs text-purple-600">Surface totale</span>
-                          <span className="text-sm font-bold text-purple-800">
-                            {snapshot.totalSurface}m²
-                          </span>
-                        </div>
-                      </div>
-
-                      {snapshot.soldThisDate.length > 0 && (
-                        <div className="mt-2 pt-2 border-t border-purple-200">
-                          <div className="text-xs font-semibold text-red-700">
-                            📉 Vendu à {snapshot.soldThisDate.join(', ')}
-                          </div>
-                          {snapshot.reserveIncrease > 0 && (
-                            <div className="text-xs font-semibold text-green-700 mt-1">
-                              💰 +{formatCurrency(snapshot.reserveIncrease)} réserves (30%)
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                    <CoproInventoryCard
+                      date={snapshot.date}
+                      availableLots={snapshot.availableLots}
+                      totalSurface={snapshot.totalSurface}
+                      soldThisDate={snapshot.soldThisDate}
+                      reserveIncrease={snapshot.reserveIncrease}
+                      colorZone={snapshot.colorZone}
+                      isT0={dateIdx === 0}
+                    />
                   )}
                 </div>
               );
@@ -395,69 +365,18 @@ export default function HorizontalSwimLaneTimeline({
                   return (
                     <div key={dateIdx} className="w-56 flex-shrink-0 px-2">
                       {snapshot && (
-                        <div
-                          className={`
-                            w-full p-4 rounded-lg border-2 transition-shadow hover:shadow-md cursor-pointer
-                            ${snapshot.isT0 ? 'timeline-card-t0' : ''}
-                            ${getZoneBackgroundClass(snapshot.colorZone, snapshot.isT0, p.isFounder === true)}
-                            ${snapshot.isT0
-                              ? 'border-green-300'
-                              : p.isFounder ? 'border-green-200' : 'border-blue-200'
-                            }
-                          `}
-                          onClick={() => {
-                            onOpenParticipantDetails(snapshot.participantIndex);
-                          }}
-                        >
-                          <div className="text-xs text-gray-500 mb-2">
-                            {snapshot.date.toLocaleDateString('fr-BE')}
-                          </div>
-                          <div className="space-y-1">
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs text-gray-600">Coût Total</span>
-                              <span className="text-sm font-bold text-gray-900">
-                                {formatCurrency(snapshot.totalCost)}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs text-gray-600">À emprunter</span>
-                              <span className="text-sm font-bold text-red-700">
-                                {formatCurrency(snapshot.loanNeeded)}
-                              </span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs text-gray-600">Mensualité</span>
-                              <span className="text-sm font-bold text-red-600">
-                                {formatCurrency(snapshot.monthlyPayment)}
-                              </span>
-                            </div>
-                          </div>
-
-                          {snapshot.isT0 && (
-                            <div className="mt-2 text-xs text-green-700 font-medium">
-                              Cliquer pour détails →
-                            </div>
-                          )}
-
-                          {snapshot.transaction && (
-                            <div className="mt-2 pt-2 border-t border-current border-opacity-20">
-                              <div className={`text-xs font-semibold ${
-                                snapshot.transaction.delta.totalCost < 0 ? 'text-green-700' : 'text-red-700'
-                              }`}>
-                                {snapshot.transaction.delta.totalCost < 0 ? '📉' : '📈'}{' '}
-                                {formatCurrency(Math.abs(snapshot.transaction.delta.totalCost))}
-                              </div>
-                              <div className="text-xs text-gray-600 mt-1">
-                                {snapshot.transaction.delta.reason}
-                              </div>
-                              {snapshot.transaction.lotPrice && (
-                                <div className="text-xs text-gray-500 mt-1">
-                                  Lot price: {formatCurrency(snapshot.transaction.lotPrice)}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                        <ParticipantFinancingCard
+                          date={snapshot.date}
+                          totalCost={snapshot.totalCost}
+                          loanNeeded={snapshot.loanNeeded}
+                          monthlyPayment={snapshot.monthlyPayment}
+                          isT0={snapshot.isT0}
+                          isFounder={p.isFounder === true}
+                          colorZone={snapshot.colorZone}
+                          transaction={snapshot.transaction}
+                          onClick={() => onOpenParticipantDetails(snapshot.participantIndex)}
+                          showFinancingDetails={snapshot.showFinancingDetails}
+                        />
                       )}
                     </div>
                   );
