@@ -373,7 +373,7 @@ export default function HorizontalSwimLaneTimeline({
             return (
               <div
                 key={idx}
-                className="h-40 flex items-center border-b border-gray-200 swimlane-row"
+                className="h-70 flex items-center border-b border-gray-200 swimlane-row"
               >
                 {allDates.map((date, dateIdx) => {
                   const dateStr = date.toISOString().split('T')[0];
