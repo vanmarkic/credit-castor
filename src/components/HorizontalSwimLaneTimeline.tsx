@@ -59,6 +59,7 @@ export default function HorizontalSwimLaneTimeline({
       availableLots: number;
       totalSurface: number;
       soldThisDate: string[];
+      reserveIncrease: number; // 30% of sale proceeds
       colorZone: number;
     }> = [];
 
@@ -78,6 +79,12 @@ export default function HorizontalSwimLaneTimeline({
         return pEntryDate.toISOString().split('T')[0] === dateStr
           && p.purchaseDetails?.buyingFrom === 'Copropriété';
       });
+
+      // Calculate 30% reserve increase from copro sales
+      const reserveIncrease = joinedFromCopro.reduce((sum, p) => {
+        const purchasePrice = p.purchaseDetails?.purchasePrice || 0;
+        return sum + (purchasePrice * 0.3);
+      }, 0);
 
       // Calculate remaining lots/surface (simplified - assuming total of all participant units)
       const soldLots = participants.filter(p => {
@@ -102,6 +109,7 @@ export default function HorizontalSwimLaneTimeline({
           availableLots,
           totalSurface,
           soldThisDate: joinedFromCopro.map(p => p.name),
+          reserveIncrease,
           colorZone: idx
         });
 
@@ -357,6 +365,11 @@ export default function HorizontalSwimLaneTimeline({
                           <div className="text-xs font-semibold text-red-700">
                             📉 Vendu à {snapshot.soldThisDate.join(', ')}
                           </div>
+                          {snapshot.reserveIncrease > 0 && (
+                            <div className="text-xs font-semibold text-green-700 mt-1">
+                              💰 +{formatCurrency(snapshot.reserveIncrease)} réserves (30%)
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
