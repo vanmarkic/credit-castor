@@ -122,3 +122,90 @@ export function calculateCooproTransaction(
     }
   }
 }
+
+/**
+ * Create timeline transactions for a copropriété sale with 30/70 distribution.
+ *
+ * Returns an array of transactions:
+ * 1. Buyer's purchase transaction (cost increase)
+ * 2. Founder distribution transactions (cash received from 70% split)
+ * 3. Copropriété reserve transaction (30% increase)
+ *
+ * @param coproSalePricing - Pricing breakdown with distribution from calculateCoproSalePrice
+ * @param buyer - The participant buying from copropriété
+ * @param founders - Array of founders receiving distribution
+ * @param totalBuildingSurface - Total building surface for quotité calculation
+ * @param saleDate - Date of the sale
+ * @param surfacePurchased - Surface area purchased by buyer
+ * @returns Array of timeline transactions for all parties
+ */
+export function createCoproSaleTransactions(
+  coproSalePricing: {
+    basePrice: number
+    indexation: number
+    carryingCostRecovery: number
+    totalPrice: number
+    pricePerM2: number
+    distribution: {
+      toCoproReserves: number
+      toParticipants: number
+    }
+  },
+  buyer: Participant,
+  founders: Array<{ name: string; surface: number }>,
+  totalBuildingSurface: number,
+  saleDate: Date,
+  surfacePurchased: number
+): TimelineTransaction[] {
+  const transactions: TimelineTransaction[] = []
+
+  // 1. Buyer's purchase transaction
+  transactions.push({
+    type: 'copro_sale',
+    buyer: buyer.name,
+    date: saleDate,
+    surfacePurchased,
+    distributionToCopro: coproSalePricing.distribution.toCoproReserves,
+    delta: {
+      totalCost: coproSalePricing.totalPrice,
+      loanNeeded: coproSalePricing.totalPrice - (buyer.capitalApporte || 0),
+      reason: `Purchased ${surfacePurchased}m² from copropriété`
+    }
+  })
+
+  // 2. Founder distribution transactions (70% split by quotité)
+  const participantDistribution = new Map<string, number>()
+  founders.forEach(founder => {
+    const quotite = founder.surface / totalBuildingSurface
+    const amount = coproSalePricing.distribution.toParticipants * quotite
+    participantDistribution.set(founder.name, amount)
+
+    // Create transaction showing cash received by each founder
+    transactions.push({
+      type: 'copro_sale',
+      buyer: buyer.name,
+      date: saleDate,
+      distributionToParticipants: participantDistribution,
+      delta: {
+        totalCost: -amount, // Negative = cash received
+        loanNeeded: -amount,
+        reason: `Distribution from copro sale to ${buyer.name} (quotité: ${(quotite * 100).toFixed(1)}%)`
+      }
+    })
+  })
+
+  // 3. Copropriété reserve transaction
+  transactions.push({
+    type: 'copro_sale',
+    buyer: buyer.name,
+    date: saleDate,
+    distributionToCopro: coproSalePricing.distribution.toCoproReserves,
+    delta: {
+      totalCost: 0, // Doesn't affect individual participant costs
+      loanNeeded: 0,
+      reason: `Copropriété reserves increased from sale to ${buyer.name} (30%)`
+    }
+  })
+
+  return transactions
+}

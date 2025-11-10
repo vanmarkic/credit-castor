@@ -248,7 +248,7 @@ export const creditCastorMachine = setup({
           // Calculate total building surface from all participants (founders)
           const totalBuildingSurface = context.participants
             .filter(p => p.isFounder)
-            .reduce((sum, p) => sum + p.surface, 0);
+            .reduce((sum, p) => sum + p.lotsOwned.reduce((lotSum, lot) => lotSum + lot.surface, 0), 0);
 
           // Calculate years held from acte transcription date (T0)
           const yearsHeld = context.acteTranscriptionDate
@@ -264,7 +264,8 @@ export const creditCastorMachine = setup({
           // Default formula params (should be configurable in production)
           const formulaParams = {
             indexationRate: 2, // 2% per year
-            carryingCostRecovery: 100 // 100% recovery
+            carryingCostRecovery: 100, // 100% recovery
+            averageInterestRate: 4.5 // 4.5% (default average)
           };
 
           // Calculate surface purchased (default to lot surface if not specified)
@@ -283,7 +284,10 @@ export const creditCastorMachine = setup({
           // Distribute 70% to founders based on T0 quotité
           const founders: ParticipantSurface[] = context.participants
             .filter(p => p.isFounder)
-            .map(p => ({ name: p.name, surface: p.surface }));
+            .map(p => ({
+              name: p.name,
+              surface: p.lotsOwned.reduce((sum, lot) => sum + lot.surface, 0)
+            }));
 
           const participantDistribution = distributeCoproProceeds(
             coproSalePricing.distribution.toParticipants,

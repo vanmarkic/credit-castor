@@ -18,6 +18,7 @@ import type {
   PortageSettlementEvent,
   CoproTakesLoanEvent,
   ParticipantExitsEvent,
+  CoproSaleEvent,
   Loan,
   ProjectionState,
   PhaseProjection,
@@ -92,6 +93,9 @@ export function applyEvent(
 
     case 'PARTICIPANT_EXITS':
       return applyParticipantExits(state, event);
+
+    case 'COPRO_SALE':
+      return applyCoproSale(state, event);
 
     default:
       // Exhaustive check (TypeScript will error if case missed)
@@ -384,6 +388,84 @@ function applyParticipantExits(
     participants: updatedParticipants,
     copropropriete: updatedCopro,
     transactionHistory: [...state.transactionHistory, transaction]
+  };
+}
+
+/**
+ * Apply COPRO_SALE event
+ * Copropriété sells lot to newcomer with 30/70 distribution
+ */
+function applyCoproSale(
+  state: ProjectionState,
+  event: CoproSaleEvent
+): ProjectionState {
+  // 1. Add buyer as participant
+  const newParticipant = convertToParticipant(event.buyer);
+
+  // 2. Remove or reduce copro lot
+  // Note: CoproSaleEvent allows buying any surface from copro lots,
+  // so we need to either remove the lot or reduce its surface
+  const updatedCoproLots = state.copropropriete.lotsOwned
+    .map(lot => {
+      if (lot.lotId === event.lotId) {
+        const remainingSurface = lot.surface - event.surfacePurchased;
+        if (remainingSurface <= 0) {
+          return null; // Remove lot entirely
+        }
+        // Reduce surface
+        return { ...lot, surface: remainingSurface };
+      }
+      return lot;
+    })
+    .filter((lot): lot is CoproLot => lot !== null);
+
+  // 3. Update copro cash reserve with 30%
+  const updatedCopro = {
+    ...state.copropropriete,
+    lotsOwned: updatedCoproLots,
+    cashReserve: state.copropropriete.cashReserve + event.distribution.toCoproReserves
+  };
+
+  // 4. Record transactions
+  const transactions: Transaction[] = [];
+
+  // Lot sale transaction
+  transactions.push({
+    type: 'LOT_SALE',
+    from: 'COPRO',
+    to: event.buyer.name,
+    amount: event.salePrice,
+    date: event.date,
+    breakdown: event.breakdown
+  });
+
+  // Notary fees transaction
+  transactions.push({
+    type: 'NOTARY_FEES',
+    from: event.buyer.name,
+    to: 'NOTARY',
+    amount: event.notaryFees,
+    date: event.date
+  });
+
+  // Redistribution transactions (70% split by quotité)
+  Object.entries(event.distribution.toParticipants).forEach(([participantName, distribution]) => {
+    transactions.push({
+      type: 'REDISTRIBUTION',
+      from: 'COPRO',
+      to: participantName,
+      amount: distribution.amount,
+      date: event.date,
+      metadata: { quotite: distribution.quotite }
+    });
+  });
+
+  return {
+    ...state,
+    currentDate: event.date,
+    participants: [...state.participants, newParticipant],
+    copropropriete: updatedCopro,
+    transactionHistory: [...state.transactionHistory, ...transactions]
   };
 }
 
