@@ -93,31 +93,57 @@ export function calculatePortageTransaction(
 /**
  * Calculate the financial impact of a copropriété lot sale on active participants.
  *
- * When a copro lot is sold, shared costs (syndic fees, charges communes, etc.)
- * are redistributed among all coowners. This affects everyone's total cost.
+ * When a copro lot is sold:
+ * - 30% goes to copropriété reserves
+ * - 70% is distributed to founders by their frozen T0 quotité
+ * - Each founder receives cash (negative delta) proportional to their surface
  *
- * @param _affectedParticipant - A participant affected by the copro sale
+ * @param affectedParticipant - A founder receiving distribution from the copro sale
  * @param coproBuyer - The newcomer buying from copropriété
- * @param _previousSnapshot - Participant's snapshot before this date
- * @param _totalParticipants - Total number of active participants
- * @returns Transaction object with calculated delta
+ * @param _previousSnapshot - Participant's snapshot before this date (unused for now)
+ * @param totalParticipants - Total number of active participants
+ * @returns Transaction object with calculated delta (negative = cash received)
  */
 export function calculateCooproTransaction(
-  _affectedParticipant: Participant,
+  affectedParticipant: Participant,
   coproBuyer: Participant,
   _previousSnapshot: TimelineSnapshot,
-  _totalParticipants: number
+  totalParticipants: number
 ): TimelineTransaction {
-  // Simplified: shared costs redistributed among more/fewer people
-  // Real implementation would calculate actual shared cost changes
-  // For now, assume shared costs stay the same but divided among more people
-  const costDelta = 0 // Will be calculated from actual shared cost changes
+  // Get the purchase price from buyer's purchase details
+  const purchasePrice = coproBuyer.purchaseDetails?.purchasePrice || 0
+
+  if (purchasePrice === 0) {
+    // No purchase price available - return 0 delta
+    return {
+      type: 'copro_sale',
+      delta: {
+        totalCost: 0,
+        loanNeeded: 0,
+        reason: `${coproBuyer.name} joined (copro sale)`
+      }
+    }
+  }
+
+  // Calculate 70% distribution amount
+  const distributionAmount = purchasePrice * 0.7
+
+  // Calculate affected participant's share
+  // NOTE: This is a simplified calculation that assumes equal distribution among founders.
+  // The actual distribution should be calculated by quotité (surface / total surface),
+  // but we don't have access to all participants' surfaces in this function.
+  // The state machine implementation uses the correct quotité-based calculation.
+  const founderCount = totalParticipants - 1 // Exclude the buyer
+  const participantShare = distributionAmount / founderCount
+
+  // Negative delta = cash received (reduces participant's net position)
+  const cashReceived = -participantShare
 
   return {
     type: 'copro_sale',
     delta: {
-      totalCost: costDelta,
-      loanNeeded: costDelta,
+      totalCost: cashReceived,
+      loanNeeded: cashReceived,
       reason: `${coproBuyer.name} joined (copro sale)`
     }
   }
