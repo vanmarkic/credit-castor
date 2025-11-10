@@ -424,8 +424,12 @@ describe('Sales Flows', () => {
           name: 'Founder1',
           isFounder: true,
           entryDate: new Date('2023-01-01'),
-          surface: 100,
-          lotsOwned: [],
+          lotsOwned: [{
+            lotId: 'founder-lot-1',
+            acquisitionDate: new Date('2023-01-01'),
+            acquisitionCost: 50000,
+            surface: 100
+          }],
           loans: []
         }
       ];
@@ -509,8 +513,12 @@ describe('Sales Flows', () => {
           name: 'Alice',
           isFounder: true,
           entryDate: new Date('2023-01-01'),
-          surface: 100,
-          lotsOwned: [],
+          lotsOwned: [{
+            lotId: 'alice-lot-1',
+            acquisitionDate: new Date('2023-01-01'),
+            acquisitionCost: 50000,
+            surface: 100
+          }],
           loans: []
         },
         {
@@ -518,8 +526,12 @@ describe('Sales Flows', () => {
           name: 'Bob',
           isFounder: true,
           entryDate: new Date('2023-01-01'),
-          surface: 150,
-          lotsOwned: [],
+          lotsOwned: [{
+            lotId: 'bob-lot-1',
+            acquisitionDate: new Date('2023-01-01'),
+            acquisitionCost: 75000,
+            surface: 150
+          }],
           loans: []
         }
       ];
