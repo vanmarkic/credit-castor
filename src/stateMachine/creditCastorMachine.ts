@@ -265,7 +265,8 @@ export const creditCastorMachine = setup({
           const formulaParams = {
             indexationRate: 2, // 2% per year
             carryingCostRecovery: 100, // 100% recovery
-            averageInterestRate: 4.5 // 4.5% (default average)
+            averageInterestRate: 4.5, // 4.5% (default average)
+            coproReservesShare: 30 // 30% to reserves, 70% to founders
           };
 
           // Calculate surface purchased (default to lot surface if not specified)

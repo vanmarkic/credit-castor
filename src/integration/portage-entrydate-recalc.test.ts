@@ -27,7 +27,8 @@ describe('Portage lot recalculation on entry date change', () => {
     const formulaParams = {
       indexationRate: 2,
       carryingCostRecovery: 100,
-      averageInterestRate: 4.5
+      averageInterestRate: 4.5,
+      coproReservesShare: 30
     };
 
     // Scenario 1: Buyer enters 16 months later (2027-06-01)

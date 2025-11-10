@@ -9,7 +9,8 @@ import type { Participant } from './calculatorUtils';
 const formulaParams = {
   indexationRate: 2,
   carryingCostRecovery: 100,
-  averageInterestRate: 4.5
+  averageInterestRate: 4.5,
+  coproReservesShare: 30
 };
 
 describe('portageRecalculation', () => {

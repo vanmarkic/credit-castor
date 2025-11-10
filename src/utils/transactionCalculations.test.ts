@@ -85,7 +85,8 @@ describe('transactionCalculations', () => {
       const formulaParams: PortageFormulaParams = {
         indexationRate: 2,  // 2%
         carryingCostRecovery: 100,  // 100%
-        averageInterestRate: 4.5  // 4.5%
+        averageInterestRate: 4.5,  // 4.5%
+        coproReservesShare: 30  // 30%
       }
 
       // Execute
@@ -185,7 +186,8 @@ describe('transactionCalculations', () => {
       const formulaParams: PortageFormulaParams = {
         indexationRate: 2,  // 2%
         carryingCostRecovery: 100,  // 100%
-        averageInterestRate: 4.5  // 4.5%
+        averageInterestRate: 4.5,  // 4.5%
+        coproReservesShare: 30  // 30%
       }
 
       const sellerLot = seller.lotsOwned![0]

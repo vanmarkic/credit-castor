@@ -223,3 +223,80 @@ export function calculateCoproRedistributionForParticipant(
     })
     .filter((r): r is RedistributionPayback => r !== null);
 }
+
+// ============================================
+// Distribution Split Calculations
+// ============================================
+
+/**
+ * Calculate distribution percentages for copro reserves and founders
+ *
+ * When a copropriété sale occurs, the proceeds are split between:
+ * - Copropriété reserves (typically 30%)
+ * - Founders/participants (typically 70%)
+ *
+ * @param toCoproReserves - Amount going to copropriété reserves
+ * @param toParticipants - Total amount going to participants (sum of all distributions)
+ * @param totalPrice - Total sale price
+ * @returns Object with coproReservesPercent and foundersPercent
+ *
+ * @example
+ * const percentages = calculateDistributionPercentages(30000, 70000, 100000);
+ * // Returns { coproReservesPercent: 30, foundersPercent: 70 }
+ */
+export function calculateDistributionPercentages(
+  toCoproReserves: number,
+  toParticipants: number,
+  totalPrice: number
+): { coproReservesPercent: number; foundersPercent: number } {
+  if (totalPrice === 0) {
+    return { coproReservesPercent: 0, foundersPercent: 0 };
+  }
+  return {
+    coproReservesPercent: (toCoproReserves / totalPrice) * 100,
+    foundersPercent: (toParticipants / totalPrice) * 100
+  };
+}
+
+/**
+ * Calculate quotité (ownership percentage) from distribution amount
+ *
+ * Quotité represents a participant's ownership percentage in the project.
+ * This is calculated from their share of the total distribution.
+ *
+ * @param amount - Amount this participant receives
+ * @param totalToParticipants - Total amount distributed to all participants
+ * @returns Quotité percentage (0-100)
+ *
+ * @example
+ * const quotite = calculateQuotiteFromAmount(35000, 70000);
+ * // Returns 50 (this participant receives 50% of the distribution)
+ */
+export function calculateQuotiteFromAmount(
+  amount: number,
+  totalToParticipants: number
+): number {
+  if (totalToParticipants === 0) {
+    return 0;
+  }
+  return (amount / totalToParticipants) * 100;
+}
+
+/**
+ * Sum all amounts in a distribution map
+ *
+ * @param distribution - Map of participant names to amounts
+ * @returns Total sum of all amounts
+ *
+ * @example
+ * const total = sumDistributionAmounts(new Map([
+ *   ['Alice', 35000],
+ *   ['Bob', 35000]
+ * ]));
+ * // Returns 70000
+ */
+export function sumDistributionAmounts(
+  distribution: Map<string, number>
+): number {
+  return Array.from(distribution.values()).reduce((sum, amt) => sum + amt, 0);
+}

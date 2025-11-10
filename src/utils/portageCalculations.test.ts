@@ -805,7 +805,8 @@ describe('calculateCoproSalePrice', () => {
   const formulaParams: PortageFormulaParams = {
     indexationRate: 2, // 2% per year
     carryingCostRecovery: 100, // 100% recovery
-    averageInterestRate: 4.5 // 4.5% per year
+    averageInterestRate: 4.5, // 4.5% per year
+    coproReservesShare: 30 // 30% to reserves
   };
 
   it('should calculate price using proportional project cost as base', () => {

@@ -127,7 +127,7 @@ export default function CoproSaleDistributionView({ sale }: CoproSaleDistributio
             Founders Distribution ({foundersPercent.toFixed(0)}%)
           </h4>
           <div className="text-2xl font-bold text-green-700" data-testid="founders-total-amount">
-            €{pricing.distribution!.toParticipants.toLocaleString()}
+            €{totalToParticipants.toLocaleString()}
           </div>
           <div className="text-xs text-green-600 mt-1">
             Split by quotité
