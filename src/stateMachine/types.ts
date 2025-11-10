@@ -158,11 +158,28 @@ export interface CoproSale extends BaseSale {
 }
 
 export interface CoproPricing {
+  // DEPRECATED fields (keep for backward compatibility)
   baseCostPerSqm: number;
+  /** @deprecated Use breakdown.basePrice instead */
   gen1CompensationPerSqm: number;
+
+  // Current fields
   pricePerSqm: number;
   surface: number;
   totalPrice: number;
+
+  // NEW: Detailed breakdown
+  breakdown?: {
+    basePrice: number;
+    indexation: number;
+    carryingCostRecovery: number;
+  };
+
+  // NEW: Distribution tracking
+  distribution?: {
+    toCoproReserves: number;
+    toParticipants: Map<string, number>;
+  };
 }
 
 export interface ClassicSale extends BaseSale {
