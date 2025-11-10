@@ -189,6 +189,18 @@ export interface PortageLotPrice {
   pricePerM2: number;
 }
 
+export interface CoproSalePrice {
+  basePrice: number;
+  indexation: number;
+  carryingCostRecovery: number;
+  totalPrice: number;
+  pricePerM2: number;
+  distribution: {
+    toCoproReserves: number; // 30%
+    toParticipants: number;  // 70%
+  };
+}
+
 /**
  * Calculate price for portage lot from founder (surface imposed)
  */
@@ -482,4 +494,102 @@ export function calculateCoproEstimatedPrice(
     formulaParams,
     estimatedCarryingCosts
   );
+}
+
+// ============================================
+// Copropriété Sale Pricing (New Buyer from Copro)
+// ============================================
+
+/**
+ * Calculate price when buyer purchases from copropriété
+ * Uses proportional project cost as base (not individual acquisition)
+ *
+ * Formula matches portage pricing structure:
+ * Total Price = Base Price + Indexation + Carrying Cost Recovery
+ *
+ * Distribution: 30% to copro reserves, 70% to participants
+ *
+ * @param surfacePurchased - Surface buyer is purchasing (m²)
+ * @param totalProjectCost - Sum of all initial costs (purchase + notary + construction)
+ * @param totalBuildingSurface - Total building surface (denominator)
+ * @param yearsHeld - Years copropriété held the lot
+ * @param formulaParams - Global formula parameters (indexation rate, carrying cost recovery %)
+ * @param totalCarryingCosts - Total carrying costs accumulated by copro
+ * @returns Price breakdown with 30/70 distribution
+ */
+export function calculateCoproSalePrice(
+  surfacePurchased: number,
+  totalProjectCost: number,
+  totalBuildingSurface: number,
+  yearsHeld: number,
+  formulaParams: PortageFormulaParams,
+  totalCarryingCosts: number
+): CoproSalePrice {
+  // Validate inputs
+  if (totalBuildingSurface <= 0) {
+    throw new Error('Total building surface must be greater than zero');
+  }
+  if (surfacePurchased <= 0 || surfacePurchased > totalBuildingSurface) {
+    throw new Error('Invalid surface purchased');
+  }
+
+  // Base price = proportional share of total project costs
+  const basePrice = (totalProjectCost / totalBuildingSurface) * surfacePurchased;
+
+  // Indexation on base price (compound growth)
+  const indexation = calculateIndexation(basePrice, formulaParams.indexationRate, yearsHeld);
+
+  // Proportional carrying costs with recovery percentage
+  const surfaceRatio = surfacePurchased / totalBuildingSurface;
+  const carryingCostRecovery = totalCarryingCosts * surfaceRatio * (formulaParams.carryingCostRecovery / 100);
+
+  // Total price
+  const totalPrice = basePrice + indexation + carryingCostRecovery;
+
+  // Distribution: 30% copro reserves, 70% to participants
+  const toCoproReserves = totalPrice * 0.30;
+  const toParticipants = totalPrice * 0.70;
+
+  return {
+    basePrice,
+    indexation,
+    carryingCostRecovery,
+    totalPrice,
+    pricePerM2: totalPrice / surfacePurchased,
+    distribution: {
+      toCoproReserves,
+      toParticipants
+    }
+  };
+}
+
+/**
+ * Distribute copro sale proceeds to participants based on frozen T0 quotité
+ *
+ * Uses quotité from initial founder acquisition (frozen, never recalculated).
+ * Only founders receive distributions (not newcomers).
+ *
+ * @param totalAmount - Amount to distribute (70% of sale price)
+ * @param founders - Original participants from T0 with their surfaces
+ * @param totalBuildingSurface - Total building surface (frozen at T0)
+ * @returns Map of participant name → cash amount
+ */
+export function distributeCoproProceeds(
+  totalAmount: number,
+  founders: ParticipantSurface[],
+  totalBuildingSurface: number
+): Map<string, number> {
+  if (totalBuildingSurface <= 0) {
+    throw new Error('Total building surface must be greater than zero');
+  }
+
+  const distribution = new Map<string, number>();
+
+  founders.forEach(founder => {
+    const quotite = founder.surface / totalBuildingSurface;
+    const amount = totalAmount * quotite;
+    distribution.set(founder.name, amount);
+  });
+
+  return distribution;
 }
