@@ -29,7 +29,8 @@ import type { PortageFormulaParams } from './calculatorUtils';
 const DEFAULT_FORMULA: PortageFormulaParams = {
   indexationRate: 2.0,        // 2% annual
   carryingCostRecovery: 100,  // 100% recovery
-  averageInterestRate: 4.5    // 4.5% annual
+  averageInterestRate: 4.5,   // 4.5% annual
+  coproReservesShare: 30      // 30% to reserves, 70% to founders
 };
 
 describe('Business Logic: Founder Portage Lot Pricing', () => {
