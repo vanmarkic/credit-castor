@@ -144,6 +144,30 @@ Total: 513 tests passing
 - `src/utils/transactionCalculations.test.ts` - Transaction tests
 - `src/utils/chronologyCalculations.ts` - Event handling
 
+## Phase 7: UI Rendering & Bug Fixes ✅
+**Files**: `src/components/CoproSaleDistributionView.tsx`, `transactionCalculations.ts`
+
+Added dedicated UI component for copro sale distribution display:
+- `CoproSaleDistributionView.tsx` - Comprehensive component showing:
+  - Sale header with buyer, date, and surface
+  - Total price prominently displayed
+  - Pricing formula breakdown (base + indexation + carrying)
+  - 30% copropriété reserves (blue highlight)
+  - 70% founders total (green highlight)
+  - Table with individual founder distributions (name, quotité %, amount)
+  - Explanatory note about frozen T0 quotité
+
+**Bug Fix**: Timeline "0 €" Display Issue
+- **Problem**: Founders' timeline cards showed "0 €" instead of their distribution amount when newcomer joined via copro sale
+- **Root Cause**: `calculateCooproTransaction()` was a stub that always returned 0
+- **Solution**: Implemented actual calculation:
+  - Extracts purchase price from `coproBuyer.purchaseDetails.purchasePrice`
+  - Calculates 70% distribution amount
+  - Divides among founders (equal distribution for now)
+  - Returns negative delta (cash received)
+- **Limitation**: Uses equal distribution; quotité-based would require access to all participants
+- **Tests**: 15 comprehensive RTL tests + 14 transaction calculation tests all passing
+
 ## Commits
 
 1. `feat(portage): add copro sale price calculations` - Phase 1
@@ -151,6 +175,8 @@ Total: 513 tests passing
 3. `feat(state-machine): integrate copro sale rule with 30/70 distribution` - Phase 3
 4. `feat(timeline): add copro sale transaction projection` - Phase 4
 5. `fix(tests): add lotsOwned data to copro sale test founders` - Test fixes
+6. `feat(ui): add copro sale distribution view with RTL tests` - Phase 7
+7. `fix(timeline): calculate 70% founder distribution for copro sales` - Bug fix
 
 ## Future Enhancements
 
