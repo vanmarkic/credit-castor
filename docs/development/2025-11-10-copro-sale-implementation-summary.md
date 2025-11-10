@@ -168,6 +168,12 @@ Added dedicated UI component for copro sale distribution display:
 - **Limitation**: Uses equal distribution; quotité-based would require access to all participants
 - **Tests**: 15 comprehensive RTL tests + 14 transaction calculation tests all passing
 
+**Enhancement**: Copro Reserve Display
+- **Feature**: Copropriété lane now displays the 30% cash reserve increase when a sale occurs
+- **Display**: Shows "💰 +€34,500 réserves (30%)" in green below "📉 Vendu à [buyer]"
+- **Calculation**: Automatically sums 30% of all copro sales at that date
+- **Visual**: Complete 30/70 split now visible - founders see cash received, copro sees reserves increase
+
 ## Commits
 
 1. `feat(portage): add copro sale price calculations` - Phase 1
@@ -177,6 +183,7 @@ Added dedicated UI component for copro sale distribution display:
 5. `fix(tests): add lotsOwned data to copro sale test founders` - Test fixes
 6. `feat(ui): add copro sale distribution view with RTL tests` - Phase 7
 7. `fix(timeline): calculate 70% founder distribution for copro sales` - Bug fix
+8. `feat(timeline): display 30% copro reserve increase on sales` - UI enhancement
 
 ## Future Enhancements
 
