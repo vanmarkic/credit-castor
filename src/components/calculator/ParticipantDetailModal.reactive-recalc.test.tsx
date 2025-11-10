@@ -151,7 +151,8 @@ describe('ParticipantDetailModal - Reactive Portage Price Recalculation', () => 
   const formulaParams = {
     indexationRate: 2,
     carryingCostRecovery: 100,
-    averageInterestRate: 4.5
+    averageInterestRate: 4.5,
+      coproReservesShare: 30
   };
 
   it('should recalculate purchase price when entry date changes', () => {

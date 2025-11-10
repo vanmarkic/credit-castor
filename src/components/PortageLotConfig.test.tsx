@@ -8,7 +8,8 @@ describe('PortageLotConfig', () => {
   const defaultFormulaParams: PortageFormulaParams = {
     indexationRate: 2.0,
     carryingCostRecovery: 100,
-    averageInterestRate: 4.5
+    averageInterestRate: 4.5,
+      coproReservesShare: 30
   };
 
   it('should render empty state when no portage lots', () => {
@@ -98,7 +99,8 @@ describe('PortageLotConfig', () => {
     const formulaParams: PortageFormulaParams = {
       indexationRate: 2.0,
       carryingCostRecovery: 100,
-      averageInterestRate: 4.5
+      averageInterestRate: 4.5,
+      coproReservesShare: 30
     };
 
     render(
@@ -136,7 +138,8 @@ describe('PortageLotConfig', () => {
     const formulaParams: PortageFormulaParams = {
       indexationRate: 2.0,
       carryingCostRecovery: 100,
-      averageInterestRate: 4.5
+      averageInterestRate: 4.5,
+      coproReservesShare: 30
     };
 
     render(

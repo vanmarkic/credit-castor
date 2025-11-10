@@ -8,7 +8,8 @@ describe('AvailableLotsView', () => {
   const defaultFormulaParams = {
     indexationRate: 2.0,
     carryingCostRecovery: 100,
-    averageInterestRate: 4.5
+    averageInterestRate: 4.5,
+      coproReservesShare: 30
   };
 
   it('should display empty state when no lots available', () => {
@@ -119,7 +120,8 @@ describe('AvailableLotsView', () => {
     const formulaParams = {
       indexationRate: 2.0,
       carryingCostRecovery: 100,
-      averageInterestRate: 4.5
+      averageInterestRate: 4.5,
+      coproReservesShare: 30
     };
 
     render(

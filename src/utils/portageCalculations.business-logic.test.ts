@@ -388,7 +388,8 @@ describe('Business Logic: Edge Cases and Validations', () => {
       const formula: PortageFormulaParams = {
         indexationRate: rate,
         carryingCostRecovery: 100,
-        averageInterestRate: 4.5
+        averageInterestRate: 4.5,
+      coproReservesShare: 30
       };
 
       const price = calculatePortageLotPrice(
@@ -418,7 +419,8 @@ describe('Business Logic: Edge Cases and Validations', () => {
       const formula: PortageFormulaParams = {
         indexationRate: 2,
         carryingCostRecovery: recovery,
-        averageInterestRate: 4.5
+        averageInterestRate: 4.5,
+      coproReservesShare: 30
       };
 
       const price = calculatePortageLotPrice(

@@ -104,7 +104,8 @@ describe('calculateResalePrice', () => {
     const formulaParams: PortageFormulaParams = {
       indexationRate: 2,
       carryingCostRecovery: 100,
-      averageInterestRate: 4.5
+      averageInterestRate: 4.5,
+      coproReservesShare: 30
     };
 
     const result = calculateResalePrice(
@@ -138,7 +139,8 @@ describe('calculateResalePrice', () => {
     const formulaParams: PortageFormulaParams = {
       indexationRate: 2,
       carryingCostRecovery: 100,
-      averageInterestRate: 4.5
+      averageInterestRate: 4.5,
+      coproReservesShare: 30
     };
 
     const result = calculateResalePrice(
@@ -163,7 +165,8 @@ describe('calculateResalePrice', () => {
     const formulaParams: PortageFormulaParams = {
       indexationRate: 2,
       carryingCostRecovery: 100,
-      averageInterestRate: 4.5
+      averageInterestRate: 4.5,
+      coproReservesShare: 30
     };
 
     const result = calculateResalePrice(
@@ -185,7 +188,8 @@ describe('calculateResalePrice', () => {
     const formulaParams: PortageFormulaParams = {
       indexationRate: 2,
       carryingCostRecovery: 100,
-      averageInterestRate: 4.5
+      averageInterestRate: 4.5,
+      coproReservesShare: 30
     };
 
     const result = calculateResalePrice(
@@ -210,7 +214,8 @@ describe('calculateResalePrice', () => {
     const formulaParams: PortageFormulaParams = {
       indexationRate: 2,
       carryingCostRecovery: 100,
-      averageInterestRate: 4.5
+      averageInterestRate: 4.5,
+      coproReservesShare: 30
     };
 
     const result = calculateResalePrice(
@@ -236,7 +241,8 @@ describe('calculateResalePrice', () => {
     const formulaParams: PortageFormulaParams = {
       indexationRate: 2,
       carryingCostRecovery: 100,
-      averageInterestRate: 4.5
+      averageInterestRate: 4.5,
+      coproReservesShare: 30
     };
 
     const carryingCosts: CarryingCosts = {
@@ -483,7 +489,8 @@ describe('calculatePortageLotPrice', () => {
     const formulaParams: PortageFormulaParams = {
       indexationRate: 2,
       carryingCostRecovery: 100,
-      averageInterestRate: 4.5
+      averageInterestRate: 4.5,
+      coproReservesShare: 30
     };
 
     const result = calculatePortageLotPrice(
@@ -514,7 +521,8 @@ describe('calculatePortageLotPrice', () => {
     const formulaParams: PortageFormulaParams = {
       indexationRate: 2,
       carryingCostRecovery: 100,
-      averageInterestRate: 4.5
+      averageInterestRate: 4.5,
+      coproReservesShare: 30
     };
 
     const result = calculatePortageLotPriceFromCopro(
@@ -539,7 +547,8 @@ describe('calculateResalePrice with formula params', () => {
     const customFormula: PortageFormulaParams = {
       indexationRate: 3.0, // Custom rate
       carryingCostRecovery: 100,
-      averageInterestRate: 4.5
+      averageInterestRate: 4.5,
+      coproReservesShare: 30
     };
 
     const carryingCosts = calculateCarryingCosts(60000, 0, 30, 4.5);
@@ -636,7 +645,8 @@ describe('calculateCoproEstimatedPrice', () => {
   const formulaParams: PortageFormulaParams = {
     indexationRate: 2,
     carryingCostRecovery: 100,
-    averageInterestRate: 4.5
+    averageInterestRate: 4.5,
+      coproReservesShare: 30
   };
 
   it('should return null for zero surface', () => {
@@ -722,7 +732,8 @@ describe('calculateCoproEstimatedPrice', () => {
     const customParams: PortageFormulaParams = {
       indexationRate: 3.0, // Higher indexation
       carryingCostRecovery: 50, // Only recover 50%
-      averageInterestRate: 5.0
+      averageInterestRate: 5.0,
+      coproReservesShare: 30
     };
 
     const result = calculateCoproEstimatedPrice(
@@ -868,7 +879,8 @@ describe('calculateCoproSalePrice', () => {
     const customParams: PortageFormulaParams = {
       indexationRate: 2,
       carryingCostRecovery: 60,
-      averageInterestRate: 4.5
+      averageInterestRate: 4.5,
+      coproReservesShare: 30
     };
 
     const totalProjectCost = 500000;
