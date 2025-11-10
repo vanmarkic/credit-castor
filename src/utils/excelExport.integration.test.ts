@@ -294,7 +294,7 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
     const p2Row = sheetData.cells.find(c => c.data.value === 'Test Participant 2')!.row;
 
     // Verify purchase details
-    const acheteDeCell = sheetData.cells.find(c => c.row === p2Row && c.col === 'AB');
+    const acheteDeCell = sheetData.cells.find(c => c.row === p2Row && c.col === 'AC');
     expect(acheteDeCell?.data.value).toBe('Test Participant 1');
 
     // Verify founder status

@@ -10,7 +10,8 @@ describe('PortageFormulaConfig', () => {
     const params: PortageFormulaParams = {
       indexationRate: 2.0,
       carryingCostRecovery: 100,
-      averageInterestRate: 4.5
+      averageInterestRate: 4.5,
+      coproReservesShare: 30
     };
 
     render(
@@ -38,7 +39,8 @@ describe('PortageFormulaConfig', () => {
     const params: PortageFormulaParams = {
       indexationRate: 2.0,
       carryingCostRecovery: 100,
-      averageInterestRate: 4.5
+      averageInterestRate: 4.5,
+      coproReservesShare: 30
     };
 
     render(

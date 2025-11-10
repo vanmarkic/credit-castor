@@ -135,7 +135,7 @@ export function buildExportSheetData(
 
   const participantStartRow = decompRow + 6;
   addCell(decompRow + 2, 'A', 'Frais de Notaire');
-  addCell(decompRow + 2, 'B', null, `SUM(I${participantStartRow}:I${participantStartRow - 1 + participants.length})`);
+  addCell(decompRow + 2, 'B', null, `SUM(J${participantStartRow}:J${participantStartRow - 1 + participants.length})`);
   addCell(decompRow + 3, 'A', 'Construction');
   addCell(decompRow + 3, 'B', null, `SUM(M${participantStartRow}:M${participantStartRow - 1 + participants.length})`);
   addCell(decompRow + 4, 'A', 'Commun Infrastructure');

@@ -84,12 +84,14 @@ export interface PortageFormulaParams {
   indexationRate: number; // Annual percentage (default: 2.0)
   carryingCostRecovery: number; // Percentage of carrying costs to recover (default: 100)
   averageInterestRate: number; // Annual percentage for loan interest (default: 4.5)
+  coproReservesShare: number; // Percentage to copro reserves when selling from copro (default: 30)
 }
 
 export const DEFAULT_PORTAGE_FORMULA: PortageFormulaParams = {
   indexationRate: 2.0,
   carryingCostRecovery: 100,
-  averageInterestRate: 4.5
+  averageInterestRate: 4.5,
+  coproReservesShare: 30
 };
 
 export interface UnitDetails {

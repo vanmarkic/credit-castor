@@ -109,7 +109,7 @@ describe('Excel Export', () => {
       expect(sheetData.name).toBe('Calculateur Division');
       expect(sheetData.cells.length).toBeGreaterThan(0);
       expect(sheetData.columnWidths).toBeDefined();
-      expect(sheetData.columnWidths?.length).toBe(34);
+      expect(sheetData.columnWidths?.length).toBe(39);
 
       // Check some key cells
       const headerCell = sheetData.cells.find(c => c.row === 1 && c.col === 'A');

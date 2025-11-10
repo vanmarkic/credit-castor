@@ -31,12 +31,14 @@ describe('PortageFormulaParams', () => {
     const defaults: PortageFormulaParams = {
       indexationRate: 2.0,
       carryingCostRecovery: 100,
-      averageInterestRate: 4.5
+      averageInterestRate: 4.5,
+      coproReservesShare: 30
     };
 
     expect(defaults.indexationRate).toBe(2.0);
     expect(defaults.carryingCostRecovery).toBe(100);
     expect(defaults.averageInterestRate).toBe(4.5);
+    expect(defaults.coproReservesShare).toBe(30);
   });
 });
 

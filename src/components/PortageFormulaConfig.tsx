@@ -145,6 +145,68 @@ export default function PortageFormulaConfig({
 
           <hr className="border-blue-200" />
 
+          {/* Copro Redistribution Configuration */}
+          <div>
+            <h4 className="text-sm font-semibold text-blue-900 mb-3">
+              Achat depuis la copropriété
+            </h4>
+            <p className="text-xs text-gray-600 mb-3">
+              Lors de la vente d'un lot par la copropriété à un nouveau membre, définissez comment le prix de vente est redistribué.
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="coproReservesShare"
+                  className="block text-xs text-gray-700 mb-1"
+                >
+                  Part réserves copropriété
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="coproReservesShare"
+                    type="number"
+                    step="5"
+                    min="0"
+                    max="100"
+                    value={formulaParams.coproReservesShare}
+                    onChange={(e) =>
+                      handleUpdate('coproReservesShare', parseFloat(e.target.value) || 0)
+                    }
+                    className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                  <span className="text-sm text-gray-600">%</span>
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  Versé aux réserves collectives
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="foundersShare"
+                  className="block text-xs text-gray-700 mb-1"
+                >
+                  Part redistribution fondateurs
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="foundersShare"
+                    type="number"
+                    value={100 - formulaParams.coproReservesShare}
+                    disabled
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                  />
+                  <span className="text-sm text-gray-600">%</span>
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  Distribué selon quotité T0
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <hr className="border-blue-200" />
+
           {/* Formula Explanation */}
           <div>
             <h4 className="text-sm font-semibold text-blue-900 mb-2">

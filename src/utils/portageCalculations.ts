@@ -196,8 +196,8 @@ export interface CoproSalePrice {
   totalPrice: number;
   pricePerM2: number;
   distribution: {
-    toCoproReserves: number; // 30%
-    toParticipants: number;  // 70%
+    toCoproReserves: number; // Configurable % (default: 30%)
+    toParticipants: number;  // Remainder (default: 70%)
   };
 }
 
@@ -507,15 +507,16 @@ export function calculateCoproEstimatedPrice(
  * Formula matches portage pricing structure:
  * Total Price = Base Price + Indexation + Carrying Cost Recovery
  *
- * Distribution: 30% to copro reserves, 70% to participants
+ * Distribution: Configurable split between copro reserves and participants
+ * (default: 30% to reserves, 70% to participants)
  *
  * @param surfacePurchased - Surface buyer is purchasing (m²)
  * @param totalProjectCost - Sum of all initial costs (purchase + notary + construction)
  * @param totalBuildingSurface - Total building surface (denominator)
  * @param yearsHeld - Years copropriété held the lot
- * @param formulaParams - Global formula parameters (indexation rate, carrying cost recovery %)
+ * @param formulaParams - Global formula parameters (includes coproReservesShare)
  * @param totalCarryingCosts - Total carrying costs accumulated by copro
- * @returns Price breakdown with 30/70 distribution
+ * @returns Price breakdown with configurable distribution split
  */
 export function calculateCoproSalePrice(
   surfacePurchased: number,
@@ -546,9 +547,10 @@ export function calculateCoproSalePrice(
   // Total price
   const totalPrice = basePrice + indexation + carryingCostRecovery;
 
-  // Distribution: 30% copro reserves, 70% to participants
-  const toCoproReserves = totalPrice * 0.30;
-  const toParticipants = totalPrice * 0.70;
+  // Distribution: use configurable split ratio
+  const coproReservesRatio = formulaParams.coproReservesShare / 100;
+  const toCoproReserves = totalPrice * coproReservesRatio;
+  const toParticipants = totalPrice * (1 - coproReservesRatio);
 
   return {
     basePrice,
