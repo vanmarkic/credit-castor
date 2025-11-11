@@ -10,6 +10,12 @@
 
 import type { CoproEntity } from '../types/timeline';
 import { calculateMonthsBetween } from '../utils/coproRedistribution';
+import {
+  calculateTotalMonthlyObligations,
+  calculateMonthsOfReserve,
+  isLowReserve as checkIsLowReserve
+} from '../utils/coproHealthMetrics';
+import { formatDate } from '../utils/formatting';
 
 interface CoproprietéPanelProps {
   copropropriete: CoproEntity;
@@ -22,17 +28,17 @@ export default function CoproprietéPanel({
 }: CoproprietéPanelProps) {
   const monthsSinceDeed = Math.ceil(calculateMonthsBetween(deedDate, new Date()));
 
-  const totalMonthlyObligations =
-    copropropriete.monthlyObligations.loanPayments +
-    copropropriete.monthlyObligations.insurance +
-    copropropriete.monthlyObligations.accountingFees +
-    copropropriete.monthlyObligations.maintenanceReserve;
+  // Use utility functions for financial health calculations
+  const totalMonthlyObligations = calculateTotalMonthlyObligations(
+    copropropriete.monthlyObligations
+  );
 
-  const monthsOfReserve = totalMonthlyObligations > 0
-    ? copropropriete.cashReserve / totalMonthlyObligations
-    : Infinity;
+  const monthsOfReserve = calculateMonthsOfReserve(
+    copropropriete.cashReserve,
+    totalMonthlyObligations
+  );
 
-  const isLowReserve = monthsOfReserve < 3;
+  const isLowReserve = checkIsLowReserve(monthsOfReserve);
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
@@ -198,15 +204,4 @@ export default function CoproprietéPanel({
       </div>
     </div>
   );
-}
-
-// ============================================
-// Helper Functions
-// ============================================
-
-function formatDate(date: Date): string {
-  return new Date(date).toLocaleDateString('en-BE', {
-    month: 'short',
-    year: 'numeric',
-  });
 }

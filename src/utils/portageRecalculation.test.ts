@@ -326,9 +326,9 @@ describe('portageRecalculation', () => {
       expect(updated[2].purchaseDetails?.purchasePrice).toBeGreaterThan(300000);
 
       // Buyer2 price should be higher (more time held)
-      expect(updated[2].purchaseDetails?.purchasePrice).toBeGreaterThan(
-        updated[1].purchaseDetails?.purchasePrice!
-      );
+      const buyer1Price = updated[1].purchaseDetails?.purchasePrice ?? 0;
+      const buyer2Price = updated[2].purchaseDetails?.purchasePrice ?? 0;
+      expect(buyer2Price).toBeGreaterThan(buyer1Price);
     });
   });
 });

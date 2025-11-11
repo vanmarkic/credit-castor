@@ -203,7 +203,7 @@ export const loadFromLocalStorage = () => {
         // Clean up old participant cascoPerM2 fields
         if (result.participants) {
           result.participants = result.participants.map((p: OldParticipant) => {
-            const { cascoPerM2, ...rest } = p;
+            const { cascoPerM2: _cascoPerM2, ...rest } = p;
             return rest as Participant;
           });
         }

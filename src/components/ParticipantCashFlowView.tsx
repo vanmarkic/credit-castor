@@ -10,6 +10,8 @@
 import { useState } from 'react';
 import type { ParticipantCashFlow } from '../types/cashFlow';
 import { calculateMonthsBetween } from '../utils/coproRedistribution';
+import { formatDate, formatType } from '../utils/formatting';
+import { exportToCSV } from '../utils/csvExport';
 
 interface ParticipantCashFlowViewProps {
   cashFlow: ParticipantCashFlow;
@@ -130,7 +132,7 @@ export default function ParticipantCashFlowView({
                 return (
                 <tr key={txn.id} className="border-t border-gray-100 hover:bg-gray-50">
                   <td className="p-3 text-gray-600">
-                    {formatDate(txn.date)}
+                    {formatDate(txn.date, { includeDay: true })}
                     {monthsSinceDeed !== undefined && (
                       <div className="text-xs text-gray-400">
                         Month {monthsSinceDeed}
@@ -165,7 +167,18 @@ export default function ParticipantCashFlowView({
       {/* Export Button */}
       <div className="mt-4">
         <button
-          onClick={() => exportToCSV(cashFlow)}
+          onClick={() => {
+            const headers = ['Date', 'Type', 'Category', 'Description', 'Amount', 'Balance'];
+            const rows = cashFlow.transactions.map(txn => [
+              txn.date.toISOString(),
+              txn.type,
+              txn.category,
+              txn.description,
+              txn.amount.toString(),
+              (txn.runningBalance || 0).toString(),
+            ]);
+            exportToCSV(headers, rows, `${cashFlow.participantName}_cashflow.csv`);
+          }}
           className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
         >
           Export to CSV
@@ -173,48 +186,4 @@ export default function ParticipantCashFlowView({
       </div>
     </div>
   );
-}
-
-// ============================================
-// Helper Functions
-// ============================================
-
-function formatDate(date: Date): string {
-  return date.toLocaleDateString('en-BE', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-}
-
-function formatType(type: string): string {
-  return type
-    .split('_')
-    .map(word => word.charAt(0) + word.slice(1).toLowerCase())
-    .join(' ');
-}
-
-function exportToCSV(cashFlow: ParticipantCashFlow): void {
-  const headers = ['Date', 'Type', 'Category', 'Description', 'Amount', 'Balance'];
-  const rows = cashFlow.transactions.map(txn => [
-    txn.date.toISOString(),
-    txn.type,
-    txn.category,
-    txn.description,
-    txn.amount.toString(),
-    (txn.runningBalance || 0).toString(),
-  ]);
-
-  const csv = [
-    headers.join(','),
-    ...rows.map(row => row.map(cell => `"${cell}"`).join(',')),
-  ].join('\n');
-
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${cashFlow.participantName}_cashflow.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
 }

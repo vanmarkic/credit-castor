@@ -1,4 +1,4 @@
-import type { ProjectContext, Participant, Lot, Sale, SaleType } from './types';
+import type { ProjectContext, Participant, Lot, SaleType } from './types';
 
 export const queries = {
   // ============================================

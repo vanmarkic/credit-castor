@@ -2,6 +2,7 @@ import { Star } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatting';
 import PortageLotConfig from '../PortageLotConfig';
 import AvailableLotsView from '../AvailableLotsView';
+import { ExpectedPaybacksCard } from '../shared/ExpectedPaybacksCard';
 import { getAvailableLotsForNewcomer } from '../../utils/availableLots';
 import { FormulaTooltip } from '../FormulaTooltip';
 import {
@@ -15,10 +16,8 @@ import {
   getParachevementsFormula,
   getTravauxCommunsFormula,
   getTotalRepaymentFormula,
-  getTotalInterestFormula,
-  getExpectedPaybacksFormula
+  getTotalInterestFormula
 } from '../../utils/formulaExplanations';
-import { calculateCoproRedistributionForParticipant, type CoproSale } from '../../utils/coproRedistribution';
 import type { Participant, ParticipantCalculation, CalculationResults, ProjectParams, PortageFormulaParams } from '../../utils/calculatorUtils';
 
 interface ParticipantDetailsPanelProps {
@@ -678,80 +677,12 @@ export function ParticipantDetailsPanel({
       </div>
 
       {/* Expected Paybacks - Show portage paybacks AND copropriété redistributions */}
-      {(() => {
-        // 1. Find all participants who are buying from this participant (portage)
-        const portagePaybacks = participants
-          .filter((buyer: any) => buyer.purchaseDetails?.buyingFrom === participants[idx].name)
-          .map((buyer: any) => ({
-            date: buyer.entryDate || new Date(deedDate),
-            buyer: buyer.name,
-            amount: buyer.purchaseDetails?.purchasePrice || 0,
-            type: 'portage' as const,
-            description: 'Achat de lot portage'
-          }));
-
-        // 2. Calculate copropriété redistributions for this participant using utility function
-        const coproSales: CoproSale[] = participants
-          .filter((buyer: any) => buyer.purchaseDetails?.buyingFrom === 'Copropriété')
-          .map((buyer: any) => ({
-            buyer: buyer.name,
-            entryDate: buyer.entryDate || new Date(deedDate),
-            amount: buyer.purchaseDetails?.purchasePrice || 0
-          }));
-
-        const coproRedistributions = calculateCoproRedistributionForParticipant(
-          participants[idx],
-          coproSales,
-          participants,
-          new Date(deedDate)
-        );
-
-        // 3. Combine and sort all paybacks
-        const allPaybacks = [...portagePaybacks, ...coproRedistributions]
-          .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-        if (allPaybacks.length > 0) {
-          const totalRecovered = allPaybacks.reduce((sum: number, pb: any) => sum + pb.amount, 0);
-
-          return (
-            <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
-              <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">💰 Remboursements attendus</p>
-              <div className="space-y-2">
-                {allPaybacks.map((pb: any, pbIdx: number) => (
-                  <div key={pbIdx} className="bg-white rounded-lg p-3 border border-purple-100">
-                    <div className="flex justify-between items-center mb-1">
-                      <div>
-                        <span className="font-medium text-gray-800">{pb.buyer}</span>
-                        <span className="text-gray-600 text-xs ml-2">
-                          ({new Date(pb.date).toLocaleDateString('fr-BE', { year: 'numeric', month: 'short', day: 'numeric' })})
-                        </span>
-                      </div>
-                      <div className="font-bold text-purple-700">
-                        {formatCurrency(pb.amount)}
-                      </div>
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {pb.type === 'portage' ? '💼 ' : '🏢 '}{pb.description}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-3 pt-3 border-t border-purple-300 flex justify-between items-center">
-                <span className="text-sm font-semibold text-gray-800">Total récupéré</span>
-                <span className="text-lg font-bold text-purple-800">
-                  <FormulaTooltip formula={getExpectedPaybacksFormula(totalRecovered, allPaybacks.length)}>
-                    {formatCurrency(totalRecovered)}
-                  </FormulaTooltip>
-                </span>
-              </div>
-              <p className="text-xs text-purple-600 mt-2">
-                Ces montants seront versés lorsque les nouveaux participants entreront dans le projet.
-              </p>
-            </div>
-          );
-        }
-        return null;
-      })()}
+      <ExpectedPaybacksCard
+        participant={participants[idx]}
+        allParticipants={participants}
+        deedDate={deedDate}
+        className="mt-4"
+      />
     </div>
   );
 }

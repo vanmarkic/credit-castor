@@ -79,6 +79,7 @@ describe('Carrying Costs Calculation', () => {
       bankDeadline: null,
       acpLoans: new Map(),
       acpBankAccount: 0,
+      rentToOwnAgreements: new Map(),
       compromisDate: null,
       deedDate: null,
       registrationDate: null,

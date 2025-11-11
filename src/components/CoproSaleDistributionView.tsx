@@ -6,6 +6,12 @@
  */
 
 import type { CoproSale } from '../stateMachine/types';
+import {
+  calculateDistributionPercentages,
+  calculateQuotiteFromAmount,
+  sumDistributionAmounts
+} from '../utils/coproRedistribution';
+import { formatDate } from '../utils/formatting';
 
 interface CoproSaleDistributionViewProps {
   sale: CoproSale;
@@ -17,16 +23,18 @@ export default function CoproSaleDistributionView({ sale }: CoproSaleDistributio
   // Check if we have the new distribution format
   const hasDistribution = pricing.distribution && pricing.breakdown;
 
-  // Calculate dynamic distribution percentages
-  const coproReservesPercent = hasDistribution
-    ? (pricing.distribution!.toCoproReserves / pricing.totalPrice) * 100
-    : 30;
+  // Calculate dynamic distribution percentages using utility functions
   const totalToParticipants = hasDistribution
-    ? Array.from(pricing.distribution!.toParticipants.values()).reduce((sum, amt) => sum + amt, 0)
+    ? sumDistributionAmounts(pricing.distribution!.toParticipants)
     : 0;
-  const foundersPercent = hasDistribution
-    ? (totalToParticipants / pricing.totalPrice) * 100
-    : 70;
+
+  const { coproReservesPercent, foundersPercent } = hasDistribution
+    ? calculateDistributionPercentages(
+        pricing.distribution!.toCoproReserves,
+        totalToParticipants,
+        pricing.totalPrice
+      )
+    : { coproReservesPercent: 30, foundersPercent: 70 };
 
   if (!hasDistribution) {
     // Fall back to old format display
@@ -36,7 +44,7 @@ export default function CoproSaleDistributionView({ sale }: CoproSaleDistributio
           Copropriété Sale to {buyer}
         </h3>
         <div className="text-sm text-gray-600">
-          {formatDate(saleDate)} • {surface}m² @ €{pricing.pricePerSqm.toLocaleString()}/m²
+          {formatDate(saleDate, { includeDay: true })} • {surface}m² @ €{pricing.pricePerSqm.toLocaleString()}/m²
         </div>
         <div className="mt-4 text-2xl font-bold text-blue-700">
           €{pricing.totalPrice.toLocaleString()}
@@ -53,7 +61,7 @@ export default function CoproSaleDistributionView({ sale }: CoproSaleDistributio
             Copropriété Sale to {buyer}
           </h3>
           <div className="text-sm text-gray-600 mt-1">
-            {formatDate(saleDate)} • {surface}m² purchased
+            {formatDate(saleDate, { includeDay: true })} • {surface}m² purchased
           </div>
         </div>
         <div className="text-right">
@@ -151,10 +159,8 @@ export default function CoproSaleDistributionView({ sale }: CoproSaleDistributio
             </thead>
             <tbody>
               {Array.from(pricing.distribution!.toParticipants.entries()).map(([founderName, amount]) => {
-                // Calculate quotité from amount and total distribution to participants
-                const totalToParticipants = Array.from(pricing.distribution!.toParticipants.values())
-                  .reduce((sum, amt) => sum + amt, 0);
-                const quotite = (amount / totalToParticipants) * 100;
+                // Calculate quotité using utility function
+                const quotite = calculateQuotiteFromAmount(amount, totalToParticipants);
 
                 return (
                   <tr
@@ -194,16 +200,4 @@ export default function CoproSaleDistributionView({ sale }: CoproSaleDistributio
       </div>
     </div>
   );
-}
-
-// ============================================
-// Helper Functions
-// ============================================
-
-function formatDate(date: Date): string {
-  return date.toLocaleDateString('en-BE', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
 }

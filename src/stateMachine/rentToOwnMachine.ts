@@ -1,5 +1,5 @@
 import { setup, assign } from 'xstate';
-import type { RentToOwnAgreement, ExtensionRequest } from './types';
+import type { RentToOwnAgreement } from './types';
 import { calculateRentToOwnPayment } from './rentToOwnCalculations';
 
 // Events

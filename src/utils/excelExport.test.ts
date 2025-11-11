@@ -4,6 +4,7 @@ import { CsvWriter, XlsxWriter } from './exportWriter';
 import type { CalculationResults, ProjectParams } from './calculatorUtils';
 
 describe('Excel Export', () => {
+  /* eslint-disable no-loss-of-precision */
   const mockCalculations: CalculationResults = {
     totalSurface: 472,
     pricePerM2: 1377.11864406779665,

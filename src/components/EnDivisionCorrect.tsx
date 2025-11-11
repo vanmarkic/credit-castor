@@ -9,8 +9,7 @@ import { VerticalToolbar } from './calculator/VerticalToolbar';
 import ParticipantDetailModal from './calculator/ParticipantDetailModal';
 import { FormulaTooltip } from './FormulaTooltip';
 import { formatCurrency } from '../utils/formatting';
-import { ExpenseCategorySection } from './ExpenseCategorySection';
-import { calculateExpenseCategoriesTotal } from '../utils/calculatorUtils';
+import { ExpenseCategoriesManager } from './shared/ExpenseCategoriesManager';
 import PortageFormulaConfig from './PortageFormulaConfig';
 import AvailableLotsView from './AvailableLotsView';
 import { getAvailableLotsForNewcomer } from '../utils/availableLots';
@@ -115,7 +114,6 @@ export default function EnDivisionCorrect() {
     projectParams,
     deedDate,
     portageFormula,
-    state.rentToOwnFormula,
     versionMismatch.show
   );
 
@@ -370,166 +368,12 @@ export default function EnDivisionCorrect() {
             <h3 className="text-sm font-semibold text-gray-800 mb-3">Détail Commun</h3>
 
             {projectParams.expenseCategories && (
-              <div className="space-y-3">
-                <ExpenseCategorySection
-                  title="CONSERVATOIRE"
-                  items={projectParams.expenseCategories.conservatoire}
-                  onItemChange={(index: number, value: number) => {
-                    const newCategories = {
-                      ...projectParams.expenseCategories!,
-                      conservatoire: projectParams.expenseCategories!.conservatoire.map((item: any, i: number) =>
-                        i === index ? { ...item, amount: value } : item
-                      ),
-                    };
-                    setProjectParams({ ...projectParams, expenseCategories: newCategories });
-                  }}
-                  onItemLabelChange={(index: number, label: string) => {
-                    const newCategories = {
-                      ...projectParams.expenseCategories!,
-                      conservatoire: projectParams.expenseCategories!.conservatoire.map((item: any, i: number) =>
-                        i === index ? { ...item, label } : item
-                      ),
-                    };
-                    setProjectParams({ ...projectParams, expenseCategories: newCategories });
-                  }}
-                  onAddItem={() => {
-                    const newCategories = {
-                      ...projectParams.expenseCategories!,
-                      conservatoire: [
-                        ...projectParams.expenseCategories!.conservatoire,
-                        { label: 'Nouvelle dépense', amount: 0 }
-                      ],
-                    };
-                    setProjectParams({ ...projectParams, expenseCategories: newCategories });
-                  }}
-                  onRemoveItem={(index: number) => {
-                    const newCategories = {
-                      ...projectParams.expenseCategories!,
-                      conservatoire: projectParams.expenseCategories!.conservatoire.filter((_: any, i: number) => i !== index),
-                    };
-                    setProjectParams({ ...projectParams, expenseCategories: newCategories });
-                  }}
-                />
-
-                <ExpenseCategorySection
-                  title="HABITABILITE SOMMAIRE"
-                  items={projectParams.expenseCategories.habitabiliteSommaire}
-                  onItemChange={(index: number, value: number) => {
-                    const newCategories = {
-                      ...projectParams.expenseCategories!,
-                      habitabiliteSommaire: projectParams.expenseCategories!.habitabiliteSommaire.map((item: any, i: number) =>
-                        i === index ? { ...item, amount: value } : item
-                      ),
-                    };
-                    setProjectParams({ ...projectParams, expenseCategories: newCategories });
-                  }}
-                  onItemLabelChange={(index: number, label: string) => {
-                    const newCategories = {
-                      ...projectParams.expenseCategories!,
-                      habitabiliteSommaire: projectParams.expenseCategories!.habitabiliteSommaire.map((item: any, i: number) =>
-                        i === index ? { ...item, label } : item
-                      ),
-                    };
-                    setProjectParams({ ...projectParams, expenseCategories: newCategories });
-                  }}
-                  onAddItem={() => {
-                    const newCategories = {
-                      ...projectParams.expenseCategories!,
-                      habitabiliteSommaire: [
-                        ...projectParams.expenseCategories!.habitabiliteSommaire,
-                        { label: 'Nouvelle dépense', amount: 0 }
-                      ],
-                    };
-                    setProjectParams({ ...projectParams, expenseCategories: newCategories });
-                  }}
-                  onRemoveItem={(index: number) => {
-                    const newCategories = {
-                      ...projectParams.expenseCategories!,
-                      habitabiliteSommaire: projectParams.expenseCategories!.habitabiliteSommaire.filter((_: any, i: number) => i !== index),
-                    };
-                    setProjectParams({ ...projectParams, expenseCategories: newCategories });
-                  }}
-                />
-
-                <ExpenseCategorySection
-                  title="PREMIER TRAVAUX"
-                  items={projectParams.expenseCategories.premierTravaux}
-                  onItemChange={(index: number, value: number) => {
-                    const newCategories = {
-                      ...projectParams.expenseCategories!,
-                      premierTravaux: projectParams.expenseCategories!.premierTravaux.map((item: any, i: number) =>
-                        i === index ? { ...item, amount: value } : item
-                      ),
-                    };
-                    setProjectParams({ ...projectParams, expenseCategories: newCategories });
-                  }}
-                  onItemLabelChange={(index: number, label: string) => {
-                    const newCategories = {
-                      ...projectParams.expenseCategories!,
-                      premierTravaux: projectParams.expenseCategories!.premierTravaux.map((item: any, i: number) =>
-                        i === index ? { ...item, label } : item
-                      ),
-                    };
-                    setProjectParams({ ...projectParams, expenseCategories: newCategories });
-                  }}
-                  onAddItem={() => {
-                    const newCategories = {
-                      ...projectParams.expenseCategories!,
-                      premierTravaux: [
-                        ...projectParams.expenseCategories!.premierTravaux,
-                        { label: 'Nouvelle dépense', amount: 0 }
-                      ],
-                    };
-                    setProjectParams({ ...projectParams, expenseCategories: newCategories });
-                  }}
-                  onRemoveItem={(index: number) => {
-                    const newCategories = {
-                      ...projectParams.expenseCategories!,
-                      premierTravaux: projectParams.expenseCategories!.premierTravaux.filter((_: any, i: number) => i !== index),
-                    };
-                    setProjectParams({ ...projectParams, expenseCategories: newCategories });
-                  }}
-                />
-
-                <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <div className="flex justify-between items-center p-3 bg-gray-50">
-                <h4 className="text-sm font-semibold text-gray-800 uppercase tracking-wide">Frais Généraux étalés sur 3 ans</h4>
-                <span className="text-sm font-bold text-purple-700">
-                  {formatCurrency(
-                    projectParams.expenseCategories
-                      ? calculations.sharedCosts - calculateExpenseCategoriesTotal(projectParams.expenseCategories)
-                      : projectParams.fraisGeneraux3ans
-                  )}
-                </span>
-              </div>
-              <div className="p-3 bg-white space-y-2">
-                {/* Global CASCO rate input */}
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-gray-600 whitespace-nowrap">
-                    Prix CASCO/m² Global:
-                  </label>
-                  <input
-                    type="number"
-                    step="10"
-                    value={projectParams.globalCascoPerM2}
-                    onChange={(e) => setProjectParams({
-                      ...projectParams,
-                      globalCascoPerM2: parseFloat(e.target.value) || 1590
-                    })}
-                    className="w-24 px-2 py-1 text-sm font-semibold border border-blue-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                  />
-                  <span className="text-xs text-blue-600">€/m²</span>
-                </div>
-
-                {/* Calculation breakdown */}
-                <div className="text-xs text-gray-500 space-y-0.5">
-                  <p>• Honoraires (15% × 30% CASCO)</p>
-                  <p>• Frais récurrents × 3 ans</p>
-                  <p className="text-gray-400 italic mt-1">Calculé automatiquement</p>
-                </div>
-              </div>
-                </div>
-              </div>
+              <ExpenseCategoriesManager
+                expenseCategories={projectParams.expenseCategories}
+                projectParams={projectParams}
+                sharedCosts={calculations.sharedCosts}
+                onUpdateProjectParams={setProjectParams}
+              />
             )}
 
             <div className="mt-4 p-3 bg-purple-100 rounded-lg border border-purple-300">

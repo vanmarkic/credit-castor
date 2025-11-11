@@ -219,7 +219,7 @@ export function calculateVotingResults(
       majorityReached = quotiteMajority;
       break;
 
-    case 'hybrid':
+    case 'hybrid': {
       if (!votingRules.hybridWeights) {
         throw new Error('Hybrid voting requires hybridWeights configuration');
       }
@@ -237,6 +237,7 @@ export function calculateVotingResults(
 
       majorityReached = hybridScore > (votingRules.majorityPercentage / 100);
       break;
+    }
   }
 
   return {

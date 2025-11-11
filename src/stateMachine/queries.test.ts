@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { queries } from './queries';
-import type { ProjectContext, Participant, Lot } from './types';
+import type { ProjectContext } from './types';
 
 describe('Participant Queries', () => {
   let context: ProjectContext;
@@ -52,6 +52,7 @@ describe('Participant Queries', () => {
       approvedFinancing: 0,
       bankDeadline: null,
       acpLoans: new Map(),
+      rentToOwnAgreements: new Map(),
       acpBankAccount: 0,
       projectFinancials: {
         totalPurchasePrice: 0,
@@ -103,6 +104,8 @@ describe('Lot Queries', () => {
   let context: ProjectContext;
 
   beforeEach(() => {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore - Minimal test context
     context = {
       participants: [],
       lots: [

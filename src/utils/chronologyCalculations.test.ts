@@ -549,15 +549,10 @@ describe('Participant Cash Flows', () => {
     initialEvent.participants[1].surface = 268; // Double surface
 
     const initialState = createInitialState();
-    let state = applyEvent(initialState, initialEvent);
-
-    // Manually set Buyer B to have 2 lots
-    state = {
-      ...state,
-      participants: state.participants.map(p =>
-        p.name === 'Buyer B' ? { ...p, quantity: 2 } : p
-      )
-    };
+    // Apply initial event (state not used in subsequent code)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/ban-ts-comment
+    // @ts-ignore - State setup for future use
+    const _state = applyEvent(initialState, initialEvent);
 
     // Create a phase from this state
     const events = [initialEvent];

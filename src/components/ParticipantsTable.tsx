@@ -12,11 +12,13 @@
  * - Expandable cash flow view
  */
 
-// @ts-nocheck - Component from dropped event sourcing feature, not currently used
+// Component from dropped event sourcing feature, not currently used
+// TODO: Refactor or remove this component
 import { useState } from 'react';
 // timelineProjection removed - event sourcing feature was dropped
 import type { Participant } from '../utils/calculatorUtils';
 import ParticipantCashFlowView from './ParticipantCashFlowView';
+import { formatDate } from '../utils/formatting';
 
 interface ParticipantsTableProps {
   participants: Participant[];
@@ -44,6 +46,7 @@ export default function ParticipantsTable({
 
       <div className="divide-y divide-gray-200">
         {participants.map(timeline => {
+          // @ts-expect-error - Component from dropped event sourcing feature
           const { participant, status, currentLots } = timeline;
           const isFounder = participant.isFounder === true;
           const isExpanded = expandedParticipant === participant.name;
@@ -71,7 +74,7 @@ export default function ParticipantsTable({
                         </span>
                       </div>
                       <div className="text-sm text-gray-600 mt-1">
-                        Entry: {formatDate(participant.entryDate || deedDate)}
+                        Entry: {formatDate(participant.entryDate || deedDate, { includeDay: true })}
                         {isFounder && (
                           <span className="text-green-600 ml-2">(Deed Date)</span>
                         )}
@@ -86,6 +89,7 @@ export default function ParticipantsTable({
                         {currentLots.length} lot{currentLots.length !== 1 ? 's' : ''}
                       </div>
                       <div className="text-xs text-gray-500">
+                        {/* @ts-expect-error - Component from dropped event sourcing feature */}
                         {currentLots.filter(l => l.isPortage).length} portage
                       </div>
                     </div>
@@ -105,6 +109,7 @@ export default function ParticipantsTable({
                 {/* Lots owned */}
                 {currentLots.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-2">
+                    {/* @ts-expect-error - Component from dropped event sourcing feature */}
                     {currentLots.map(lot => (
                       <div
                         key={lot.lotId}
@@ -126,7 +131,9 @@ export default function ParticipantsTable({
               {isExpanded && (
                 <div className="px-4 pb-4 border-t border-gray-100">
                   <ParticipantCashFlowView
-                    cashFlow={timeline.cashFlow}
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore - Component from dropped event sourcing feature
+                    cashFlow={(timeline as any).cashFlow}
                     deedDate={deedDate}
                   />
                 </div>
@@ -148,15 +155,6 @@ export default function ParticipantsTable({
 // ============================================
 // Helper Functions
 // ============================================
-
-function formatDate(date: Date | undefined): string {
-  if (!date) return 'N/A';
-  return new Date(date).toLocaleDateString('en-BE', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
-}
 
 function getStatusColor(status: string): string {
   switch (status) {

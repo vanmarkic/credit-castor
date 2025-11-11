@@ -101,7 +101,7 @@ export function buildExportSheetData(
   addCell(expenseCategoryEndRow + 1, 'B', null, `B${expenseCategoryEndRow}/${participants.length}`);
 
   // Travaux communs
-  let travauxRow = expenseCategoryEndRow + 3;
+  const travauxRow = expenseCategoryEndRow + 3;
   addCell(travauxRow, 'A', 'TRAVAUX COMMUNS');
   addCell(travauxRow + 1, 'A', 'Batiment fondation (conservatoire)');
   addCell(travauxRow + 1, 'B', projectParams.batimentFondationConservatoire);
@@ -128,7 +128,7 @@ export function buildExportSheetData(
   }
 
   // Cost breakdown
-  let decompRow = unitDetailsEndRow + 2;
+  const decompRow = unitDetailsEndRow + 2;
   addCell(decompRow, 'A', 'DECOMPOSITION DES COUTS');
   addCell(decompRow + 1, 'A', 'Achat Total');
   addCell(decompRow + 1, 'B', null, 'B5');
