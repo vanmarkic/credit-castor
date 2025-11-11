@@ -838,9 +838,7 @@ function createPhaseProjection(
   const snapshot = calculateAll(
     state.participants,
     state.projectParams,
-    unitDetails,
-    state.deedDate,
-    state.coproReservesShare
+    unitDetails
   );
 
   // Calculate cash flows for all participants

@@ -131,16 +131,18 @@ export function calculateCooproTransaction(
   const participantsShare = 1 - (coproReservesShare / 100)
   const distributionAmount = purchasePrice * participantsShare
 
-  // Calculate total founder surface (founders only, excluding the buyer)
+  // Calculate surface-based redistribution among founders (excluding the buyer)
   const founders = allParticipants.filter(p =>
     p.isFounder === true && p.name !== coproBuyer.name
   )
+
+  // Calculate total founder surface (founders only, excluding the buyer)
   const totalFounderSurface = founders.reduce((sum, p) => sum + (p.surface || 0), 0)
 
   if (totalFounderSurface === 0) {
-    // No founder surface data - fall back to equal distribution
+    // No surface - equal distribution among founders
     const founderCount = founders.length
-    const participantShare = distributionAmount / founderCount
+    const participantShare = founderCount > 0 ? distributionAmount / founderCount : 0
     const cashReceived = -participantShare
 
     return {
@@ -153,9 +155,9 @@ export function calculateCooproTransaction(
     }
   }
 
-  // Calculate affected participant's quotité and share
+  // Calculate affected participant's surface-based share (quotité)
   const participantSurface = affectedParticipant.surface || 0
-  const quotite = participantSurface / totalFounderSurface
+  const quotite = totalFounderSurface > 0 ? participantSurface / totalFounderSurface : 0
   const participantShare = distributionAmount * quotite
 
   // Negative delta = cash received (reduces participant's net position)
@@ -172,12 +174,12 @@ export function calculateCooproTransaction(
 }
 
 /**
- * Create timeline transactions for a copropriété sale with 30/70 distribution.
+ * Create timeline transactions for a copropriété sale with configurable distribution.
  *
  * Returns an array of transactions:
  * 1. Buyer's purchase transaction (cost increase)
- * 2. Founder distribution transactions (cash received from 70% split)
- * 3. Copropriété reserve transaction (30% increase)
+ * 2. Founder distribution transactions (surface-based cash received from participants' share)
+ * 3. Copropriété reserve transaction (reserves percentage increase)
  *
  * @param coproSalePricing - Pricing breakdown with distribution from calculateCoproSalePrice
  * @param buyer - The participant buying from copropriété

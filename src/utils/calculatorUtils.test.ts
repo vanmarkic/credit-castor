@@ -596,7 +596,7 @@ describe('Calculator Utils', () => {
 
       const unitDetails: UnitDetails = {};
 
-      const results = calculateAll(participants, projectParams, unitDetails, "2026-02-01", 30);
+      const results = calculateAll(participants, projectParams, unitDetails);
 
       // Default rates: CASCO = 1590 €/m², parachèvements = 500 €/m²
       // Expected: 60m² × 1590€ = 95,400€ for CASCO
@@ -640,7 +640,7 @@ describe('Calculator Utils', () => {
 
       const unitDetails: UnitDetails = {};
 
-      const results = calculateAll(participants, projectParams, unitDetails, "2026-02-01", 30);
+      const results = calculateAll(participants, projectParams, unitDetails);
 
       // Expected: 80m² × 1590€ = 127,200€ for CASCO
       //          50m² × 500€ = 25,000€ for parachèvements
@@ -684,7 +684,7 @@ describe('Calculator Utils', () => {
         1: { casco: 178080, parachevements: 56000 },
       };
 
-      const results = calculateAll(participants, projectParams, unitDetails, "2026-02-01", 30);
+      const results = calculateAll(participants, projectParams, unitDetails);
 
       // Unit 1 has: casco: 178080 for 112m², parachevements: 56000 for 112m²
       // Rate per m²: 178080/112 = 1590€/m², 56000/112 = 500€/m²
@@ -728,7 +728,7 @@ describe('Calculator Utils', () => {
 
       const unitDetails: UnitDetails = {};
 
-      const results = calculateAll(participants, projectParams, unitDetails, "2026-02-01", 30);
+      const results = calculateAll(participants, projectParams, unitDetails);
 
       // Expected: 75m² × 1590€ (global) = 119,250€ for CASCO
       //          75m² × 700€ = 52,500€ for parachèvements
@@ -766,7 +766,7 @@ describe('Calculator Utils', () => {
         6: { casco: 171720, parachevements: 54000 },
       };
 
-      const results = calculateAll(participants, projectParams, unitDetails, "2026-02-01", 30);
+      const results = calculateAll(participants, projectParams, unitDetails);
 
       // Verify totals
       expect(results.totalSurface).toBe(472);
@@ -847,7 +847,7 @@ describe('Calculator Utils', () => {
 
       const unitDetails: UnitDetails = {};
 
-      const results = calculateAll(participants, projectParams, unitDetails, "2026-02-01", 30);
+      const results = calculateAll(participants, projectParams, unitDetails);
 
       // Verify participant 1: 100m² × 1590€ (global) = 159000, 100m² × 600€ = 60000
       const p1 = results.participantBreakdown[0];
@@ -904,8 +904,8 @@ describe('Calculator Utils', () => {
         6: { casco: 171720, parachevements: 54000 },
       };
 
-      const results1 = calculateAll(participants1, projectParams, unitDetails, "2026-02-01", 30);
-      const results2 = calculateAll(participants2, projectParams, unitDetails, "2026-02-01", 30);
+      const results1 = calculateAll(participants1, projectParams, unitDetails);
+      const results2 = calculateAll(participants2, projectParams, unitDetails);
 
       // Verify all totals are identical
       expect(results1.totalSurface).toBe(results2.totalSurface);
@@ -963,8 +963,8 @@ describe('Calculator Utils', () => {
 
       const unitDetails: UnitDetails = {};
 
-      const fullResults = calculateAll(participantsFullRenovation, projectParams, unitDetails, "2026-02-01", 30);
-      const partialResults = calculateAll(participantsPartialRenovation, projectParams, unitDetails, "2026-02-01", 30);
+      const fullResults = calculateAll(participantsFullRenovation, projectParams, unitDetails);
+      const partialResults = calculateAll(participantsPartialRenovation, projectParams, unitDetails);
 
       const fullP = fullResults.participantBreakdown[0];
       const partialP = partialResults.participantBreakdown[0];
@@ -1030,7 +1030,7 @@ describe('Calculator Utils', () => {
         1: { casco: 178080, parachevements: 56000 },
       };
 
-      const results = calculateAll(participants, projectParams, unitDetails, "2026-02-01", 30);
+      const results = calculateAll(participants, projectParams, unitDetails);
 
       // CASCO uses global rate: 112m² × 1590€ = 178080
       // Parachevements uses custom rate: 112m² × 700€ = 78400 (NOT unit details 56000)
@@ -1129,7 +1129,7 @@ describe('Calculator Utils', () => {
         globalCascoPerM2: 1700
       };
 
-      const results = calculateAll(participants, projectParams, {}, "2026-02-01", 30);
+      const results = calculateAll(participants, projectParams, {});
 
       expect(results.participantBreakdown[0].casco).toBe(170000); // 100 × 1700
       expect(results.participantBreakdown[1].casco).toBe(255000); // 150 × 1700
@@ -1270,7 +1270,7 @@ describe('calculateAll with two-loan financing', () => {
       1: { casco: 50000, parachevements: 25000 }
     };
 
-    const results = calculateAll(participants, projectParams, unitDetails, "2026-02-01", 30);
+    const results = calculateAll(participants, projectParams, unitDetails);
     const p = results.participantBreakdown[0];
 
     // Should have two-loan fields populated
@@ -1322,7 +1322,7 @@ describe('calculateAll with two-loan financing', () => {
       1: { casco: 50000, parachevements: 25000 }
     };
 
-    const results = calculateAll(participants, projectParams, unitDetails, "2026-02-01", 30);
+    const results = calculateAll(participants, projectParams, unitDetails);
     const p = results.participantBreakdown[0];
 
     // Should NOT have two-loan fields populated

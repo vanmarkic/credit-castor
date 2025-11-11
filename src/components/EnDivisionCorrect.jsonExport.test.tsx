@@ -74,7 +74,7 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should include all required top-level fields', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails, mockDeedDate);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
@@ -105,7 +105,7 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should include all participant input fields', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails, mockDeedDate);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
@@ -141,7 +141,7 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should include all projectParams fields', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails, mockDeedDate);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
@@ -171,7 +171,7 @@ describe('JSON Export Completeness', () => {
   // Scenario tests removed - scenarios no longer exist
 
   it('should include all calculation summary fields', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails, mockDeedDate);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
@@ -195,7 +195,7 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should include all participant calculation fields', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails, mockDeedDate);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
@@ -233,7 +233,7 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should include all totals fields', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails, mockDeedDate);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
@@ -261,7 +261,7 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should preserve all numeric values with precision', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails, mockDeedDate);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
@@ -286,7 +286,7 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should include deedDate for version 2', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails, mockDeedDate);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
@@ -302,7 +302,7 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should include unitDetails for reference', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails, mockDeedDate);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
@@ -320,7 +320,7 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should be able to round-trip serialize and deserialize', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails, mockDeedDate);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
@@ -353,7 +353,7 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should capture all formula inputs for reproducibility', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails, mockDeedDate);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
@@ -369,8 +369,7 @@ describe('JSON Export Completeness', () => {
     const recalculated = calculateAll(
       exportData.participants,
       exportData.projectParams,
-      exportData.unitDetails,
-      exportData.deedDate
+      exportData.unitDetails
     );
 
     // Results should match
@@ -416,7 +415,7 @@ describe('JSON Export Completeness', () => {
       ]
     };
 
-    const calculations = calculateAll([participantWithPortage], mockProjectParams, mockUnitDetails, mockDeedDate);
+    const calculations = calculateAll([participantWithPortage], mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
@@ -484,7 +483,7 @@ describe('JSON Export Completeness', () => {
       }
     };
 
-    const calculations = calculateAll([newcomerParticipant], mockProjectParams, mockUnitDetails, mockDeedDate);
+    const calculations = calculateAll([newcomerParticipant], mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
@@ -549,8 +548,7 @@ describe('JSON Export Completeness', () => {
     const calculations = calculateAll(
       [founderParticipant, exitingParticipant],
       mockProjectParams,
-      mockUnitDetails,
-      mockDeedDate
+      mockUnitDetails
     );
 
     const exportData = {
@@ -579,7 +577,7 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should include release version for compatibility checking', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails, mockDeedDate);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
     const exportData = buildExportData(mockParticipants, calculations);
 
     // Verify release version is present
@@ -594,7 +592,7 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should include version format that matches semantic versioning', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails, mockDeedDate);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
     const exportData = buildExportData(mockParticipants, calculations);
 
     // Release version should follow semantic versioning (x.y.z)
@@ -623,7 +621,7 @@ describe('JSON Export Completeness', () => {
       capitalForLoan2: 40000
     };
 
-    const calculations = calculateAll([twoLoanParticipant], mockProjectParams, mockUnitDetails, mockDeedDate);
+    const calculations = calculateAll([twoLoanParticipant], mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,
@@ -681,7 +679,7 @@ describe('JSON Export Completeness', () => {
       useTwoLoans: false
     };
 
-    const calculations = calculateAll([singleLoanParticipant], mockProjectParams, mockUnitDetails, mockDeedDate);
+    const calculations = calculateAll([singleLoanParticipant], mockProjectParams, mockUnitDetails);
 
     const exportData = {
       version: 2,

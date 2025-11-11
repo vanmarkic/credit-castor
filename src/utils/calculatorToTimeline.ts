@@ -24,8 +24,7 @@ export function convertCalculatorToInitialPurchaseEvent(
   projectParams: ProjectParams,
   deedDate: Date,
   coproName: string = 'Copropriété',
-  hiddenLots: number[] = [],
-  coproReservesShare: number = 30
+  hiddenLots: number[] = []
 ): InitialPurchaseEvent {
   // Build basic unit details from global CASCO
   const unitDetails: Record<number, any> = {};
@@ -39,8 +38,7 @@ export function convertCalculatorToInitialPurchaseEvent(
   });
 
   // Calculate all financial details
-  const deedDateStr = deedDate.toISOString().split('T')[0]; // Convert to YYYY-MM-DD
-  const results = calculateAll(participants, projectParams, unitDetails, deedDateStr, coproReservesShare);
+  const results = calculateAll(participants, projectParams, unitDetails);
 
   // Convert each participant to timeline format
   let lotIdCounter = 1;

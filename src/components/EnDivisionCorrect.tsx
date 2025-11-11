@@ -180,8 +180,8 @@ export default function EnDivisionCorrect() {
   };
 
   const calculations = useMemo(() => {
-    return calculateAll(participants, projectParams, unitDetails, deedDate, portageFormula.coproReservesShare);
-  }, [participants, projectParams, deedDate, portageFormula.coproReservesShare]);
+    return calculateAll(participants, projectParams, unitDetails);
+  }, [participants, projectParams]);
 
   // Reorder participant breakdown to show pinned participant first
   const orderedParticipantBreakdown = useOrderedParticipantBreakdown(calculations, pinnedParticipant);

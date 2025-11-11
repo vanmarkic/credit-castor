@@ -328,4 +328,5 @@ describe('ParticipantDetailModal - Reactive Portage Price Recalculation', () => 
 
     alertSpy.mockRestore();
   });
+
 });

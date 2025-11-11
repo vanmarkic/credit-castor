@@ -300,13 +300,14 @@ describe('transactionCalculations', () => {
         allParticipants
       )
 
-      // Assert: Should calculate based on quotité
+      // Assert: Should calculate based on surface-based redistribution
       expect(transaction.type).toBe('copro_sale')
       expect(transaction.delta.reason).toContain('joined (copro sale)')
 
-      // Verify calculation: 150000 * 0.7 * (80 / 200) = 42000
-      // Participant has 80m² out of 200m² total founder surface (40% quotité)
-      // 70% of 150000 = 105000, participant gets 40% = 42000
+      // Verify calculation: Surface-based distribution
+      // 70% of 150000 = 105000 to participants
+      // Total founder surface: 80 + 120 = 200m²
+      // Annabelle/Colin (80m²) gets: 105000 × (80/200) = 42000
       expect(transaction.delta.totalCost).toBe(-42000)
     })
   })

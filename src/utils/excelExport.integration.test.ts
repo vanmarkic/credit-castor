@@ -75,7 +75,7 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
   };
 
   it('should export all participant input fields from UI', () => {
-    const calculations = calculateAll(participants, projectParams, unitDetails, "2026-02-01", 30);
+    const calculations = calculateAll(participants, projectParams, unitDetails);
     const sheetData = buildExportSheetData(calculations, projectParams, unitDetails);
 
     // Find participant rows
@@ -116,7 +116,7 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
   });
 
   it('should export all calculated values shown in UI', () => {
-    const calculations = calculateAll(participants, projectParams, unitDetails, "2026-02-01", 30);
+    const calculations = calculateAll(participants, projectParams, unitDetails);
     const sheetData = buildExportSheetData(calculations, projectParams, unitDetails);
 
     const p1Row = sheetData.cells.find(c => c.data.value === 'Test Participant 1')!.row;
@@ -131,7 +131,7 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
   });
 
   it('should export all project parameters from UI', () => {
-    const calculations = calculateAll(participants, projectParams, unitDetails, "2026-02-01", 30);
+    const calculations = calculateAll(participants, projectParams, unitDetails);
     const sheetData = buildExportSheetData(calculations, projectParams, unitDetails);
 
     // Verify project params
@@ -145,7 +145,7 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
   });
 
   it('should export expense categories when present', () => {
-    const calculations = calculateAll(participants, projectParams, unitDetails, "2026-02-01", 30);
+    const calculations = calculateAll(participants, projectParams, unitDetails);
     const sheetData = buildExportSheetData(calculations, projectParams, unitDetails);
 
     // Verify expense categories section exists (NEW - was missing before)
@@ -164,7 +164,7 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
   });
 
   it('should export unit details reference', () => {
-    const calculations = calculateAll(participants, projectParams, unitDetails, "2026-02-01", 30);
+    const calculations = calculateAll(participants, projectParams, unitDetails);
     const sheetData = buildExportSheetData(calculations, projectParams, unitDetails);
 
     // Verify unit details section exists (NEW - was missing before)
@@ -184,7 +184,7 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
   });
 
   it('should export all summary totals shown in UI', () => {
-    const calculations = calculateAll(participants, projectParams, unitDetails, "2026-02-01", 30);
+    const calculations = calculateAll(participants, projectParams, unitDetails);
     const sheetData = buildExportSheetData(calculations, projectParams, unitDetails);
 
     // Find synthesis section
@@ -200,7 +200,7 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
   });
 
   it('should match calculations between UI and export', () => {
-    const calculations = calculateAll(participants, projectParams, unitDetails, "2026-02-01", 30);
+    const calculations = calculateAll(participants, projectParams, unitDetails);
     const sheetData = buildExportSheetData(calculations, projectParams, unitDetails);
 
     // Verify totals match
@@ -246,7 +246,7 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
       participants[1]
     ];
 
-    const calculations = calculateAll(participantsWithPortage, projectParams, unitDetails, "2026-02-01", 30);
+    const calculations = calculateAll(participantsWithPortage, projectParams, unitDetails);
     const sheetData = buildExportSheetData(calculations, projectParams, unitDetails);
 
     const p1Row = sheetData.cells.find(c => c.data.value === 'Test Participant 1')!.row;
@@ -261,7 +261,7 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
   });
 
   it('should export timeline fields (founder status, entry date)', () => {
-    const calculations = calculateAll(participants, projectParams, unitDetails, "2026-02-01", 30);
+    const calculations = calculateAll(participants, projectParams, unitDetails);
     const sheetData = buildExportSheetData(calculations, projectParams, unitDetails);
 
     const p1Row = sheetData.cells.find(c => c.data.value === 'Test Participant 1')!.row;
@@ -289,7 +289,7 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
       }
     ];
 
-    const calculations = calculateAll(participantWithPurchase, projectParams, unitDetails, "2026-02-01", 30);
+    const calculations = calculateAll(participantWithPurchase, projectParams, unitDetails);
     const sheetData = buildExportSheetData(calculations, projectParams, unitDetails);
 
     const p2Row = sheetData.cells.find(c => c.data.value === 'Test Participant 2')!.row;

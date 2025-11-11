@@ -82,19 +82,19 @@ export function calculateMonthsBetween(start: Date, end: Date): number {
 /**
  * Filter participants eligible for redistribution (entered before sale date)
  *
- * Business rule: Only participants who entered before the sale date are
+ * Business rule: Only founders who entered before the sale date are
  * eligible to receive a share of the redistribution.
  *
  * @param participants - All participants in the project
  * @param saleDate - Date when the copropriété lot was sold
  * @param deedDate - Default entry date for participants without explicit entryDate
- * @returns Array of eligible participants with their months in project
+ * @returns Array of eligible founders with their surface area
  *
  * @example
  * const eligible = getEligibleParticipants(
  *   [
- *     { name: 'Alice', entryDate: new Date('2024-01-01') },
- *     { name: 'Bob', entryDate: new Date('2024-07-01') }
+ *     { name: 'Alice', isFounder: true, surface: 100, entryDate: new Date('2024-01-01') },
+ *     { name: 'Bob', isFounder: true, surface: 50, entryDate: new Date('2024-07-01') }
  *   ],
  *   new Date('2024-06-01'),
  *   new Date('2024-01-01')
@@ -105,51 +105,52 @@ export function getEligibleParticipants(
   participants: ParticipantWithEntry[],
   saleDate: Date,
   deedDate: Date
-): Array<{ name: string; entryDate: Date; monthsInProject: number }> {
+): Array<{ name: string; entryDate: Date; surface: number }> {
   return participants
+    .filter(p => p.isFounder === true) // Only founders receive copro redistribution
     .map(p => {
       const entryDate = p.entryDate ? new Date(p.entryDate) : new Date(deedDate);
-      const monthsInProject = calculateMonthsBetween(entryDate, saleDate);
+      const surface = p.surface || 0;
       return {
         name: p.name,
         entryDate,
-        monthsInProject
+        surface
       };
     })
     .filter(p => p.entryDate < saleDate);
 }
 
 /**
- * Calculate share ratio for a participant based on time in project
+ * Calculate share ratio for a participant based on surface area
  *
- * Share ratio = (participant months) / (total months of all eligible participants)
+ * Share ratio = (participant surface) / (total surface of all eligible participants)
  *
- * @param participantMonths - Months this participant spent in project
- * @param totalMonths - Sum of months for all eligible participants
- * @returns Share ratio (0-1), or 0 if totalMonths is 0
+ * @param participantSurface - Surface area this participant owns (m²)
+ * @param totalSurface - Sum of surface for all eligible participants
+ * @returns Share ratio (0-1), or 0 if totalSurface is 0
  *
  * @example
- * const ratio = calculateShareRatio(5, 15);
- * // Returns 0.333... (5/15)
+ * const ratio = calculateShareRatio(100, 150);
+ * // Returns 0.666... (100/150)
  */
 export function calculateShareRatio(
-  participantMonths: number,
-  totalMonths: number
+  participantSurface: number,
+  totalSurface: number
 ): number {
-  if (totalMonths === 0) {
+  if (totalSurface === 0) {
     return 0;
   }
-  return participantMonths / totalMonths;
+  return participantSurface / totalSurface;
 }
 
 /**
  * Calculate copropriété redistribution for a single participant
  *
  * For each copropriété sale, this function:
- * 1. Checks if participant is eligible (entered before sale)
- * 2. Calculates months in project until sale
- * 3. Finds all other eligible participants
- * 4. Calculates proportional share based on time
+ * 1. Checks if participant is a founder and eligible (entered before sale)
+ * 2. Gets participant's surface area (m²)
+ * 3. Finds all other eligible founders
+ * 4. Calculates proportional share based on surface (quotité)
  * 5. Returns redistribution payback details
  *
  * @param participant - The participant to calculate redistributions for
@@ -160,17 +161,17 @@ export function calculateShareRatio(
  *
  * @example
  * const redistributions = calculateCoproRedistributionForParticipant(
- *   { name: 'Alice', entryDate: new Date('2024-01-01') },
+ *   { name: 'Alice', isFounder: true, surface: 100, entryDate: new Date('2024-01-01') },
  *   [
  *     { buyer: 'Dan', entryDate: new Date('2024-06-01'), amount: 100000 }
  *   ],
  *   [
- *     { name: 'Alice', entryDate: new Date('2024-01-01') },
- *     { name: 'Bob', entryDate: new Date('2024-01-01') }
+ *     { name: 'Alice', isFounder: true, surface: 100, entryDate: new Date('2024-01-01') },
+ *     { name: 'Bob', isFounder: true, surface: 50, entryDate: new Date('2024-01-01') }
  *   ],
  *   new Date('2024-01-01')
  * );
- * // Returns [{ buyer: 'Dan', amount: 50000, shareRatio: 0.5, ... }]
+ * // Returns [{ buyer: 'Dan', amount: 66667, shareRatio: 0.6667, ... }] (100/150 × 100000)
  */
 export function calculateCoproRedistributionForParticipant(
   participant: ParticipantWithEntry,
@@ -186,29 +187,29 @@ export function calculateCoproRedistributionForParticipant(
     .map(sale => {
       const saleDate = new Date(sale.entryDate);
 
-      // Only participants who entered before the sale date get a share
-      if (participantEntryDate >= saleDate) {
+      // Only founders who entered before the sale date get a share
+      if (participantEntryDate >= saleDate || !participant.isFounder) {
         return null;
       }
 
-      // Calculate months in project until sale
-      const monthsInProject = calculateMonthsBetween(participantEntryDate, saleDate);
+      // Get participant's surface
+      const participantSurface = participant.surface || 0;
 
-      // Get all eligible participants for this sale
+      // Get all eligible founders for this sale
       const eligibleParticipants = getEligibleParticipants(
         allParticipants,
         saleDate,
         deedDate
       );
 
-      // Calculate total months for all eligible participants
-      const totalMonths = eligibleParticipants.reduce(
-        (sum, p) => sum + p.monthsInProject,
+      // Calculate total surface for all eligible founders
+      const totalSurface = eligibleParticipants.reduce(
+        (sum, p) => sum + p.surface,
         0
       );
 
-      // Calculate this participant's share
-      const shareRatio = calculateShareRatio(monthsInProject, totalMonths);
+      // Calculate this participant's share based on surface quotité
+      const shareRatio = calculateShareRatio(participantSurface, totalSurface);
       const shareAmount = sale.amount * shareRatio;
 
       return {
@@ -217,7 +218,7 @@ export function calculateCoproRedistributionForParticipant(
         amount: shareAmount,
         type: 'copro' as const,
         description: `Part copropriété (${(shareRatio * 100).toFixed(1)}%)`,
-        monthsInProject,
+        monthsInProject: 0, // Deprecated: keeping for backward compatibility
         shareRatio
       };
     })

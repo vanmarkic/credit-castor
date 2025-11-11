@@ -239,9 +239,11 @@ describe('HorizontalSwimLaneTimeline', () => {
   });
 
   it('displays correct transaction delta based on coproReservesShare configuration', () => {
-    // Carol buys from copropriété for 150,000€
+    // Carol buys from copropriété for 150,000€ on 2026-08-01
+    // Alice has 100m², Bob has 120m² (both founders)
     // With 30% to reserves (default), 70% = 105,000€ goes to participants
-    // Alice has 100m², Bob has 120m² = 220m² total
+    // Surface-based distribution:
+    // Total founder surface: 100 + 120 = 220m²
     // Alice gets: 105,000 × (100/220) = 47,727€
     // Bob gets: 105,000 × (120/220) = 57,273€
 
@@ -259,9 +261,12 @@ describe('HorizontalSwimLaneTimeline', () => {
     );
 
     // Should show redistribution amounts with 30% to reserves (70% to participants)
-    // Check that amounts around 47,727 and 57,273 are displayed
-    expect(screen.getByText(/47.*727/)).toBeInTheDocument();
-    expect(screen.getByText(/57.*273/)).toBeInTheDocument();
+    // Surface-based: Alice gets 47,727€, Bob gets 57,273€
+    const aliceAmount = screen.getAllByText(/47.*727/);
+    expect(aliceAmount.length).toBeGreaterThanOrEqual(1); // At least one occurrence for Alice
+
+    const bobAmount = screen.getAllByText(/57.*273/);
+    expect(bobAmount.length).toBeGreaterThanOrEqual(1); // At least one occurrence for Bob
 
     // Now change to 60% reserves (40% to participants)
     // 150,000 × 40% = 60,000€ total to participants
@@ -281,6 +286,11 @@ describe('HorizontalSwimLaneTimeline', () => {
     );
 
     // Should now show smaller amounts reflecting 40% to participants
-    expect(screen.getByText(/27.*273/)).toBeInTheDocument();
+    // Alice gets 27,273€, Bob gets 32,727€
+    const aliceSmaller = screen.getAllByText(/27.*273/);
+    expect(aliceSmaller.length).toBeGreaterThanOrEqual(1);
+
+    const bobSmaller = screen.getAllByText(/32.*727/);
+    expect(bobSmaller.length).toBeGreaterThanOrEqual(1);
   });
 });

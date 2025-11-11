@@ -94,9 +94,9 @@ describe('getEligibleParticipants', () => {
 
   it('should include all founders entered before sale', () => {
     const participants: ParticipantWithEntry[] = [
-      { name: 'Alice', entryDate: new Date('2024-01-01') },
-      { name: 'Bob', entryDate: new Date('2024-01-01') },
-      { name: 'Charlie', entryDate: new Date('2024-01-01') }
+      { name: 'Alice', isFounder: true, surface: 100, entryDate: new Date('2024-01-01') },
+      { name: 'Bob', isFounder: true, surface: 120, entryDate: new Date('2024-01-01') },
+      { name: 'Charlie', isFounder: true, surface: 80, entryDate: new Date('2024-01-01') }
     ];
     const saleDate = new Date('2024-06-01');
 
@@ -105,34 +105,34 @@ describe('getEligibleParticipants', () => {
     expect(result).toHaveLength(3);
     expect(result.map(p => p.name)).toEqual(['Alice', 'Bob', 'Charlie']);
     result.forEach(p => {
-      expect(p.monthsInProject).toBeGreaterThan(0);
+      expect(p.surface).toBeGreaterThan(0);
     });
   });
 
-  it('should mix founders and eligible newcomers', () => {
+  it('should only include founders, not newcomers', () => {
     const participants: ParticipantWithEntry[] = [
-      { name: 'Alice', entryDate: new Date('2024-01-01') }, // Founder
-      { name: 'Bob', entryDate: new Date('2024-03-01') },   // Newcomer (eligible)
-      { name: 'Charlie', entryDate: new Date('2024-01-01') } // Founder
+      { name: 'Alice', isFounder: true, surface: 100, entryDate: new Date('2024-01-01') }, // Founder
+      { name: 'Bob', isFounder: false, surface: 90, entryDate: new Date('2024-03-01') },   // Newcomer (NOT eligible)
+      { name: 'Charlie', isFounder: true, surface: 80, entryDate: new Date('2024-01-01') } // Founder
     ];
     const saleDate = new Date('2024-06-01');
 
     const result = getEligibleParticipants(participants, saleDate, deedDate);
 
-    expect(result).toHaveLength(3);
-    expect(result.map(p => p.name)).toEqual(['Alice', 'Bob', 'Charlie']);
+    expect(result).toHaveLength(2); // Only Alice and Charlie (founders)
+    expect(result.map(p => p.name)).toEqual(['Alice', 'Charlie']);
 
-    // Alice should have more months than Bob
+    // Alice should have larger surface than Charlie
     const alice = result.find(p => p.name === 'Alice')!;
-    const bob = result.find(p => p.name === 'Bob')!;
-    expect(alice.monthsInProject).toBeGreaterThan(bob.monthsInProject);
+    const charlie = result.find(p => p.name === 'Charlie')!;
+    expect(alice.surface).toBeGreaterThan(charlie.surface);
   });
 
-  it('should exclude newcomer entered after sale', () => {
+  it('should exclude founder entered after sale', () => {
     const participants: ParticipantWithEntry[] = [
-      { name: 'Alice', entryDate: new Date('2024-01-01') }, // Eligible
-      { name: 'Bob', entryDate: new Date('2024-08-01') },   // NOT eligible (after sale)
-      { name: 'Charlie', entryDate: new Date('2024-03-01') } // Eligible
+      { name: 'Alice', isFounder: true, surface: 100, entryDate: new Date('2024-01-01') }, // Eligible
+      { name: 'Bob', isFounder: true, surface: 120, entryDate: new Date('2024-08-01') },   // NOT eligible (after sale)
+      { name: 'Charlie', isFounder: true, surface: 80, entryDate: new Date('2024-03-01') } // Eligible
     ];
     const saleDate = new Date('2024-06-01');
 
@@ -142,10 +142,10 @@ describe('getEligibleParticipants', () => {
     expect(result.map(p => p.name)).toEqual(['Alice', 'Charlie']);
   });
 
-  it('should exclude newcomer entered on exact sale date', () => {
+  it('should exclude founder entered on exact sale date', () => {
     const participants: ParticipantWithEntry[] = [
-      { name: 'Alice', entryDate: new Date('2024-01-01') }, // Eligible
-      { name: 'Bob', entryDate: new Date('2024-06-01') }    // NOT eligible (same day)
+      { name: 'Alice', isFounder: true, surface: 100, entryDate: new Date('2024-01-01') }, // Eligible
+      { name: 'Bob', isFounder: true, surface: 120, entryDate: new Date('2024-06-01') }    // NOT eligible (same day)
     ];
     const saleDate = new Date('2024-06-01');
 
@@ -166,8 +166,8 @@ describe('getEligibleParticipants', () => {
 
   it('should use deedDate as default for missing entryDate', () => {
     const participants: ParticipantWithEntry[] = [
-      { name: 'Alice', entryDate: undefined }, // Should use deedDate
-      { name: 'Bob', entryDate: new Date('2024-03-01') }
+      { name: 'Alice', isFounder: true, surface: 100, entryDate: undefined }, // Should use deedDate
+      { name: 'Bob', isFounder: true, surface: 120, entryDate: new Date('2024-03-01') }
     ];
     const saleDate = new Date('2024-06-01');
 
@@ -176,15 +176,14 @@ describe('getEligibleParticipants', () => {
     expect(result).toHaveLength(2);
     const alice = result.find(p => p.name === 'Alice')!;
 
-    // Alice should have months from deedDate to saleDate
-    const expectedMonths = calculateMonthsBetween(deedDate, saleDate);
-    expect(alice.monthsInProject).toBeCloseTo(expectedMonths, 2);
+    // Alice should have surface defined
+    expect(alice.surface).toBe(100);
   });
 
-  it('should calculate correct monthsInProject for each participant', () => {
+  it('should include surface for each participant', () => {
     const participants: ParticipantWithEntry[] = [
-      { name: 'Alice', entryDate: new Date('2024-01-01') },
-      { name: 'Bob', entryDate: new Date('2024-02-01') }
+      { name: 'Alice', isFounder: true, surface: 100, entryDate: new Date('2024-01-01') },
+      { name: 'Bob', isFounder: true, surface: 120, entryDate: new Date('2024-02-01') }
     ];
     const saleDate = new Date('2024-04-01');
 
@@ -193,10 +192,10 @@ describe('getEligibleParticipants', () => {
     const alice = result.find(p => p.name === 'Alice')!;
     const bob = result.find(p => p.name === 'Bob')!;
 
-    // Alice: 2024-01-01 to 2024-04-01 = ~2.989 months
-    expect(alice.monthsInProject).toBeCloseTo(2.989, 2);
-    // Bob: 2024-02-01 to 2024-04-01 = ~1.971 months
-    expect(bob.monthsInProject).toBeCloseTo(1.971, 2);
+    // Alice: 100m²
+    expect(alice.surface).toBe(100);
+    // Bob: 120m²
+    expect(bob.surface).toBe(120);
   });
 });
 
@@ -205,17 +204,17 @@ describe('getEligibleParticipants', () => {
 // ============================================
 
 describe('calculateShareRatio', () => {
-  it('should calculate equal time (50/50 split)', () => {
-    const result = calculateShareRatio(5, 10);
+  it('should calculate equal surface (50/50 split)', () => {
+    const result = calculateShareRatio(100, 200);
     expect(result).toBe(0.5);
   });
 
-  it('should calculate different times (proportional)', () => {
-    const result = calculateShareRatio(3, 10);
-    expect(result).toBe(0.3);
+  it('should calculate different surfaces (proportional)', () => {
+    const result = calculateShareRatio(80, 200);
+    expect(result).toBe(0.4); // 80/200 = 0.4
   });
 
-  it('should handle zero total months (edge case)', () => {
+  it('should handle zero total surface (edge case)', () => {
     const result = calculateShareRatio(0, 0);
     expect(result).toBe(0);
   });
@@ -225,18 +224,18 @@ describe('calculateShareRatio', () => {
     expect(result).toBe(1);
   });
 
-  it('should handle fractional months', () => {
-    const result = calculateShareRatio(2.5, 10);
+  it('should handle fractional surfaces', () => {
+    const result = calculateShareRatio(50, 200);
     expect(result).toBe(0.25);
   });
 
-  it('should return 0 if participant has 0 months', () => {
-    const result = calculateShareRatio(0, 10);
+  it('should return 0 if participant has 0 surface', () => {
+    const result = calculateShareRatio(0, 200);
     expect(result).toBe(0);
   });
 
-  it('should handle very small fractions', () => {
-    const result = calculateShareRatio(0.1, 100);
+  it('should handle very small surfaces', () => {
+    const result = calculateShareRatio(1, 1000);
     expect(result).toBe(0.001);
   });
 });
@@ -251,6 +250,8 @@ describe('calculateCoproRedistributionForParticipant', () => {
   it('should calculate single sale, single eligible participant', () => {
     const participant: ParticipantWithEntry = {
       name: 'Alice',
+      isFounder: true,
+      surface: 100,
       entryDate: new Date('2024-01-01')
     };
 
@@ -273,20 +274,24 @@ describe('calculateCoproRedistributionForParticipant', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].buyer).toBe('Dan');
-    expect(result[0].amount).toBe(100000); // 100% share
+    expect(result[0].amount).toBe(100000); // 100% share (sole founder)
     expect(result[0].shareRatio).toBe(1);
     expect(result[0].type).toBe('copro');
     expect(result[0].description).toContain('100.0%');
   });
 
-  it('should calculate single sale, multiple participants with equal time', () => {
+  it('should calculate single sale, multiple participants with equal surface', () => {
     const alice: ParticipantWithEntry = {
       name: 'Alice',
+      isFounder: true,
+      surface: 100,
       entryDate: new Date('2024-01-01')
     };
 
     const bob: ParticipantWithEntry = {
       name: 'Bob',
+      isFounder: true,
+      surface: 100,
       entryDate: new Date('2024-01-01')
     };
 
@@ -308,24 +313,30 @@ describe('calculateCoproRedistributionForParticipant', () => {
     );
 
     expect(result).toHaveLength(1);
-    expect(result[0].amount).toBeCloseTo(50000, 2); // 50% share
+    expect(result[0].amount).toBeCloseTo(50000, 2); // 50% share (100/200)
     expect(result[0].shareRatio).toBeCloseTo(0.5, 2);
   });
 
-  it('should calculate single sale, multiple participants with different entry times', () => {
+  it('should calculate single sale, multiple participants with different surfaces', () => {
     const alice: ParticipantWithEntry = {
       name: 'Alice',
-      entryDate: new Date('2024-01-01') // 5 months before sale
+      isFounder: true,
+      surface: 100, // 100m²
+      entryDate: new Date('2024-01-01')
     };
 
     const bob: ParticipantWithEntry = {
       name: 'Bob',
-      entryDate: new Date('2024-03-01') // 3 months before sale
+      isFounder: true,
+      surface: 120, // 120m²
+      entryDate: new Date('2024-03-01')
     };
 
     const charlie: ParticipantWithEntry = {
       name: 'Charlie',
-      entryDate: new Date('2024-04-01') // 2 months before sale
+      isFounder: true,
+      surface: 80, // 80m²
+      entryDate: new Date('2024-04-01')
     };
 
     const coproSales: CoproSale[] = [
@@ -338,11 +349,9 @@ describe('calculateCoproRedistributionForParticipant', () => {
 
     const allParticipants: ParticipantWithEntry[] = [alice, bob, charlie];
 
-    // Calculate months for each
-    const aliceMonths = calculateMonthsBetween(alice.entryDate!, new Date('2024-06-01'));
-    const bobMonths = calculateMonthsBetween(bob.entryDate!, new Date('2024-06-01'));
-    const charlieMonths = calculateMonthsBetween(charlie.entryDate!, new Date('2024-06-01'));
-    const totalMonths = aliceMonths + bobMonths + charlieMonths;
+    // Calculate surface shares
+    const totalSurface = 100 + 120 + 80; // 300m²
+    const expectedRatio = 100 / totalSurface; // Alice: 100/300 = 0.333...
 
     const result = calculateCoproRedistributionForParticipant(
       alice,
@@ -352,8 +361,6 @@ describe('calculateCoproRedistributionForParticipant', () => {
     );
 
     expect(result).toHaveLength(1);
-
-    const expectedRatio = aliceMonths / totalMonths;
     expect(result[0].shareRatio).toBeCloseTo(expectedRatio, 3);
     expect(result[0].amount).toBeCloseTo(100000 * expectedRatio, 2);
   });
@@ -361,11 +368,15 @@ describe('calculateCoproRedistributionForParticipant', () => {
   it('should calculate multiple sales over time', () => {
     const alice: ParticipantWithEntry = {
       name: 'Alice',
+      isFounder: true,
+      surface: 120, // 120m²
       entryDate: new Date('2024-01-01')
     };
 
     const bob: ParticipantWithEntry = {
       name: 'Bob',
+      isFounder: true,
+      surface: 80, // 80m²
       entryDate: new Date('2024-03-01')
     };
 
@@ -393,18 +404,20 @@ describe('calculateCoproRedistributionForParticipant', () => {
 
     expect(result).toHaveLength(2);
 
-    // First sale: Alice has more time than Bob
+    // First sale: Alice has 120/200 = 60% share
     expect(result[0].buyer).toBe('Dan');
-    expect(result[0].amount).toBeGreaterThan(50000); // More than 50%
+    expect(result[0].amount).toBe(60000); // 60% of 100,000
 
-    // Second sale: Time gap has closed somewhat
+    // Second sale: Same ratio (120/200 = 60%)
     expect(result[1].buyer).toBe('Eve');
-    expect(result[1].amount).toBeGreaterThan(0);
+    expect(result[1].amount).toBe(90000); // 60% of 150,000
   });
 
   it('should return empty array if participant not eligible for any sales', () => {
     const alice: ParticipantWithEntry = {
       name: 'Alice',
+      isFounder: true,
+      surface: 100,
       entryDate: new Date('2024-08-01') // After both sales
     };
 
@@ -436,6 +449,8 @@ describe('calculateCoproRedistributionForParticipant', () => {
   it('should handle empty sales list', () => {
     const alice: ParticipantWithEntry = {
       name: 'Alice',
+      isFounder: true,
+      surface: 100,
       entryDate: new Date('2024-01-01')
     };
 
@@ -452,6 +467,8 @@ describe('calculateCoproRedistributionForParticipant', () => {
   it('should handle participant with missing entryDate (uses deedDate)', () => {
     const alice: ParticipantWithEntry = {
       name: 'Alice',
+      isFounder: true,
+      surface: 100,
       entryDate: undefined // Should use deedDate
     };
 
@@ -476,9 +493,11 @@ describe('calculateCoproRedistributionForParticipant', () => {
     expect(result[0].amount).toBe(100000); // 100% share
   });
 
-  it('should include monthsInProject in result', () => {
+  it('should include monthsInProject in result (deprecated, now 0)', () => {
     const alice: ParticipantWithEntry = {
       name: 'Alice',
+      isFounder: true,
+      surface: 100,
       entryDate: new Date('2024-01-01')
     };
 
@@ -497,17 +516,16 @@ describe('calculateCoproRedistributionForParticipant', () => {
       deedDate
     );
 
-    expect(result[0].monthsInProject).toBeGreaterThan(0);
-    const expectedMonths = calculateMonthsBetween(new Date('2024-01-01'), new Date('2024-06-01'));
-    expect(result[0].monthsInProject).toBeCloseTo(expectedMonths, 2);
+    // monthsInProject is now deprecated and set to 0 (surface-based distribution)
+    expect(result[0].monthsInProject).toBe(0);
   });
 
   it('should handle real-world scenario from component', () => {
-    // Scenario: 3 founders, 1 copro sale
+    // Scenario: 3 founders with equal surface, 1 copro sale
     const founders: ParticipantWithEntry[] = [
-      { name: 'Alice', entryDate: new Date('2024-01-01') },
-      { name: 'Bob', entryDate: new Date('2024-01-01') },
-      { name: 'Charlie', entryDate: new Date('2024-01-01') }
+      { name: 'Alice', isFounder: true, surface: 100, entryDate: new Date('2024-01-01') },
+      { name: 'Bob', isFounder: true, surface: 100, entryDate: new Date('2024-01-01') },
+      { name: 'Charlie', isFounder: true, surface: 100, entryDate: new Date('2024-01-01') }
     ];
 
     const coproSales: CoproSale[] = [
@@ -527,7 +545,7 @@ describe('calculateCoproRedistributionForParticipant', () => {
 
     expect(result).toHaveLength(1);
 
-    // Each founder should get 1/3 of the sale
+    // Each founder should get 1/3 of the sale (equal surfaces)
     expect(result[0].amount).toBeCloseTo(50000, 2);
     expect(result[0].shareRatio).toBeCloseTo(0.333, 2);
     expect(result[0].type).toBe('copro');
@@ -537,6 +555,8 @@ describe('calculateCoproRedistributionForParticipant', () => {
   it('should format description with percentage', () => {
     const alice: ParticipantWithEntry = {
       name: 'Alice',
+      isFounder: true,
+      surface: 100,
       entryDate: new Date('2024-01-01')
     };
 
@@ -558,14 +578,18 @@ describe('calculateCoproRedistributionForParticipant', () => {
     expect(result[0].description).toBe('Part copropriété (100.0%)');
   });
 
-  it('should handle newcomer joining after first sale but before second', () => {
+  it('should handle founder joining after first sale but before second', () => {
     const alice: ParticipantWithEntry = {
       name: 'Alice',
+      isFounder: true,
+      surface: 120, // 120m²
       entryDate: new Date('2024-01-01')
     };
 
     const bob: ParticipantWithEntry = {
       name: 'Bob',
+      isFounder: true,
+      surface: 80, // 80m²
       entryDate: new Date('2024-07-01') // After first sale
     };
 
@@ -601,14 +625,14 @@ describe('calculateCoproRedistributionForParticipant', () => {
     // Alice should get share from both sales
     expect(aliceResult).toHaveLength(2);
     expect(aliceResult[0].amount).toBe(100000); // 100% of first sale (only eligible participant)
-    expect(aliceResult[1].amount).toBeGreaterThan(0); // Share of second sale
+    expect(aliceResult[1].amount).toBe(90000); // 120/(120+80) * 150000 = 60% of second sale
 
     // Bob should only get share from second sale
     expect(bobResult).toHaveLength(1);
     expect(bobResult[0].buyer).toBe('Eve');
-    expect(bobResult[0].amount).toBeGreaterThan(0);
+    expect(bobResult[0].amount).toBe(60000); // 80/(120+80) * 150000 = 40% of second sale
 
-    // Alice's share of second sale should be larger (she has more time)
+    // Alice's share of second sale should be larger (she has more surface)
     expect(aliceResult[1].amount).toBeGreaterThan(bobResult[0].amount);
   });
 });
