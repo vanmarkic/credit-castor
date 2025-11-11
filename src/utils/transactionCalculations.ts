@@ -94,21 +94,23 @@ export function calculatePortageTransaction(
  * Calculate the financial impact of a copropriété lot sale on active participants.
  *
  * When a copro lot is sold:
- * - 30% goes to copropriété reserves
- * - 70% is distributed to founders by their frozen T0 quotité
+ * - A portion goes to copropriété reserves (configurable via coproReservesShare)
+ * - The remainder is distributed to founders by their frozen T0 quotité
  * - Each founder receives cash (negative delta) proportional to their surface
  *
  * @param affectedParticipant - A founder receiving distribution from the copro sale
  * @param coproBuyer - The newcomer buying from copropriété
  * @param _previousSnapshot - Participant's snapshot before this date (unused for now)
  * @param allParticipants - All participants (to calculate total founder surface and quotité)
+ * @param coproReservesShare - Percentage of sale price going to copro reserves (default 30%)
  * @returns Transaction object with calculated delta (negative = cash received)
  */
 export function calculateCooproTransaction(
   affectedParticipant: Participant,
   coproBuyer: Participant,
   _previousSnapshot: TimelineSnapshot,
-  allParticipants: Participant[]
+  allParticipants: Participant[],
+  coproReservesShare: number = 30
 ): TimelineTransaction {
   // Get the purchase price from buyer's purchase details
   const purchasePrice = coproBuyer.purchaseDetails?.purchasePrice || 0
@@ -125,8 +127,9 @@ export function calculateCooproTransaction(
     }
   }
 
-  // Calculate 70% distribution amount
-  const distributionAmount = purchasePrice * 0.7
+  // Calculate distribution amount (based on coproReservesShare)
+  const participantsShare = 1 - (coproReservesShare / 100)
+  const distributionAmount = purchasePrice * participantsShare
 
   // Calculate total founder surface (founders only, excluding the buyer)
   const founders = allParticipants.filter(p =>

@@ -8,6 +8,8 @@ interface ExpectedPaybacksCardProps {
   participant: Participant;
   allParticipants: Participant[];
   deedDate: string;
+  /** Percentage of copro sale proceeds going to reserves (default: 30%) */
+  coproReservesShare?: number;
   /** Optional CSS class for custom styling */
   className?: string;
 }
@@ -20,12 +22,14 @@ export function ExpectedPaybacksCard({
   participant,
   allParticipants,
   deedDate,
+  coproReservesShare = 30,
   className = ''
 }: ExpectedPaybacksCardProps) {
   const { paybacks, totalRecovered } = useExpectedPaybacks(
     participant,
     allParticipants,
-    deedDate
+    deedDate,
+    coproReservesShare
   );
 
   // Don't render if no paybacks

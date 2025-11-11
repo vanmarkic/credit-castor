@@ -62,6 +62,8 @@ export function createInitialState(): ProjectionState {
       batimentCoproConservatoire: 0,
       globalCascoPerM2: 0
     },
+    deedDate: '2026-02-01', // Default deed date
+    coproReservesShare: 30, // Default copro reserves share (30%)
     // scenario removed - no longer using percentage-based adjustments
     transactionHistory: []
   };
@@ -836,7 +838,9 @@ function createPhaseProjection(
   const snapshot = calculateAll(
     state.participants,
     state.projectParams,
-    unitDetails
+    unitDetails,
+    state.deedDate,
+    state.coproReservesShare
   );
 
   // Calculate cash flows for all participants

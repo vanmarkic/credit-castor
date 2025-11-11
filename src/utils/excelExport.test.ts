@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { buildExportSheetData, exportCalculations } from './excelExport';
+import { buildExportSheetData, buildTimelineSnapshotSheet, exportCalculations } from './excelExport';
 import { CsvWriter, XlsxWriter } from './exportWriter';
-import type { CalculationResults, ProjectParams } from './calculatorUtils';
+import type { CalculationResults, ProjectParams, Participant } from './calculatorUtils';
+import type { TimelineSnapshot } from './timelineCalculations';
 
 describe('Excel Export', () => {
   /* eslint-disable no-loss-of-precision */
@@ -455,6 +456,313 @@ describe('Excel Export', () => {
       expect(loan2AmountHeader).toBeDefined();
       expect(loan2MonthlyHeader).toBeDefined();
       expect(loan2DurationHeader).toBeDefined();
+    });
+  });
+
+  describe('buildTimelineSnapshotSheet', () => {
+    it('should build timeline snapshot sheet with correct structure', () => {
+      const mockParticipants: Participant[] = [
+        {
+          name: 'Founder1',
+          surface: 100,
+          capitalApporte: 50000,
+          notaryFeesRate: 12.5,
+          interestRate: 4.5,
+          durationYears: 25,
+          unitId: 1,
+          quantity: 1,
+          isFounder: true,
+          entryDate: undefined
+        },
+        {
+          name: 'Newcomer1',
+          surface: 80,
+          capitalApporte: 40000,
+          notaryFeesRate: 12.5,
+          interestRate: 4.5,
+          durationYears: 25,
+          unitId: 2,
+          quantity: 1,
+          isFounder: false,
+          entryDate: new Date('2026-06-01'),
+          purchaseDetails: {
+            buyingFrom: 'Founder1',
+            lotId: 1,
+            purchasePrice: 200000
+          }
+        }
+      ];
+
+      const mockSnapshots = new Map<string, TimelineSnapshot[]>([
+        ['Founder1', [
+          {
+            date: new Date('2025-01-15'),
+            participantName: 'Founder1',
+            participantIndex: 0,
+            totalCost: 400000,
+            loanNeeded: 350000,
+            monthlyPayment: 1950,
+            isT0: true,
+            colorZone: 0,
+            showFinancingDetails: true
+          },
+          {
+            date: new Date('2026-06-01'),
+            participantName: 'Founder1',
+            participantIndex: 0,
+            totalCost: 200000,
+            loanNeeded: 150000,
+            monthlyPayment: 835,
+            isT0: false,
+            colorZone: 1,
+            showFinancingDetails: false,
+            transaction: {
+              type: 'portage_sale',
+              seller: 'Founder1',
+              buyer: 'Newcomer1',
+              lotPrice: 150000,
+              indexation: 5000,
+              carryingCosts: 45000,
+              registrationFees: 25000,
+              delta: {
+                totalCost: -200000,
+                loanNeeded: -200000,
+                reason: 'Portage lot sale'
+              }
+            }
+          }
+        ]],
+        ['Newcomer1', [
+          {
+            date: new Date('2026-06-01'),
+            participantName: 'Newcomer1',
+            participantIndex: 1,
+            totalCost: 225000,
+            loanNeeded: 185000,
+            monthlyPayment: 1028,
+            isT0: false,
+            colorZone: 1,
+            showFinancingDetails: true,
+            transaction: {
+              type: 'portage_sale',
+              seller: 'Founder1',
+              buyer: 'Newcomer1',
+              lotPrice: 150000,
+              indexation: 5000,
+              carryingCosts: 45000,
+              registrationFees: 25000,
+              delta: {
+                totalCost: 225000,
+                loanNeeded: 185000,
+                reason: 'Purchasing portage lot'
+              }
+            }
+          }
+        ]]
+      ]);
+
+      const sheetData = buildTimelineSnapshotSheet(mockSnapshots, mockParticipants);
+
+      expect(sheetData.name).toBe('Timeline Snapshots');
+      expect(sheetData.cells.length).toBeGreaterThan(0);
+
+      // Check header row
+      const dateHeader = sheetData.cells.find(c => c.row === 1 && c.col === 'A');
+      expect(dateHeader?.data.value).toBe('Date');
+
+      const participantHeader = sheetData.cells.find(c => c.row === 1 && c.col === 'B');
+      expect(participantHeader?.data.value).toBe('Participant');
+
+      const totalCostHeader = sheetData.cells.find(c => c.row === 1 && c.col === 'C');
+      expect(totalCostHeader?.data.value).toBe('Total Cost');
+
+      const loanHeader = sheetData.cells.find(c => c.row === 1 && c.col === 'D');
+      expect(loanHeader?.data.value).toBe('Loan Needed');
+
+      const monthlyHeader = sheetData.cells.find(c => c.row === 1 && c.col === 'E');
+      expect(monthlyHeader?.data.value).toBe('Monthly Payment');
+
+      const isT0Header = sheetData.cells.find(c => c.row === 1 && c.col === 'F');
+      expect(isT0Header?.data.value).toBe('Is T0');
+
+      const txTypeHeader = sheetData.cells.find(c => c.row === 1 && c.col === 'G');
+      expect(txTypeHeader?.data.value).toBe('Transaction Type');
+
+      // Check first snapshot (Founder1 at T0)
+      const founder1Date = sheetData.cells.find(c => c.row === 2 && c.col === 'A');
+      expect(founder1Date?.data.value).toBe('15/01/2025'); // Belgian date format
+
+      const founder1Name = sheetData.cells.find(c => c.row === 2 && c.col === 'B');
+      expect(founder1Name?.data.value).toBe('Founder1');
+
+      const founder1Cost = sheetData.cells.find(c => c.row === 2 && c.col === 'C');
+      expect(founder1Cost?.data.value).toBe(400000);
+
+      const founder1Loan = sheetData.cells.find(c => c.row === 2 && c.col === 'D');
+      expect(founder1Loan?.data.value).toBe(350000);
+
+      const founder1Monthly = sheetData.cells.find(c => c.row === 2 && c.col === 'E');
+      expect(founder1Monthly?.data.value).toBe(1950);
+
+      const founder1IsT0 = sheetData.cells.find(c => c.row === 2 && c.col === 'F');
+      expect(founder1IsT0?.data.value).toBe('Yes');
+
+      // Check transaction snapshot (row 3 - Founder1 sale)
+      const saleDate = sheetData.cells.find(c => c.row === 3 && c.col === 'A');
+      expect(saleDate?.data.value).toBe('01/06/2026'); // Belgian date format
+
+      const sallerName = sheetData.cells.find(c => c.row === 3 && c.col === 'B');
+      expect(sallerName?.data.value).toBe('Founder1');
+
+      const txType = sheetData.cells.find(c => c.row === 3 && c.col === 'G');
+      expect(txType?.data.value).toBe('portage_sale');
+
+      const seller = sheetData.cells.find(c => c.row === 3 && c.col === 'H');
+      expect(seller?.data.value).toBe('Founder1');
+
+      const buyer = sheetData.cells.find(c => c.row === 3 && c.col === 'I');
+      expect(buyer?.data.value).toBe('Newcomer1');
+
+      const deltaCost = sheetData.cells.find(c => c.row === 3 && c.col === 'K');
+      expect(deltaCost?.data.value).toBe(-200000);
+
+      const deltaLoan = sheetData.cells.find(c => c.row === 3 && c.col === 'L');
+      expect(deltaLoan?.data.value).toBe(-200000);
+
+      const reason = sheetData.cells.find(c => c.row === 3 && c.col === 'M');
+      expect(reason?.data.value).toBe('Portage lot sale');
+
+      // Check buyer snapshot (row 4 - Newcomer1)
+      const buyerDate = sheetData.cells.find(c => c.row === 4 && c.col === 'A');
+      expect(buyerDate?.data.value).toBe('01/06/2026'); // Belgian date format
+
+      const buyerName = sheetData.cells.find(c => c.row === 4 && c.col === 'B');
+      expect(buyerName?.data.value).toBe('Newcomer1');
+
+      const buyerCost = sheetData.cells.find(c => c.row === 4 && c.col === 'C');
+      expect(buyerCost?.data.value).toBe(225000);
+
+      const buyerDeltaCost = sheetData.cells.find(c => c.row === 4 && c.col === 'K');
+      expect(buyerDeltaCost?.data.value).toBe(225000);
+
+      const buyerReason = sheetData.cells.find(c => c.row === 4 && c.col === 'M');
+      expect(buyerReason?.data.value).toBe('Purchasing portage lot');
+    });
+
+    it('should handle snapshots without transactions', () => {
+      const mockParticipants: Participant[] = [
+        {
+          name: 'SimpleParticipant',
+          surface: 100,
+          capitalApporte: 50000,
+          notaryFeesRate: 12.5,
+          interestRate: 4.5,
+          durationYears: 25,
+          unitId: 1,
+          quantity: 1,
+          isFounder: true
+        }
+      ];
+
+      const mockSnapshots = new Map<string, TimelineSnapshot[]>([
+        ['SimpleParticipant', [
+          {
+            date: new Date('2025-01-15'),
+            participantName: 'SimpleParticipant',
+            participantIndex: 0,
+            totalCost: 400000,
+            loanNeeded: 350000,
+            monthlyPayment: 1950,
+            isT0: true,
+            colorZone: 0,
+            showFinancingDetails: true
+          }
+        ]]
+      ]);
+
+      const sheetData = buildTimelineSnapshotSheet(mockSnapshots, mockParticipants);
+
+      expect(sheetData.cells.length).toBeGreaterThan(0);
+
+      // Transaction columns should be empty
+      const txType = sheetData.cells.find(c => c.row === 2 && c.col === 'G');
+      expect(txType?.data.value).toBe('');
+
+      const seller = sheetData.cells.find(c => c.row === 2 && c.col === 'H');
+      expect(seller?.data.value).toBe('');
+
+      const deltaCost = sheetData.cells.find(c => c.row === 2 && c.col === 'K');
+      expect(deltaCost?.data.value).toBe('');
+    });
+  });
+
+  describe('exportCalculations with timeline snapshots', () => {
+    it('should export with both calculator and timeline sheets when snapshots provided', () => {
+      const mockParticipants: Participant[] = [
+        {
+          name: 'Manuela/Dragan',
+          surface: 112,
+          capitalApporte: 50000,
+          notaryFeesRate: 12.5,
+          interestRate: 4.5,
+          durationYears: 25,
+          unitId: 1,
+          quantity: 1,
+          isFounder: true
+        }
+      ];
+
+      const mockSnapshots = new Map<string, TimelineSnapshot[]>([
+        ['Manuela/Dragan', [
+          {
+            date: new Date('2025-01-15'),
+            participantName: 'Manuela/Dragan',
+            participantIndex: 0,
+            totalCost: 593313,
+            loanNeeded: 543313,
+            monthlyPayment: 3019.91,
+            isT0: true,
+            colorZone: 0,
+            showFinancingDetails: true
+          }
+        ]]
+      ]);
+
+      const csvWriter = new CsvWriter();
+      const result = exportCalculations(
+        mockCalculations,
+        mockProjectParams,
+        mockUnitDetails,
+        csvWriter,
+        'test_with_timeline.xlsx',
+        {
+          timelineSnapshots: mockSnapshots,
+          participants: mockParticipants
+        }
+      );
+
+      expect(typeof result).toBe('string');
+      expect(result).toContain('SHEET: Calculateur Division');
+      expect(result).toContain('SHEET: Timeline Snapshots');
+      expect(result).toContain('Manuela/Dragan');
+      expect(result).toContain('15/01/2025');
+      expect(result).toContain('593313');
+    });
+
+    it('should only export calculator sheet when no snapshots provided', () => {
+      const csvWriter = new CsvWriter();
+      const result = exportCalculations(
+        mockCalculations,
+        mockProjectParams,
+        mockUnitDetails,
+        csvWriter,
+        'test_no_timeline.xlsx'
+        // No options parameter
+      );
+
+      expect(typeof result).toBe('string');
+      expect(result).toContain('SHEET: Calculateur Division');
+      expect(result).not.toContain('SHEET: Timeline Snapshots');
     });
   });
 });

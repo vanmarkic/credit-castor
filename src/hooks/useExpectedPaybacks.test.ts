@@ -205,4 +205,103 @@ describe('useExpectedPaybacks', () => {
 
     expect(result.current.totalRecovered).toBe(290000);
   });
+
+  it('respects coproReservesShare when calculating copro redistributions', () => {
+    const buyer: Participant = {
+      name: 'Charlie',
+      surface: 50,
+      capitalApporte: 50000,
+      notaryFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      quantity: 1,
+      parachevementsPerM2: 500,
+      unitId: 1,
+      isFounder: false,
+      entryDate: new Date('2025-01-01'),
+      purchaseDetails: {
+        buyingFrom: 'Copropriété',
+        lotId: 999,
+        purchasePrice: 100000 // Total price
+      }
+    };
+
+    // Default: 30% to copro reserves, 70% to participants
+    const { result: defaultResult } = renderHook(() =>
+      useExpectedPaybacks(founder, [founder, buyer], deedDate)
+    );
+
+    const defaultCoproPayback = defaultResult.current.paybacks.find(pb => pb.type === 'copro');
+    expect(defaultCoproPayback).toBeDefined();
+    // With 30% to reserves, 70% goes to participants
+    // Since founder is the only eligible participant, they get 100% of the 70%
+    expect(defaultCoproPayback?.amount).toBe(70000);
+
+    // Custom: 60% to copro reserves, 40% to participants
+    const { result: customResult } = renderHook(() =>
+      useExpectedPaybacks(founder, [founder, buyer], deedDate, 60)
+    );
+
+    const customCoproPayback = customResult.current.paybacks.find(pb => pb.type === 'copro');
+    expect(customCoproPayback).toBeDefined();
+    // With 60% to reserves, 40% goes to participants
+    expect(customCoproPayback?.amount).toBe(40000);
+  });
+
+  it('applies coproReservesShare split before time-based redistribution', () => {
+    const founder2: Participant = {
+      name: 'Bob',
+      surface: 100,
+      capitalApporte: 100000,
+      notaryFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      quantity: 1,
+      parachevementsPerM2: 500,
+      unitId: 1,
+      isFounder: true,
+      entryDate: new Date(deedDate),
+      lotsOwned: [
+        { lotId: 2, surface: 50, isPortage: true, acquiredDate: new Date(deedDate), unitId: 1 }
+      ]
+    };
+
+    const buyer: Participant = {
+      name: 'Charlie',
+      surface: 50,
+      capitalApporte: 50000,
+      notaryFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      quantity: 1,
+      parachevementsPerM2: 500,
+      unitId: 1,
+      isFounder: false,
+      entryDate: new Date('2025-01-01'),
+      purchaseDetails: {
+        buyingFrom: 'Copropriété',
+        lotId: 999,
+        purchasePrice: 100000
+      }
+    };
+
+    // With 40% to copro reserves, 60% goes to participants
+    // Two founders entered at same time, so they split the 60k equally
+    const { result: aliceResult } = renderHook(() =>
+      useExpectedPaybacks(founder, [founder, founder2, buyer], deedDate, 40)
+    );
+
+    const aliceCoproPayback = aliceResult.current.paybacks.find(pb => pb.type === 'copro');
+    expect(aliceCoproPayback).toBeDefined();
+    // 60% of 100k = 60k, split between 2 founders = 30k each
+    expect(aliceCoproPayback?.amount).toBe(30000);
+
+    const { result: bobResult } = renderHook(() =>
+      useExpectedPaybacks(founder2, [founder, founder2, buyer], deedDate, 40)
+    );
+
+    const bobCoproPayback = bobResult.current.paybacks.find(pb => pb.type === 'copro');
+    expect(bobCoproPayback).toBeDefined();
+    expect(bobCoproPayback?.amount).toBe(30000);
+  });
 });

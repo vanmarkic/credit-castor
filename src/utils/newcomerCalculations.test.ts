@@ -24,6 +24,7 @@ function calculatePortagePaybacks(
  * Calculate copropriété redistribution for a given participant
  * Share is based on time in project (months from entry to sale)
  */
+// @ts-expect-error - Function defined for future use
 function calculateCoproRedistribution(
   participants: Participant[],
   participantIndex: number,

@@ -615,5 +615,69 @@ describe('timelineCalculations', () => {
       expect(founderSnapshots[1].colorZone).toBe(1) // March event
       expect(founderSnapshots[2].colorZone).toBe(2) // June event
     })
+
+    it('should respect coproReservesShare in transaction delta calculations', () => {
+      const participants: Participant[] = [
+        createMockParticipant({
+          name: 'Founder 1',
+          surface: 100,
+          entryDate: undefined,
+          isFounder: true
+        }),
+        createMockParticipant({
+          name: 'Founder 2',
+          surface: 100,
+          entryDate: undefined,
+          isFounder: true
+        }),
+        createMockParticipant({
+          name: 'Copro Buyer',
+          surface: 100,
+          entryDate: new Date('2024-05-01'),
+          purchaseDetails: {
+            buyingFrom: 'Copropriété',
+            purchasePrice: 100000,
+            lotId: 3
+          }
+        })
+      ]
+
+      const calculations = createMockCalculations(3, 300)
+
+      // Test with default 30% to reserves (70% to participants)
+      const snapshotsDefault = generateParticipantSnapshots(
+        participants,
+        calculations,
+        deedDate,
+        { ...DEFAULT_PORTAGE_FORMULA, coproReservesShare: 30 }
+      )
+
+      const founder1Snapshots = snapshotsDefault.get('Founder 1')!
+      const redistributionSnapshot = founder1Snapshots.find(s => !s.isT0)
+      expect(redistributionSnapshot).toBeDefined()
+      expect(redistributionSnapshot!.transaction).toBeDefined()
+
+      // With 30% to reserves, 70% goes to participants
+      // Two founders with equal surface, so each gets 35% of purchase price
+      // Delta is negative (cash received)
+      expect(redistributionSnapshot!.transaction!.delta.totalCost).toBe(-35000)
+
+      // Test with 60% to reserves (40% to participants)
+      const snapshotsCustom = generateParticipantSnapshots(
+        participants,
+        calculations,
+        deedDate,
+        { ...DEFAULT_PORTAGE_FORMULA, coproReservesShare: 60 }
+      )
+
+      const founder1SnapshotsCustom = snapshotsCustom.get('Founder 1')!
+      const redistributionSnapshotCustom = founder1SnapshotsCustom.find(s => !s.isT0)
+      expect(redistributionSnapshotCustom).toBeDefined()
+      expect(redistributionSnapshotCustom!.transaction).toBeDefined()
+
+      // With 60% to reserves, 40% goes to participants
+      // Two founders with equal surface, so each gets 20% of purchase price
+      expect(redistributionSnapshotCustom!.transaction!.delta.totalCost).toBe(-20000)
+    })
   })
 })

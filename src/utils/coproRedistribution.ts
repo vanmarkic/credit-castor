@@ -300,3 +300,85 @@ export function sumDistributionAmounts(
 ): number {
   return Array.from(distribution.values()).reduce((sum, amt) => sum + amt, 0);
 }
+
+// ============================================
+// Expected Paybacks Calculation
+// ============================================
+
+/**
+ * Participant interface with purchase details for portage and copro sales
+ */
+export interface ParticipantWithPurchaseDetails extends ParticipantWithEntry {
+  purchaseDetails?: {
+    buyingFrom?: string;
+    purchasePrice?: number;
+  };
+}
+
+/**
+ * Calculate total expected paybacks for a participant (pure function)
+ *
+ * This includes:
+ * 1. Portage sales: when someone buys a portage lot from this participant
+ * 2. Copropriété redistributions: when someone buys from copropriété and proceeds are redistributed
+ *
+ * The copro redistribution respects the coproReservesShare configuration:
+ * - A portion goes to copro reserves (e.g., 60%)
+ * - The remaining portion is redistributed to founders based on time in project
+ *
+ * @param participant - The participant to calculate paybacks for
+ * @param allParticipants - All participants in the project
+ * @param deedDate - Default entry date (T0)
+ * @param coproReservesShare - Percentage of copro sales going to reserves (default 30%)
+ * @returns Total amount expected to be received by this participant
+ *
+ * @example
+ * const totalPaybacks = calculateExpectedPaybacksTotal(
+ *   { name: 'Alice', entryDate: new Date('2024-01-01') },
+ *   allParticipants,
+ *   new Date('2024-01-01'),
+ *   30 // 30% to reserves, 70% to participants
+ * );
+ */
+export function calculateExpectedPaybacksTotal(
+  participant: ParticipantWithPurchaseDetails,
+  allParticipants: ParticipantWithPurchaseDetails[],
+  deedDate: Date,
+  coproReservesShare: number = 30
+): number {
+  // 1. Calculate portage paybacks (direct sales from this participant)
+  const portagePaybacks = allParticipants
+    .filter((buyer) => buyer.purchaseDetails?.buyingFrom === participant.name)
+    .reduce((sum, buyer) => sum + (buyer.purchaseDetails?.purchasePrice || 0), 0);
+
+  // 2. Calculate copropriété redistributions
+  // First, apply the split to find amount that goes to participants
+  const participantsShare = 1 - (coproReservesShare / 100);
+  const coproSales: CoproSale[] = allParticipants
+    .filter((buyer) => buyer.purchaseDetails?.buyingFrom === 'Copropriété')
+    .map((buyer) => {
+      const totalPrice = buyer.purchaseDetails?.purchasePrice || 0;
+      const amountToParticipants = totalPrice * participantsShare;
+      return {
+        buyer: buyer.name,
+        entryDate: buyer.entryDate || deedDate,
+        amount: amountToParticipants
+      };
+    });
+
+  // Calculate this participant's share of copro redistributions
+  const coproRedistributions = calculateCoproRedistributionForParticipant(
+    participant,
+    coproSales,
+    allParticipants,
+    deedDate
+  );
+
+  const coproRedistributionTotal = coproRedistributions.reduce(
+    (sum, r) => sum + r.amount,
+    0
+  );
+
+  // 3. Return total of both portage and copro paybacks
+  return portagePaybacks + coproRedistributionTotal;
+}

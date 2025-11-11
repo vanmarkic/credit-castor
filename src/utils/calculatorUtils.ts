@@ -4,6 +4,7 @@
  */
 
 import type { Lot } from '../types/timeline';
+import { calculateExpectedPaybacksTotal } from './coproRedistribution';
 
 export interface Participant {
   name: string;
@@ -531,7 +532,9 @@ export function calculateTwoLoanFinancing(
 export function calculateAll(
   participants: Participant[],
   projectParams: ProjectParams,
-  unitDetails: UnitDetails
+  unitDetails: UnitDetails,
+  deedDate: string,
+  coproReservesShare: number = 30
 ): CalculationResults {
   const totalSurface = calculateTotalSurface(participants);
   const pricePerM2 = calculatePricePerM2(projectParams.totalPurchase, totalSurface);
@@ -603,6 +606,15 @@ export function calculateAll(
 
     const totalCost = purchaseShare + notaryFees + constructionCost + sharedPerPerson;
 
+    // Calculate expected paybacks (portage sales + copro redistributions)
+    // This reduces the amount this participant needs to borrow
+    const expectedPaybacks = calculateExpectedPaybacksTotal(
+      p,
+      participants,
+      new Date(deedDate),
+      coproReservesShare
+    );
+
     // Two-loan financing or single loan
     let loanNeeded: number;
     let monthlyPayment: number;
@@ -618,12 +630,14 @@ export function calculateAll(
 
     if (p.useTwoLoans) {
       // Use two-loan financing
+      // Apply expected paybacks as additional capital for loan 1
+      const capitalForLoan1 = (p.capitalForLoan1 || 0) + expectedPaybacks;
       const twoLoanCalc = calculateTwoLoanFinancing(
         purchaseShare,
         notaryFees,
         sharedPerPerson,
         personalRenovationCost,
-        p
+        { ...p, capitalForLoan1 }
       );
 
       loan1Amount = twoLoanCalc.loan1Amount;
@@ -640,8 +654,9 @@ export function calculateAll(
       totalRepayment = (loan1MonthlyPayment * p.durationYears * 12) + (loan2MonthlyPayment * loan2DurationYears * 12);
       totalInterest = twoLoanCalc.totalInterest;
     } else {
-      // Use single-loan financing (existing logic)
-      loanNeeded = calculateLoanAmount(totalCost, p.capitalApporte);
+      // Use single-loan financing with expected paybacks reducing loan need
+      const effectiveCapital = p.capitalApporte + expectedPaybacks;
+      loanNeeded = calculateLoanAmount(totalCost, effectiveCapital);
       monthlyPayment = calculateMonthlyPayment(loanNeeded, p.interestRate, p.durationYears);
       totalRepayment = monthlyPayment * p.durationYears * 12;
       totalInterest = calculateTotalInterest(monthlyPayment, p.durationYears, loanNeeded);

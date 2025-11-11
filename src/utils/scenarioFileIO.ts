@@ -10,6 +10,7 @@ import type {
   CalculationResults
 } from './calculatorUtils';
 import type { UnitDetails } from './calculatorUtils';
+import type { TimelineSnapshot } from './timelineCalculations';
 import { syncSoldDatesFromPurchaseDetails } from './participantSync';
 
 export interface ScenarioData {
@@ -21,6 +22,9 @@ export interface ScenarioData {
   // scenario removed - backward compatibility maintained for loading old files
   deedDate: string;
   unitDetails: UnitDetails;
+  timelineSnapshots?: {
+    [participantName: string]: TimelineSnapshot[];
+  };
   calculations?: {
     totalSurface: number;
     pricePerM2: number;
@@ -47,6 +51,14 @@ export interface ScenarioData {
       monthlyPayment: number;
       totalRepayment: number;
       totalInterest: number;
+      // Two-loan financing breakdown (optional)
+      loan1Amount?: number;
+      loan1MonthlyPayment?: number;
+      loan1Interest?: number;
+      loan2Amount?: number;
+      loan2DurationYears?: number;
+      loan2MonthlyPayment?: number;
+      loan2Interest?: number;
     }>;
     totals: {
       purchase: number;
@@ -83,7 +95,8 @@ export function serializeScenario(
   projectParams: ProjectParams,
   deedDate: string,
   unitDetails: UnitDetails,
-  calculations: CalculationResults
+  calculations: CalculationResults,
+  timelineSnapshots?: Map<string, TimelineSnapshot[]>
 ): string {
   const data: ScenarioData = {
     version: 2,
@@ -94,6 +107,9 @@ export function serializeScenario(
     // scenario removed - no longer saving percentage-based adjustments
     deedDate,
     unitDetails,
+    ...(timelineSnapshots && {
+      timelineSnapshots: Object.fromEntries(timelineSnapshots)
+    }),
     calculations: {
       totalSurface: calculations.totalSurface,
       pricePerM2: calculations.pricePerM2,
@@ -119,7 +135,15 @@ export function serializeScenario(
         financingRatio: p.financingRatio,
         monthlyPayment: p.monthlyPayment,
         totalRepayment: p.totalRepayment,
-        totalInterest: p.totalInterest
+        totalInterest: p.totalInterest,
+        // Two-loan financing breakdown (only populated if useTwoLoans = true)
+        loan1Amount: p.loan1Amount,
+        loan1MonthlyPayment: p.loan1MonthlyPayment,
+        loan1Interest: p.loan1Interest,
+        loan2Amount: p.loan2Amount,
+        loan2DurationYears: p.loan2DurationYears,
+        loan2MonthlyPayment: p.loan2MonthlyPayment,
+        loan2Interest: p.loan2Interest
       })),
       totals: {
         purchase: calculations.totals.purchase,
@@ -195,14 +219,16 @@ export function downloadScenarioFile(
   projectParams: ProjectParams,
   deedDate: string,
   unitDetails: UnitDetails,
-  calculations: CalculationResults
+  calculations: CalculationResults,
+  timelineSnapshots?: Map<string, TimelineSnapshot[]>
 ): void {
   const jsonString = serializeScenario(
     participants,
     projectParams,
     deedDate,
     unitDetails,
-    calculations
+    calculations,
+    timelineSnapshots
   );
 
   const blob = new Blob([jsonString], { type: 'application/json' });

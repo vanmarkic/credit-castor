@@ -75,7 +75,8 @@ export function getUniqueSortedDates(
 export function generateCoproSnapshots(
   participants: Participant[],
   calculations: CalculationResults,
-  deedDate: string
+  deedDate: string,
+  coproReservesShare: number = 30
 ): CoproSnapshot[] {
   const snapshots: CoproSnapshot[] = []
 
@@ -104,10 +105,10 @@ export function generateCoproSnapshots(
       )
     })
 
-    // Calculate 30% reserve increase from copro sales
+    // Calculate reserve increase from copro sales based on coproReservesShare
     const reserveIncrease = joinedFromCopro.reduce((sum, p) => {
       const purchasePrice = p.purchaseDetails?.purchasePrice || 0
-      return sum + purchasePrice * 0.3
+      return sum + purchasePrice * (coproReservesShare / 100)
     }, 0)
 
     // Calculate remaining lots/surface
@@ -362,7 +363,8 @@ export function generateParticipantSnapshots(
             p,
             coproSale,
             prevSnapshot,
-            activeParticipants
+            activeParticipants,
+            formulaParams.coproReservesShare
           )
         }
       }

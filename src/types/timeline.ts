@@ -394,6 +394,8 @@ export interface ProjectionState {
   participants: Participant[];
   copropropriete: CoproEntity;
   projectParams: ProjectParams;
+  deedDate: string; // Required for loan calculations
+  coproReservesShare: number; // Required for redistribution calculations
   // scenario removed - no longer using percentage-based adjustments
   transactionHistory: Transaction[];
 }

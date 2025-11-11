@@ -16,6 +16,7 @@ import { calculateAll } from './calculatorUtils';
  * @param deedDate - Deed date (T0)
  * @param coproName - Optional copropriété name
  * @param hiddenLots - Optional hidden lot IDs
+ * @param coproReservesShare - Percentage of copro sales going to reserves (default 30%)
  * @returns InitialPurchaseEvent ready for timeline
  */
 export function convertCalculatorToInitialPurchaseEvent(
@@ -23,7 +24,8 @@ export function convertCalculatorToInitialPurchaseEvent(
   projectParams: ProjectParams,
   deedDate: Date,
   coproName: string = 'Copropriété',
-  hiddenLots: number[] = []
+  hiddenLots: number[] = [],
+  coproReservesShare: number = 30
 ): InitialPurchaseEvent {
   // Build basic unit details from global CASCO
   const unitDetails: Record<number, any> = {};
@@ -37,7 +39,8 @@ export function convertCalculatorToInitialPurchaseEvent(
   });
 
   // Calculate all financial details
-  const results = calculateAll(participants, projectParams, unitDetails);
+  const deedDateStr = deedDate.toISOString().split('T')[0]; // Convert to YYYY-MM-DD
+  const results = calculateAll(participants, projectParams, unitDetails, deedDateStr, coproReservesShare);
 
   // Convert each participant to timeline format
   let lotIdCounter = 1;

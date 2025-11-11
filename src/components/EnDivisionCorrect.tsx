@@ -1,12 +1,14 @@
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import * as Tooltip from '@radix-ui/react-tooltip';
-import { calculateAll, type Participant } from '../utils/calculatorUtils';
+import { calculateAll, type Participant, DEFAULT_PORTAGE_FORMULA } from '../utils/calculatorUtils';
 import { exportCalculations } from '../utils/excelExport';
 import { XlsxWriter } from '../utils/exportWriter';
+import { generateParticipantSnapshots } from '../utils/timelineCalculations';
 import { ParticipantsTimeline } from './calculator/ParticipantsTimeline';
 import { ProjectHeader } from './calculator/ProjectHeader';
 import { VerticalToolbar } from './calculator/VerticalToolbar';
 import ParticipantDetailModal from './calculator/ParticipantDetailModal';
+import CoproDetailModal from './calculator/CoproDetailModal';
 import { FormulaTooltip } from './FormulaTooltip';
 import { formatCurrency } from '../utils/formatting';
 import { ExpenseCategoriesManager } from './shared/ExpenseCategoriesManager';
@@ -34,6 +36,15 @@ import { downloadScenarioFile, createFileUploadHandler } from '../utils/scenario
 import HorizontalSwimLaneTimeline from './HorizontalSwimLaneTimeline';
 import { updateBuyerWithRecalculatedPrice } from '../utils/portageRecalculation';
 
+interface CoproSnapshot {
+  date: Date;
+  availableLots: number;
+  totalSurface: number;
+  soldThisDate: string[];
+  reserveIncrease: number;
+  colorZone: number;
+}
+
 export default function EnDivisionCorrect() {
   // State management
   const state = useCalculatorState();
@@ -57,6 +68,9 @@ export default function EnDivisionCorrect() {
     handleUnpinParticipant,
     participantRefs
   } = state;
+
+  // Copropriété modal state
+  const [coproSnapshot, setCoproSnapshot] = useState<CoproSnapshot | null>(null);
 
   // Participant operations
   const participantOps = useParticipantOperations();
@@ -166,8 +180,8 @@ export default function EnDivisionCorrect() {
   };
 
   const calculations = useMemo(() => {
-    return calculateAll(participants, projectParams, unitDetails);
-  }, [participants, projectParams]);
+    return calculateAll(participants, projectParams, unitDetails, deedDate, portageFormula.coproReservesShare);
+  }, [participants, projectParams, deedDate, portageFormula.coproReservesShare]);
 
   // Reorder participant breakdown to show pinned participant first
   const orderedParticipantBreakdown = useOrderedParticipantBreakdown(calculations, pinnedParticipant);
@@ -232,7 +246,26 @@ export default function EnDivisionCorrect() {
 
   const exportToExcel = () => {
     const writer = new XlsxWriter();
-    exportCalculations(calculations, projectParams, unitDetails, writer);
+
+    // Generate timeline snapshots for export
+    const timelineSnapshots = generateParticipantSnapshots(
+      participants,
+      calculations,
+      deedDate,
+      portageFormula || DEFAULT_PORTAGE_FORMULA
+    );
+
+    exportCalculations(
+      calculations,
+      projectParams,
+      unitDetails,
+      writer,
+      undefined, // use default filename
+      {
+        timelineSnapshots,
+        participants
+      }
+    );
   };
 
   // Download scenario as JSON file
@@ -395,7 +428,9 @@ export default function EnDivisionCorrect() {
           calculations={calculations}
           deedDate={deedDate}
           onOpenParticipantDetails={setFullscreenParticipantIndex}
+          onOpenCoproDetails={setCoproSnapshot}
           onAddParticipant={addParticipant}
+          coproReservesShare={portageFormula.coproReservesShare}
         />
 
         {/* Full-screen participant detail modal */}
@@ -510,6 +545,18 @@ export default function EnDivisionCorrect() {
             />
           );
         })()}
+
+        {/* Copropriété detail modal */}
+        {coproSnapshot && (
+          <CoproDetailModal
+            isOpen={true}
+            onClose={() => setCoproSnapshot(null)}
+            snapshot={coproSnapshot}
+            coproReservesShare={portageFormula.coproReservesShare}
+            allParticipants={participants}
+            deedDate={deedDate}
+          />
+        )}
 
         <ParticipantsTimeline
           participants={participants}

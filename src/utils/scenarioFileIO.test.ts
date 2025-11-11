@@ -7,6 +7,7 @@ import {
   type ScenarioData
 } from './scenarioFileIO';
 import type { Participant, ProjectParams, CalculationResults } from './calculatorUtils';
+import type { TimelineSnapshot } from './timelineCalculations';
 import { RELEASE_VERSION } from './version';
 
 describe('scenarioFileIO', () => {
@@ -324,6 +325,227 @@ describe('scenarioFileIO', () => {
 
       expect(onSuccess).not.toHaveBeenCalled();
       expect(onError).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('timeline snapshots support', () => {
+    it('should serialize and include timeline snapshots', () => {
+      const mockSnapshots = new Map<string, TimelineSnapshot[]>();
+      mockSnapshots.set('Test Participant', [
+        {
+          date: new Date('2023-02-01'),
+          participantName: 'Test Participant',
+          participantIndex: 0,
+          totalCost: 350000,
+          loanNeeded: 250000,
+          monthlyPayment: 1500,
+          isT0: true,
+          colorZone: 0,
+          showFinancingDetails: true
+        },
+        {
+          date: new Date('2024-06-01'),
+          participantName: 'Test Participant',
+          participantIndex: 0,
+          totalCost: 380000,
+          loanNeeded: 280000,
+          monthlyPayment: 1650,
+          isT0: false,
+          colorZone: 1,
+          showFinancingDetails: true,
+          transaction: {
+            type: 'copro_sale',
+            seller: 'Copropriété',
+            buyer: 'Test Participant',
+            delta: {
+              totalCost: 30000,
+              loanNeeded: 30000,
+              reason: 'Purchase additional lot'
+            }
+          }
+        }
+      ]);
+
+      const result = serializeScenario(
+        mockParticipants,
+        mockProjectParams,
+        '2023-02-01',
+        mockUnitDetails,
+        mockCalculations,
+        mockSnapshots
+      );
+
+      const parsed = JSON.parse(result) as ScenarioData;
+
+      expect(parsed.timelineSnapshots).toBeDefined();
+      expect(parsed.timelineSnapshots?.['Test Participant']).toBeDefined();
+      expect(parsed.timelineSnapshots?.['Test Participant'].length).toBe(2);
+
+      // Verify first snapshot
+      const snapshot1 = parsed.timelineSnapshots?.['Test Participant'][0];
+      expect(snapshot1?.participantName).toBe('Test Participant');
+      expect(snapshot1?.totalCost).toBe(350000);
+      expect(snapshot1?.loanNeeded).toBe(250000);
+      expect(snapshot1?.isT0).toBe(true);
+      expect(snapshot1?.transaction).toBeUndefined();
+
+      // Verify second snapshot with transaction
+      const snapshot2 = parsed.timelineSnapshots?.['Test Participant'][1];
+      expect(snapshot2?.participantName).toBe('Test Participant');
+      expect(snapshot2?.totalCost).toBe(380000);
+      expect(snapshot2?.isT0).toBe(false);
+      expect(snapshot2?.transaction).toBeDefined();
+      expect(snapshot2?.transaction?.type).toBe('copro_sale');
+      expect(snapshot2?.transaction?.delta.totalCost).toBe(30000);
+    });
+
+    it('should not include timelineSnapshots when not provided', () => {
+      const result = serializeScenario(
+        mockParticipants,
+        mockProjectParams,
+        '2023-02-01',
+        mockUnitDetails,
+        mockCalculations
+      );
+
+      const parsed = JSON.parse(result) as ScenarioData;
+
+      expect(parsed.timelineSnapshots).toBeUndefined();
+    });
+
+    it('should handle multiple participants with timeline snapshots', () => {
+      const multiParticipants: Participant[] = [
+        ...mockParticipants,
+        {
+          name: 'Test Participant 2',
+          capitalApporte: 150000,
+          notaryFeesRate: 12.5,
+          unitId: 2,
+          surface: 120,
+          interestRate: 4.0,
+          durationYears: 20,
+          quantity: 1,
+          parachevementsPerM2: 600,
+          isFounder: true,
+          entryDate: new Date('2023-02-01')
+        }
+      ];
+
+      const mockSnapshots = new Map<string, TimelineSnapshot[]>();
+      mockSnapshots.set('Test Participant', [
+        {
+          date: new Date('2023-02-01'),
+          participantName: 'Test Participant',
+          participantIndex: 0,
+          totalCost: 350000,
+          loanNeeded: 250000,
+          monthlyPayment: 1500,
+          isT0: true,
+          colorZone: 0,
+          showFinancingDetails: true
+        }
+      ]);
+      mockSnapshots.set('Test Participant 2', [
+        {
+          date: new Date('2023-02-01'),
+          participantName: 'Test Participant 2',
+          participantIndex: 1,
+          totalCost: 400000,
+          loanNeeded: 250000,
+          monthlyPayment: 1600,
+          isT0: true,
+          colorZone: 0,
+          showFinancingDetails: true
+        }
+      ]);
+
+      const multiCalculations = { ...mockCalculations };
+      const result = serializeScenario(
+        multiParticipants,
+        mockProjectParams,
+        '2023-02-01',
+        mockUnitDetails,
+        multiCalculations,
+        mockSnapshots
+      );
+
+      const parsed = JSON.parse(result) as ScenarioData;
+
+      expect(parsed.timelineSnapshots?.['Test Participant']).toBeDefined();
+      expect(parsed.timelineSnapshots?.['Test Participant 2']).toBeDefined();
+      expect(parsed.timelineSnapshots?.['Test Participant'].length).toBe(1);
+      expect(parsed.timelineSnapshots?.['Test Participant 2'].length).toBe(1);
+    });
+  });
+
+  describe('two-loan financing support', () => {
+    it('should include two-loan breakdown fields in calculations', () => {
+      const twoLoanCalculations: CalculationResults = {
+        ...mockCalculations,
+        participantBreakdown: [
+          {
+            ...mockCalculations.participantBreakdown[0],
+            loan1Amount: 500000,
+            loan1MonthlyPayment: 2800,
+            loan1Interest: 120000,
+            loan2Amount: 350250,
+            loan2DurationYears: 23,
+            loan2MonthlyPayment: 1700,
+            loan2Interest: 119750
+          }
+        ]
+      };
+
+      const result = serializeScenario(
+        mockParticipants,
+        mockProjectParams,
+        '2023-02-01',
+        mockUnitDetails,
+        twoLoanCalculations
+      );
+
+      const parsed = JSON.parse(result) as ScenarioData;
+
+      const breakdown = parsed.calculations?.participantBreakdown[0];
+
+      expect(breakdown).toHaveProperty('loan1Amount');
+      expect(breakdown).toHaveProperty('loan1MonthlyPayment');
+      expect(breakdown).toHaveProperty('loan1Interest');
+      expect(breakdown).toHaveProperty('loan2Amount');
+      expect(breakdown).toHaveProperty('loan2DurationYears');
+      expect(breakdown).toHaveProperty('loan2MonthlyPayment');
+      expect(breakdown).toHaveProperty('loan2Interest');
+
+      expect(breakdown?.loan1Amount).toBe(500000);
+      expect(breakdown?.loan1MonthlyPayment).toBe(2800);
+      expect(breakdown?.loan1Interest).toBe(120000);
+      expect(breakdown?.loan2Amount).toBe(350250);
+      expect(breakdown?.loan2DurationYears).toBe(23);
+      expect(breakdown?.loan2MonthlyPayment).toBe(1700);
+      expect(breakdown?.loan2Interest).toBe(119750);
+    });
+
+    it('should handle participants without two-loan financing', () => {
+      const result = serializeScenario(
+        mockParticipants,
+        mockProjectParams,
+        '2023-02-01',
+        mockUnitDetails,
+        mockCalculations
+      );
+
+      const parsed = JSON.parse(result) as ScenarioData;
+
+      const breakdown = parsed.calculations?.participantBreakdown[0];
+
+      // These fields should be undefined when not using two loans
+      expect(breakdown?.loan1Amount).toBeUndefined();
+      expect(breakdown?.loan1MonthlyPayment).toBeUndefined();
+      expect(breakdown?.loan1Interest).toBeUndefined();
+      expect(breakdown?.loan2Amount).toBeUndefined();
+      expect(breakdown?.loan2DurationYears).toBeUndefined();
+      expect(breakdown?.loan2MonthlyPayment).toBeUndefined();
+      expect(breakdown?.loan2Interest).toBeUndefined();
     });
   });
 });

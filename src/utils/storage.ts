@@ -179,6 +179,11 @@ export const loadFromLocalStorage = () => {
       const storedVersion = data.releaseVersion;
       const isCompatible = isCompatibleVersion(storedVersion);
 
+      // Merge stored portageFormula with defaults to ensure all fields are present
+      const portageFormula = data.portageFormula
+        ? { ...DEFAULT_PORTAGE_FORMULA, ...data.portageFormula }
+        : DEFAULT_PORTAGE_FORMULA;
+
       // Return data with compatibility flag
       const result = {
         isCompatible,
@@ -188,7 +193,7 @@ export const loadFromLocalStorage = () => {
         projectParams: data.projectParams || DEFAULT_PROJECT_PARAMS,
         // scenario removed - old data may have it but we ignore it
         deedDate: data.deedDate, // May be undefined for old saved data
-        portageFormula: data.portageFormula || DEFAULT_PORTAGE_FORMULA,
+        portageFormula,
         timestamp: data.timestamp
       };
 

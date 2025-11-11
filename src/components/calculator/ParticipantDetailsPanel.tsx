@@ -681,6 +681,7 @@ export function ParticipantDetailsPanel({
         participant={participants[idx]}
         allParticipants={participants}
         deedDate={deedDate}
+        coproReservesShare={formulaParams.coproReservesShare}
         className="mt-4"
       />
     </div>

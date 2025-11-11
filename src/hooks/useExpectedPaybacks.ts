@@ -17,7 +17,8 @@ export interface Payback {
 export function useExpectedPaybacks(
   participant: Participant,
   allParticipants: Participant[],
-  deedDate: string
+  deedDate: string,
+  coproReservesShare: number = 30
 ): { paybacks: Payback[]; totalRecovered: number } {
   return useMemo(() => {
     // 1. Find all participants buying portage lots from this participant
@@ -32,13 +33,19 @@ export function useExpectedPaybacks(
       }));
 
     // 2. Calculate copropriété redistributions for this participant
+    // Apply split: only the portion that goes to participants (not copro reserves)
+    const participantsShare = 1 - (coproReservesShare / 100);
     const coproSales: CoproSale[] = allParticipants
       .filter((buyer) => buyer.purchaseDetails?.buyingFrom === 'Copropriété')
-      .map((buyer) => ({
-        buyer: buyer.name,
-        entryDate: buyer.entryDate || new Date(deedDate),
-        amount: buyer.purchaseDetails?.purchasePrice || 0
-      }));
+      .map((buyer) => {
+        const totalPrice = buyer.purchaseDetails?.purchasePrice || 0;
+        const amountToParticipants = totalPrice * participantsShare;
+        return {
+          buyer: buyer.name,
+          entryDate: buyer.entryDate || new Date(deedDate),
+          amount: amountToParticipants
+        };
+      });
 
     const coproRedistributions = calculateCoproRedistributionForParticipant(
       participant,
@@ -58,5 +65,5 @@ export function useExpectedPaybacks(
       paybacks: allPaybacks,
       totalRecovered
     };
-  }, [participant, allParticipants, deedDate]);
+  }, [participant, allParticipants, deedDate, coproReservesShare]);
 }

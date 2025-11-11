@@ -177,6 +177,7 @@ describe('HorizontalSwimLaneTimeline', () => {
   };
 
   const mockOnOpenParticipantDetails = vi.fn();
+  const mockOnOpenCoproDetails = vi.fn();
   const mockOnAddParticipant = vi.fn();
 
   it('renders participant names in sticky column', () => {
@@ -187,6 +188,7 @@ describe('HorizontalSwimLaneTimeline', () => {
         calculations={mockCalculations}
         deedDate={deedDate}
         onOpenParticipantDetails={mockOnOpenParticipantDetails}
+        onOpenCoproDetails={mockOnOpenCoproDetails}
         onAddParticipant={mockOnAddParticipant}
       />
     );
@@ -204,6 +206,7 @@ describe('HorizontalSwimLaneTimeline', () => {
         calculations={mockCalculations}
         deedDate={deedDate}
         onOpenParticipantDetails={mockOnOpenParticipantDetails}
+        onOpenCoproDetails={mockOnOpenCoproDetails}
         onAddParticipant={mockOnAddParticipant}
       />
     );
@@ -221,6 +224,7 @@ describe('HorizontalSwimLaneTimeline', () => {
         calculations={mockCalculations}
         deedDate={deedDate}
         onOpenParticipantDetails={mockOnOpenParticipantDetails}
+        onOpenCoproDetails={mockOnOpenCoproDetails}
         onAddParticipant={mockOnAddParticipant}
       />
     );
@@ -232,5 +236,51 @@ describe('HorizontalSwimLaneTimeline', () => {
       aliceT0Card.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       expect(mockOnOpenParticipantDetails).toHaveBeenCalledWith(0);
     }
+  });
+
+  it('displays correct transaction delta based on coproReservesShare configuration', () => {
+    // Carol buys from copropriété for 150,000€
+    // With 30% to reserves (default), 70% = 105,000€ goes to participants
+    // Alice has 100m², Bob has 120m² = 220m² total
+    // Alice gets: 105,000 × (100/220) = 47,727€
+    // Bob gets: 105,000 × (120/220) = 57,273€
+
+    const { rerender } = render(
+      <HorizontalSwimLaneTimeline
+        participants={mockParticipants}
+        projectParams={mockProjectParams}
+        calculations={mockCalculations}
+        deedDate={deedDate}
+        onOpenParticipantDetails={mockOnOpenParticipantDetails}
+        onOpenCoproDetails={mockOnOpenCoproDetails}
+        onAddParticipant={mockOnAddParticipant}
+        coproReservesShare={30}
+      />
+    );
+
+    // Should show redistribution amounts with 30% to reserves (70% to participants)
+    // Check that amounts around 47,727 and 57,273 are displayed
+    expect(screen.getByText(/47.*727/)).toBeInTheDocument();
+    expect(screen.getByText(/57.*273/)).toBeInTheDocument();
+
+    // Now change to 60% reserves (40% to participants)
+    // 150,000 × 40% = 60,000€ total to participants
+    // Alice gets: 60,000 × (100/220) = 27,273€
+    // Bob gets: 60,000 × (120/220) = 32,727€
+    rerender(
+      <HorizontalSwimLaneTimeline
+        participants={mockParticipants}
+        projectParams={mockProjectParams}
+        calculations={mockCalculations}
+        deedDate={deedDate}
+        onOpenParticipantDetails={mockOnOpenParticipantDetails}
+        onOpenCoproDetails={mockOnOpenCoproDetails}
+        onAddParticipant={mockOnAddParticipant}
+        coproReservesShare={60}
+      />
+    );
+
+    // Should now show smaller amounts reflecting 40% to participants
+    expect(screen.getByText(/27.*273/)).toBeInTheDocument();
   });
 });

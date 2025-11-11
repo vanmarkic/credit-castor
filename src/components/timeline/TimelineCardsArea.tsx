@@ -31,6 +31,8 @@ interface TimelineCardsAreaProps {
   participants: Participant[];
   snapshots: Map<string, TimelineSnapshot[]>;
   onOpenParticipantDetails: (index: number) => void;
+  onOpenCoproDetails: (snapshot: CoproSnapshot) => void;
+  coproReservesShare: number;
 }
 
 export default function TimelineCardsArea({
@@ -38,12 +40,19 @@ export default function TimelineCardsArea({
   coproSnapshots,
   participants,
   snapshots,
-  onOpenParticipantDetails
+  onOpenParticipantDetails,
+  onOpenCoproDetails,
+  coproReservesShare
 }: TimelineCardsAreaProps) {
   return (
     <div className="flex-1 min-w-0">
       {/* Copropriété lane */}
-      <CoproLane allDates={allDates} coproSnapshots={coproSnapshots} />
+      <CoproLane
+        allDates={allDates}
+        coproSnapshots={coproSnapshots}
+        coproReservesShare={coproReservesShare}
+        onOpenCoproDetails={onOpenCoproDetails}
+      />
 
       {/* Participant lanes */}
       {participants.map((p, idx) => {

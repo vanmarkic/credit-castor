@@ -8,6 +8,8 @@ interface CoproInventoryCardProps {
   reserveIncrease: number;
   colorZone: number;
   isT0: boolean;
+  coproReservesShare: number;
+  onClick?: () => void;
 }
 
 const getZoneBackgroundClass = (zoneIndex: number, isT0: boolean) => {
@@ -33,12 +35,16 @@ export default function CoproInventoryCard({
   soldThisDate,
   reserveIncrease,
   colorZone,
-  isT0
+  isT0,
+  coproReservesShare,
+  onClick
 }: CoproInventoryCardProps) {
   return (
     <div
+      onClick={onClick}
       className={`
         w-full p-4 rounded-lg border-2 border-purple-300 transition-shadow hover:shadow-md
+        ${onClick ? 'cursor-pointer hover:shadow-lg' : ''}
         ${getZoneBackgroundClass(colorZone, isT0)}
       `}
     >
@@ -67,7 +73,7 @@ export default function CoproInventoryCard({
           </div>
           {reserveIncrease > 0 && (
             <div className="text-xs font-semibold text-green-700 mt-1">
-              💰 +{formatCurrency(reserveIncrease)} réserves (30%)
+              💰 +{formatCurrency(reserveIncrease)} réserves ({coproReservesShare}%)
             </div>
           )}
         </div>

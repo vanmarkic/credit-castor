@@ -3,8 +3,9 @@
  * Pure functions to build export data that can be tested with CSV snapshots
  */
 
-import type { CalculationResults, ProjectParams, UnitDetails } from './calculatorUtils';
+import type { CalculationResults, ProjectParams, UnitDetails, Participant } from './calculatorUtils';
 import type { ExportWriter, SheetCell, SheetData } from './exportWriter';
+import type { TimelineSnapshot } from './timelineCalculations';
 
 /**
  * Build export sheet data from calculation results
@@ -182,8 +183,8 @@ export function buildExportSheetData(
     addCell(r, 'S', null, `R${r}*H${r}*12`);
     // Additional columns for overrides
     addCell(r, 'T', p.personalRenovationCost);
-    addCell(r, 'U', p.parachevementsPerM2);
-    addCell(r, 'V', projectParams.globalCascoPerM2);
+    addCell(r, 'U', projectParams.globalCascoPerM2);
+    addCell(r, 'V', p.parachevementsPerM2);
     addCell(r, 'W', p.cascoSqm);
     addCell(r, 'X', p.parachevementsSqm);
 
@@ -334,17 +335,152 @@ export function buildExportSheetData(
 }
 
 /**
+ * Build timeline snapshot sheet data
+ * Shows participant financial state at each event date
+ */
+export function buildTimelineSnapshotSheet(
+  snapshots: Map<string, TimelineSnapshot[]>,
+  participants: Participant[]
+): SheetData {
+  const cells: SheetCell[] = [];
+
+  // Helper to add cells easily
+  const addCell = (row: number, col: string, value?: string | number | null) => {
+    cells.push({ row, col, data: { value } });
+  };
+
+  // Header row
+  const headers = [
+    'Date',
+    'Participant',
+    'Total Cost',
+    'Loan Needed',
+    'Monthly Payment',
+    'Is T0',
+    'Transaction Type',
+    'Seller',
+    'Buyer',
+    'Lot ID',
+    'Delta Total Cost',
+    'Delta Loan',
+    'Delta Reason'
+  ];
+  const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M'];
+
+  headers.forEach((header, idx) => {
+    addCell(1, cols[idx], header);
+  });
+
+  // Collect all snapshots and sort by date, then by participant name
+  const allSnapshots: Array<{ snapshot: TimelineSnapshot; participant: Participant }> = [];
+
+  snapshots.forEach((participantSnapshots, participantName) => {
+    const participant = participants.find(p => p.name === participantName);
+    if (participant) {
+      participantSnapshots.forEach(snapshot => {
+        allSnapshots.push({ snapshot, participant });
+      });
+    }
+  });
+
+  // Sort by date, then by participant index
+  allSnapshots.sort((a, b) => {
+    const dateCompare = a.snapshot.date.getTime() - b.snapshot.date.getTime();
+    if (dateCompare !== 0) return dateCompare;
+    return a.snapshot.participantIndex - b.snapshot.participantIndex;
+  });
+
+  // Add data rows
+  let currentRow = 2;
+  allSnapshots.forEach(({ snapshot, participant }) => {
+    // Date
+    addCell(currentRow, 'A', snapshot.date.toLocaleDateString('fr-BE'));
+
+    // Participant
+    addCell(currentRow, 'B', snapshot.participantName);
+
+    // Financial data
+    addCell(currentRow, 'C', snapshot.totalCost);
+    addCell(currentRow, 'D', snapshot.loanNeeded);
+    addCell(currentRow, 'E', snapshot.monthlyPayment);
+
+    // Is T0
+    addCell(currentRow, 'F', snapshot.isT0 ? 'Yes' : 'No');
+
+    // Transaction details (if present)
+    if (snapshot.transaction) {
+      const tx = snapshot.transaction;
+      addCell(currentRow, 'G', tx.type);
+      addCell(currentRow, 'H', tx.seller || '');
+      addCell(currentRow, 'I', tx.buyer || '');
+      addCell(currentRow, 'J', participant.purchaseDetails?.lotId || '');
+      addCell(currentRow, 'K', tx.delta.totalCost);
+      addCell(currentRow, 'L', tx.delta.loanNeeded);
+      addCell(currentRow, 'M', tx.delta.reason);
+    } else {
+      // Empty transaction columns
+      addCell(currentRow, 'G', '');
+      addCell(currentRow, 'H', '');
+      addCell(currentRow, 'I', '');
+      addCell(currentRow, 'J', '');
+      addCell(currentRow, 'K', '');
+      addCell(currentRow, 'L', '');
+      addCell(currentRow, 'M', '');
+    }
+
+    currentRow++;
+  });
+
+  // Column widths
+  const columnWidths = [
+    { col: 0, width: 12 },  // Date
+    { col: 1, width: 20 },  // Participant
+    { col: 2, width: 15 },  // Total Cost
+    { col: 3, width: 15 },  // Loan Needed
+    { col: 4, width: 15 },  // Monthly Payment
+    { col: 5, width: 8 },   // Is T0
+    { col: 6, width: 18 },  // Transaction Type
+    { col: 7, width: 20 },  // Seller
+    { col: 8, width: 20 },  // Buyer
+    { col: 9, width: 10 },  // Lot ID
+    { col: 10, width: 15 }, // Delta Total Cost
+    { col: 11, width: 15 }, // Delta Loan
+    { col: 12, width: 30 }  // Delta Reason
+  ];
+
+  return {
+    name: 'Timeline Snapshots',
+    cells,
+    columnWidths
+  };
+}
+
+/**
  * Export calculation results to Excel or CSV
+ * Optionally includes a timeline snapshot sheet if snapshots and participants are provided
  */
 export function exportCalculations(
   calculations: CalculationResults,
   projectParams: ProjectParams,
   unitDetails: UnitDetails | undefined,
   writer: ExportWriter,
-  filename: string = 'Calculateur_Division_' + new Date().toLocaleDateString('fr-FR').replace(/\//g, '-') + '.xlsx'
+  filename: string = 'Calculateur_Division_' + new Date().toLocaleDateString('fr-FR').replace(/\//g, '-') + '.xlsx',
+  options?: {
+    timelineSnapshots?: Map<string, TimelineSnapshot[]>;
+    participants?: Participant[];
+  }
 ): void | string {
   const wb = writer.createWorkbook();
+
+  // Add main calculator sheet
   const sheetData = buildExportSheetData(calculations, projectParams, unitDetails);
   writer.addSheet(wb, sheetData);
+
+  // Add timeline snapshots sheet if provided
+  if (options?.timelineSnapshots && options?.participants) {
+    const timelineSheet = buildTimelineSnapshotSheet(options.timelineSnapshots, options.participants);
+    writer.addSheet(wb, timelineSheet);
+  }
+
   return writer.write(wb, filename);
 }

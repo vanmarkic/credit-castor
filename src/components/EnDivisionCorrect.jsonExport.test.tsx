@@ -74,7 +74,7 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should include all required top-level fields', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails, mockDeedDate);
 
     const exportData = {
       version: 2,
@@ -105,7 +105,7 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should include all participant input fields', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails, mockDeedDate);
 
     const exportData = {
       version: 2,
@@ -141,7 +141,7 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should include all projectParams fields', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails, mockDeedDate);
 
     const exportData = {
       version: 2,
@@ -171,7 +171,7 @@ describe('JSON Export Completeness', () => {
   // Scenario tests removed - scenarios no longer exist
 
   it('should include all calculation summary fields', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails, mockDeedDate);
 
     const exportData = {
       version: 2,
@@ -195,7 +195,7 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should include all participant calculation fields', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails, mockDeedDate);
 
     const exportData = {
       version: 2,
@@ -233,7 +233,7 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should include all totals fields', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails, mockDeedDate);
 
     const exportData = {
       version: 2,
@@ -261,7 +261,7 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should preserve all numeric values with precision', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails, mockDeedDate);
 
     const exportData = {
       version: 2,
@@ -286,7 +286,7 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should include deedDate for version 2', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails, mockDeedDate);
 
     const exportData = {
       version: 2,
@@ -302,7 +302,7 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should include unitDetails for reference', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails, mockDeedDate);
 
     const exportData = {
       version: 2,
@@ -320,7 +320,7 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should be able to round-trip serialize and deserialize', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails, mockDeedDate);
 
     const exportData = {
       version: 2,
@@ -353,7 +353,7 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should capture all formula inputs for reproducibility', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails, mockDeedDate);
 
     const exportData = {
       version: 2,
@@ -369,7 +369,8 @@ describe('JSON Export Completeness', () => {
     const recalculated = calculateAll(
       exportData.participants,
       exportData.projectParams,
-      exportData.unitDetails
+      exportData.unitDetails,
+      exportData.deedDate
     );
 
     // Results should match
@@ -415,7 +416,7 @@ describe('JSON Export Completeness', () => {
       ]
     };
 
-    const calculations = calculateAll([participantWithPortage], mockProjectParams, mockUnitDetails);
+    const calculations = calculateAll([participantWithPortage], mockProjectParams, mockUnitDetails, mockDeedDate);
 
     const exportData = {
       version: 2,
@@ -483,7 +484,7 @@ describe('JSON Export Completeness', () => {
       }
     };
 
-    const calculations = calculateAll([newcomerParticipant], mockProjectParams, mockUnitDetails);
+    const calculations = calculateAll([newcomerParticipant], mockProjectParams, mockUnitDetails, mockDeedDate);
 
     const exportData = {
       version: 2,
@@ -548,7 +549,8 @@ describe('JSON Export Completeness', () => {
     const calculations = calculateAll(
       [founderParticipant, exitingParticipant],
       mockProjectParams,
-      mockUnitDetails
+      mockUnitDetails,
+      mockDeedDate
     );
 
     const exportData = {
@@ -577,7 +579,7 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should include release version for compatibility checking', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails, mockDeedDate);
     const exportData = buildExportData(mockParticipants, calculations);
 
     // Verify release version is present
@@ -592,11 +594,119 @@ describe('JSON Export Completeness', () => {
   });
 
   it('should include version format that matches semantic versioning', () => {
-    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails);
+    const calculations = calculateAll(mockParticipants, mockProjectParams, mockUnitDetails, mockDeedDate);
     const exportData = buildExportData(mockParticipants, calculations);
 
     // Release version should follow semantic versioning (x.y.z)
     const semverPattern = /^\d+\.\d+\.\d+$/;
     expect(exportData.releaseVersion).toMatch(semverPattern);
+  });
+
+  it('should include two-loan financing breakdown in calculations', () => {
+    const twoLoanParticipant: Participant = {
+      name: 'Two Loan Participant',
+      capitalApporte: 100000,
+      notaryFeesRate: 12.5,
+      unitId: 1,
+      surface: 100,
+      interestRate: 4.5,
+      durationYears: 25,
+      quantity: 1,
+      parachevementsPerM2: 500,
+      isFounder: true,
+      entryDate: new Date('2026-02-01'),
+      // Two-loan financing enabled
+      useTwoLoans: true,
+      loan2DelayYears: 2,
+      loan2RenovationAmount: 80000,
+      capitalForLoan1: 60000,
+      capitalForLoan2: 40000
+    };
+
+    const calculations = calculateAll([twoLoanParticipant], mockProjectParams, mockUnitDetails, mockDeedDate);
+
+    const exportData = {
+      version: 2,
+      releaseVersion: RELEASE_VERSION,
+      timestamp: new Date().toISOString(),
+      participants: [twoLoanParticipant],
+      projectParams: mockProjectParams,
+      deedDate: mockDeedDate,
+      unitDetails: mockUnitDetails,
+      calculations
+    };
+
+    // Serialize and deserialize
+    const json = JSON.stringify(exportData, null, 2);
+    const parsed = JSON.parse(json);
+
+    // Verify two-loan breakdown fields are present
+    const breakdown = parsed.calculations.participantBreakdown[0];
+
+    // These fields should be populated when useTwoLoans is true
+    expect(breakdown).toHaveProperty('loan1Amount');
+    expect(breakdown).toHaveProperty('loan1MonthlyPayment');
+    expect(breakdown).toHaveProperty('loan1Interest');
+    expect(breakdown).toHaveProperty('loan2Amount');
+    expect(breakdown).toHaveProperty('loan2DurationYears');
+    expect(breakdown).toHaveProperty('loan2MonthlyPayment');
+    expect(breakdown).toHaveProperty('loan2Interest');
+
+    // Verify values are numbers (not null/undefined)
+    expect(typeof breakdown.loan1Amount).toBe('number');
+    expect(typeof breakdown.loan1MonthlyPayment).toBe('number');
+    expect(typeof breakdown.loan2Amount).toBe('number');
+    expect(typeof breakdown.loan2DurationYears).toBe('number');
+    expect(typeof breakdown.loan2MonthlyPayment).toBe('number');
+
+    // Verify loan amounts add up to total loan needed (approximately)
+    // Note: May have differences due to capital allocation between loans
+    expect(breakdown.loan1Amount + breakdown.loan2Amount).toBeCloseTo(breakdown.loanNeeded, -5);
+  });
+
+  it('should have undefined two-loan fields when useTwoLoans is false', () => {
+    const singleLoanParticipant: Participant = {
+      name: 'Single Loan Participant',
+      capitalApporte: 100000,
+      notaryFeesRate: 12.5,
+      unitId: 1,
+      surface: 100,
+      interestRate: 4.5,
+      durationYears: 25,
+      quantity: 1,
+      parachevementsPerM2: 500,
+      isFounder: true,
+      entryDate: new Date('2026-02-01'),
+      // Two-loan financing NOT enabled
+      useTwoLoans: false
+    };
+
+    const calculations = calculateAll([singleLoanParticipant], mockProjectParams, mockUnitDetails, mockDeedDate);
+
+    const exportData = {
+      version: 2,
+      releaseVersion: RELEASE_VERSION,
+      timestamp: new Date().toISOString(),
+      participants: [singleLoanParticipant],
+      projectParams: mockProjectParams,
+      deedDate: mockDeedDate,
+      unitDetails: mockUnitDetails,
+      calculations
+    };
+
+    // Serialize and deserialize
+    const json = JSON.stringify(exportData, null, 2);
+    const parsed = JSON.parse(json);
+
+    // Verify two-loan breakdown fields are present but undefined
+    const breakdown = parsed.calculations.participantBreakdown[0];
+
+    expect(breakdown.loan1Amount).toBeUndefined();
+    expect(breakdown.loan1MonthlyPayment).toBeUndefined();
+    expect(breakdown.loan1Interest).toBeUndefined();
+    expect(breakdown.loan2Amount).toBeUndefined();
+    expect(breakdown.loan2DurationYears).toBeUndefined();
+    expect(breakdown.loan2MonthlyPayment).toBeUndefined();
+    expect(breakdown.loan2Interest).toBeUndefined();
   });
 });
