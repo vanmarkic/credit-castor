@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { PortageFormulaParams } from '../utils/calculatorUtils';
 import { calculateCarryingCosts, calculateFormulaPreview } from '../utils/portageCalculations';
 import { formatCurrency } from '../utils/formatting';
+import { usePortageFormulaPermissions } from '../hooks/useFieldPermissions';
 
 interface PortageFormulaConfigProps {
   formulaParams: PortageFormulaParams;
@@ -16,6 +17,12 @@ export default function PortageFormulaConfig({
   deedDate: _deedDate
 }: PortageFormulaConfigProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // Check permissions for portage formula fields
+  const { canEdit: canEditIndexation } = usePortageFormulaPermissions('indexationRate');
+  const { canEdit: canEditCarryingCost } = usePortageFormulaPermissions('carryingCostRecovery');
+  const { canEdit: canEditInterestRate } = usePortageFormulaPermissions('averageInterestRate');
+  const { canEdit: canEditCoproReserves } = usePortageFormulaPermissions('coproReservesShare');
 
   const handleUpdate = (field: keyof PortageFormulaParams, value: number) => {
     onUpdateParams({
@@ -87,7 +94,8 @@ export default function PortageFormulaConfig({
                     onChange={(e) =>
                       handleUpdate('indexationRate', parseFloat(e.target.value) || 0)
                     }
-                    className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    disabled={!canEditIndexation}
+                    className={`w-full px-3 py-2 border border-blue-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none ${!canEditIndexation ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''}`}
                   />
                   <span className="text-sm text-gray-600">%</span>
                 </div>
@@ -111,7 +119,8 @@ export default function PortageFormulaConfig({
                     onChange={(e) =>
                       handleUpdate('carryingCostRecovery', parseFloat(e.target.value) || 0)
                     }
-                    className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    disabled={!canEditCarryingCost}
+                    className={`w-full px-3 py-2 border border-blue-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none ${!canEditCarryingCost ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''}`}
                   />
                   <span className="text-sm text-gray-600">%</span>
                 </div>
@@ -135,7 +144,8 @@ export default function PortageFormulaConfig({
                     onChange={(e) =>
                       handleUpdate('averageInterestRate', parseFloat(e.target.value) || 0)
                     }
-                    className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    disabled={!canEditInterestRate}
+                    className={`w-full px-3 py-2 border border-blue-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none ${!canEditInterestRate ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''}`}
                   />
                   <span className="text-sm text-gray-600">%</span>
                 </div>
@@ -172,7 +182,8 @@ export default function PortageFormulaConfig({
                     onChange={(e) =>
                       handleUpdate('coproReservesShare', parseFloat(e.target.value) || 0)
                     }
-                    className="w-full px-3 py-2 border border-blue-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    disabled={!canEditCoproReserves}
+                    className={`w-full px-3 py-2 border border-blue-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:outline-none ${!canEditCoproReserves ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''}`}
                   />
                   <span className="text-sm text-gray-600">%</span>
                 </div>

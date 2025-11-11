@@ -27,6 +27,7 @@ const mockParticipant: ParticipantCalculation = {
   pricePerM2: 1500,
   purchaseShare: 150000,
   notaryFees: 18750,
+  fraisNotaireFixe: 1000, // 1 lot * 1000€
   casco: 30000,
   parachevements: 50000,
   personalRenovationCost: 80000,
@@ -34,12 +35,12 @@ const mockParticipant: ParticipantCalculation = {
   constructionCostPerUnit: 120000,
   travauxCommunsPerUnit: 40000,
   sharedCosts: 25000,
-  totalCost: 313750,
-  loanNeeded: 263750,
-  financingRatio: 84.06,
-  monthlyPayment: 1530.45,
-  totalRepayment: 367308,
-  totalInterest: 103558,
+  totalCost: 314750, // Increased by 1000 for fraisNotaireFixe
+  loanNeeded: 264750, // Increased by 1000
+  financingRatio: 84.12,
+  monthlyPayment: 1536.27,
+  totalRepayment: 368705,
+  totalInterest: 103955,
 };
 
 const mockTotals: CalculationTotals = {
@@ -65,8 +66,10 @@ describe('formulaExplanations', () => {
       expect(result[0]).toBe('Coût total pour ce participant');
       expect(result[1]).toContain('Achat');
       expect(result[1]).toContain('150,000');
-      expect(result[1]).toContain('Notaire');
+      expect(result[1]).toContain('Droit enreg.');
       expect(result[1]).toContain('18,750');
+      expect(result[1]).toContain('Frais notaire');
+      expect(result[1]).toContain('1,000');
       expect(result[1]).toContain('Construction');
       expect(result[1]).toContain('120,000');
       expect(result[1]).toContain('Commun');
@@ -87,11 +90,11 @@ describe('formulaExplanations', () => {
   });
 
   describe('getNotaryFeesFormula', () => {
-    it('should return notary fees calculation', () => {
+    it('should return registration fees (droit d\'enregistrements) calculation', () => {
       const result = getNotaryFeesFormula(mockParticipant);
 
       expect(result).toHaveLength(2);
-      expect(result[0]).toBe('Frais de notaire belges pour le transfert');
+      expect(result[0]).toBe('Droit d\'enregistrements belge pour le transfert');
       expect(result[1]).toContain('150,000');
       expect(result[1]).toContain('12.5');
       expect(result[1]).toContain('18,750');
@@ -141,9 +144,9 @@ describe('formulaExplanations', () => {
 
       expect(result).toHaveLength(2);
       expect(result[0]).toContain('emprunter');
-      expect(result[1]).toContain('313,750');
+      expect(result[1]).toContain('314,750');
       expect(result[1]).toContain('50,000');
-      expect(result[1]).toContain('263,750');
+      expect(result[1]).toContain('264,750');
     });
   });
 
@@ -153,7 +156,7 @@ describe('formulaExplanations', () => {
 
       expect(result).toHaveLength(3);
       expect(result[0]).toContain('Remboursement');
-      expect(result[1]).toContain('263,750');
+      expect(result[1]).toContain('264,750');
       expect(result[1]).toContain('3.5');
       expect(result[1]).toContain('20');
       expect(result[2]).toBe('PMT(taux/12, années×12, -principal)');

@@ -1,11 +1,23 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { ParticipantDetailsPanel } from './ParticipantDetailsPanel';
 import { DEFAULT_PORTAGE_FORMULA } from '../../utils/calculatorUtils';
 import type { Participant, ParticipantCalculation, CalculationResults, ProjectParams } from '../../utils/calculatorUtils';
+import { UnlockProvider } from '../../contexts/UnlockContext';
 
 describe('ParticipantDetailsPanel - Remboursements attendus', () => {
+  beforeEach(() => {
+    // Clear localStorage and set unlocked state for all tests
+    localStorage.clear();
+    const unlockState = {
+      isUnlocked: true,
+      unlockedBy: 'test@example.com',
+      unlockedAt: new Date().toISOString(),
+    };
+    localStorage.setItem('credit-castor-unlock-state', JSON.stringify(unlockState));
+  });
+
   const mockProjectParams: ProjectParams = {
     totalPurchase: 1000000,
     mesuresConservatoires: 10000,
@@ -98,6 +110,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
       pricePerM2: 1000,
       purchaseShare: 300000,
       notaryFees: 37500,
+      fraisNotaireFixe: 2000, // 2 lots * 1000€
       casco: 477000,
       parachevements: 150000,
       personalRenovationCost: 627000,
@@ -116,7 +129,8 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
     const allParticipants = [founderParticipant, newcomerParticipant];
 
     render(
-      <Tooltip.Provider>
+      <UnlockProvider>
+        <Tooltip.Provider>
         <ParticipantDetailsPanel
         participant={founderParticipant}
         participantCalc={founderCalc}
@@ -144,6 +158,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
         onUpdatePortageLotSurface={() => {}}
         />
       </Tooltip.Provider>
+      </UnlockProvider>
     );
 
     // Should show "Remboursements attendus" section
@@ -202,6 +217,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
       pricePerM2: 1000,
       purchaseShare: 300000,
       notaryFees: 37500,
+      fraisNotaireFixe: 2000, // 2 lots * 1000€
       casco: 477000,
       parachevements: 150000,
       personalRenovationCost: 627000,
@@ -220,7 +236,8 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
     const allParticipants = [founderParticipant];
 
     render(
-      <Tooltip.Provider>
+      <UnlockProvider>
+        <Tooltip.Provider>
         <ParticipantDetailsPanel
         participant={founderParticipant}
         participantCalc={founderCalc}
@@ -248,6 +265,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
         onUpdatePortageLotSurface={() => {}}
         />
       </Tooltip.Provider>
+      </UnlockProvider>
     );
 
     // Should NOT show "Remboursements attendus" section
@@ -301,6 +319,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
       pricePerM2: 1000,
       purchaseShare: 300000,
       notaryFees: 37500,
+      fraisNotaireFixe: 2000, // 2 lots * 1000€
       casco: 477000,
       parachevements: 150000,
       personalRenovationCost: 627000,
@@ -319,7 +338,8 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
     const allParticipants = [founderParticipant, newcomerParticipant];
 
     render(
-      <Tooltip.Provider>
+      <UnlockProvider>
+        <Tooltip.Provider>
         <ParticipantDetailsPanel
           participant={founderParticipant}
           participantCalc={founderCalc}
@@ -347,6 +367,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
           onUpdatePortageLotSurface={() => {}}
         />
       </Tooltip.Provider>
+      </UnlockProvider>
     );
 
     // Find the remboursements section
@@ -450,6 +471,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
       pricePerM2: 1000,
       purchaseShare: 400000,
       notaryFees: 50000,
+      fraisNotaireFixe: 3000, // 3 lots * 1000€
       casco: 636000,
       parachevements: 200000,
       personalRenovationCost: 836000,
@@ -468,7 +490,8 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
     const allParticipants = [founderParticipant, newcomer1, newcomer2];
 
     render(
-      <Tooltip.Provider>
+      <UnlockProvider>
+        <Tooltip.Provider>
         <ParticipantDetailsPanel
           participant={founderParticipant}
           participantCalc={founderCalc}
@@ -496,6 +519,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
           onUpdatePortageLotSurface={() => {}}
         />
       </Tooltip.Provider>
+      </UnlockProvider>
     );
 
     // Should show both buyers
@@ -554,6 +578,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
       pricePerM2: 1000,
       purchaseShare: 300000,
       notaryFees: 37500,
+      fraisNotaireFixe: 2000, // 2 lots * 1000€
       casco: 477000,
       parachevements: 150000,
       personalRenovationCost: 627000,
@@ -570,7 +595,8 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
     };
 
     render(
-      <Tooltip.Provider>
+      <UnlockProvider>
+        <Tooltip.Provider>
         <ParticipantDetailsPanel
           participant={founderParticipant}
           participantCalc={founderCalc}
@@ -598,6 +624,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
           onUpdatePortageLotSurface={() => {}}
         />
       </Tooltip.Provider>
+      </UnlockProvider>
     );
 
     // Verify portage icon and description are shown
@@ -660,6 +687,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
       pricePerM2: 1000,
       purchaseShare: 218000,
       notaryFees: 27250,
+      fraisNotaireFixe: 2000, // 2 lots * 1000€
       casco: 346620,
       parachevements: 109000,
       personalRenovationCost: 455620,
@@ -676,7 +704,8 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
     };
 
     render(
-      <Tooltip.Provider>
+      <UnlockProvider>
+        <Tooltip.Provider>
         <ParticipantDetailsPanel
           participant={founderParticipant}
           participantCalc={founderCalc}
@@ -704,6 +733,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
           onUpdatePortageLotSurface={() => {}}
         />
       </Tooltip.Provider>
+      </UnlockProvider>
     );
 
     // This should show remboursements attendus

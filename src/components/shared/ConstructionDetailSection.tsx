@@ -32,7 +32,7 @@ export function ConstructionDetailSection({
           <p className="text-xs text-gray-500 mb-1">CASCO (gros œuvre)</p>
           <p className="text-lg font-bold text-gray-900">{formatCurrency(p.casco)}</p>
           <p className="text-xs text-gray-400">
-            {participant.cascoSqm || p.surface}m² × {projectParams.globalCascoPerM2}€/m² (global)
+            {participant.cascoSqm || p.surface}m² × {projectParams.globalCascoPerM2}€/m² (global){projectParams.cascoTvaRate ? ` + TVA ${projectParams.cascoTvaRate}%` : ''}
           </p>
         </div>
 

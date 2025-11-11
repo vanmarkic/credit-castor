@@ -5,12 +5,14 @@ import AvailableLotsView from '../AvailableLotsView';
 import { ExpectedPaybacksCard } from '../shared/ExpectedPaybacksCard';
 import { getAvailableLotsForNewcomer } from '../../utils/availableLots';
 import { FormulaTooltip } from '../FormulaTooltip';
+import { useParticipantFieldPermissions } from '../../hooks/useFieldPermissions';
 import {
   getTotalCostFormula,
   getPurchaseShareFormula,
   getLoanNeededFormula,
   getMonthlyPaymentFormula,
   getNotaryFeesFormula,
+  getFraisNotaireFixeFormula,
   getSharedCostsFormula,
   getCascoFormula,
   getParachevementsFormula,
@@ -74,6 +76,11 @@ export function ParticipantDetailsPanel({
   onUpdatePortageLotSurface: updatePortageLotSurface,
   onUpdatePortageLotConstructionPayment: updatePortageLotConstructionPayment,
 }: ParticipantDetailsPanelProps) {
+  // Permission checks for collective financing fields
+  const { canEdit: canEditInterestRate } = useParticipantFieldPermissions('interestRate', idx);
+  const { canEdit: canEditDuration } = useParticipantFieldPermissions('durationYears', idx);
+  const { canEdit: canEditNotaryRate } = useParticipantFieldPermissions('notaryFeesRate', idx);
+
   // Helper to update the entire participant list - delegates to parent
   const setParticipants = (updater: (prev: Participant[]) => Participant[]) => {
     const updated = updater(participants);
@@ -384,11 +391,11 @@ export function ParticipantDetailsPanel({
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-600 mb-1">Frais de notaire</label>
+            <label className="block text-xs text-gray-600 mb-1">Droit d'enregistrements</label>
             <div className="flex items-center gap-2 mb-1">
-              <label className="flex items-center gap-1.5 cursor-pointer px-3 py-2 border rounded-lg transition-colors hover:bg-gray-100" style={{
+              <label className={`flex items-center gap-1.5 px-3 py-2 border rounded-lg transition-colors ${canEditNotaryRate ? 'cursor-pointer hover:bg-gray-100' : 'opacity-60 cursor-not-allowed'}`} style={{
                 borderColor: p.notaryFeesRate === 3 ? '#9ca3af' : '#e5e7eb',
-                backgroundColor: p.notaryFeesRate === 3 ? '#f3f4f6' : 'white'
+                backgroundColor: p.notaryFeesRate === 3 ? '#f3f4f6' : (canEditNotaryRate ? 'white' : '#f9fafb')
               }}>
                 <input
                   type="radio"
@@ -396,13 +403,14 @@ export function ParticipantDetailsPanel({
                   value="3"
                   checked={p.notaryFeesRate === 3}
                   onChange={(e) => updateNotaryRate(idx, parseFloat(e.target.value))}
+                  disabled={!canEditNotaryRate}
                   className="w-4 h-4"
                 />
                 <span className="font-medium text-gray-700 text-sm">3%</span>
               </label>
-              <label className="flex items-center gap-1.5 cursor-pointer px-3 py-2 border rounded-lg transition-colors hover:bg-gray-100" style={{
+              <label className={`flex items-center gap-1.5 px-3 py-2 border rounded-lg transition-colors ${canEditNotaryRate ? 'cursor-pointer hover:bg-gray-100' : 'opacity-60 cursor-not-allowed'}`} style={{
                 borderColor: p.notaryFeesRate === 12.5 ? '#9ca3af' : '#e5e7eb',
-                backgroundColor: p.notaryFeesRate === 12.5 ? '#f3f4f6' : 'white'
+                backgroundColor: p.notaryFeesRate === 12.5 ? '#f3f4f6' : (canEditNotaryRate ? 'white' : '#f9fafb')
               }}>
                 <input
                   type="radio"
@@ -410,6 +418,7 @@ export function ParticipantDetailsPanel({
                   value="12.5"
                   checked={p.notaryFeesRate === 12.5}
                   onChange={(e) => updateNotaryRate(idx, parseFloat(e.target.value))}
+                  disabled={!canEditNotaryRate}
                   className="w-4 h-4"
                 />
                 <span className="font-medium text-gray-700 text-sm">12.5%</span>
@@ -427,7 +436,8 @@ export function ParticipantDetailsPanel({
               step="0.1"
               value={p.interestRate}
               onChange={(e) => updateInterestRate(idx, parseFloat(e.target.value) || 0)}
-              className="w-full px-3 py-2 font-medium border border-gray-300 rounded-lg focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none bg-white"
+              disabled={!canEditInterestRate}
+              className={`w-full px-3 py-2 font-medium border border-gray-300 rounded-lg focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none ${canEditInterestRate ? 'bg-white' : 'bg-gray-50 opacity-60 cursor-not-allowed'}`}
             />
           </div>
           <div>
@@ -436,7 +446,8 @@ export function ParticipantDetailsPanel({
               type="number"
               value={p.durationYears}
               onChange={(e) => updateDuration(idx, parseInt(e.target.value) || 0)}
-              className="w-full px-3 py-2 font-medium border border-gray-300 rounded-lg focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none bg-white"
+              disabled={!canEditDuration}
+              className={`w-full px-3 py-2 font-medium border border-gray-300 rounded-lg focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none ${canEditDuration ? 'bg-white' : 'bg-gray-50 opacity-60 cursor-not-allowed'}`}
             />
           </div>
         </div>
@@ -461,7 +472,7 @@ export function ParticipantDetailsPanel({
       {/* Cost Breakdown */}
       <div className="mb-4">
         <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Décomposition des Coûts</p>
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
+        <div className="grid grid-cols-2 md:grid-cols-7 gap-2">
           <div className="bg-white rounded-lg p-3 border border-gray-200">
             <p className="text-xs text-gray-500 mb-1">Part d'achat</p>
             <p className="text-base font-bold text-gray-900">
@@ -473,7 +484,7 @@ export function ParticipantDetailsPanel({
           </div>
 
           <div className="bg-white rounded-lg p-3 border border-gray-200">
-            <p className="text-xs text-gray-500 mb-1">Frais notaire</p>
+            <p className="text-xs text-gray-500 mb-1">Droit d'enreg.</p>
             <p className="text-base font-bold text-gray-900">
               <FormulaTooltip formula={getNotaryFeesFormula(p)}>
                 {formatCurrency(p.notaryFees)}
@@ -482,10 +493,20 @@ export function ParticipantDetailsPanel({
             <p className="text-xs text-gray-400 mt-0.5">{p.notaryFeesRate}%</p>
           </div>
 
+          <div className="bg-white rounded-lg p-3 border border-gray-200">
+            <p className="text-xs text-gray-500 mb-1">Frais notaire</p>
+            <p className="text-base font-bold text-gray-900">
+              <FormulaTooltip formula={getFraisNotaireFixeFormula(p)}>
+                {formatCurrency(p.fraisNotaireFixe)}
+              </FormulaTooltip>
+            </p>
+            <p className="text-xs text-gray-400 mt-0.5">{p.quantity} lot{p.quantity > 1 ? 's' : ''}</p>
+          </div>
+
           <div className="bg-white rounded-lg p-3 border border-orange-200">
             <p className="text-xs text-gray-500 mb-1">CASCO</p>
             <p className="text-base font-bold text-orange-700">
-              <FormulaTooltip formula={getCascoFormula(p, participants[idx].cascoSqm, projectParams.globalCascoPerM2)}>
+              <FormulaTooltip formula={getCascoFormula(p, participants[idx].cascoSqm, projectParams.globalCascoPerM2, projectParams.cascoTvaRate)}>
                 {formatCurrency(p.casco)}
               </FormulaTooltip>
             </p>
@@ -546,12 +567,12 @@ export function ParticipantDetailsPanel({
               )}
             </p>
             <p className="text-lg font-bold text-gray-900">
-              <FormulaTooltip formula={getCascoFormula(p, participants[idx].cascoSqm, projectParams.globalCascoPerM2)}>
+              <FormulaTooltip formula={getCascoFormula(p, participants[idx].cascoSqm, projectParams.globalCascoPerM2, projectParams.cascoTvaRate)}>
                 {formatCurrency(p.casco)}
               </FormulaTooltip>
             </p>
             <p className="text-xs text-gray-400">
-              {participants[idx].cascoSqm || p.surface}m² × {projectParams.globalCascoPerM2}€/m² (global)
+              {participants[idx].cascoSqm || p.surface}m² × {projectParams.globalCascoPerM2}€/m² (global){projectParams.cascoTvaRate ? ` + TVA ${projectParams.cascoTvaRate}%` : ''}
             </p>
           </div>
 

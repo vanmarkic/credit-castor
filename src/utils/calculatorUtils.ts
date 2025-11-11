@@ -74,6 +74,7 @@ export interface ProjectParams {
   batimentFondationComplete: number;
   batimentCoproConservatoire: number;
   globalCascoPerM2: number;
+  cascoTvaRate?: number; // TVA percentage for CASCO costs (e.g., 6 or 21)
   expenseCategories?: ExpenseCategories;
 }
 
@@ -105,6 +106,7 @@ export interface ParticipantCalculation extends Participant {
   pricePerM2: number;
   purchaseShare: number;
   notaryFees: number;
+  fraisNotaireFixe: number; // Fixed notary fees: 1000€ per lot (quantity)
   casco: number;
   parachevements: number;
   personalRenovationCost: number; // casco + parachevements (personal renovation)
@@ -246,18 +248,37 @@ export function calculateTravauxCommunsPerUnit(
   return total / numberOfParticipants;
 }
 
+export interface FraisGenerauxBreakdown {
+  totalCasco: number;
+  honoraires: number;
+  recurringYearly: {
+    precompteImmobilier: number;
+    comptable: number;
+    podioAbonnement: number;
+    assuranceBatiment: number;
+    fraisReservation: number;
+    imprevus: number;
+    total: number;
+  };
+  recurringTotal3Years: number;
+  oneTimeCosts: {
+    fraisDossierCredit: number;
+    fraisGestionCredit: number;
+    fraisNotaireBasePartagee: number;
+    total: number;
+  };
+  total: number;
+}
+
 /**
- * Calculate frais généraux 3 ans based on the Excel formula:
- * Honoraires = Total CASCO × 15% × 30% (professional fees)
- * Plus recurring costs over 3 years
- *
- * From Excel: FRAIS GENERAUX sheet, cell C13: ='PRIX TRAVAUX'!E14*0.15*0.3
+ * Get detailed breakdown of frais généraux 3 ans
+ * Returns all subcategories with their amounts for UI display
  */
-export function calculateFraisGeneraux3ans(
+export function getFraisGenerauxBreakdown(
   participants: Participant[],
   projectParams: ProjectParams,
   unitDetails: UnitDetails
-): number {
+): FraisGenerauxBreakdown {
   // Calculate total CASCO costs (not including parachevements or common works)
   let totalCasco = 0;
 
@@ -272,7 +293,8 @@ export function calculateFraisGeneraux3ans(
       projectParams.globalCascoPerM2,
       participant.parachevementsPerM2,
       participant.cascoSqm,
-      participant.parachevementsSqm
+      participant.parachevementsSqm,
+      projectParams.cascoTvaRate || 0
     );
     totalCasco += casco * participant.quantity;
   }
@@ -292,23 +314,55 @@ export function calculateFraisGeneraux3ans(
   const fraisReservation = 2000;
   const imprevus = 2000;
 
+  const recurringYearly = precompteImmobilier + comptable + podioAbonnement +
+                          assuranceBatiment + fraisReservation + imprevus;
+
   // One-time costs (year 1 only)
   const fraisDossierCredit = 500;
   const fraisGestionCredit = 45;
+  const fraisNotaireBasePartagee = 5000; // Shared notary fee base (total, will be divided among participants later)
 
-  // Total recurring costs for 3 years
-  const recurringYearly = precompteImmobilier + comptable + podioAbonnement +
-                          assuranceBatiment + fraisReservation + imprevus;
-  const recurringTotal = recurringYearly * 3;
+  const oneTimeTotal = fraisDossierCredit + fraisGestionCredit + fraisNotaireBasePartagee;
+  const recurringTotal3Years = recurringYearly * 3;
+  const total = honoraires + recurringTotal3Years + oneTimeTotal;
 
-  // One-time costs
-  const oneTimeCosts = fraisDossierCredit + fraisGestionCredit;
+  return {
+    totalCasco,
+    honoraires,
+    recurringYearly: {
+      precompteImmobilier,
+      comptable,
+      podioAbonnement,
+      assuranceBatiment,
+      fraisReservation,
+      imprevus,
+      total: recurringYearly
+    },
+    recurringTotal3Years,
+    oneTimeCosts: {
+      fraisDossierCredit,
+      fraisGestionCredit,
+      fraisNotaireBasePartagee,
+      total: oneTimeTotal
+    },
+    total
+  };
+}
 
-  // Honoraires split over 3 years
-  // (but counted as total in the calculation)
-
-  // Total Frais Généraux 3 ans
-  return honoraires + recurringTotal + oneTimeCosts;
+/**
+ * Calculate frais généraux 3 ans based on the Excel formula:
+ * Honoraires = Total CASCO × 15% × 30% (professional fees)
+ * Plus recurring costs over 3 years
+ *
+ * From Excel: FRAIS GENERAUX sheet, cell C13: ='PRIX TRAVAUX'!E14*0.15*0.3
+ */
+export function calculateFraisGeneraux3ans(
+  participants: Participant[],
+  projectParams: ProjectParams,
+  unitDetails: UnitDetails
+): number {
+  const breakdown = getFraisGenerauxBreakdown(participants, projectParams, unitDetails);
+  return breakdown.total;
 }
 
 /**
@@ -333,6 +387,14 @@ export function calculateNotaryFees(
 }
 
 /**
+ * Calculate fixed notary fees based on number of lots
+ * Fixed at 1000€ per lot (quantity)
+ */
+export function calculateFraisNotaireFixe(quantity: number): number {
+  return quantity * 1000;
+}
+
+/**
  * Calculate CASCO and parachevements for a unit
  */
 export function calculateCascoAndParachevements(
@@ -342,13 +404,19 @@ export function calculateCascoAndParachevements(
   globalCascoPerM2: number,
   parachevementsPerM2?: number,
   cascoSqm?: number,
-  parachevementsSqm?: number
+  parachevementsSqm?: number,
+  cascoTvaRate: number = 0
 ): { casco: number; parachevements: number } {
   const actualCascoSqm = cascoSqm !== undefined ? cascoSqm : surface;
   const actualParachevementsSqm = parachevementsSqm !== undefined ? parachevementsSqm : surface;
 
   // CASCO: Always use global rate
-  const casco = actualCascoSqm * globalCascoPerM2;
+  let casco = actualCascoSqm * globalCascoPerM2;
+
+  // Apply TVA to CASCO costs if rate is specified
+  if (cascoTvaRate > 0) {
+    casco = casco * (1 + cascoTvaRate / 100);
+  }
 
   // Parachevements: Use participant-specific rate or fallback
   let parachevements: number;
@@ -477,6 +545,7 @@ export function calculateFinancingRatio(
 export function calculateTwoLoanFinancing(
   purchaseShare: number,
   notaryFees: number,
+  fraisNotaireFixe: number,
   sharedCosts: number,
   personalRenovationCost: number,
   participant: Participant
@@ -497,7 +566,7 @@ export function calculateTwoLoanFinancing(
 
   // Loan 1: Everything except the renovation going to loan 2
   const loan1RenovationPortion = personalRenovationCost - loan2RenovationAmount;
-  const loan1Amount = Math.max(0, purchaseShare + notaryFees + sharedCosts + loan1RenovationPortion - capitalForLoan1);
+  const loan1Amount = Math.max(0, purchaseShare + notaryFees + fraisNotaireFixe + sharedCosts + loan1RenovationPortion - capitalForLoan1);
 
   // Loan 2: Only the specified renovation amount
   const loan2Amount = Math.max(0, loan2RenovationAmount - capitalForLoan2);
@@ -570,7 +639,8 @@ export function calculateAll(
       projectParams.globalCascoPerM2,
       p.parachevementsPerM2,
       p.cascoSqm,
-      p.parachevementsSqm
+      p.parachevementsSqm,
+      projectParams.cascoTvaRate || 0
     );
 
     // Check if participant is buying a portage lot and adjust construction costs
@@ -590,6 +660,7 @@ export function calculateAll(
 
     const purchaseShare = calculatePurchaseShare(surface, pricePerM2);
     const notaryFees = calculateNotaryFees(purchaseShare, p.notaryFeesRate);
+    const fraisNotaireFixe = calculateFraisNotaireFixe(quantity);
 
     // Since surface is TOTAL, casco and parachevements are already for total surface
     // Only multiply travauxCommunsPerUnit by quantity (shared building costs per unit)
@@ -601,7 +672,7 @@ export function calculateAll(
     const constructionCost = personalRenovationCost + travauxCommunsTotal;
     const constructionCostPerUnit = constructionCost / quantity;
 
-    const totalCost = purchaseShare + notaryFees + constructionCost + sharedPerPerson;
+    const totalCost = purchaseShare + notaryFees + fraisNotaireFixe + constructionCost + sharedPerPerson;
 
     // Two-loan financing or single loan
     let loanNeeded: number;
@@ -621,6 +692,7 @@ export function calculateAll(
       const twoLoanCalc = calculateTwoLoanFinancing(
         purchaseShare,
         notaryFees,
+        fraisNotaireFixe,
         sharedPerPerson,
         personalRenovationCost,
         p
@@ -655,6 +727,7 @@ export function calculateAll(
       pricePerM2,
       purchaseShare,
       notaryFees,
+      fraisNotaireFixe,
       casco,
       parachevements,
       personalRenovationCost,

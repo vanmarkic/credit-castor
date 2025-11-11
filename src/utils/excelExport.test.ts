@@ -151,8 +151,11 @@ describe('Excel Export', () => {
       const p1NotaryFeesFormula = sheetData.cells.find(c => c.row === p1Row && c.col === 'J');
       expect(p1NotaryFeesFormula?.data.formula).toBe(`I${p1Row}*F${p1Row}/100`);
 
-      const p1MonthlyPaymentFormula = sheetData.cells.find(c => c.row === p1Row && c.col === 'R');
-      expect(p1MonthlyPaymentFormula?.data.formula).toBe(`PMT(G${p1Row}/100/12,H${p1Row}*12,Q${p1Row})*-1`);
+      const p1FraisNotaireFixeFormula = sheetData.cells.find(c => c.row === p1Row && c.col === 'K');
+      expect(p1FraisNotaireFixeFormula?.data.formula).toBe(`D${p1Row}*1000`);
+
+      const p1MonthlyPaymentFormula = sheetData.cells.find(c => c.row === p1Row && c.col === 'S');
+      expect(p1MonthlyPaymentFormula?.data.formula).toBe(`PMT(G${p1Row}/100/12,H${p1Row}*12,R${p1Row})*-1`);
     });
 
     it('should include totals row with SUM formulas', () => {

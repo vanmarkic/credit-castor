@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { calculateAll, type Participant, DEFAULT_PORTAGE_FORMULA } from '../utils/calculatorUtils';
 import { exportCalculations } from '../utils/excelExport';
@@ -35,6 +35,12 @@ import { useStoragePersistence } from '../hooks/useStoragePersistence';
 import { downloadScenarioFile, createFileUploadHandler } from '../utils/scenarioFileIO';
 import HorizontalSwimLaneTimeline from './HorizontalSwimLaneTimeline';
 import { updateBuyerWithRecalculatedPrice } from '../utils/portageRecalculation';
+import { UnlockProvider, useUnlock } from '../contexts/UnlockContext';
+import { UnlockButton } from './shared/UnlockButton';
+import toast, { Toaster } from 'react-hot-toast';
+import { usePresenceDetection } from '../hooks/usePresenceDetection';
+import { useChangeNotifications } from '../hooks/useChangeNotifications';
+import { ChangeNotificationToast, PresenceNotificationToast } from './shared/NotificationToast';
 
 interface CoproSnapshot {
   date: Date;
@@ -71,6 +77,62 @@ export default function EnDivisionCorrect() {
 
   // Copropriété modal state
   const [coproSnapshot, setCoproSnapshot] = useState<CoproSnapshot | null>(null);
+
+  // Presence detection and notifications
+  const { unlockedBy } = useUnlock();
+  const { activeUsers } = usePresenceDetection(unlockedBy);
+  const { changes, clearChanges } = useChangeNotifications();
+  const previousActiveUsersRef = useRef<number>(0);
+
+  // Show presence notifications when users join/leave
+  useEffect(() => {
+    const currentCount = activeUsers.length;
+    const previousCount = previousActiveUsersRef.current;
+
+    if (currentCount > previousCount && currentCount > 0) {
+      // New user joined
+      const newUser = activeUsers[currentCount - 1];
+      toast.custom(
+        (t) => (
+          <PresenceNotificationToast
+            user={newUser}
+            action="joined"
+            onDismiss={() => toast.dismiss(t.id)}
+          />
+        ),
+        { duration: 5000, position: 'top-right' }
+      );
+    } else if (currentCount < previousCount) {
+      // User left (don't show notification for this - less important)
+      // Could be uncommented if desired:
+      // toast.info('Un utilisateur a quitté', { duration: 3000 });
+    }
+
+    previousActiveUsersRef.current = currentCount;
+  }, [activeUsers]);
+
+  // Show change notifications
+  useEffect(() => {
+    if (changes.length > 0) {
+      changes.forEach((change) => {
+        toast.custom(
+          (t) => (
+            <ChangeNotificationToast
+              change={change}
+              onReload={() => {
+                window.location.reload();
+                toast.dismiss(t.id);
+              }}
+              onMerge={undefined} // Merge functionality will be added in Phase 3
+              onDismiss={() => toast.dismiss(t.id)}
+            />
+          ),
+          { duration: Infinity, position: 'top-right' } // Don't auto-dismiss
+        );
+      });
+      clearChanges();
+    }
+  }, [changes, clearChanges]);
 
   // Participant operations
   const participantOps = useParticipantOperations();
@@ -313,24 +375,33 @@ export default function EnDivisionCorrect() {
   };
 
   return (
-    <Tooltip.Provider>
-      {/* Version Mismatch Warning Modal */}
-      {versionMismatch.show && (
-        <VersionMismatchWarning
-          storedVersion={versionMismatch.storedVersion}
-          currentVersion={RELEASE_VERSION}
-          onExportAndReset={handleExportAndReset}
-          onDismiss={handleDismissVersionWarning}
-        />
-      )}
+    <UnlockProvider>
+      <Tooltip.Provider>
+        {/* Toast Notifications */}
+        <Toaster />
 
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-100 p-6">
-      <div className="max-w-7xl mx-auto">
+        {/* Version Mismatch Warning Modal */}
+        {versionMismatch.show && (
+          <VersionMismatchWarning
+            storedVersion={versionMismatch.storedVersion}
+            currentVersion={RELEASE_VERSION}
+            onExportAndReset={handleExportAndReset}
+            onDismiss={handleDismissVersionWarning}
+          />
+        )}
 
-        <ProjectHeader
-          calculations={calculations}
-          participants={participants}
-        />
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-100 p-6">
+          {/* Floating Unlock Button */}
+          <div className="fixed top-6 left-6 z-40">
+            <UnlockButton />
+          </div>
+
+          <div className="max-w-7xl mx-auto">
+
+            <ProjectHeader
+              calculations={calculations}
+              participants={participants}
+            />
 
         <VerticalToolbar
           onDownloadScenario={downloadScenario}
@@ -406,6 +477,8 @@ export default function EnDivisionCorrect() {
                 projectParams={projectParams}
                 sharedCosts={calculations.sharedCosts}
                 onUpdateProjectParams={setProjectParams}
+                participants={participants}
+                unitDetails={unitDetails}
               />
             )}
 
@@ -584,9 +657,10 @@ export default function EnDivisionCorrect() {
             deedDate={new Date(deedDate)}
             formulaParams={portageFormula}
           />
+          </div>
         </div>
-      </div>
-      </div>
-    </Tooltip.Provider>
+        </div>
+      </Tooltip.Provider>
+    </UnlockProvider>
   );
 }

@@ -12,7 +12,7 @@ import type { PortageLotPrice } from './portageCalculations';
 export function getTotalCostFormula(p: ParticipantCalculation): string[] {
   return [
     "Coût total pour ce participant",
-    `Achat €${p.purchaseShare.toLocaleString()} + Notaire €${p.notaryFees.toLocaleString()} + Construction €${p.constructionCost.toLocaleString()} + Commun €${p.sharedCosts.toLocaleString()}`
+    `Achat €${p.purchaseShare.toLocaleString()} + Droit enreg. €${p.notaryFees.toLocaleString()} + Frais notaire €${p.fraisNotaireFixe.toLocaleString()} + Construction €${p.constructionCost.toLocaleString()} + Commun €${p.sharedCosts.toLocaleString()}`
   ];
 }
 
@@ -27,12 +27,22 @@ export function getPurchaseShareFormula(p: ParticipantCalculation, pricePerM2: n
 }
 
 /**
- * Get formula explanation for notary fees calculation
+ * Get formula explanation for registration fees (droit d'enregistrements) calculation
  */
 export function getNotaryFeesFormula(p: ParticipantCalculation): string[] {
   return [
-    "Frais de notaire belges pour le transfert",
+    "Droit d'enregistrements belge pour le transfert",
     `€${p.purchaseShare.toLocaleString()} achat × ${p.notaryFeesRate}% taux = €${p.notaryFees.toLocaleString()}`
+  ];
+}
+
+/**
+ * Get formula explanation for fixed notary fees calculation
+ */
+export function getFraisNotaireFixeFormula(p: ParticipantCalculation): string[] {
+  return [
+    "Frais de notaire fixes",
+    `${p.quantity} lot${p.quantity > 1 ? 's' : ''} × €1,000 = €${p.fraisNotaireFixe.toLocaleString()}`
   ];
 }
 
@@ -124,8 +134,19 @@ export function getTotalLoansFormula(): string[] {
 /**
  * Get formula explanation for CASCO (structural work) cost
  */
-export function getCascoFormula(p: ParticipantCalculation, cascoSqm: number | undefined, globalCascoPerM2: number): string[] {
+export function getCascoFormula(p: ParticipantCalculation, cascoSqm: number | undefined, globalCascoPerM2: number, cascoTvaRate?: number): string[] {
   const sqm = cascoSqm ?? p.surface;
+  const baseCost = sqm * globalCascoPerM2;
+  const tvaRate = cascoTvaRate ?? 0;
+
+  if (tvaRate > 0) {
+    return [
+      "Coût CASCO (gros œuvre) avec TVA",
+      `${sqm}m² × €${globalCascoPerM2}/m² = €${baseCost.toLocaleString()} HT`,
+      `+ TVA ${tvaRate}% = €${p.casco.toLocaleString()} TTC`
+    ];
+  }
+
   return [
     "Coût CASCO (gros œuvre)",
     `${sqm}m² × €${globalCascoPerM2}/m² = €${p.casco.toLocaleString()}`

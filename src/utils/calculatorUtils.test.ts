@@ -7,6 +7,7 @@ import {
   calculateTravauxCommunsPerUnit,
   calculatePurchaseShare,
   calculateNotaryFees,
+  calculateFraisNotaireFixe,
   calculateCascoAndParachevements,
   calculateConstructionCost,
   calculateLoanAmount,
@@ -14,6 +15,7 @@ import {
   calculateTotalInterest,
   calculateFinancingRatio,
   calculateFraisGeneraux3ans,
+  getFraisGenerauxBreakdown,
   calculateTwoLoanFinancing,
   calculateAll,
   type Participant,
@@ -189,10 +191,10 @@ describe('Calculator Utils', () => {
       // Total CASCO = 178080 + 213060 + 187620 + 171720 + 368900 (common works) = 1,119,380
       // Honoraires = 1,119,380 × 0.15 × 0.30 = 50,371.80
       // Recurring costs = 7,988.38 × 3 years = 23,965.14
-      // One-time costs = 545
-      // Total = 50,371.80 + 23,965.14 + 545 = 74,881.94 (but actual is 74,882.24 due to rounding)
+      // One-time costs = 545 + 5,000 (shared notary fee base) = 5,545
+      // Total = 50,371.80 + 23,965.14 + 5,545 = 79,881.94 (but actual is 79,882.24 due to rounding)
       const result = calculateFraisGeneraux3ans(participants, projectParams, unitDetails);
-      expect(result).toBeCloseTo(74882.24, 2);
+      expect(result).toBeCloseTo(79882.24, 2);
     });
 
     it('should handle single participant', () => {
@@ -207,10 +209,10 @@ describe('Calculator Utils', () => {
       // Total CASCO = 178080 + 368900 (common works) = 546,980
       // Honoraires = 546,980 × 0.15 × 0.30 = 24,614.10
       // Recurring costs = 7,988.38 × 3 years = 23,965.14
-      // One-time costs = 545
-      // Total = 24,614.10 + 23,965.14 + 545 = 49,124.24
+      // One-time costs = 545 + 5,000 (shared notary fee base) = 5,545
+      // Total = 24,614.10 + 23,965.14 + 5,545 = 54,124.24
       const result = calculateFraisGeneraux3ans(participants, projectParams, singleUnitDetails);
-      expect(result).toBeCloseTo(49124.24, 2);
+      expect(result).toBeCloseTo(54124.24, 2);
     });
 
     it('should handle multiple units for same participant', () => {
@@ -225,10 +227,27 @@ describe('Calculator Utils', () => {
       // Total CASCO = (178080 × 2) + 368900 (common works) = 725,060
       // Honoraires = 725,060 × 0.15 × 0.30 = 32,627.70
       // Recurring costs = 7,988.38 × 3 years = 23,965.14
-      // One-time costs = 545
-      // Total = 32,627.70 + 23,965.14 + 545 = 57,137.84
+      // One-time costs = 545 + 5,000 (shared notary fee base) = 5,545
+      // Total = 32,627.70 + 23,965.14 + 5,545 = 62,137.84
       const result = calculateFraisGeneraux3ans(participants, projectParams, unitDetails);
-      expect(result).toBeCloseTo(57137.84, 2);
+      expect(result).toBeCloseTo(62137.84, 2);
+    });
+
+    it('should include shared notary fee base of €5,000', () => {
+      const participants: Participant[] = [
+        { name: 'A', surface: 112, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'B', surface: 134, capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, interestRate: 4.5, durationYears: 25, quantity: 1 },
+      ];
+
+      // Calculate expected result:
+      // Total CASCO = 178080 + 213060 + 368900 (common works) = 760,040
+      // Honoraires = 760,040 × 0.15 × 0.30 = 34,201.80
+      // Recurring costs = 7,988.38 × 3 years = 23,965.14
+      // One-time costs = 545
+      // Shared notary fee base = 5,000
+      // Total = 34,201.80 + 23,965.14 + 545 + 5,000 = 63,711.94
+      const result = calculateFraisGeneraux3ans(participants, projectParams, unitDetails);
+      expect(result).toBeCloseTo(63711.94, 2);
     });
 
     it('should match Excel formula components exactly (verification test)', () => {
@@ -272,7 +291,7 @@ describe('Calculator Utils', () => {
       const recurringTotal = recurringYearly * 3; // 23,965.14
 
       // One-time costs
-      const oneTime = 500 + 45; // 545
+      const oneTime = 500 + 45 + 5000; // 545 + 5,000 (shared notary fee base) = 5,545
 
       const expected = honoraires + recurringTotal + oneTime;
 
@@ -281,6 +300,125 @@ describe('Calculator Utils', () => {
       // Verify honoraires is exactly 4.5% of total CASCO (15% × 30%)
       expect(honoraires).toBeCloseTo(totalCasco * 0.045, 2);
       expect(honoraires).toBe(18000); // Exact for round numbers
+    });
+  });
+
+  describe('getFraisGenerauxBreakdown', () => {
+    const unitDetails: UnitDetails = {
+      1: { casco: 178080, parachevements: 56000 },
+      3: { casco: 213060, parachevements: 67000 },
+    };
+
+    const projectParams: ProjectParams = {
+      totalPurchase: 650000,
+      mesuresConservatoires: 20000,
+      demolition: 40000,
+      infrastructures: 90000,
+      etudesPreparatoires: 59820,
+      fraisEtudesPreparatoires: 27320,
+      fraisGeneraux3ans: 0,
+      batimentFondationConservatoire: 43700,
+      batimentFondationComplete: 269200,
+      batimentCoproConservatoire: 56000,
+      globalCascoPerM2: 1590
+    };
+
+    it('should return detailed breakdown with all subcategories', () => {
+      const participants: Participant[] = [
+        { name: 'A', surface: 112, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'B', surface: 134, capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, interestRate: 4.5, durationYears: 25, quantity: 1 },
+      ];
+
+      const result = getFraisGenerauxBreakdown(participants, projectParams, unitDetails);
+
+      // Verify structure
+      expect(result).toHaveProperty('totalCasco');
+      expect(result).toHaveProperty('honoraires');
+      expect(result).toHaveProperty('recurringYearly');
+      expect(result).toHaveProperty('recurringTotal3Years');
+      expect(result).toHaveProperty('oneTimeCosts');
+      expect(result).toHaveProperty('total');
+
+      // Verify recurring yearly breakdown
+      expect(result.recurringYearly.precompteImmobilier).toBe(388.38);
+      expect(result.recurringYearly.comptable).toBe(1000);
+      expect(result.recurringYearly.podioAbonnement).toBe(600);
+      expect(result.recurringYearly.assuranceBatiment).toBe(2000);
+      expect(result.recurringYearly.fraisReservation).toBe(2000);
+      expect(result.recurringYearly.imprevus).toBe(2000);
+
+      // Verify one-time costs
+      expect(result.oneTimeCosts.fraisDossierCredit).toBe(500);
+      expect(result.oneTimeCosts.fraisGestionCredit).toBe(45);
+      expect(result.oneTimeCosts.fraisNotaireBasePartagee).toBe(5000);
+    });
+
+    it('should calculate correct amounts for honoraires', () => {
+      const participants: Participant[] = [
+        { name: 'A', surface: 112, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'B', surface: 134, capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, interestRate: 4.5, durationYears: 25, quantity: 1 },
+      ];
+
+      const result = getFraisGenerauxBreakdown(participants, projectParams, unitDetails);
+
+      // Total CASCO = 178080 + 213060 + 368900 (common works) = 760,040
+      const expectedTotalCasco = 178080 + 213060 + 43700 + 269200 + 56000;
+      expect(result.totalCasco).toBeCloseTo(expectedTotalCasco, 2);
+
+      // Honoraires = Total CASCO × 15% × 30%
+      const expectedHonoraires = expectedTotalCasco * 0.15 * 0.30;
+      expect(result.honoraires).toBeCloseTo(expectedHonoraires, 2);
+    });
+
+    it('should calculate correct recurring costs totals', () => {
+      const participants: Participant[] = [
+        { name: 'A', surface: 112, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
+      ];
+
+      const result = getFraisGenerauxBreakdown(participants, projectParams, unitDetails);
+
+      // Yearly total
+      const expectedYearlyTotal = 388.38 + 1000 + 600 + 2000 + 2000 + 2000;
+      expect(result.recurringYearly.total).toBeCloseTo(expectedYearlyTotal, 2);
+
+      // 3-year total
+      expect(result.recurringTotal3Years).toBeCloseTo(expectedYearlyTotal * 3, 2);
+    });
+
+    it('should calculate correct one-time costs total', () => {
+      const participants: Participant[] = [
+        { name: 'A', surface: 112, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
+      ];
+
+      const result = getFraisGenerauxBreakdown(participants, projectParams, unitDetails);
+
+      const expectedOneTimeTotal = 500 + 45 + 5000;
+      expect(result.oneTimeCosts.total).toBe(expectedOneTimeTotal);
+    });
+
+    it('should calculate correct grand total', () => {
+      const participants: Participant[] = [
+        { name: 'A', surface: 112, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'B', surface: 134, capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, interestRate: 4.5, durationYears: 25, quantity: 1 },
+      ];
+
+      const result = getFraisGenerauxBreakdown(participants, projectParams, unitDetails);
+
+      const expectedTotal = result.honoraires + result.recurringTotal3Years + result.oneTimeCosts.total;
+      expect(result.total).toBeCloseTo(expectedTotal, 2);
+    });
+
+    it('should match calculateFraisGeneraux3ans result', () => {
+      const participants: Participant[] = [
+        { name: 'A', surface: 112, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'B', surface: 134, capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, interestRate: 4.5, durationYears: 25, quantity: 1 },
+      ];
+
+      const breakdown = getFraisGenerauxBreakdown(participants, projectParams, unitDetails);
+      const directCalculation = calculateFraisGeneraux3ans(participants, projectParams, unitDetails);
+
+      // Should return the same total
+      expect(breakdown.total).toBeCloseTo(directCalculation, 2);
     });
   });
 
@@ -390,6 +528,23 @@ describe('Calculator Utils', () => {
     });
   });
 
+  describe('calculateFraisNotaireFixe', () => {
+    it('should calculate fixed notary fees for 1 lot', () => {
+      const result = calculateFraisNotaireFixe(1);
+      expect(result).toBe(1000);
+    });
+
+    it('should calculate fixed notary fees for 2 lots', () => {
+      const result = calculateFraisNotaireFixe(2);
+      expect(result).toBe(2000);
+    });
+
+    it('should calculate fixed notary fees for 5 lots', () => {
+      const result = calculateFraisNotaireFixe(5);
+      expect(result).toBe(5000);
+    });
+  });
+
   describe('calculateCascoAndParachevements', () => {
     const unitDetails: UnitDetails = {
       1: { casco: 178080, parachevements: 56000 },
@@ -470,6 +625,53 @@ describe('Calculator Utils', () => {
       const result = calculateCascoAndParachevements(99, 100, {}, 1590, undefined, undefined, undefined);
       // Global rate with full surface: 100 × 1590 = 159000, 100 × 500 = 50000 (default parachevements)
       expect(result).toEqual({ casco: 159000, parachevements: 50000 });
+    });
+
+    describe('TVA (VAT) calculation', () => {
+      it('should apply 6% TVA to CASCO costs', () => {
+        // 100m² × 1590€/m² = 159000€ base
+        // With 6% TVA: 159000 × 1.06 = 168540€
+        const result = calculateCascoAndParachevements(99, 100, {}, 1590, undefined, undefined, undefined, 6);
+        expect(result.casco).toBe(168540);
+        expect(result.parachevements).toBe(50000); // TVA not applied to parachevements
+      });
+
+      it('should apply 21% TVA to CASCO costs', () => {
+        // 100m² × 1590€/m² = 159000€ base
+        // With 21% TVA: 159000 × 1.21 = 192390€
+        const result = calculateCascoAndParachevements(99, 100, {}, 1590, undefined, undefined, undefined, 21);
+        expect(result.casco).toBe(192390);
+        expect(result.parachevements).toBe(50000); // TVA not applied to parachevements
+      });
+
+      it('should not apply TVA when rate is 0', () => {
+        const result = calculateCascoAndParachevements(99, 100, {}, 1590, undefined, undefined, undefined, 0);
+        expect(result.casco).toBe(159000); // No TVA applied
+        expect(result.parachevements).toBe(50000);
+      });
+
+      it('should apply TVA to predefined unit costs', () => {
+        // Unit 1: casco = 178080€ base
+        // With 6% TVA: 178080 × 1.06 = 188764.8€
+        const result = calculateCascoAndParachevements(1, 112, unitDetails, 1590, undefined, undefined, undefined, 6);
+        expect(result.casco).toBeCloseTo(188764.8, 1);
+        expect(result.parachevements).toBe(56000);
+      });
+
+      it('should apply TVA to custom CASCO surface calculations', () => {
+        // 70m² × 1590€/m² = 111300€ base
+        // With 6% TVA: 111300 × 1.06 = 117978€
+        const result = calculateCascoAndParachevements(99, 100, {}, 1590, undefined, 70, 60, 6);
+        expect(result.casco).toBe(117978);
+        expect(result.parachevements).toBe(30000);
+      });
+
+      it('should default to 0% TVA when parameter not provided (backward compatibility)', () => {
+        // Maintain backward compatibility - no TVA when parameter omitted
+        const result = calculateCascoAndParachevements(99, 100, {}, 1590);
+        expect(result.casco).toBe(159000); // No TVA
+        expect(result.parachevements).toBe(50000);
+      });
     });
   });
 
@@ -771,10 +973,10 @@ describe('Calculator Utils', () => {
       // Verify totals
       expect(results.totalSurface).toBe(472);
       expect(results.pricePerM2).toBeCloseTo(1377.12, 2);
-      // Dynamic fraisGeneraux3ans = 74,881.94 (Honoraires + recurring costs)
-      // New shared costs = 20000 + 40000 + 90000 + 59820 + 27320 + 74881.94 = 312,021.94
-      expect(results.sharedCosts).toBeCloseTo(312022.24, 2);
-      expect(results.sharedPerPerson).toBeCloseTo(78005.56, 2);
+      // Dynamic fraisGeneraux3ans = 79,882.24 (Honoraires + recurring costs + shared notary fee)
+      // New shared costs = 20000 + 40000 + 90000 + 59820 + 27320 + 79882.24 = 317,022.24
+      expect(results.sharedCosts).toBeCloseTo(317022.24, 2);
+      expect(results.sharedPerPerson).toBeCloseTo(79255.56, 2);
 
       // Verify global totals
       expect(results.totals.purchase).toBe(650000);
@@ -789,11 +991,12 @@ describe('Calculator Utils', () => {
       expect(p1.purchaseShare).toBeCloseTo(154237.29, 1);
       expect(p1.notaryFees).toBeCloseTo(19279.66, 1);
       expect(p1.constructionCost).toBe(326305);
-      // totalCost = purchaseShare + notaryFees + constructionCost + sharedPerPerson
-      // = 154237.29 + 19279.66 + 326305 + 78005.56 = 577,827.51
-      expect(p1.totalCost).toBeCloseTo(577827.51, 1);
-      expect(p1.loanNeeded).toBeCloseTo(527827.51, 1);
-      expect(p1.monthlyPayment).toBeCloseTo(2933.84, 1);
+      // totalCost = purchaseShare + notaryFees + fraisNotaireFixe + constructionCost + sharedPerPerson
+      // = 154237.29 + 19279.66 + 1000 + 326305 + 79255.56 = 580,077.51
+      expect(p1.totalCost).toBeCloseTo(580077.51, 1);
+      expect(p1.loanNeeded).toBeCloseTo(530077.51, 1);
+      // Monthly payment increased due to higher shared costs (includes +€5,000 shared notary fee)
+      expect(p1.monthlyPayment).toBeCloseTo(2946.36, 1);
 
       // Verify total cost matches sum of components
       const expectedTotalCost = results.totals.purchase +
@@ -1161,16 +1364,19 @@ describe('calculateTwoLoanFinancing', () => {
     const sharedCosts = 50000;
     const personalRenovationCost = 150000; // casco + parachevements
 
+    const fraisNotaireFixe = 1000; // 1 lot * 1000€
+
     const result = calculateTwoLoanFinancing(
       purchaseShare,
       notaryFees,
+      fraisNotaireFixe,
       sharedCosts,
       personalRenovationCost,
       participant
     );
 
-    // Loan 1: 200k + 25k + 50k + 50k (renovation not in loan2) - 50k (capital) = 275k
-    expect(result.loan1Amount).toBe(275000);
+    // Loan 1: 200k + 25k + 1k + 50k + 50k (renovation not in loan2) - 50k (capital) = 276k
+    expect(result.loan1Amount).toBe(276000);
 
     // Loan 2: 100k - 50k (capital) = 50k
     expect(result.loan2Amount).toBe(50000);
@@ -1200,10 +1406,10 @@ describe('calculateTwoLoanFinancing', () => {
       capitalForLoan2: 0,
     };
 
-    const result = calculateTwoLoanFinancing(200000, 25000, 50000, 150000, participant);
+    const result = calculateTwoLoanFinancing(200000, 25000, 1000, 50000, 150000, participant);
 
     // All renovation in loan 1
-    expect(result.loan1Amount).toBe(325000); // 200k+25k+50k+150k-100k
+    expect(result.loan1Amount).toBe(326000); // 200k+25k+1k+50k+150k-100k
     expect(result.loan2Amount).toBe(0);
     expect(result.loan2MonthlyPayment).toBe(0);
     expect(result.loan2Interest).toBe(0);
@@ -1222,7 +1428,7 @@ describe('calculateTwoLoanFinancing', () => {
       capitalForLoan2: 0,
     };
 
-    const result = calculateTwoLoanFinancing(100000, 12500, 25000, 75000, participant);
+    const result = calculateTwoLoanFinancing(100000, 12500, 1000, 25000, 75000, participant);
 
     expect(result.loan2DurationYears).toBe(18); // 20 - 2
   });

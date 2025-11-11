@@ -10,6 +10,7 @@ interface ExpenseCategorySectionProps {
   onItemLabelChange: (index: number, label: string) => void;
   onAddItem: () => void;
   onRemoveItem: (index: number) => void;
+  disabled?: boolean;
 }
 
 export function ExpenseCategorySection({
@@ -18,7 +19,8 @@ export function ExpenseCategorySection({
   onItemChange,
   onItemLabelChange,
   onAddItem,
-  onRemoveItem
+  onRemoveItem,
+  disabled = false
 }: ExpenseCategorySectionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const total = items.reduce((sum, item) => sum + item.amount, 0);
@@ -49,7 +51,8 @@ export function ExpenseCategorySection({
                 value={item.label}
                 onChange={(e) => onItemLabelChange(index, e.target.value)}
                 onClick={(e) => e.stopPropagation()}
-                className="px-3 py-2 text-xs border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white"
+                disabled={disabled}
+                className={`px-3 py-2 text-xs border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white ${disabled ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''}`}
                 placeholder="Label"
               />
               <input
@@ -58,14 +61,16 @@ export function ExpenseCategorySection({
                 value={item.amount}
                 onChange={(e) => onItemChange(index, parseFloat(e.target.value) || 0)}
                 onClick={(e) => e.stopPropagation()}
-                className="w-32 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white"
+                disabled={disabled}
+                className={`w-32 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white ${disabled ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''}`}
               />
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   onRemoveItem(index);
                 }}
-                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                disabled={disabled}
+                className={`p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
                 title="Supprimer"
               >
                 <X className="w-4 h-4" />
@@ -79,7 +84,8 @@ export function ExpenseCategorySection({
               e.stopPropagation();
               onAddItem();
             }}
-            className="w-full mt-2 flex items-center justify-center gap-2 px-3 py-2 text-sm text-purple-700 border border-purple-300 rounded-lg hover:bg-purple-50 transition-colors"
+            disabled={disabled}
+            className={`w-full mt-2 flex items-center justify-center gap-2 px-3 py-2 text-sm text-purple-700 border border-purple-300 rounded-lg hover:bg-purple-50 transition-colors ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
           >
             <Plus className="w-4 h-4" />
             Ajouter une ligne

@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PortageFormulaConfig from './PortageFormulaConfig';
 import type { PortageFormulaParams } from '../utils/calculatorUtils';
+import { UnlockProvider } from '../contexts/UnlockContext';
 
 describe('PortageFormulaConfig', () => {
   it('should render formula parameters inputs', async () => {
@@ -15,11 +16,13 @@ describe('PortageFormulaConfig', () => {
     };
 
     render(
-      <PortageFormulaConfig
-        formulaParams={params}
-        onUpdateParams={() => {}}
-        deedDate={new Date('2023-01-01')}
-      />
+      <UnlockProvider>
+        <PortageFormulaConfig
+          formulaParams={params}
+          onUpdateParams={() => {}}
+          deedDate={new Date('2023-01-01')}
+        />
+      </UnlockProvider>
     );
 
     expect(screen.getByText(/Configuration Formule de Portage/i)).toBeInTheDocument();
@@ -43,12 +46,22 @@ describe('PortageFormulaConfig', () => {
       coproReservesShare: 30
     };
 
+    // Mock localStorage to have unlocked state
+    const unlockState = {
+      isUnlocked: true,
+      unlockedBy: 'test@example.com',
+      unlockedAt: new Date().toISOString(),
+    };
+    localStorage.setItem('credit-castor-unlock-state', JSON.stringify(unlockState));
+
     render(
-      <PortageFormulaConfig
-        formulaParams={params}
-        onUpdateParams={mockUpdate}
-        deedDate={new Date('2023-01-01')}
-      />
+      <UnlockProvider>
+        <PortageFormulaConfig
+          formulaParams={params}
+          onUpdateParams={mockUpdate}
+          deedDate={new Date('2023-01-01')}
+        />
+      </UnlockProvider>
     );
 
     // Expand the component to see the inputs
@@ -56,6 +69,9 @@ describe('PortageFormulaConfig', () => {
     await user.click(expandButton);
 
     const input = screen.getByLabelText(/Taux d'indexation annuel/i) as HTMLInputElement;
+
+    // Verify input is not disabled
+    expect(input).not.toBeDisabled();
 
     // Select all text and replace with new value
     await user.tripleClick(input);

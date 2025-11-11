@@ -86,6 +86,7 @@ export const DEFAULT_PROJECT_PARAMS = {
   batimentFondationComplete: 0,
   batimentCoproConservatoire: 0,
   globalCascoPerM2: 1590,
+  cascoTvaRate: 6, // 6% TVA for renovation of buildings >10 years (Belgium)
   expenseCategories: {
     conservatoire: [
       { label: 'Traitement Mérule', amount: 40000 },
@@ -203,6 +204,11 @@ export const loadFromLocalStorage = () => {
         if (result.projectParams && !result.projectParams.globalCascoPerM2) {
           result.projectParams.globalCascoPerM2 =
             result.participants?.[0]?.cascoPerM2 || 1590;
+        }
+
+        // Migration: If no cascoTvaRate, use default 6%
+        if (result.projectParams && result.projectParams.cascoTvaRate === undefined) {
+          result.projectParams.cascoTvaRate = 6;
         }
 
         // Clean up old participant cascoPerM2 fields

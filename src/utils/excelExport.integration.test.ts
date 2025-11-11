@@ -109,10 +109,10 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
     expect(sheetData.cells.find(c => c.row === p1Row && c.col === 'H')?.data.value).toBe(25);
 
     // Overrides (NEW - were missing before)
-    expect(sheetData.cells.find(c => c.row === p1Row && c.col === 'U')?.data.value).toBe(1590); // globalCascoPerM2
-    expect(sheetData.cells.find(c => c.row === p1Row && c.col === 'V')?.data.value).toBe(600); // parachevementsPerM2
-    expect(sheetData.cells.find(c => c.row === p1Row && c.col === 'W')?.data.value).toBe(100); // cascoSqm
-    expect(sheetData.cells.find(c => c.row === p1Row && c.col === 'X')?.data.value).toBe(110); // parachevementsSqm
+    expect(sheetData.cells.find(c => c.row === p1Row && c.col === 'V')?.data.value).toBe(1590); // globalCascoPerM2
+    expect(sheetData.cells.find(c => c.row === p1Row && c.col === 'W')?.data.value).toBe(600); // parachevementsPerM2
+    expect(sheetData.cells.find(c => c.row === p1Row && c.col === 'X')?.data.value).toBe(100); // cascoSqm
+    expect(sheetData.cells.find(c => c.row === p1Row && c.col === 'Y')?.data.value).toBe(110); // parachevementsSqm
   });
 
   it('should export all calculated values shown in UI', () => {
@@ -123,11 +123,11 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
     const p1Calc = calculations.participantBreakdown[0];
 
     // Verify all calculated fields match
-    expect(sheetData.cells.find(c => c.row === p1Row && c.col === 'K')?.data.value).toBe(p1Calc.casco);
-    expect(sheetData.cells.find(c => c.row === p1Row && c.col === 'L')?.data.value).toBe(p1Calc.parachevements);
+    expect(sheetData.cells.find(c => c.row === p1Row && c.col === 'L')?.data.value).toBe(p1Calc.casco);
+    expect(sheetData.cells.find(c => c.row === p1Row && c.col === 'M')?.data.value).toBe(p1Calc.parachevements);
 
     // Personal renovation cost (NEW - was missing before)
-    expect(sheetData.cells.find(c => c.row === p1Row && c.col === 'T')?.data.value).toBe(p1Calc.personalRenovationCost);
+    expect(sheetData.cells.find(c => c.row === p1Row && c.col === 'U')?.data.value).toBe(p1Calc.personalRenovationCost);
   });
 
   it('should export all project parameters from UI', () => {
@@ -252,7 +252,7 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
     const p1Row = sheetData.cells.find(c => c.data.value === 'Test Participant 1')!.row;
 
     // Verify lots details are exported
-    const lotsCell = sheetData.cells.find(c => c.row === p1Row && c.col === 'AA');
+    const lotsCell = sheetData.cells.find(c => c.row === p1Row && c.col === 'AB');
     expect(lotsCell).toBeDefined();
     expect(lotsCell?.data.value).toContain('Lot 1');
     expect(lotsCell?.data.value).toContain('Lot 2 (portage)');
@@ -267,11 +267,11 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
     const p1Row = sheetData.cells.find(c => c.data.value === 'Test Participant 1')!.row;
 
     // Verify founder status
-    const founderCell = sheetData.cells.find(c => c.row === p1Row && c.col === 'Y');
+    const founderCell = sheetData.cells.find(c => c.row === p1Row && c.col === 'Z');
     expect(founderCell?.data.value).toBe('Oui');
 
     // Verify entry date
-    const entryDateCell = sheetData.cells.find(c => c.row === p1Row && c.col === 'Z');
+    const entryDateCell = sheetData.cells.find(c => c.row === p1Row && c.col === 'AA');
     expect(entryDateCell?.data.value).toBe('15/01/2024');
   });
 
@@ -295,11 +295,11 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
     const p2Row = sheetData.cells.find(c => c.data.value === 'Test Participant 2')!.row;
 
     // Verify purchase details
-    const acheteDeCell = sheetData.cells.find(c => c.row === p2Row && c.col === 'AC');
+    const acheteDeCell = sheetData.cells.find(c => c.row === p2Row && c.col === 'AD');
     expect(acheteDeCell?.data.value).toBe('Test Participant 1');
 
     // Verify founder status
-    const founderCell = sheetData.cells.find(c => c.row === p2Row && c.col === 'Y');
+    const founderCell = sheetData.cells.find(c => c.row === p2Row && c.col === 'Z');
     expect(founderCell?.data.value).toBe('Non');
   });
 });

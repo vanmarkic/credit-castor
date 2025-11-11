@@ -135,10 +135,10 @@ export function buildExportSheetData(
   addCell(decompRow + 1, 'B', null, 'B5');
 
   const participantStartRow = decompRow + 6;
-  addCell(decompRow + 2, 'A', 'Frais de Notaire');
-  addCell(decompRow + 2, 'B', null, `SUM(J${participantStartRow}:J${participantStartRow - 1 + participants.length})`);
+  addCell(decompRow + 2, 'A', 'Droit enreg. + Frais notaire');
+  addCell(decompRow + 2, 'B', null, `SUM(J${participantStartRow}:K${participantStartRow - 1 + participants.length})`);
   addCell(decompRow + 3, 'A', 'Construction');
-  addCell(decompRow + 3, 'B', null, `SUM(M${participantStartRow}:M${participantStartRow - 1 + participants.length})`);
+  addCell(decompRow + 3, 'B', null, `SUM(O${participantStartRow}:O${participantStartRow - 1 + participants.length})`);
   addCell(decompRow + 4, 'A', 'Commun Infrastructure');
   addCell(decompRow + 4, 'B', null, `B${expenseCategoryEndRow}`);
   addCell(decompRow + 5, 'A', 'TOTAL PROJET');
@@ -147,13 +147,13 @@ export function buildExportSheetData(
   // Participant detail header
   const headerRow = participantStartRow - 1;
   const headers = ['Nom', 'Unite', 'Surface', 'Qty', 'Capital', 'Taux notaire', 'Taux interet', 'Duree (ans)',
-                   'Part achat', 'Frais notaire', 'CASCO', 'Parachevements', 'Travaux communs',
+                   'Part achat', 'Droit enreg.', 'Frais notaire', 'CASCO', 'Parachevements', 'Travaux communs',
                    'Construction', 'Commun', 'TOTAL', 'Emprunt', 'Mensualite', 'Total rembourse',
                    'Reno perso', 'CASCO m2', 'Parachev m2', 'CASCO sqm', 'Parachev sqm',
                    'Fondateur', 'Date entree', 'Lots detenus', 'Date vente lot', 'Achete de', 'Lot ID achete', 'Prix achat lot',
                    '2 prets', 'Pret1 montant', 'Pret1 mens', 'Pret2 montant', 'Pret2 mens', 'Pret2 duree',
                    'Porteur paie CASCO', 'Porteur paie Parachev'];
-  const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH', 'AI', 'AJ', 'AK', 'AL', 'AM'];
+  const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH', 'AI', 'AJ', 'AK', 'AL', 'AM', 'AN'];
 
   headers.forEach((header, idx) => {
     addCell(headerRow, cols[idx], header);
@@ -171,65 +171,66 @@ export function buildExportSheetData(
     addCell(r, 'G', p.interestRate);
     addCell(r, 'H', p.durationYears);
     addCell(r, 'I', null, `C${r}*$B$7`);
-    addCell(r, 'J', null, `I${r}*F${r}/100`);
-    addCell(r, 'K', p.casco);
-    addCell(r, 'L', p.parachevements);
-    addCell(r, 'M', null, `$B$${travauxRow + 5}`);
-    addCell(r, 'N', null, `(K${r}+L${r})+M${r}*D${r}`);
-    addCell(r, 'O', null, `$B$${expenseCategoryEndRow + 1}`);
-    addCell(r, 'P', null, `I${r}+J${r}+N${r}+O${r}`);
-    addCell(r, 'Q', null, `P${r}-E${r}`);
-    addCell(r, 'R', null, `PMT(G${r}/100/12,H${r}*12,Q${r})*-1`);
-    addCell(r, 'S', null, `R${r}*H${r}*12`);
+    addCell(r, 'J', null, `I${r}*F${r}/100`); // Droit d'enregistrements
+    addCell(r, 'K', null, `D${r}*1000`); // Frais notaire fixe (1000€ per lot)
+    addCell(r, 'L', p.casco);
+    addCell(r, 'M', p.parachevements);
+    addCell(r, 'N', null, `$B$${travauxRow + 5}`);
+    addCell(r, 'O', null, `(L${r}+M${r})+N${r}*D${r}`);
+    addCell(r, 'P', null, `$B$${expenseCategoryEndRow + 1}`);
+    addCell(r, 'Q', null, `I${r}+J${r}+K${r}+O${r}+P${r}`);
+    addCell(r, 'R', null, `Q${r}-E${r}`);
+    addCell(r, 'S', null, `PMT(G${r}/100/12,H${r}*12,R${r})*-1`);
+    addCell(r, 'T', null, `S${r}*H${r}*12`);
     // Additional columns for overrides
-    addCell(r, 'T', p.personalRenovationCost);
-    addCell(r, 'U', projectParams.globalCascoPerM2);
-    addCell(r, 'V', p.parachevementsPerM2);
-    addCell(r, 'W', p.cascoSqm);
-    addCell(r, 'X', p.parachevementsSqm);
+    addCell(r, 'U', p.personalRenovationCost);
+    addCell(r, 'V', projectParams.globalCascoPerM2);
+    addCell(r, 'W', p.parachevementsPerM2);
+    addCell(r, 'X', p.cascoSqm);
+    addCell(r, 'Y', p.parachevementsSqm);
 
     // Timeline fields
-    addCell(r, 'Y', p.isFounder ? 'Oui' : 'Non');
-    addCell(r, 'Z', p.entryDate ? new Date(p.entryDate).toLocaleDateString('fr-BE') : '');
+    addCell(r, 'Z', p.isFounder ? 'Oui' : 'Non');
+    addCell(r, 'AA', p.entryDate ? new Date(p.entryDate).toLocaleDateString('fr-BE') : '');
 
     // Portage lots details
     if (p.lotsOwned && p.lotsOwned.length > 0) {
       const lotDetails = p.lotsOwned
         .map(lot => `Lot ${lot.lotId}${lot.isPortage ? ' (portage)' : ''}: ${lot.surface}m²`)
         .join('; ');
-      addCell(r, 'AA', lotDetails);
+      addCell(r, 'AB', lotDetails);
 
       // Show sold date for portage lots
       const soldDates = p.lotsOwned
         .filter(lot => lot.soldDate)
         .map(lot => `Lot ${lot.lotId}: ${new Date(lot.soldDate!).toLocaleDateString('fr-BE')}`)
         .join('; ');
-      addCell(r, 'AB', soldDates || '');
+      addCell(r, 'AC', soldDates || '');
     } else {
-      addCell(r, 'AA', '');
       addCell(r, 'AB', '');
+      addCell(r, 'AC', '');
     }
 
     // Purchase details (for newcomers)
-    addCell(r, 'AC', p.purchaseDetails?.buyingFrom || '');
-    addCell(r, 'AD', p.purchaseDetails?.lotId || '');
-    addCell(r, 'AE', p.purchaseDetails?.purchasePrice || '');
+    addCell(r, 'AD', p.purchaseDetails?.buyingFrom || '');
+    addCell(r, 'AE', p.purchaseDetails?.lotId || '');
+    addCell(r, 'AF', p.purchaseDetails?.purchasePrice || '');
 
     // Two-loan financing details
     if (p.useTwoLoans) {
-      addCell(r, 'AF', 'Oui');
-      addCell(r, 'AG', p.loan1Amount);
-      addCell(r, 'AH', p.loan1MonthlyPayment);
-      addCell(r, 'AI', p.loan2Amount);
-      addCell(r, 'AJ', p.loan2MonthlyPayment);
-      addCell(r, 'AK', `${p.loan2DurationYears} ans (démarre année ${p.loan2DelayYears || 2})`);
+      addCell(r, 'AG', 'Oui');
+      addCell(r, 'AH', p.loan1Amount);
+      addCell(r, 'AI', p.loan1MonthlyPayment);
+      addCell(r, 'AJ', p.loan2Amount);
+      addCell(r, 'AK', p.loan2MonthlyPayment);
+      addCell(r, 'AL', `${p.loan2DurationYears} ans (démarre année ${p.loan2DelayYears || 2})`);
     } else {
-      addCell(r, 'AF', 'Non');
-      addCell(r, 'AG', '');
+      addCell(r, 'AG', 'Non');
       addCell(r, 'AH', '');
       addCell(r, 'AI', '');
       addCell(r, 'AJ', '');
       addCell(r, 'AK', '');
+      addCell(r, 'AL', '');
     }
 
     // Construction payment details (for portage buyers)
@@ -240,15 +241,15 @@ export function buildExportSheetData(
         .find(lot => lot.lotId === p.purchaseDetails!.lotId && lot.isPortage);
 
       if (portageLot) {
-        addCell(r, 'AL', portageLot.founderPaysCasco ? 'Oui' : 'Non');
-        addCell(r, 'AM', portageLot.founderPaysParachèvement ? 'Oui' : 'Non');
+        addCell(r, 'AM', portageLot.founderPaysCasco ? 'Oui' : 'Non');
+        addCell(r, 'AN', portageLot.founderPaysParachèvement ? 'Oui' : 'Non');
       } else {
-        addCell(r, 'AL', '');
         addCell(r, 'AM', '');
+        addCell(r, 'AN', '');
       }
     } else {
-      addCell(r, 'AL', '');
       addCell(r, 'AM', '');
+      addCell(r, 'AN', '');
     }
   });
 
