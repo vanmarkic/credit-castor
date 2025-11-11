@@ -1,7 +1,14 @@
 import type { Participant } from '../../utils/calculatorUtils';
-import type { TimelineTransaction } from '../../types/timeline';
+import type {
+  TimelineTransaction,
+  FraisGenerauxYearlyEvent,
+  NewcomerFraisGenerauxReimbursementEvent
+} from '../../types/timeline';
 import CoproLane from './CoproLane';
+import FraisGenerauxLane from './FraisGenerauxLane';
 import ParticipantLane from './ParticipantLane';
+
+type FraisGenerauxEvent = FraisGenerauxYearlyEvent | NewcomerFraisGenerauxReimbursementEvent;
 
 interface CoproSnapshot {
   date: Date;
@@ -28,20 +35,24 @@ interface TimelineSnapshot {
 interface TimelineCardsAreaProps {
   allDates: Date[];
   coproSnapshots: CoproSnapshot[];
+  fraisGenerauxEvents: FraisGenerauxEvent[];
   participants: Participant[];
   snapshots: Map<string, TimelineSnapshot[]>;
   onOpenParticipantDetails: (index: number) => void;
   onOpenCoproDetails: (snapshot: CoproSnapshot) => void;
+  onOpenFraisGenerauxDetails: (event: FraisGenerauxEvent) => void;
   coproReservesShare: number;
 }
 
 export default function TimelineCardsArea({
   allDates,
   coproSnapshots,
+  fraisGenerauxEvents,
   participants,
   snapshots,
   onOpenParticipantDetails,
   onOpenCoproDetails,
+  onOpenFraisGenerauxDetails,
   coproReservesShare
 }: TimelineCardsAreaProps) {
   return (
@@ -52,6 +63,13 @@ export default function TimelineCardsArea({
         coproSnapshots={coproSnapshots}
         coproReservesShare={coproReservesShare}
         onOpenCoproDetails={onOpenCoproDetails}
+      />
+
+      {/* Frais Généraux lane */}
+      <FraisGenerauxLane
+        allDates={allDates}
+        events={fraisGenerauxEvents}
+        onOpenEventDetails={onOpenFraisGenerauxDetails}
       />
 
       {/* Participant lanes */}

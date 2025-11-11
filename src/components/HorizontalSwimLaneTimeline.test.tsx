@@ -65,6 +65,12 @@ describe('HorizontalSwimLaneTimeline', () => {
     globalCascoPerM2: 1590
   };
 
+  const mockUnitDetails = {
+    1: { casco: 159000, parachevements: 80000 },
+    3: { casco: 190800, parachevements: 96000 },
+    5: { casco: 143100, parachevements: 72000 }
+  };
+
   const mockCalculations: CalculationResults = {
     participantBreakdown: [
       {
@@ -190,12 +196,15 @@ describe('HorizontalSwimLaneTimeline', () => {
         onOpenParticipantDetails={mockOnOpenParticipantDetails}
         onOpenCoproDetails={mockOnOpenCoproDetails}
         onAddParticipant={mockOnAddParticipant}
+        unitDetails={mockUnitDetails}
       />
     );
 
-    expect(screen.getByText('Alice')).toBeInTheDocument();
-    expect(screen.getByText('Bob')).toBeInTheDocument();
-    expect(screen.getByText('Carol')).toBeInTheDocument();
+    // Check participant names appear in the name column
+    // Note: Names may appear multiple times (in name column + frais généraux events)
+    expect(screen.getAllByText('Alice').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Bob').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Carol').length).toBeGreaterThan(0);
   });
 
   it('renders T0 cards for founders', () => {
@@ -208,6 +217,7 @@ describe('HorizontalSwimLaneTimeline', () => {
         onOpenParticipantDetails={mockOnOpenParticipantDetails}
         onOpenCoproDetails={mockOnOpenCoproDetails}
         onAddParticipant={mockOnAddParticipant}
+        unitDetails={mockUnitDetails}
       />
     );
 
@@ -226,6 +236,7 @@ describe('HorizontalSwimLaneTimeline', () => {
         onOpenParticipantDetails={mockOnOpenParticipantDetails}
         onOpenCoproDetails={mockOnOpenCoproDetails}
         onAddParticipant={mockOnAddParticipant}
+        unitDetails={mockUnitDetails}
       />
     );
 
@@ -256,6 +267,7 @@ describe('HorizontalSwimLaneTimeline', () => {
         onOpenParticipantDetails={mockOnOpenParticipantDetails}
         onOpenCoproDetails={mockOnOpenCoproDetails}
         onAddParticipant={mockOnAddParticipant}
+        unitDetails={mockUnitDetails}
         coproReservesShare={30}
       />
     );
@@ -281,6 +293,7 @@ describe('HorizontalSwimLaneTimeline', () => {
         onOpenParticipantDetails={mockOnOpenParticipantDetails}
         onOpenCoproDetails={mockOnOpenCoproDetails}
         onAddParticipant={mockOnAddParticipant}
+        unitDetails={mockUnitDetails}
         coproReservesShare={60}
       />
     );

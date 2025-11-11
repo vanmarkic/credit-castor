@@ -41,6 +41,9 @@ import toast, { Toaster } from 'react-hot-toast';
 import { usePresenceDetection } from '../hooks/usePresenceDetection';
 import { useChangeNotifications } from '../hooks/useChangeNotifications';
 import { ChangeNotificationToast, PresenceNotificationToast } from './shared/NotificationToast';
+import { useFirestoreSync } from '../hooks/useFirestoreSync';
+import { ConflictResolutionDialog } from './ConflictResolutionDialog';
+import { initializeFirebase } from '../services/firebase';
 
 interface CoproSnapshot {
   date: Date;
@@ -83,6 +86,29 @@ export default function EnDivisionCorrect() {
   const { activeUsers } = usePresenceDetection(unlockedBy);
   const { changes, clearChanges } = useChangeNotifications();
   const previousActiveUsersRef = useRef<number>(0);
+
+  // Initialize Firebase on component mount
+  useEffect(() => {
+    initializeFirebase();
+  }, []);
+
+  // Firestore sync (optional - gracefully falls back to localStorage if not configured)
+  const {
+    syncMode,
+    isSyncing,
+    lastSyncedAt,
+    conflictState,
+    syncError,
+    saveData,
+    resolveConflict,
+  } = useFirestoreSync(unlockedBy, true);
+
+  // Auto-save data to Firestore when it changes
+  useEffect(() => {
+    if (unlockedBy) {
+      saveData(participants, projectParams, deedDate, portageFormula);
+    }
+  }, [participants, projectParams, deedDate, portageFormula, saveData, unlockedBy]);
 
   // Show presence notifications when users join/leave
   useEffect(() => {
@@ -390,11 +416,59 @@ export default function EnDivisionCorrect() {
           />
         )}
 
+        {/* Firestore Conflict Resolution Dialog */}
+        {conflictState.hasConflict && (
+          <ConflictResolutionDialog
+            conflictState={conflictState}
+            onResolve={resolveConflict}
+          />
+        )}
+
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-100 p-6">
           {/* Floating Unlock Button */}
           <div className="fixed top-6 left-6 z-40">
             <UnlockButton />
           </div>
+
+          {/* Sync Status Indicator */}
+          {unlockedBy && (
+            <div className="fixed top-6 right-6 z-40">
+              <div className="bg-white rounded-lg shadow-md px-3 py-2 text-xs">
+                <div className="flex items-center gap-2">
+                  {syncMode === 'firestore' && (
+                    <>
+                      <div className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`} />
+                      <span className="text-gray-700 font-medium">
+                        {isSyncing ? 'Synchronisation...' : 'Synchronisé'}
+                      </span>
+                    </>
+                  )}
+                  {syncMode === 'localStorage' && (
+                    <>
+                      <div className="w-2 h-2 rounded-full bg-blue-500" />
+                      <span className="text-gray-700 font-medium">Local</span>
+                    </>
+                  )}
+                  {syncMode === 'offline' && (
+                    <>
+                      <div className="w-2 h-2 rounded-full bg-gray-400" />
+                      <span className="text-gray-700 font-medium">Hors ligne</span>
+                    </>
+                  )}
+                </div>
+                {lastSyncedAt && syncMode === 'firestore' && (
+                  <div className="text-gray-500 mt-1">
+                    Dernière sync: {new Date(lastSyncedAt).toLocaleTimeString('fr-BE')}
+                  </div>
+                )}
+                {syncError && (
+                  <div className="text-red-600 mt-1">
+                    ⚠️ {syncError}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="max-w-7xl mx-auto">
 

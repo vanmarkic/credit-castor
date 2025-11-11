@@ -215,6 +215,46 @@ export interface CoproSaleEvent extends BaseEvent {
   };
 }
 
+// ============================================
+// Frais Généraux Events (Year-by-Year)
+// ============================================
+
+/**
+ * Frais Généraux payment event for a specific year
+ * Founders pay at deed date (Year 1), subsequent years at anniversary dates
+ */
+export interface FraisGenerauxYearlyEvent extends BaseEvent {
+  type: 'FRAIS_GENERAUX_YEAR_1' | 'FRAIS_GENERAUX_YEAR_2' | 'FRAIS_GENERAUX_YEAR_3';
+  year: 1 | 2 | 3;
+  breakdown: {
+    oneTimeCosts: number;
+    recurringYearlyCosts: number;
+    honorairesThisYear: number;
+    total: number;
+  };
+  payments: Array<{
+    participantName: string;
+    amountOwed: number;
+    isFounder: boolean;
+  }>;
+}
+
+/**
+ * Newcomer reimbursement event when joining mid-year
+ * Newcomer reimburses existing participants for Year 1 overpayment
+ */
+export interface NewcomerFraisGenerauxReimbursementEvent extends BaseEvent {
+  type: 'NEWCOMER_FRAIS_GENERAUX_REIMBURSEMENT';
+  year: 1 | 2 | 3;
+  newcomerName: string;
+  reimbursements: Array<{
+    toParticipant: string;
+    amount: number;
+  }>;
+  totalPaid: number;
+  description: string;
+}
+
 // Union type for all events
 export type DomainEvent =
   | InitialPurchaseEvent
@@ -223,7 +263,9 @@ export type DomainEvent =
   | PortageSettlementEvent
   | CoproTakesLoanEvent
   | ParticipantExitsEvent
-  | CoproSaleEvent;
+  | CoproSaleEvent
+  | FraisGenerauxYearlyEvent
+  | NewcomerFraisGenerauxReimbursementEvent;
 
 // ============================================
 // Projections (Computed Views)

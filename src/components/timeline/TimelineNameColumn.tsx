@@ -12,6 +12,11 @@ export default function TimelineNameColumn({ participants }: TimelineNameColumnP
         <div className="font-semibold text-purple-800">La Copropriété</div>
       </div>
 
+      {/* Frais Généraux row */}
+      <div className="h-48 flex items-center border-b border-gray-200 swimlane-row bg-purple-25">
+        <div className="font-semibold text-purple-700">Frais Généraux</div>
+      </div>
+
       {/* Participant rows */}
       {participants.map((p, idx) => (
         <div

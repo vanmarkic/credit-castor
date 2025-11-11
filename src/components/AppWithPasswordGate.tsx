@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import EnDivisionCorrect from './EnDivisionCorrect';
 import PasswordGate from './PasswordGate';
+import { UnlockProvider } from '../contexts/UnlockContext';
 
 export default function AppWithPasswordGate() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -17,5 +18,9 @@ export default function AppWithPasswordGate() {
     return <PasswordGate onUnlock={() => setIsAuthenticated(true)} />;
   }
 
-  return <EnDivisionCorrect />;
+  return (
+    <UnlockProvider>
+      <EnDivisionCorrect />
+    </UnlockProvider>
+  );
 }

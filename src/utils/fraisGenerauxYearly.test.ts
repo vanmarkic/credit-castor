@@ -1,5 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import type { Participant, ProjectParams, UnitDetails } from './calculatorUtils';
+import {
+  calculateYear1Costs,
+  calculateYear2Costs,
+  calculateYear3Costs,
+  calculateAllYearlyFraisGeneraux,
+  getActiveParticipantsAtDate,
+  calculateParticipantYearlyPayments,
+  calculateFoundersInitialPayment,
+  calculateNewcomerReimbursement,
+  calculateMultipleNewcomerReimbursements
+} from './fraisGenerauxYearly';
 
 /**
  * Test specifications for year-by-year Frais Généraux distribution
@@ -15,79 +26,125 @@ import type { Participant, ProjectParams, UnitDetails } from './calculatorUtils'
  * 8. Display: Year 1 initially, Years 2-3 collapsed/expandable in timeline
  */
 
+// Test fixtures
+const deedDate = new Date('2026-02-01');
+
+const unitDetails: UnitDetails = {
+  1: { casco: 100000, parachevements: 50000 },
+};
+
+const projectParams: ProjectParams = {
+  totalPurchase: 650000,
+  mesuresConservatoires: 20000,
+  demolition: 40000,
+  infrastructures: 90000,
+  etudesPreparatoires: 59820,
+  fraisEtudesPreparatoires: 27320,
+  fraisGeneraux3ans: 0,
+  batimentFondationConservatoire: 50000,
+  batimentFondationComplete: 200000,
+  batimentCoproConservatoire: 50000,
+  globalCascoPerM2: 1000
+};
+
 describe('Frais Généraux Year-by-Year Distribution', () => {
   describe('Year 1 (Deed Date) Calculation', () => {
     it('should calculate Year 1 costs = One-time + Recurring Year 1 + (Honoraires ÷ 3)', () => {
-      // Given:
-      // - Honoraires: €18,000
-      // - Recurring yearly: €7,988.38
-      // - One-time costs: €5,545
+      // Given
+      const participants: Participant[] = [
+        { name: 'Alice', surface: 100, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
+      ];
 
-      // Expected Year 1:
-      // = €5,545 (one-time) + €7,988.38 (recurring year 1) + (€18,000 ÷ 3)
-      // = €5,545 + €7,988.38 + €6,000
-      // = €19,533.38
+      // When
+      const year1 = calculateYear1Costs(participants, projectParams, unitDetails, deedDate);
 
-      expect(true).toBe(true); // Placeholder - will implement
+      // Then
+      expect(year1.year).toBe(1);
+      expect(year1.date).toEqual(deedDate);
+      expect(year1.oneTimeCosts).toBeCloseTo(5545, 2);
+      expect(year1.recurringYearlyCosts).toBeCloseTo(7988.38, 2);
+      expect(year1.honorairesThisYear).toBeCloseTo(6000, 0); // Honoraires/3
+      expect(year1.total).toBeCloseTo(19533.38, 2);
     });
 
     it('should split Year 1 costs equally among founders at deed date', () => {
-      // Given:
-      // - 3 founders: Alice, Bob, Charlie
-      // - Year 1 total: €19,533.38
+      // Given
+      const participants: Participant[] = [
+        { name: 'Alice', surface: 100, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
+        { name: 'Bob', surface: 100, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
+        { name: 'Charlie', surface: 100, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
+      ];
 
-      // Expected:
-      // - Alice pays: €19,533.38 ÷ 3 = €6,511.13 at deed date
-      // - Bob pays: €19,533.38 ÷ 3 = €6,511.13 at deed date
-      // - Charlie pays: €19,533.38 ÷ 3 = €6,511.13 at deed date
+      // When
+      const year1 = calculateYear1Costs(participants, projectParams, unitDetails, deedDate);
+      const payments = calculateFoundersInitialPayment(participants, year1);
 
-      expect(true).toBe(true); // Placeholder
+      // Then
+      expect(payments).toHaveLength(3);
+      expect(payments[0].participantName).toBe('Alice');
+      expect(payments[0].amountOwed).toBeCloseTo(year1.total / 3, 2);
+      expect(payments[1].participantName).toBe('Bob');
+      expect(payments[1].amountOwed).toBeCloseTo(year1.total / 3, 2);
+      expect(payments[2].participantName).toBe('Charlie');
+      expect(payments[2].amountOwed).toBeCloseTo(year1.total / 3, 2);
     });
 
     it('should calculate newcomer reimbursement when joining mid-year', () => {
-      // Given:
-      // - Deed date: 2026-02-01
-      // - 2 founders: Alice, Bob
-      // - Newcomer Emma joins: 2026-08-01 (6 months after deed date)
-      // - Year 1 total: €19,533.38
+      // Given
+      const emmaJoinsDate = new Date('2026-08-01');
+      const participants: Participant[] = [
+        { name: 'Alice', surface: 100, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
+        { name: 'Bob', surface: 100, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
+        { name: 'Emma', surface: 100, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: false, entryDate: emmaJoinsDate, lotsOwned: [] },
+      ];
 
-      // Step 1: At deed date, founders split equally
-      // - Alice pays: €19,533.38 ÷ 2 = €9,766.69
-      // - Bob pays: €19,533.38 ÷ 2 = €9,766.69
+      const emma = participants[2];
+      const year1 = calculateYear1Costs(participants, projectParams, unitDetails, deedDate);
 
-      // Step 2: When Emma joins, costs recalculated for 3 participants
-      // - Fair share per person: €19,533.38 ÷ 3 = €6,511.13
-      // - Alice overpaid: €9,766.69 - €6,511.13 = €3,255.56
-      // - Bob overpaid: €9,766.69 - €6,511.13 = €3,255.56
+      // When
+      const reimbursement = calculateNewcomerReimbursement(participants, emma, year1);
 
-      // Step 3: Emma reimburses founders
-      // - Emma owes Alice: €3,255.56
-      // - Emma owes Bob: €3,255.56
-      // - Emma total payment: €3,255.56 + €3,255.56 = €6,511.12 ≈ €6,511.13 (her 1/3 share)
+      // Then
+      expect(reimbursement.newcomerName).toBe('Emma');
+      expect(reimbursement.year).toBe(1);
+      expect(reimbursement.reimbursements).toHaveLength(2);
 
-      // Expected final state:
-      // - Alice net payment: €9,766.69 - €3,255.56 = €6,511.13 ✓
-      // - Bob net payment: €9,766.69 - €3,255.56 = €6,511.13 ✓
-      // - Emma net payment: €6,511.13 ✓
-      // - Total: €19,533.39 (rounding)
+      // Alice and Bob each get reimbursed
+      const fairShare = year1.total / 3;
+      const founderInitialPayment = year1.total / 2;
+      const expectedReimbursementPerFounder = founderInitialPayment - fairShare;
 
-      expect(true).toBe(true); // Placeholder
+      expect(reimbursement.reimbursements[0].toParticipant).toBe('Alice');
+      expect(reimbursement.reimbursements[0].amount).toBeCloseTo(expectedReimbursementPerFounder, 2);
+      expect(reimbursement.reimbursements[1].toParticipant).toBe('Bob');
+      expect(reimbursement.reimbursements[1].amount).toBeCloseTo(expectedReimbursementPerFounder, 2);
+
+      // Emma pays = sum of reimbursements ≈ her fair share
+      expect(reimbursement.totalPaid).toBeCloseTo(fairShare, 1);
     });
   });
 
   describe('Year 2 (Deed Date + 1 Year) Calculation', () => {
     it('should calculate Year 2 costs = Recurring Year 2 + (Honoraires ÷ 3)', () => {
-      // Given:
-      // - Honoraires: €18,000
-      // - Recurring yearly: €7,988.38
-      // - No one-time costs in Year 2
+      // Given
+      const participants: Participant[] = [
+        { name: 'Alice', surface: 100, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
+      ];
 
-      // Expected Year 2:
-      // = €7,988.38 (recurring year 2) + (€18,000 ÷ 3)
-      // = €7,988.38 + €6,000
-      // = €13,988.38
+      // When
+      const year2 = calculateYear2Costs(participants, projectParams, unitDetails, deedDate);
 
-      expect(true).toBe(true); // Placeholder
+      // Then
+      expect(year2.year).toBe(2);
+      expect(year2.oneTimeCosts).toBe(0); // No one-time costs in Year 2
+      expect(year2.recurringYearlyCosts).toBeCloseTo(7988.38, 2);
+      expect(year2.honorairesThisYear).toBeCloseTo(6000, 0);
+      expect(year2.total).toBeCloseTo(13988.38, 2);
+
+      // Year 2 date should be deed date + 1 year
+      const expectedYear2Date = new Date(deedDate);
+      expectedYear2Date.setFullYear(expectedYear2Date.getFullYear() + 1);
+      expect(year2.date).toEqual(expectedYear2Date);
     });
 
     it('should split Year 2 costs equally among active participants at Year 2 date', () => {
@@ -106,19 +163,27 @@ describe('Frais Généraux Year-by-Year Distribution', () => {
     });
 
     it('should NOT charge participants who exited before Year 2', () => {
-      // Given:
-      // - Deed date: 2026-02-01
-      // - Year 2 date: 2027-02-01
-      // - Charlie exits: 2026-06-01 (before Year 2)
-      // - Active at Year 2: Alice, Bob (2 participants)
-      // - Year 2 total: €13,988.38
+      // Given
+      const charlieExitDate = new Date('2026-06-01');
+      const participants: Participant[] = [
+        { name: 'Alice', surface: 100, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
+        { name: 'Bob', surface: 100, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
+        { name: 'Charlie', surface: 100, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, exitDate: charlieExitDate, lotsOwned: [] },
+      ];
 
-      // Expected:
-      // - Alice pays: €13,988.38 ÷ 2 = €6,994.19 at 2027-02-01
-      // - Bob pays: €13,988.38 ÷ 2 = €6,994.19 at 2027-02-01
-      // - Charlie pays: €0 (exited before Year 2)
+      // When
+      const year2 = calculateYear2Costs(participants, projectParams, unitDetails, deedDate);
+      const payments = calculateParticipantYearlyPayments(participants, year2);
 
-      expect(true).toBe(true); // Placeholder
+      // Then - Only Alice and Bob pay (Charlie exited)
+      expect(payments).toHaveLength(2);
+      expect(payments.find(p => p.participantName === 'Alice')).toBeDefined();
+      expect(payments.find(p => p.participantName === 'Bob')).toBeDefined();
+      expect(payments.find(p => p.participantName === 'Charlie')).toBeUndefined();
+
+      // Each pays half
+      expect(payments[0].amountOwed).toBeCloseTo(year2.total / 2, 2);
+      expect(payments[1].amountOwed).toBeCloseTo(year2.total / 2, 2);
     });
 
     it('should include new participant who joined after deed date but before Year 2', () => {
