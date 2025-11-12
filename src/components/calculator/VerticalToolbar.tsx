@@ -1,23 +1,21 @@
 import { useState } from 'react';
-import { Download, Upload, RotateCcw, Save, ChevronLeft } from 'lucide-react';
+import { Download, Upload, Save, ChevronLeft, Printer } from 'lucide-react';
 
 interface VerticalToolbarProps {
   onDownloadScenario: () => void;
   onLoadScenario: () => void;
-  onResetToDefaults: () => void;
   onExportToExcel: () => void;
 }
 
 export function VerticalToolbar({
   onDownloadScenario,
   onLoadScenario,
-  onResetToDefaults,
   onExportToExcel,
 }: VerticalToolbarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="fixed right-0 top-1/2 -translate-y-1/2 z-10">
+    <div className="fixed right-0 top-1/2 -translate-y-1/2 z-10 no-print">
       {/* Drawer content */}
       <div
         className={`bg-white shadow-2xl border-l border-gray-200 transition-transform duration-300 ease-in-out ${
@@ -56,21 +54,21 @@ export function VerticalToolbar({
           </button>
 
           <button
-            onClick={onResetToDefaults}
-            className="bg-white hover:bg-gray-50 text-gray-700 font-medium p-2.5 rounded-lg transition-colors flex flex-col items-center justify-center gap-1 border border-gray-300"
-            title="Réinitialiser"
-          >
-            <RotateCcw className="w-5 h-5" />
-            <span className="text-[10px]">Réinitialiser</span>
-          </button>
-
-          <button
             onClick={onExportToExcel}
             className="bg-blue-600 hover:bg-blue-700 text-white font-medium p-2.5 rounded-lg transition-colors flex flex-col items-center justify-center gap-1 border border-blue-600"
             title="Excel"
           >
             <Download className="w-5 h-5" />
             <span className="text-[10px]">Excel</span>
+          </button>
+
+          <button
+            onClick={() => window.print()}
+            className="bg-green-600 hover:bg-green-700 text-white font-medium p-2.5 rounded-lg transition-colors flex flex-col items-center justify-center gap-1 border border-green-600"
+            title="Imprimer / PDF"
+          >
+            <Printer className="w-5 h-5" />
+            <span className="text-[10px]">PDF</span>
           </button>
         </div>
 

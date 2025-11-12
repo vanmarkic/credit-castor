@@ -1,42 +1,39 @@
 /**
  * Calculator state management hook
  * Centralizes all state initialization and management for the calculator
+ *
+ * NOTE: Initial data loading is now handled by CalculatorProvider using dataLoader.ts
+ * This hook only manages the state after initialization
  */
 
 import { useState, useMemo, useRef } from 'react';
 import {
-  DEFAULT_PARTICIPANTS,
-  DEFAULT_PROJECT_PARAMS,
-  DEFAULT_DEED_DATE,
-  loadFromLocalStorage,
   loadPinnedParticipant,
   savePinnedParticipant,
   clearPinnedParticipant
 } from '../utils/storage';
-import { DEFAULT_PORTAGE_FORMULA } from '../utils/calculatorUtils';
 import type { Participant, ProjectParams, PortageFormulaParams, CalculationResults } from '../utils/calculatorUtils';
-import { syncSoldDatesFromPurchaseDetails } from '../utils/participantSync';
 
 export interface CalculatorState {
   // State values
-  participants: Participant[];
-  projectParams: ProjectParams;
-  // scenario removed - no longer using percentage-based adjustments
-  deedDate: string;
-  portageFormula: PortageFormulaParams;
+  participants: Participant[] | null; // null = not yet initialized
+  projectParams: ProjectParams | null; // null = not yet initialized
+  deedDate: string | null; // null = not yet initialized
+  portageFormula: PortageFormulaParams | null; // null = not yet initialized
   pinnedParticipant: string | null;
   fullscreenParticipantIndex: number | null;
   versionMismatch: { show: boolean; storedVersion?: string };
+  isInitialized: boolean; // Track if data has been loaded
 
   // State setters
   setParticipants: (participants: Participant[]) => void;
   setProjectParams: (params: ProjectParams) => void;
-  // setScenario removed
   setDeedDate: (date: string) => void;
   setPortageFormula: (formula: PortageFormulaParams) => void;
   setPinnedParticipant: (name: string | null) => void;
   setFullscreenParticipantIndex: (index: number | null) => void;
   setVersionMismatch: (mismatch: { show: boolean; storedVersion?: string }) => void;
+  setIsInitialized: (initialized: boolean) => void;
 
   // Helper methods
   handlePinParticipant: (participantName: string) => void;
@@ -47,52 +44,19 @@ export interface CalculatorState {
 }
 
 /**
- * Initialize participants from localStorage with version compatibility check
- */
-function initializeParticipants(
-  setVersionMismatch: (mismatch: { show: boolean; storedVersion?: string }) => void
-): Participant[] {
-  const stored = loadFromLocalStorage();
-
-  // Check version compatibility
-  if (stored && !stored.isCompatible) {
-    setVersionMismatch({
-      show: true,
-      storedVersion: stored.storedVersion
-    });
-    // Return defaults for now, will be reset after user action
-    return DEFAULT_PARTICIPANTS.map((p: Participant) => ({
-      ...p,
-      isFounder: true,
-      entryDate: new Date(DEFAULT_DEED_DATE)
-    }));
-  }
-
-  const baseParticipants = stored ? stored.participants : DEFAULT_PARTICIPANTS;
-
-  // Ensure all participants have isFounder and entryDate
-  const participantsWithDefaults = baseParticipants.map((p: Participant) => ({
-    ...p,
-    isFounder: p.isFounder !== undefined ? p.isFounder : true,
-    entryDate: p.entryDate || new Date(stored?.deedDate || DEFAULT_DEED_DATE)
-  }));
-
-  // Sync soldDate fields from purchaseDetails
-  return syncSoldDatesFromPurchaseDetails(participantsWithDefaults);
-}
-
-/**
  * Hook that manages all calculator state
+ * Data initialization is handled externally by CalculatorProvider
  */
 export function useCalculatorState(): CalculatorState {
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
+
   const [versionMismatch, setVersionMismatch] = useState<{
     show: boolean;
     storedVersion?: string;
   }>({ show: false });
 
-  const [participants, setParticipants] = useState<Participant[]>(() =>
-    initializeParticipants(setVersionMismatch)
-  );
+  // Initialize to null - will be set by CalculatorProvider after data loads
+  const [participants, setParticipants] = useState<Participant[] | null>(null);
 
   const [pinnedParticipant, setPinnedParticipant] = useState<string | null>(() =>
     loadPinnedParticipant()
@@ -102,22 +66,14 @@ export function useCalculatorState(): CalculatorState {
 
   const participantRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  const [projectParams, setProjectParams] = useState<ProjectParams>(() => {
-    const stored = loadFromLocalStorage();
-    return stored ? stored.projectParams : DEFAULT_PROJECT_PARAMS;
-  });
+  // Initialize to null - will be set by CalculatorProvider after data loads
+  const [projectParams, setProjectParams] = useState<ProjectParams | null>(null);
 
-  // scenario state removed - no longer using percentage-based adjustments
+  // Initialize to null - will be set by CalculatorProvider after data loads
+  const [deedDate, setDeedDate] = useState<string | null>(null);
 
-  const [deedDate, setDeedDate] = useState<string>(() => {
-    const stored = loadFromLocalStorage();
-    return stored?.deedDate || DEFAULT_DEED_DATE;
-  });
-
-  const [portageFormula, setPortageFormula] = useState<PortageFormulaParams>(() => {
-    const stored = loadFromLocalStorage();
-    return stored?.portageFormula || DEFAULT_PORTAGE_FORMULA;
-  });
+  // Initialize to null - will be set by CalculatorProvider after data loads
+  const [portageFormula, setPortageFormula] = useState<PortageFormulaParams | null>(null);
 
   const handlePinParticipant = (participantName: string) => {
     savePinnedParticipant(participantName);
@@ -132,20 +88,20 @@ export function useCalculatorState(): CalculatorState {
   return {
     participants,
     projectParams,
-    // scenario removed
     deedDate,
     portageFormula,
     pinnedParticipant,
     fullscreenParticipantIndex,
     versionMismatch,
+    isInitialized,
     setParticipants,
     setProjectParams,
-    // setScenario removed
     setDeedDate,
     setPortageFormula,
     setPinnedParticipant,
     setFullscreenParticipantIndex,
     setVersionMismatch,
+    setIsInitialized,
     handlePinParticipant,
     handleUnpinParticipant,
     participantRefs

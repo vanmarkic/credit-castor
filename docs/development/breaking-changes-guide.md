@@ -56,6 +56,21 @@ Firestore document structure
 - ❌ Renaming metadata fields (`lastModifiedBy`, `lastModifiedAt`, `version`)
 - ❌ Removing required fields
 
+### 6. **XLSX Export Structure** (`src/utils/excelExport.ts`)
+Excel export format (one-way export only)
+
+**NOT breaking changes** (never loaded back into app):
+- ✅ Changing column names
+- ✅ Adding/removing columns
+- ✅ Changing sheet structure
+
+**However:** Snapshot tests exist in `excelExport.test.ts` that will catch structure changes. These changes might affect:
+- Users with external tools that parse XLSX files
+- Documentation referencing specific columns
+- Business processes depending on XLSX structure
+
+**Test with:** `npm run test:run -- src/utils/excelExport.test.ts`
+
 ## Breaking Change Examples
 
 ### ❌ Breaking: Renaming a Field

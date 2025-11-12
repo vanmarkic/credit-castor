@@ -7,8 +7,10 @@
 ## 🚀 Quick Commands
 
 ```bash
-# Check for breaking changes
+# Check for breaking changes (runs 36 tests)
 npm run test:schema
+# - dataSchema.test.ts: 14 tests (field name/type validation)
+# - schemaRegistry.test.ts: 22 tests (cross-format validation)
 
 # View hook status
 ls -l .git/hooks/pre-push
@@ -112,9 +114,12 @@ interface Participant {
 | `Participant` | localStorage, JSON, Firestore | ✓ |
 | `ProjectParams` | localStorage, JSON, Firestore | ✓ |
 | `PortageFormulaParams` | localStorage, JSON, Firestore | ✓ |
-| `ScenarioData` | JSON exports | ✓ |
+| `ScenarioData` | JSON exports (imported back) | ✓ |
 | `FirestoreScenarioData` | Firestore | ✓ |
 | `ParticipantCalculation` | Not stored (calculated) | ✗ |
+| XLSX export structure | One-way export (never imported) | ✗* |
+
+**Note:** XLSX changes aren't "breaking" for the app, but snapshot tests exist to catch structure changes that might affect users with external tools.
 
 ## 🎯 Decision Tree
 
@@ -156,6 +161,7 @@ git push --no-verify  # ⚠️ Use with caution!
 ## 📚 Full Documentation
 
 - **Comprehensive Guide:** [breaking-changes-guide.md](./breaking-changes-guide.md)
+- **Schema Registry:** [schema-registry-guide.md](./schema-registry-guide.md) ⭐ NEW
 - **Pre-Commit Checklist:** [pre-commit-checklist.md](./pre-commit-checklist.md)
 - **System Summary:** [breaking-changes-summary.md](./breaking-changes-summary.md)
 - **Hook Setup:** [git-hooks-setup.md](./git-hooks-setup.md)

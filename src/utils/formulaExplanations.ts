@@ -29,7 +29,7 @@ export function getPurchaseShareFormula(p: ParticipantCalculation, pricePerM2: n
 /**
  * Get formula explanation for registration fees (droit d'enregistrements) calculation
  */
-export function getNotaryFeesFormula(p: ParticipantCalculation): string[] {
+export function getRegistrationFeesFormula(p: ParticipantCalculation): string[] {
   return [
     "Droit d'enregistrements belge pour le transfert",
     `€${p.purchaseShare.toLocaleString()} achat × ${p.registrationFeesRate}% taux = €${p.droitEnregistrements.toLocaleString()}`

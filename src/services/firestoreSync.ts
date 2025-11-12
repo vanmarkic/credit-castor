@@ -95,6 +95,87 @@ export async function saveScenarioToFirestore(
 }
 
 /**
+ * Convert Firestore Timestamps to Date objects in participant data
+ *
+ * @param data - Raw data from Firestore that may contain Timestamp objects
+ * @returns Data with all Timestamps converted to Date objects
+ */
+function convertFirestoreTimestamps(data: FirestoreScenarioData): FirestoreScenarioData {
+  // Helper to convert a single timestamp value to Date
+  const convertTimestamp = (value: any): Date | undefined => {
+    if (!value) return undefined;
+
+    // Check if this is a Firestore Timestamp object (has seconds and nanoseconds or toDate method)
+    if (value && typeof value === 'object') {
+      if (typeof value.toDate === 'function') {
+        // Use Firestore's built-in toDate() method if available
+        return value.toDate();
+      } else if ('seconds' in value && 'nanoseconds' in value) {
+        // Manual conversion for serialized Timestamps
+        return new Date(value.seconds * 1000 + value.nanoseconds / 1000000);
+      }
+    }
+
+    // If it's already a Date, return as-is
+    if (value instanceof Date) {
+      return value;
+    }
+
+    // If it's a string, convert to Date
+    if (typeof value === 'string') {
+      return new Date(value);
+    }
+
+    return undefined;
+  };
+
+  // Convert timestamps in participants
+  const participants = data.participants.map(p => {
+    const converted = { ...p };
+
+    // Convert entryDate
+    if (p.entryDate) {
+      converted.entryDate = convertTimestamp(p.entryDate);
+    }
+
+    // Convert exitDate
+    if (p.exitDate) {
+      converted.exitDate = convertTimestamp(p.exitDate);
+    }
+
+    // Convert lot dates
+    if (p.lotsOwned) {
+      converted.lotsOwned = p.lotsOwned.map(lot => {
+        const convertedLot = { ...lot };
+        if (lot.acquiredDate) {
+          convertedLot.acquiredDate = convertTimestamp(lot.acquiredDate) as Date;
+        }
+        if (lot.soldDate) {
+          convertedLot.soldDate = convertTimestamp(lot.soldDate);
+        }
+        return convertedLot;
+      });
+    }
+
+    return converted;
+  });
+
+  return {
+    ...data,
+    participants,
+  };
+}
+
+/**
+ * Error types for Firestore operations
+ */
+export type FirestoreErrorType =
+  | 'not-configured'  // Firebase not initialized
+  | 'no-data'         // Document doesn't exist (legitimate first-time scenario)
+  | 'network-error'   // Connection/network issues
+  | 'unknown';        // Other errors
+
+/**
  * Load scenario data from Firestore
  *
  * @returns The scenario data or null if not found
@@ -103,6 +184,7 @@ export async function loadScenarioFromFirestore(): Promise<{
   success: boolean;
   data?: FirestoreScenarioData;
   error?: string;
+  errorType?: FirestoreErrorType;
 }> {
   try {
     const db = getDb();
@@ -110,6 +192,7 @@ export async function loadScenarioFromFirestore(): Promise<{
       return {
         success: false,
         error: 'Firebase non configuré.',
+        errorType: 'not-configured',
       };
     }
 
@@ -120,20 +203,37 @@ export async function loadScenarioFromFirestore(): Promise<{
       return {
         success: false,
         error: 'Aucune donnée trouvée sur Firestore.',
+        errorType: 'no-data',
       };
     }
 
-    const data = projectDoc.data() as FirestoreScenarioData;
+    const rawData = projectDoc.data() as FirestoreScenarioData;
+
+    // Convert Firestore Timestamps to Date objects
+    const data = convertFirestoreTimestamps(rawData);
 
     return {
       success: true,
       data,
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error loading from Firestore:', error);
+
+    // Detect network-related errors
+    const errorCode = error?.code || '';
+    const errorMessage = error?.message || '';
+    const isNetworkError =
+      errorCode === 'unavailable' ||
+      errorCode === 'permission-denied' ||
+      errorMessage.includes('network') ||
+      errorMessage.includes('fetch') ||
+      errorMessage.includes('timeout') ||
+      errorMessage.includes('Failed to fetch');
+
     return {
       success: false,
       error: 'Erreur lors du chargement depuis Firestore.',
+      errorType: isNetworkError ? 'network-error' : 'unknown',
     };
   }
 }
@@ -161,7 +261,11 @@ export function subscribeToFirestoreChanges(
       projectRef,
       (snapshot) => {
         if (snapshot.exists()) {
-          const data = snapshot.data() as FirestoreScenarioData;
+          const rawData = snapshot.data() as FirestoreScenarioData;
+
+          // Convert Firestore Timestamps to Date objects
+          const data = convertFirestoreTimestamps(rawData);
+
           const source = snapshot.metadata.hasPendingWrites ? 'local' : 'remote';
 
           callback({

@@ -11,7 +11,7 @@ import {
   getPurchaseShareFormula,
   getLoanNeededFormula,
   getMonthlyPaymentFormula,
-  getNotaryFeesFormula,
+  getRegistrationFeesFormula,
   getFraisNotaireFixeFormula,
   getSharedCostsFormula,
   getCascoFormula,
@@ -486,7 +486,7 @@ export function ParticipantDetailsPanel({
           <div className="bg-white rounded-lg p-3 border border-gray-200">
             <p className="text-xs text-gray-500 mb-1">Droit d'enreg.</p>
             <p className="text-base font-bold text-gray-900">
-              <FormulaTooltip formula={getNotaryFeesFormula(p)}>
+              <FormulaTooltip formula={getRegistrationFeesFormula(p)}>
                 {formatCurrency(p.droitEnregistrements)}
               </FormulaTooltip>
             </p>

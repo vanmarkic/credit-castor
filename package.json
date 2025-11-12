@@ -8,7 +8,7 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
-    "test:schema": "vitest run src/utils/dataSchema.test.ts",
+    "test:schema": "vitest run src/utils/dataSchema.test.ts src/utils/schemaRegistry.test.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },

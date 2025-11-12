@@ -314,13 +314,13 @@ export default function EnDivisionCorrect() {
 
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-100 p-6">
           {/* Floating Unlock Button */}
-          <div className="fixed top-6 left-6 z-40">
+          <div className="fixed top-6 left-6 z-40 no-print">
             <UnlockButton />
           </div>
 
           {/* Sync Status Indicator */}
           {unlockedBy && (
-            <div className="fixed top-6 right-6 z-40">
+            <div className="fixed top-6 right-6 z-40 no-print">
               <div className="bg-white rounded-lg shadow-md px-3 py-2 text-xs">
                 <div className="flex items-center gap-2">
                   {syncMode === 'firestore' && (
@@ -359,6 +359,13 @@ export default function EnDivisionCorrect() {
           )}
 
           <div className="max-w-7xl mx-auto">
+            {/* Print-only header */}
+            <div className="print-header hidden">
+              <h1 className="text-2xl font-bold">Achat Ferme du Temple - Rapport de Division</h1>
+              <p className="text-sm text-gray-600 mt-2">
+                Généré le {new Date().toLocaleDateString('fr-BE', { day: 'numeric', month: 'long', year: 'numeric' })}
+              </p>
+            </div>
 
             <ProjectHeader
               calculations={calculations}
@@ -368,7 +375,6 @@ export default function EnDivisionCorrect() {
         <VerticalToolbar
           onDownloadScenario={downloadScenario}
           onLoadScenario={loadScenario}
-          onResetToDefaults={resetToDefaults}
           onExportToExcel={exportToExcel}
         />
 
@@ -411,7 +417,7 @@ export default function EnDivisionCorrect() {
             <div className="text-2xl font-bold text-gray-400 flex-shrink-0">+</div>
 
             <div className="p-3 bg-white rounded-lg border border-gray-200 flex-1">
-              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Frais de Notaire</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Frais d'enregistrements</p>
               <p className="text-lg font-bold text-gray-900">{formatCurrency(calculations.totals.totalDroitEnregistrements)}</p>
               <p className="text-xs text-gray-400 mt-1">taux individuels</p>
             </div>

@@ -129,7 +129,10 @@ interface Participant {
 
 ## Current Status
 
-- ✅ Schema validation tests created (14 tests)
+- ✅ **Schema validation tests:** 36 tests total
+  - `dataSchema.test.ts`: 14 tests (breaking change detection)
+  - `schemaRegistry.test.ts`: 22 tests (cross-format validation) ⭐ NEW
+- ✅ **Schema Registry system** - Single source of truth for all export formats
 - ✅ Breaking changes guide documented
 - ✅ Pre-commit checklist created
 - ✅ NPM script added (`npm run test:schema`)
@@ -159,9 +162,10 @@ If breaking changes are detected, the push will be blocked with instructions on 
 
 ## Questions?
 
-- See detailed guide: `docs/development/breaking-changes-guide.md`
-- See quick checklist: `docs/development/pre-commit-checklist.md`
-- Run tests: `npm run test:schema`
+- **Schema Registry Guide:** `docs/development/schema-registry-guide.md` ⭐ NEW
+- **Breaking Changes Guide:** `docs/development/breaking-changes-guide.md`
+- **Quick Checklist:** `docs/development/pre-commit-checklist.md`
+- **Run Tests:** `npm run test:schema` (36 tests)
 
 ---
 

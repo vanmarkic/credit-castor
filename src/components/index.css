@@ -16,3 +16,169 @@
 .animate-fadeIn {
   animation: fadeIn 0.2s ease-out;
 }
+
+/* Print Styles for PDF Export */
+@media print {
+  /* Page setup */
+  @page {
+    size: A4;
+    margin: 1.5cm;
+  }
+
+  /* Hide interactive elements */
+  .no-print,
+  .fixed,
+  button:not(.print-show),
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  input[type="checkbox"],
+  select,
+  textarea,
+  [role="tooltip"],
+  [role="dialog"] {
+    display: none !important;
+  }
+
+  /* Reset page styles for printing */
+  body {
+    background: white !important;
+  }
+
+  /* Main container adjustments */
+  .min-h-screen {
+    min-height: auto;
+  }
+
+  /* Remove shadows and gradients for cleaner print */
+  .shadow-lg,
+  .shadow-xl,
+  .shadow-2xl,
+  .shadow-md {
+    box-shadow: none !important;
+    border: 1px solid #e5e7eb;
+  }
+
+  .bg-gradient-to-br {
+    background: white !important;
+  }
+
+  /* Ensure white backgrounds for cards */
+  .bg-white,
+  .bg-gray-50 {
+    background: white !important;
+  }
+
+  /* Simplify colored backgrounds */
+  .bg-blue-50,
+  .bg-purple-50,
+  .bg-green-50,
+  .bg-red-50,
+  .bg-orange-50 {
+    background: white !important;
+  }
+
+  /* Keep borders visible */
+  .border-blue-200,
+  .border-purple-200,
+  .border-green-400,
+  .border-red-400,
+  .border-orange-200,
+  .border-gray-200,
+  .border-gray-300 {
+    border: 1px solid #9ca3af !important;
+  }
+
+  /* Ensure text is readable */
+  .text-blue-600,
+  .text-blue-700,
+  .text-purple-700,
+  .text-purple-800,
+  .text-green-700,
+  .text-red-700,
+  .text-orange-700 {
+    color: #1f2937 !important;
+  }
+
+  /* Page break controls */
+  .page-break-before {
+    page-break-before: always;
+  }
+
+  .page-break-after {
+    page-break-after: always;
+  }
+
+  .page-break-inside-avoid {
+    page-break-inside: avoid;
+  }
+
+  /* Optimize table layouts */
+  table {
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  /* Ensure important content stays together */
+  .bg-white.rounded-xl {
+    page-break-inside: avoid;
+    margin-bottom: 1rem;
+  }
+
+  /* Make text darker for better readability */
+  .text-gray-500,
+  .text-gray-600 {
+    color: #4b5563 !important;
+  }
+
+  .text-gray-700,
+  .text-gray-800,
+  .text-gray-900 {
+    color: #111827 !important;
+  }
+
+  /* Adjust padding for print */
+  .p-6,
+  .p-8 {
+    padding: 1rem !important;
+  }
+
+  /* Show print header */
+  .print-header {
+    display: block !important;
+    margin-bottom: 2rem;
+    text-align: center;
+    border-bottom: 2px solid #111827;
+    padding-bottom: 1rem;
+  }
+
+  /* Timeline specific styles */
+  .overflow-x-auto,
+  .overflow-x-scroll {
+    overflow-x: visible !important;
+  }
+
+  /* Make timeline sections print-friendly */
+  .rounded-xl,
+  .rounded-lg {
+    border: 1px solid #9ca3af;
+  }
+
+  /* Ensure all text labels are visible */
+  label {
+    display: inline !important;
+  }
+
+  /* Show read-only values but hide interactive controls */
+  input[readonly],
+  input[disabled] {
+    display: inline-block !important;
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+}

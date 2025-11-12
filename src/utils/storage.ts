@@ -1,4 +1,18 @@
-// Import types first
+/**
+ * Storage utilities for Credit Castor
+ *
+ * IMPORTANT: Data loading priority is now:
+ * 1. Firestore (if available and authenticated)
+ * 2. localStorage (fallback)
+ * 3. Error alert (no valid data source)
+ *
+ * DEFAULT_* constants are ONLY used for:
+ * - Reset functionality (when user explicitly requests reset)
+ * - NOT for initial application load
+ *
+ * See src/services/dataLoader.ts for data loading logic
+ */
+
 import { RELEASE_VERSION, isCompatibleVersion } from './version';
 import { DEFAULT_PORTAGE_FORMULA, type PortageFormulaParams, type Participant, type ProjectParams } from './calculatorUtils';
 
@@ -11,7 +25,11 @@ interface OldParticipant extends Participant {
   notaryFeesRate?: number; // Deprecated: renamed to registrationFeesRate (v1.16.0)
 }
 
-// Default values for reset functionality
+/**
+ * Default values - ONLY FOR RESET FUNCTIONALITY
+ * DO NOT use these for initial application load
+ * See src/services/dataLoader.ts for data loading logic
+ */
 export const DEFAULT_PARTICIPANTS: Participant[] = [
   { name: 'Manuela/Dragan', capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, surface: 112, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500, isFounder: true, entryDate: new Date(DEFAULT_DEED_DATE) },
   { name: 'Cathy/Jim', capitalApporte: 170000, registrationFeesRate: 12.5, unitId: 3, surface: 134, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500, isFounder: true, entryDate: new Date(DEFAULT_DEED_DATE) },

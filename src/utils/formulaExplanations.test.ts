@@ -3,7 +3,7 @@ import type { ParticipantCalculation, CalculationTotals } from './calculatorUtil
 import {
   getTotalCostFormula,
   getPurchaseShareFormula,
-  getNotaryFeesFormula,
+  getRegistrationFeesFormula,
   getPersonalRenovationFormula,
   getConstructionCostFormula,
   getSharedCostsFormula,
@@ -89,9 +89,9 @@ describe('formulaExplanations', () => {
     });
   });
 
-  describe('getNotaryFeesFormula', () => {
+  describe('getRegistrationFeesFormula', () => {
     it('should return registration fees (droit d\'enregistrements) calculation', () => {
-      const result = getNotaryFeesFormula(mockParticipant);
+      const result = getRegistrationFeesFormula(mockParticipant);
 
       expect(result).toHaveLength(2);
       expect(result[0]).toBe('Droit d\'enregistrements belge pour le transfert');

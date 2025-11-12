@@ -95,17 +95,21 @@ describe('timelineCalculations', () => {
       expect(dates[2]).toEqual(new Date('2024-03-01'))
     })
 
-    it('should use deedDate for participants without entryDate', () => {
+    it('should use deedDate for founders, deedDate + 1 for non-founders without entryDate', () => {
       const participants: Participant[] = [
-        createMockParticipant({ name: 'Alice', entryDate: undefined }),
+        createMockParticipant({ name: 'Founder', entryDate: undefined, isFounder: true }),
+        createMockParticipant({ name: 'NonFounder', entryDate: undefined, isFounder: false }),
         createMockParticipant({ name: 'Bob', entryDate: new Date('2024-02-01') })
       ]
 
       const dates = getUniqueSortedDates(participants, deedDate)
 
-      expect(dates).toHaveLength(2)
+      expect(dates).toHaveLength(3)
+      // Founder without entryDate uses deedDate (2024-01-15)
       expect(dates[0]).toEqual(new Date('2024-01-15'))
-      expect(dates[1]).toEqual(new Date('2024-02-01'))
+      // Non-founder without entryDate uses deedDate + 1 (2024-01-16)
+      expect(dates[1]).toEqual(new Date('2024-01-16'))
+      expect(dates[2]).toEqual(new Date('2024-02-01'))
     })
 
     it('should handle empty participant list', () => {

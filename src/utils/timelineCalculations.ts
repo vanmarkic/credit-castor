@@ -10,17 +10,50 @@ import {
 } from './transactionCalculations'
 
 /**
+ * Add days to an ISO date string (YYYY-MM-DD)
+ *
+ * @param dateString - ISO date string
+ * @param days - Number of days to add
+ * @returns New ISO date string with days added
+ */
+function addDaysToDateString(dateString: string, days: number): string {
+  const date = new Date(dateString)
+  date.setDate(date.getDate() + days)
+  return date.toISOString().split('T')[0]
+}
+
+/**
+ * Convert Firestore Timestamp to Date if needed
+ *
+ * @param value - Possible Firestore Timestamp object or regular date value
+ * @returns Date object, string, or original value
+ */
+function convertFirestoreTimestamp(value: any): Date | string | null | undefined {
+  // Check if this is a Firestore Timestamp object (has seconds and nanoseconds)
+  if (value && typeof value === 'object' && 'seconds' in value && 'nanoseconds' in value) {
+    // Convert Firestore Timestamp to JavaScript Date
+    return new Date(value.seconds * 1000 + value.nanoseconds / 1000000)
+  }
+  return value
+}
+
+/**
  * Safely converts a date value to an ISO date string (YYYY-MM-DD).
  * Returns the fallback date if the input is invalid.
+ * Handles Firestore Timestamp objects automatically.
  *
- * @param dateValue - Date string, Date object, or falsy value
+ * @param dateValue - Date string, Date object, Firestore Timestamp, or falsy value
  * @param fallback - Fallback date string to use if dateValue is invalid
  * @returns ISO date string (YYYY-MM-DD)
  */
-function safeToISODateString(dateValue: string | Date | null | undefined, fallback: string): string {
+function safeToISODateString(dateValue: string | Date | null | undefined | any, fallback: string): string {
   if (!dateValue) return fallback
 
-  const date = dateValue instanceof Date ? dateValue : new Date(dateValue)
+  // Convert Firestore Timestamp if needed
+  const converted = convertFirestoreTimestamp(dateValue)
+  if (!converted) return fallback
+
+  const date = converted instanceof Date ? converted : new Date(converted)
 
   // Check if date is valid
   if (isNaN(date.getTime())) {
@@ -66,7 +99,7 @@ export interface TimelineSnapshot {
 
 /**
  * Extract unique dates from participants and sort chronologically.
- * Uses deedDate as fallback for participants without entryDate.
+ * Uses deedDate for founders, deedDate + 1 day for non-founders without entryDate.
  *
  * @param participants - Array of all participants
  * @param deedDate - Default date for founders (ISO string)
@@ -76,9 +109,15 @@ export function getUniqueSortedDates(
   participants: Participant[],
   deedDate: string
 ): Date[] {
+  const fallbackNonFounder = addDaysToDateString(deedDate, 1)
   const dates = [
     ...new Set(
-      participants.map(p => safeToISODateString(p.entryDate, deedDate))
+      participants.map(p => {
+        // Founders without entryDate use deedDate (T0)
+        // Non-founders without entryDate use deedDate + 1 day
+        const fallback = p.isFounder ? deedDate : fallbackNonFounder
+        return safeToISODateString(p.entryDate, fallback)
+      })
     )
   ].sort()
 
@@ -102,9 +141,15 @@ export function generateCoproSnapshots(
 ): CoproSnapshot[] {
   const snapshots: CoproSnapshot[] = []
 
+  const fallbackNonFounder = addDaysToDateString(deedDate, 1)
   const dates = [
     ...new Set(
-      participants.map(p => safeToISODateString(p.entryDate, deedDate))
+      participants.map(p => {
+        // Founders without entryDate use deedDate (T0)
+        // Non-founders without entryDate use deedDate + 1 day
+        const fallback = p.isFounder ? deedDate : fallbackNonFounder
+        return safeToISODateString(p.entryDate, fallback)
+      })
     )
   ].sort()
 
@@ -116,8 +161,9 @@ export function generateCoproSnapshots(
 
     // Find participants who joined from copro at this date
     const joinedFromCopro = participants.filter(p => {
+      const fallback = p.isFounder ? deedDate : fallbackNonFounder
       return (
-        safeToISODateString(p.entryDate, deedDate) === dateStr &&
+        safeToISODateString(p.entryDate, fallback) === dateStr &&
         p.purchaseDetails?.buyingFrom === 'Copropriété'
       )
     })
@@ -248,10 +294,17 @@ export function generateParticipantSnapshots(
   const result: Map<string, TimelineSnapshot[]> = new Map()
   const previousSnapshots: Map<string, TimelineSnapshot> = new Map()
 
+  const fallbackNonFounder = addDaysToDateString(deedDate, 1)
+
   // Get unique dates sorted
   const dates = [
     ...new Set(
-      participants.map(p => safeToISODateString(p.entryDate, deedDate))
+      participants.map(p => {
+        // Founders without entryDate use deedDate (T0)
+        // Non-founders without entryDate use deedDate + 1 day
+        const fallback = p.isFounder ? deedDate : fallbackNonFounder
+        return safeToISODateString(p.entryDate, fallback)
+      })
     )
   ].sort()
 
@@ -261,7 +314,8 @@ export function generateParticipantSnapshots(
 
     // Find participants who joined at this exact date
     const joiningParticipants = participants.filter(p => {
-      return safeToISODateString(p.entryDate, deedDate) === dateStr
+      const fallback = p.isFounder ? deedDate : fallbackNonFounder
+      return safeToISODateString(p.entryDate, fallback) === dateStr
     })
 
     // Determine who is affected at this moment
