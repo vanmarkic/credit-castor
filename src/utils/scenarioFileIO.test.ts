@@ -6,7 +6,8 @@ import {
   createFileUploadHandler,
   type ScenarioData
 } from './scenarioFileIO';
-import type { Participant, ProjectParams, CalculationResults } from './calculatorUtils';
+import type { Participant, ProjectParams, CalculationResults, PortageFormulaParams } from './calculatorUtils';
+import { DEFAULT_PORTAGE_FORMULA } from './calculatorUtils';
 import type { TimelineSnapshot } from './timelineCalculations';
 import { RELEASE_VERSION } from './version';
 
@@ -44,6 +45,8 @@ describe('scenarioFileIO', () => {
   const mockUnitDetails = {
     1: { casco: 178080, parachevements: 56000 }
   };
+
+  const mockPortageFormula: PortageFormulaParams = DEFAULT_PORTAGE_FORMULA;
 
   const mockCalculations: CalculationResults = {
     totalSurface: 100,
@@ -99,6 +102,7 @@ describe('scenarioFileIO', () => {
         mockParticipants,
         mockProjectParams,
         '2023-02-01',
+        mockPortageFormula,
         mockUnitDetails,
         mockCalculations
       );
@@ -120,6 +124,7 @@ describe('scenarioFileIO', () => {
         mockParticipants,
         mockProjectParams,
         '2023-02-01',
+        mockPortageFormula,
         mockUnitDetails,
         mockCalculations
       );
@@ -129,6 +134,82 @@ describe('scenarioFileIO', () => {
       expect(parsed.calculations?.totalSurface).toBe(100);
       expect(parsed.calculations?.pricePerM2).toBe(6500);
     });
+
+    it('should include portageFormula in serialized data', () => {
+      const customPortageFormula = {
+        indexationRate: 3.5,
+        carryingCostRecovery: 75,
+        averageInterestRate: 5.0,
+        coproReservesShare: 25
+      };
+
+      const result = serializeScenario(
+        mockParticipants,
+        mockProjectParams,
+        '2023-02-01',
+        customPortageFormula,
+        mockUnitDetails,
+        mockCalculations
+      );
+
+      const parsed = JSON.parse(result) as ScenarioData;
+      expect(parsed.portageFormula).toBeDefined();
+      expect(parsed.portageFormula.indexationRate).toBe(3.5);
+      expect(parsed.portageFormula.carryingCostRecovery).toBe(75);
+      expect(parsed.portageFormula.averageInterestRate).toBe(5.0);
+      expect(parsed.portageFormula.coproReservesShare).toBe(25);
+    });
+
+    it('should restore portageFormula on deserialization', () => {
+      const customPortageFormula = {
+        indexationRate: 2.5,
+        carryingCostRecovery: 80,
+        averageInterestRate: 4.8,
+        coproReservesShare: 35
+      };
+
+      // Serialize with custom formula
+      const jsonString = serializeScenario(
+        mockParticipants,
+        mockProjectParams,
+        '2023-02-01',
+        customPortageFormula,
+        mockUnitDetails,
+        mockCalculations
+      );
+
+      // Deserialize
+      const result = deserializeScenario(jsonString);
+
+      expect(result.success).toBe(true);
+      expect(result.data?.portageFormula).toBeDefined();
+      expect(result.data?.portageFormula.indexationRate).toBe(2.5);
+      expect(result.data?.portageFormula.carryingCostRecovery).toBe(80);
+      expect(result.data?.portageFormula.averageInterestRate).toBe(4.8);
+      expect(result.data?.portageFormula.coproReservesShare).toBe(35);
+    });
+
+    it('should use default portageFormula for old files without it', () => {
+      // Simulate old file format without portageFormula
+      const oldFileData = {
+        version: 2,
+        releaseVersion: RELEASE_VERSION,
+        timestamp: new Date().toISOString(),
+        participants: mockParticipants,
+        projectParams: mockProjectParams,
+        deedDate: '2023-02-01',
+        unitDetails: mockUnitDetails
+        // portageFormula intentionally missing
+      };
+
+      const jsonString = JSON.stringify(oldFileData);
+      const result = deserializeScenario(jsonString);
+
+      expect(result.success).toBe(true);
+      expect(result.data?.portageFormula).toBeDefined();
+      expect(result.data?.portageFormula.indexationRate).toBe(DEFAULT_PORTAGE_FORMULA.indexationRate);
+      expect(result.data?.portageFormula.carryingCostRecovery).toBe(DEFAULT_PORTAGE_FORMULA.carryingCostRecovery);
+    });
   });
 
   describe('deserializeScenario', () => {
@@ -137,6 +218,7 @@ describe('scenarioFileIO', () => {
         mockParticipants,
         mockProjectParams,
         '2023-02-01',
+        mockPortageFormula,
         mockUnitDetails,
         mockCalculations
       );
@@ -213,6 +295,7 @@ describe('scenarioFileIO', () => {
         mockParticipants,
         mockProjectParams,
         '2023-02-01',
+        mockPortageFormula,
         mockUnitDetails,
         mockCalculations
       );
@@ -242,6 +325,7 @@ describe('scenarioFileIO', () => {
         mockParticipants,
         mockProjectParams,
         '2023-02-01',
+        mockPortageFormula,
         mockUnitDetails,
         mockCalculations
       );
@@ -370,6 +454,7 @@ describe('scenarioFileIO', () => {
         mockParticipants,
         mockProjectParams,
         '2023-02-01',
+        mockPortageFormula,
         mockUnitDetails,
         mockCalculations,
         mockSnapshots
@@ -404,6 +489,7 @@ describe('scenarioFileIO', () => {
         mockParticipants,
         mockProjectParams,
         '2023-02-01',
+        mockPortageFormula,
         mockUnitDetails,
         mockCalculations
       );
@@ -464,6 +550,7 @@ describe('scenarioFileIO', () => {
         multiParticipants,
         mockProjectParams,
         '2023-02-01',
+        mockPortageFormula,
         mockUnitDetails,
         multiCalculations,
         mockSnapshots
@@ -500,6 +587,7 @@ describe('scenarioFileIO', () => {
         mockParticipants,
         mockProjectParams,
         '2023-02-01',
+        mockPortageFormula,
         mockUnitDetails,
         twoLoanCalculations
       );
@@ -530,6 +618,7 @@ describe('scenarioFileIO', () => {
         mockParticipants,
         mockProjectParams,
         '2023-02-01',
+        mockPortageFormula,
         mockUnitDetails,
         mockCalculations
       );

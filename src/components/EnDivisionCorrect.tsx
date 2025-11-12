@@ -1,9 +1,6 @@
-import { useMemo, useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import * as Tooltip from '@radix-ui/react-tooltip';
-import { calculateAll, type Participant, DEFAULT_PORTAGE_FORMULA } from '../utils/calculatorUtils';
-import { exportCalculations } from '../utils/excelExport';
-import { XlsxWriter } from '../utils/exportWriter';
-import { generateParticipantSnapshots } from '../utils/timelineCalculations';
+import { type Participant } from '../utils/calculatorUtils';
 import { ParticipantsTimeline } from './calculator/ParticipantsTimeline';
 import { ProjectHeader } from './calculator/ProjectHeader';
 import { VerticalToolbar } from './calculator/VerticalToolbar';
@@ -19,31 +16,19 @@ import {
   getPricePerM2Formula,
   getTotalProjectCostFormula
 } from '../utils/formulaExplanations';
-import {
-  DEFAULT_PARTICIPANTS,
-  DEFAULT_PROJECT_PARAMS,
-  DEFAULT_DEED_DATE,
-  loadFromLocalStorage,
-  clearLocalStorage,
-  clearPinnedParticipant
-} from '../utils/storage';
+import { loadFromLocalStorage, clearPinnedParticipant } from '../utils/storage';
 import { RELEASE_VERSION } from '../utils/version';
 import { VersionMismatchWarning } from './VersionMismatchWarning';
-import { useCalculatorState, useOrderedParticipantBreakdown } from '../hooks/useCalculatorState';
-import { useParticipantOperations } from '../hooks/useParticipantOperations';
-import { useStoragePersistence } from '../hooks/useStoragePersistence';
-import { downloadScenarioFile, createFileUploadHandler } from '../utils/scenarioFileIO';
+import { useOrderedParticipantBreakdown } from '../hooks/useCalculatorState';
 import HorizontalSwimLaneTimeline from './HorizontalSwimLaneTimeline';
 import { updateBuyerWithRecalculatedPrice } from '../utils/portageRecalculation';
 import { UnlockProvider, useUnlock } from '../contexts/UnlockContext';
 import { UnlockButton } from './shared/UnlockButton';
 import toast, { Toaster } from 'react-hot-toast';
-import { usePresenceDetection } from '../hooks/usePresenceDetection';
 import { useChangeNotifications } from '../hooks/useChangeNotifications';
 import { ChangeNotificationToast, PresenceNotificationToast } from './shared/NotificationToast';
-import { useFirestoreSync } from '../hooks/useFirestoreSync';
 import { ConflictResolutionDialog } from './ConflictResolutionDialog';
-import { initializeFirebase } from '../services/firebase';
+import { useCalculator } from '../contexts/CalculatorContext';
 
 interface CoproSnapshot {
   date: Date;
@@ -55,60 +40,53 @@ interface CoproSnapshot {
 }
 
 export default function EnDivisionCorrect() {
-  // State management
-  const state = useCalculatorState();
+  // Get state and actions from context
+  const { state, actions } = useCalculator();
   const {
     participants,
     projectParams,
-    // scenario removed
     deedDate,
     portageFormula,
     pinnedParticipant,
     fullscreenParticipantIndex,
     versionMismatch,
+    syncMode,
+    isSyncing,
+    lastSyncedAt,
+    conflictState,
+    syncError,
+    activeUsers,
+    calculations,
+    unitDetails
+  } = state;
+
+  const {
     setParticipants,
     setProjectParams,
-    // setScenario removed
     setDeedDate,
     setPortageFormula,
     setFullscreenParticipantIndex,
     setVersionMismatch,
     handlePinParticipant,
     handleUnpinParticipant,
-    participantRefs
-  } = state;
+    addParticipant,
+    updateParticipantName,
+    updateParticipantSurface,
+    removeParticipant,
+    downloadScenario,
+    loadScenario,
+    resetToDefaults,
+    exportToExcel,
+    resolveConflict
+  } = actions;
 
   // Copropriété modal state
   const [coproSnapshot, setCoproSnapshot] = useState<CoproSnapshot | null>(null);
 
-  // Presence detection and notifications
+  // Presence detection and change notifications (for toast UI)
   const { unlockedBy } = useUnlock();
-  const { activeUsers } = usePresenceDetection(unlockedBy);
   const { changes, clearChanges } = useChangeNotifications();
   const previousActiveUsersRef = useRef<number>(0);
-
-  // Initialize Firebase on component mount
-  useEffect(() => {
-    initializeFirebase();
-  }, []);
-
-  // Firestore sync (optional - gracefully falls back to localStorage if not configured)
-  const {
-    syncMode,
-    isSyncing,
-    lastSyncedAt,
-    conflictState,
-    syncError,
-    saveData,
-    resolveConflict,
-  } = useFirestoreSync(unlockedBy, true);
-
-  // Auto-save data to Firestore when it changes
-  useEffect(() => {
-    if (unlockedBy) {
-      saveData(participants, projectParams, deedDate, portageFormula);
-    }
-  }, [participants, projectParams, deedDate, portageFormula, saveData, unlockedBy]);
 
   // Show presence notifications when users join/leave
   useEffect(() => {
@@ -160,77 +138,13 @@ export default function EnDivisionCorrect() {
     }
   }, [changes, clearChanges]);
 
-  // Participant operations
-  const participantOps = useParticipantOperations();
-
-  const addParticipant = () => {
-    const newParticipants = participantOps.addParticipant(participants, deedDate);
-    setParticipants(newParticipants);
-
-    // Scroll to the newly added participant (will be at the last index after state update)
-    setTimeout(() => {
-      const newIndex = participants.length; // This will be the index of the newly added participant
-      if (participantRefs.current[newIndex]?.scrollIntoView) {
-        participantRefs.current[newIndex].scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 50);
-  };
-
-  const removeParticipant = (index: number) => {
-    if (participants.length > 1) {
-      // If removing the pinned participant, clear the pin
-      if (participants[index].name === pinnedParticipant) {
-        handleUnpinParticipant();
-      }
-      const newParticipants = participantOps.removeParticipant(participants, index);
-      setParticipants(newParticipants);
-    }
-  };
-
-  const updateParticipantName = (index: number, name: string) => {
-    const oldName = participants[index].name;
-    const newParticipants = participantOps.updateParticipantName(participants, index, name);
-    setParticipants(newParticipants);
-
-    // If renaming the pinned participant, update the pin
-    if (oldName === pinnedParticipant) {
-      handlePinParticipant(name);
-    }
-  };
-
-  const updateParticipantSurface = (index: number, surface: number) => {
-    const newParticipants = participantOps.updateParticipantSurface(participants, index, surface);
-    setParticipants(newParticipants);
-  };
-
-  const unitDetails = {
-    1: { casco: 178080, parachevements: 56000 },
-    3: { casco: 213060, parachevements: 67000 },
-    5: { casco: 187620, parachevements: 59000 },
-    6: { casco: 171720, parachevements: 54000 }
-  };
-
-  // Auto-save to localStorage
-  useStoragePersistence(
-    participants,
-    projectParams,
-    deedDate,
-    portageFormula,
-    versionMismatch.show
-  );
-
-  // Handle version mismatch - export data and reset
+  // Version mismatch handler (unique to this component)
   const handleExportAndReset = () => {
-    // Get the old data before clearing
     const stored = loadFromLocalStorage();
-
     if (stored) {
-      // Create a blob with the old data
       const dataStr = JSON.stringify(stored, null, 2);
       const dataBlob = new Blob([dataStr], { type: 'application/json' });
       const url = URL.createObjectURL(dataBlob);
-
-      // Create download link
       const link = document.createElement('a');
       link.href = url;
       link.download = `credit-castor-backup-v${stored.storedVersion || 'unknown'}-${new Date().toISOString().split('T')[0]}.json`;
@@ -239,165 +153,135 @@ export default function EnDivisionCorrect() {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     }
-
-    // Clear localStorage
-    clearLocalStorage();
     clearPinnedParticipant();
-
-    // Reset to defaults
-    setParticipants(DEFAULT_PARTICIPANTS.map((p: Participant) => ({
-      ...p,
-      isFounder: p.isFounder !== undefined ? p.isFounder : true,
-      entryDate: p.entryDate ? new Date(p.entryDate) : new Date(DEFAULT_DEED_DATE)
-    })));
-    setProjectParams(DEFAULT_PROJECT_PARAMS);
-    // scenario removed - no longer using percentage-based adjustments
-    setDeedDate(DEFAULT_DEED_DATE);
-
-    // Hide the warning
-    setVersionMismatch({ show: false });
-
-    // Reload to ensure clean state
-    setTimeout(() => {
-      window.location.reload();
-    }, 500);
+    resetToDefaults();
+    setTimeout(() => window.location.reload(), 500);
   };
 
   const handleDismissVersionWarning = () => {
     setVersionMismatch({ show: false });
   };
 
-  const calculations = useMemo(() => {
-    return calculateAll(participants, projectParams, unitDetails);
-  }, [participants, projectParams]);
-
   // Reorder participant breakdown to show pinned participant first
   const orderedParticipantBreakdown = useOrderedParticipantBreakdown(calculations, pinnedParticipant);
 
+  // Participant detail operations (wrappers for provider actions)
   const updateCapital = (index: number, value: number) => {
+    const participantOps = { updateCapital: (ps: Participant[], i: number, v: number) => {
+      const updated = [...ps];
+      updated[i] = { ...updated[i], capitalApporte: v };
+      return updated;
+    }};
     setParticipants(participantOps.updateCapital(participants, index, value));
   };
 
   const updateNotaryRate = (index: number, value: number) => {
-    setParticipants(participantOps.updateNotaryRate(participants, index, value));
+    const newParticipants = [...participants];
+    newParticipants[index] = { ...newParticipants[index], notaryFeesRate: value };
+    setParticipants(newParticipants);
   };
 
   const updateInterestRate = (index: number, value: number) => {
-    setParticipants(participantOps.updateInterestRate(participants, index, value));
+    const newParticipants = [...participants];
+    newParticipants[index] = { ...newParticipants[index], interestRate: value };
+    setParticipants(newParticipants);
   };
 
   const updateDuration = (index: number, value: number) => {
-    setParticipants(participantOps.updateDuration(participants, index, value));
+    const newParticipants = [...participants];
+    newParticipants[index] = { ...newParticipants[index], durationYears: value };
+    setParticipants(newParticipants);
   };
 
   const updateQuantity = (index: number, value: number) => {
-    setParticipants(participantOps.updateQuantity(participants, index, value));
+    const newParticipants = [...participants];
+    newParticipants[index] = { ...newParticipants[index], quantity: value };
+    setParticipants(newParticipants);
   };
 
   const updateParachevementsPerM2 = (index: number, value: number) => {
-    setParticipants(participantOps.updateParachevementsPerM2(participants, index, value));
+    const newParticipants = [...participants];
+    newParticipants[index] = { ...newParticipants[index], parachevementsPerM2: value };
+    setParticipants(newParticipants);
   };
 
   const updateCascoSqm = (index: number, value: number | undefined) => {
-    setParticipants(participantOps.updateCascoSqm(participants, index, value));
+    const newParticipants = [...participants];
+    newParticipants[index] = { ...newParticipants[index], cascoSqm: value };
+    setParticipants(newParticipants);
   };
 
   const updateParachevementsSqm = (index: number, value: number | undefined) => {
-    setParticipants(participantOps.updateParachevementsSqm(participants, index, value));
+    const newParticipants = [...participants];
+    newParticipants[index] = { ...newParticipants[index], parachevementsSqm: value };
+    setParticipants(newParticipants);
   };
 
+  // Portage lot operations
   const addPortageLot = (participantIndex: number) => {
     const participantCalc = calculations.participantBreakdown[participantIndex];
-    setParticipants(participantOps.addPortageLot(
-      participants,
-      participantIndex,
-      deedDate,
-      participantCalc ? {
-        purchaseShare: participantCalc.purchaseShare,
-        notaryFees: participantCalc.notaryFees,
-        casco: participantCalc.casco
-      } : undefined
-    ));
+    const newParticipants = [...participants];
+    const currentLots = newParticipants[participantIndex].lotsOwned || [];
+    const nextLotId = currentLots.length > 0 ? Math.max(...currentLots.map(l => l.lotId)) + 1 : 1;
+
+    newParticipants[participantIndex] = {
+      ...newParticipants[participantIndex],
+      lotsOwned: [
+        ...currentLots,
+        {
+          lotId: nextLotId,
+          surface: 80,
+          isPortage: true,
+          allocatedSurface: 80,
+          acquiredDate: new Date(deedDate),
+          originalPrice: participantCalc?.purchaseShare || 0,
+          originalNotaryFees: participantCalc?.notaryFees || 0,
+          originalConstructionCost: participantCalc?.casco || 0
+        }
+      ]
+    };
+    setParticipants(newParticipants);
   };
 
   const removePortageLot = (participantIndex: number, lotId: number) => {
-    setParticipants(participantOps.removePortageLot(participants, participantIndex, lotId));
+    const newParticipants = [...participants];
+    const currentLots = newParticipants[participantIndex].lotsOwned || [];
+    newParticipants[participantIndex] = {
+      ...newParticipants[participantIndex],
+      lotsOwned: currentLots.filter(lot => lot.lotId !== lotId)
+    };
+    setParticipants(newParticipants);
   };
 
   const updatePortageLotSurface = (participantIndex: number, lotId: number, surface: number) => {
-    setParticipants(participantOps.updatePortageLotSurface(participants, participantIndex, lotId, surface));
+    const newParticipants = [...participants];
+    const currentLots = newParticipants[participantIndex].lotsOwned || [];
+    newParticipants[participantIndex] = {
+      ...newParticipants[participantIndex],
+      lotsOwned: currentLots.map(lot =>
+        lot.lotId === lotId ? { ...lot, surface, allocatedSurface: surface } : lot
+      )
+    };
+    setParticipants(newParticipants);
   };
 
-  const updatePortageLotConstructionPayment = (participantIndex: number, lotId: number, founderPaysCasco: boolean, founderPaysParachèvement: boolean) => {
-    setParticipants(participantOps.updatePortageLotConstructionPayment(participants, participantIndex, lotId, founderPaysCasco, founderPaysParachèvement));
-  };
-
-  const exportToExcel = () => {
-    const writer = new XlsxWriter();
-
-    // Generate timeline snapshots for export
-    const timelineSnapshots = generateParticipantSnapshots(
-      participants,
-      calculations,
-      deedDate,
-      portageFormula || DEFAULT_PORTAGE_FORMULA
-    );
-
-    exportCalculations(
-      calculations,
-      projectParams,
-      unitDetails,
-      writer,
-      undefined, // use default filename
-      {
-        timelineSnapshots,
-        participants
-      }
-    );
-  };
-
-  // Download scenario as JSON file
-  const downloadScenario = () => {
-    downloadScenarioFile(
-      participants,
-      projectParams,
-      deedDate,
-      unitDetails,
-      calculations
-    );
-  };
-
-  // Load scenario from JSON file
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const loadScenario = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileUpload = createFileUploadHandler(
-    (data) => {
-      setParticipants(data.participants);
-      setProjectParams(data.projectParams);
-      // scenario removed - no longer using percentage-based adjustments
-      if (data.deedDate) {
-        setDeedDate(data.deedDate);
-      }
-      alert('Scénario chargé avec succès!');
-    },
-    (error) => {
-      alert(error);
-    }
-  );
-
-  // Reset to defaults
-  const resetToDefaults = () => {
-    if (confirm('Êtes-vous sûr de vouloir réinitialiser complètement? Toutes les données seront perdues.')) {
-      clearLocalStorage();
-      setParticipants(DEFAULT_PARTICIPANTS);
-      setProjectParams(DEFAULT_PROJECT_PARAMS);
-      // scenario removed - no longer using percentage-based adjustments
-      alert('Données réinitialisées aux valeurs par défaut.');
-    }
+  const updatePortageLotConstructionPayment = (
+    participantIndex: number,
+    lotId: number,
+    founderPaysCasco: boolean,
+    founderPaysParachèvement: boolean
+  ) => {
+    const newParticipants = [...participants];
+    const currentLots = newParticipants[participantIndex].lotsOwned || [];
+    newParticipants[participantIndex] = {
+      ...newParticipants[participantIndex],
+      lotsOwned: currentLots.map(lot =>
+        lot.lotId === lotId
+          ? { ...lot, founderPaysCasco, founderPaysParachèvement }
+          : lot
+      )
+    };
+    setParticipants(newParticipants);
   };
 
   return (

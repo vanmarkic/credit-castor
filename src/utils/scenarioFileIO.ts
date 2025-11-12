@@ -7,8 +7,11 @@ import { RELEASE_VERSION, isCompatibleVersion } from './version';
 import type {
   Participant,
   ProjectParams,
-  CalculationResults
+  CalculationResults,
+  PortageFormulaParams,
+  DEFAULT_PORTAGE_FORMULA
 } from './calculatorUtils';
+import { DEFAULT_PORTAGE_FORMULA as PORTAGE_DEFAULTS } from './calculatorUtils';
 import type { UnitDetails } from './calculatorUtils';
 import type { TimelineSnapshot } from './timelineCalculations';
 import { syncSoldDatesFromPurchaseDetails } from './participantSync';
@@ -21,6 +24,7 @@ export interface ScenarioData {
   projectParams: ProjectParams;
   // scenario removed - backward compatibility maintained for loading old files
   deedDate: string;
+  portageFormula: PortageFormulaParams;
   unitDetails: UnitDetails;
   timelineSnapshots?: {
     [participantName: string]: TimelineSnapshot[];
@@ -83,6 +87,7 @@ export interface LoadScenarioResult {
     projectParams: ProjectParams;
     // scenario removed
     deedDate: string;
+    portageFormula: PortageFormulaParams;
   };
   error?: string;
 }
@@ -94,6 +99,7 @@ export function serializeScenario(
   participants: Participant[],
   projectParams: ProjectParams,
   deedDate: string,
+  portageFormula: PortageFormulaParams,
   unitDetails: UnitDetails,
   calculations: CalculationResults,
   timelineSnapshots?: Map<string, TimelineSnapshot[]>
@@ -106,6 +112,7 @@ export function serializeScenario(
     projectParams,
     // scenario removed - no longer saving percentage-based adjustments
     deedDate,
+    portageFormula,
     unitDetails,
     ...(timelineSnapshots && {
       timelineSnapshots: Object.fromEntries(timelineSnapshots)
@@ -193,13 +200,19 @@ export function deserializeScenario(jsonString: string): LoadScenarioResult {
     // Sync soldDate fields from purchaseDetails to ensure consistency
     const syncedParticipants = syncSoldDatesFromPurchaseDetails(data.participants);
 
+    // Backward compatibility: use default portageFormula if not present in file
+    const portageFormula = data.portageFormula
+      ? { ...PORTAGE_DEFAULTS, ...data.portageFormula }
+      : PORTAGE_DEFAULTS;
+
     return {
       success: true,
       data: {
         participants: syncedParticipants,
         projectParams: data.projectParams,
         // scenario removed - old files may have it but we ignore it
-        deedDate: data.deedDate || ''
+        deedDate: data.deedDate || '',
+        portageFormula
       }
     };
   } catch (error) {
@@ -218,6 +231,7 @@ export function downloadScenarioFile(
   participants: Participant[],
   projectParams: ProjectParams,
   deedDate: string,
+  portageFormula: PortageFormulaParams,
   unitDetails: UnitDetails,
   calculations: CalculationResults,
   timelineSnapshots?: Map<string, TimelineSnapshot[]>
@@ -226,6 +240,7 @@ export function downloadScenarioFile(
     participants,
     projectParams,
     deedDate,
+    portageFormula,
     unitDetails,
     calculations,
     timelineSnapshots
@@ -256,6 +271,7 @@ export function createFileUploadHandler(
     projectParams: ProjectParams;
     // scenario removed
     deedDate: string;
+    portageFormula: PortageFormulaParams;
   }) => void,
   onError: (message: string) => void
 ): (event: React.ChangeEvent<HTMLInputElement>) => void {
