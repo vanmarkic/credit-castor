@@ -36,5 +36,15 @@ service cloud.firestore {
     match /presence/{sessionId} {
       allow read, write: if true; // Presence is ephemeral and not sensitive
     }
+
+    // Edit locks collection - collaborative editing coordination
+    match /editLocks/{projectId} {
+      // Allow anyone to read locks (to check if a project is locked)
+      allow read: if true;
+
+      // Allow anyone to create/update/delete locks
+      // Transaction-based atomicity in the code prevents race conditions
+      allow create, update, delete: if true;
+    }
   }
 }
