@@ -447,9 +447,11 @@ export default function ParticipantDetailModal({
               </label>
               <input
                 type="date"
-                value={participant.entryDate
-                  ? new Date(participant.entryDate).toISOString().split('T')[0]
-                  : deedDate}
+                value={(() => {
+                  if (!participant.entryDate) return deedDate;
+                  const date = new Date(participant.entryDate);
+                  return isNaN(date.getTime()) ? deedDate : date.toISOString().split('T')[0];
+                })()}
                 onChange={(e) => {
                   const newDate = new Date(e.target.value);
                   if (newDate < new Date(deedDate)) {

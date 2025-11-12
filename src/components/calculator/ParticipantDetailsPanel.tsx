@@ -197,9 +197,11 @@ export function ParticipantDetailsPanel({
           </label>
           <input
             type="date"
-            value={participants[idx].entryDate
-              ? new Date(participants[idx].entryDate).toISOString().split('T')[0]
-              : deedDate}
+            value={(() => {
+              if (!participants[idx].entryDate) return deedDate;
+              const date = new Date(participants[idx].entryDate);
+              return isNaN(date.getTime()) ? deedDate : date.toISOString().split('T')[0];
+            })()}
             onChange={(e) => {
               const newDate = new Date(e.target.value);
               if (newDate < new Date(deedDate)) {
@@ -500,7 +502,7 @@ export function ParticipantDetailsPanel({
                 {formatCurrency(p.fraisNotaireFixe)}
               </FormulaTooltip>
             </p>
-            <p className="text-xs text-gray-400 mt-0.5">{p.quantity} lot{p.quantity > 1 ? 's' : ''}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{p.quantity ?? 0} lot{(p.quantity ?? 0) > 1 ? 's' : ''}</p>
           </div>
 
           <div className="bg-white rounded-lg p-3 border border-orange-200">
