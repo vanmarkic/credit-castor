@@ -39,7 +39,7 @@ export interface CalculatorState {
   syncError: string | null;
 
   // Presence
-  activeUsers: Array<{ email: string; lastSeen: Date }>;
+  activeUsers: Array<{ email: string; lastSeen: Date; sessionId: string }>;
 
   // Computed
   calculations: CalculationResults;

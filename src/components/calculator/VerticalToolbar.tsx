@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Download, Upload, RotateCcw, Save, ChevronLeft } from 'lucide-react';
 
 interface VerticalToolbarProps {
@@ -6,8 +6,6 @@ interface VerticalToolbarProps {
   onLoadScenario: () => void;
   onResetToDefaults: () => void;
   onExportToExcel: () => void;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
-  onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 export function VerticalToolbar({
@@ -15,8 +13,6 @@ export function VerticalToolbar({
   onLoadScenario,
   onResetToDefaults,
   onExportToExcel,
-  fileInputRef,
-  onFileUpload,
 }: VerticalToolbarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -77,14 +73,6 @@ export function VerticalToolbar({
             <span className="text-[10px]">Excel</span>
           </button>
         </div>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".json"
-            onChange={onFileUpload}
-            style={{ display: 'none' }}
-          />
 
           <p className="text-[10px] text-gray-500 mt-3 pt-3 text-center border-t border-gray-200">
             Sauvegarde auto

@@ -224,12 +224,16 @@ export default function EnDivisionCorrect() {
     const currentLots = newParticipants[participantIndex].lotsOwned || [];
     const nextLotId = currentLots.length > 0 ? Math.max(...currentLots.map(l => l.lotId)) + 1 : 1;
 
+    // Get unitId from first lot if available, otherwise use 0 for custom portage lot
+    const defaultUnitId = currentLots.length > 0 ? currentLots[0].unitId : 0;
+
     newParticipants[participantIndex] = {
       ...newParticipants[participantIndex],
       lotsOwned: [
         ...currentLots,
         {
           lotId: nextLotId,
+          unitId: defaultUnitId,
           surface: 80,
           isPortage: true,
           allocatedSurface: 80,
@@ -366,8 +370,6 @@ export default function EnDivisionCorrect() {
           onLoadScenario={loadScenario}
           onResetToDefaults={resetToDefaults}
           onExportToExcel={exportToExcel}
-          fileInputRef={fileInputRef}
-          onFileUpload={handleFileUpload}
         />
 
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">

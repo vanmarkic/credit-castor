@@ -8,8 +8,7 @@ import type {
   Participant,
   ProjectParams,
   CalculationResults,
-  PortageFormulaParams,
-  DEFAULT_PORTAGE_FORMULA
+  PortageFormulaParams
 } from './calculatorUtils';
 import { DEFAULT_PORTAGE_FORMULA as PORTAGE_DEFAULTS } from './calculatorUtils';
 import type { UnitDetails } from './calculatorUtils';
