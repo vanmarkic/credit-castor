@@ -210,32 +210,37 @@ const needsMajorVersionBump = false; // ← Reset
 ## Automated Safeguards
 
 ### 1. Schema Validation Tests
-Run before every commit:
+Run anytime:
 ```bash
-npm run test:run -- src/utils/dataSchema.test.ts
+npm run test:schema
 ```
 
 These tests snapshot the data structure shapes. Any change triggers a failure.
 
-### 2. Manual Checklist
-Before merging:
-- [ ] Ran schema validation tests
+### 2. Pre-Push Hook (Automatic) ✅
+The repository now includes a **pre-push hook** that automatically runs schema validation before every push:
+
+**Location:** `.git/hooks/pre-push`
+
+When you try to push, the hook will:
+- Run `npm run test:schema`
+- Block the push if breaking changes are detected
+- Show helpful instructions on how to proceed
+
+**To bypass (not recommended):**
+```bash
+git push --no-verify
+```
+
+**Hook is already set up** - No action needed! It will run automatically on `git push`.
+
+### 3. Manual Checklist
+Before merging major changes:
+- [ ] Ran schema validation tests (`npm run test:schema`)
 - [ ] Checked if any field names changed in critical interfaces
 - [ ] Verified localStorage data loads correctly
 - [ ] Tested JSON export/import
 - [ ] Tested Firestore sync (if applicable)
-
-### 3. Pre-Commit Hook (Optional)
-Add to `.git/hooks/pre-commit`:
-```bash
-#!/bin/bash
-npm run test:run -- src/utils/dataSchema.test.ts
-if [ $? -ne 0 ]; then
-  echo "❌ Schema validation failed! Breaking change detected."
-  echo "👉 If intentional, bump MAJOR version and update tests."
-  exit 1
-fi
-```
 
 ## Real-World Examples from This Project
 

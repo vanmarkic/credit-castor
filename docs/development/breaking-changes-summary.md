@@ -132,16 +132,30 @@ interface Participant {
 - ✅ Schema validation tests created (14 tests)
 - ✅ Breaking changes guide documented
 - ✅ Pre-commit checklist created
-- ✅ NPM script added
+- ✅ NPM script added (`npm run test:schema`)
 - ✅ CLAUDE.md updated with version management section
+- ✅ **Pre-push hook installed** (`.git/hooks/pre-push`)
 - ✅ All tests passing
+
+## Pre-Push Hook
+
+**Automatic protection is now active!** Every time you push:
+
+```bash
+git push
+# 🔍 Running schema validation tests before push...
+# ✅ Schema validation passed!
+```
+
+If breaking changes are detected, the push will be blocked with instructions on how to proceed.
+
+**Location:** `.git/hooks/pre-push`
 
 ## Next Steps (Optional)
 
-1. **Git Pre-Commit Hook**: Auto-run schema tests before each commit
-2. **CI/CD Integration**: Run schema tests in build pipeline
-3. **Migration System**: Create `src/utils/migrations.ts` for major version transitions
-4. **JSON Schema Validation**: Add runtime validation of loaded data
+1. **CI/CD Integration**: Run schema tests in build pipeline
+2. **Migration System**: Create `src/utils/migrations.ts` for major version transitions
+3. **JSON Schema Validation**: Add runtime validation of loaded data
 
 ## Questions?
 
@@ -151,4 +165,29 @@ interface Participant {
 
 ---
 
-**Last Updated:** 2025-11-12 (v1.16.0)
+**Last Updated:** 2025-11-12 (v1.17.0)
+
+## Testing the Pre-Push Hook
+
+Want to see it in action? Try pushing:
+
+```bash
+# Schema validation will run automatically
+git push
+
+# Output:
+# 🔍 Running schema validation tests before push...
+# ✅ Schema validation passed!
+```
+
+If you make a breaking change and try to push without bumping the major version:
+
+```bash
+# ❌ Schema validation FAILED!
+# Breaking change detected in data structures.
+#
+# If this is intentional:
+#   1. Bump MAJOR version in src/utils/version.ts (e.g., 1.17.0 → 2.0.0)
+#   2. Update schema tests in src/utils/dataSchema.test.ts
+#   3. Document the breaking change
+```

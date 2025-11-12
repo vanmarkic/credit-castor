@@ -2,10 +2,16 @@
 
 Before committing changes to critical data structures, run through this checklist:
 
+## ⚡ Automatic Protection
+
+**Good news!** A pre-push hook is installed that automatically runs `npm run test:schema` before every push. Breaking changes will be caught automatically.
+
+**Location:** `.git/hooks/pre-push`
+
 ## Quick Check (30 seconds)
 
 ```bash
-# Run schema validation tests
+# Run schema validation tests manually
 npm run test:schema
 ```
 

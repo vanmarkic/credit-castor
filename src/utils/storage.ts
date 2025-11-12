@@ -8,6 +8,7 @@ export const DEFAULT_DEED_DATE = '2026-02-01';
 // Old participant interface for migration (includes deprecated fields)
 interface OldParticipant extends Participant {
   cascoPerM2?: number; // Deprecated: moved to globalCascoPerM2 in ProjectParams
+  notaryFeesRate?: number; // Deprecated: renamed to registrationFeesRate (v1.16.0)
 }
 
 // Default values for reset functionality
@@ -211,10 +212,17 @@ export const loadFromLocalStorage = () => {
           result.projectParams.cascoTvaRate = 6;
         }
 
-        // Clean up old participant cascoPerM2 fields
+        // Clean up old participant fields and migrate renamed properties
         if (result.participants) {
           result.participants = result.participants.map((p: OldParticipant) => {
-            const { cascoPerM2: _cascoPerM2, ...rest } = p;
+            const { cascoPerM2: _cascoPerM2, notaryFeesRate, ...rest } = p;
+
+            // Migration: notaryFeesRate → registrationFeesRate (v1.16.0)
+            // If old field exists but new field doesn't, migrate the value
+            if (notaryFeesRate !== undefined && !rest.registrationFeesRate) {
+              rest.registrationFeesRate = notaryFeesRate;
+            }
+
             return rest as Participant;
           });
         }

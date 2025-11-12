@@ -24,6 +24,83 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock
 });
 
+describe('storage - notaryFeesRate → registrationFeesRate migration', () => {
+  beforeEach(() => {
+    localStorageMock.clear();
+  });
+
+  it('should migrate notaryFeesRate to registrationFeesRate for old data', () => {
+    const oldData = {
+      releaseVersion: RELEASE_VERSION,
+      version: 2,
+      timestamp: new Date().toISOString(),
+      participants: [
+        {
+          name: 'Test Participant',
+          capitalApporte: 100000,
+          notaryFeesRate: 12.5, // Old field name
+          interestRate: 4.5,
+          durationYears: 25,
+          surface: 100,
+          quantity: 1,
+          parachevementsPerM2: 500
+        }
+      ],
+      projectParams: {},
+      deedDate: '2026-02-01',
+      portageFormula: {
+        indexationRate: 2.0,
+        carryingCostRecovery: 100,
+        averageInterestRate: 4.5,
+        coproReservesShare: 30
+      }
+    };
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(oldData));
+
+    const loaded = loadFromLocalStorage();
+
+    expect(loaded).not.toBeNull();
+    expect(loaded!.participants[0].registrationFeesRate).toBe(12.5);
+    expect(loaded!.participants[0]).not.toHaveProperty('notaryFeesRate');
+  });
+
+  it('should preserve registrationFeesRate if already present in new data', () => {
+    const newData = {
+      releaseVersion: RELEASE_VERSION,
+      version: 2,
+      timestamp: new Date().toISOString(),
+      participants: [
+        {
+          name: 'Test Participant',
+          capitalApporte: 100000,
+          registrationFeesRate: 3.0, // New field name
+          interestRate: 4.5,
+          durationYears: 25,
+          surface: 100,
+          quantity: 1,
+          parachevementsPerM2: 500
+        }
+      ],
+      projectParams: {},
+      deedDate: '2026-02-01',
+      portageFormula: {
+        indexationRate: 2.0,
+        carryingCostRecovery: 100,
+        averageInterestRate: 4.5,
+        coproReservesShare: 30
+      }
+    };
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newData));
+
+    const loaded = loadFromLocalStorage();
+
+    expect(loaded).not.toBeNull();
+    expect(loaded!.participants[0].registrationFeesRate).toBe(3.0);
+  });
+});
+
 describe('storage - portageFormula migration', () => {
   beforeEach(() => {
     localStorageMock.clear();
