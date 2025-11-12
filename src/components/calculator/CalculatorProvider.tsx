@@ -253,7 +253,7 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
 
   // Firestore sync
   // Callback for successful sync (shows toast with updated fields)
-  const handleSyncSuccess = useCallback((message: string, fields: any[]) => {
+  const handleSyncSuccess = useCallback((message: string, _fields: any[]) => {
     toast.custom(
       (t) => (
         <SimpleNotificationToast
@@ -267,6 +267,35 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
     );
   }, []);
 
+  // Callback for accepting remote data (updates React state without reload)
+  const handleRemoteDataAccepted = useCallback((data: {
+    participants: Participant[];
+    projectParams: any;
+    deedDate: string;
+    portageFormula: any;
+  }) => {
+    console.log('🔄 Accepting remote data and updating state...');
+
+    // Update all state
+    setParticipants(data.participants);
+    setProjectParams(data.projectParams);
+    setDeedDate(data.deedDate);
+    setPortageFormula(data.portageFormula);
+
+    // Show success toast
+    toast.custom(
+      (t) => (
+        <SimpleNotificationToast
+          title="Modifications acceptées"
+          message="Les données distantes ont été chargées avec succès"
+          type="success"
+          onDismiss={() => toast.dismiss(t.id)}
+        />
+      ),
+      { duration: 3000 }
+    );
+  }, [setParticipants, setProjectParams, setDeedDate, setPortageFormula]);
+
   const {
     syncMode,
     isSyncing,
@@ -275,7 +304,7 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
     syncError,
     saveData,
     resolveConflict,
-  } = useFirestoreSync(unlockedBy, true, handleSyncSuccess);
+  } = useFirestoreSync(unlockedBy, true, handleSyncSuccess, handleRemoteDataAccepted);
 
   // Auto-save data to Firestore when it changes (only if initialized)
   // Debounced by 500ms to batch rapid changes (e.g., typing in surface fields)

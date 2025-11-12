@@ -58,11 +58,18 @@ export interface ConflictState {
  * @param userEmail - Email of the current user (from unlock state)
  * @param enabled - Whether sync is enabled (default: true)
  * @param onSyncSuccess - Optional callback when sync succeeds (for toast notifications)
+ * @param onRemoteDataAccepted - Optional callback when user accepts remote data (to update React state without reload)
  */
 export function useFirestoreSync(
   userEmail: string | null,
   enabled: boolean = true,
-  onSyncSuccess?: (message: string, fields: TrackableField[]) => void
+  onSyncSuccess?: (message: string, fields: TrackableField[]) => void,
+  onRemoteDataAccepted?: (data: {
+    participants: Participant[];
+    projectParams: ProjectParams;
+    deedDate: string;
+    portageFormula: PortageFormulaParams;
+  }) => void
 ) {
   const [syncMode, setSyncMode] = useState<SyncMode>('offline');
   const [isSyncing, setIsSyncing] = useState(false);
@@ -394,14 +401,24 @@ export function useFirestoreSync(
         setConflictState({ hasConflict: false });
         setLastSyncedAt(new Date());
 
-        // Trigger a page reload to reflect changes
-        window.location.reload();
+        // Update React state via callback (no reload needed!)
+        if (onRemoteDataAccepted) {
+          onRemoteDataAccepted({
+            participants,
+            projectParams,
+            deedDate,
+            portageFormula,
+          });
+        } else {
+          // Fallback: reload if no callback provided (backward compatibility)
+          window.location.reload();
+        }
       } else if (choice === 'local') {
         // Keep local changes (user will need to save again)
         setConflictState({ hasConflict: false });
       }
     },
-    [conflictState]
+    [conflictState, onRemoteDataAccepted]
   );
 
   /**

@@ -399,7 +399,7 @@ export function ConflictResolutionDialog({
               <div className="flex items-start gap-2">
                 <Download className="w-4 h-4 flex-shrink-0 mt-0.5" />
                 <div>
-                  <strong>"Accepter les modifications distantes"</strong> : Supprime TOUTES vos modifications locales et charge les données distantes. La page sera rechargée.
+                  <strong>"Accepter les modifications distantes"</strong> : Supprime TOUTES vos modifications locales et charge les données distantes.
                 </div>
               </div>
               <div className="flex items-start gap-2">
