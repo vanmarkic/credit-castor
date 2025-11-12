@@ -151,9 +151,10 @@ export function buildExportSheetData(
                    'Construction', 'Commun', 'TOTAL', 'Emprunt', 'Mensualite', 'Total rembourse',
                    'Reno perso', 'CASCO m2', 'Parachev m2', 'CASCO sqm', 'Parachev sqm',
                    'Fondateur', 'Date entree', 'Lots detenus', 'Date vente lot', 'Achete de', 'Lot ID achete', 'Prix achat lot',
-                   '2 prets', 'Pret1 montant', 'Pret1 mens', 'Pret2 montant', 'Pret2 mens', 'Pret2 duree',
+                   '2 prets', 'Pret1 montant', 'Pret1 mens', 'Pret1 interets', 'Pret2 montant', 'Pret2 mens', 'Pret2 interets', 'Pret2 duree', 'Pret2 delai',
+                   'Reno pret2', 'Capital pret1', 'Capital pret2',
                    'Porteur paie CASCO', 'Porteur paie Parachev'];
-  const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH', 'AI', 'AJ', 'AK', 'AL', 'AM', 'AN'];
+  const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH', 'AI', 'AJ', 'AK', 'AL', 'AM', 'AN', 'AO', 'AP', 'AQ', 'AR', 'AS', 'AT'];
 
   headers.forEach((header, idx) => {
     addCell(headerRow, cols[idx], header);
@@ -221,9 +222,15 @@ export function buildExportSheetData(
       addCell(r, 'AG', 'Oui');
       addCell(r, 'AH', p.loan1Amount);
       addCell(r, 'AI', p.loan1MonthlyPayment);
-      addCell(r, 'AJ', p.loan2Amount);
-      addCell(r, 'AK', p.loan2MonthlyPayment);
-      addCell(r, 'AL', `${p.loan2DurationYears} ans (démarre année ${p.loan2DelayYears || 2})`);
+      addCell(r, 'AJ', p.loan1Interest);
+      addCell(r, 'AK', p.loan2Amount);
+      addCell(r, 'AL', p.loan2MonthlyPayment);
+      addCell(r, 'AM', p.loan2Interest);
+      addCell(r, 'AN', p.loan2DurationYears ? `${p.loan2DurationYears} ans` : '');
+      addCell(r, 'AO', p.loan2DelayYears || 2);
+      addCell(r, 'AP', p.loan2RenovationAmount);
+      addCell(r, 'AQ', p.capitalForLoan1);
+      addCell(r, 'AR', p.capitalForLoan2);
     } else {
       addCell(r, 'AG', 'Non');
       addCell(r, 'AH', '');
@@ -231,6 +238,12 @@ export function buildExportSheetData(
       addCell(r, 'AJ', '');
       addCell(r, 'AK', '');
       addCell(r, 'AL', '');
+      addCell(r, 'AM', '');
+      addCell(r, 'AN', '');
+      addCell(r, 'AO', '');
+      addCell(r, 'AP', '');
+      addCell(r, 'AQ', '');
+      addCell(r, 'AR', '');
     }
 
     // Construction payment details (for portage buyers)
@@ -241,15 +254,15 @@ export function buildExportSheetData(
         .find(lot => lot.lotId === p.purchaseDetails!.lotId && lot.isPortage);
 
       if (portageLot) {
-        addCell(r, 'AM', portageLot.founderPaysCasco ? 'Oui' : 'Non');
-        addCell(r, 'AN', portageLot.founderPaysParachèvement ? 'Oui' : 'Non');
+        addCell(r, 'AS', portageLot.founderPaysCasco ? 'Oui' : 'Non');
+        addCell(r, 'AT', portageLot.founderPaysParachèvement ? 'Oui' : 'Non');
       } else {
-        addCell(r, 'AM', '');
-        addCell(r, 'AN', '');
+        addCell(r, 'AS', '');
+        addCell(r, 'AT', '');
       }
     } else {
-      addCell(r, 'AM', '');
-      addCell(r, 'AN', '');
+      addCell(r, 'AS', '');
+      addCell(r, 'AT', '');
     }
   });
 
@@ -297,6 +310,13 @@ export function buildExportSheetData(
   addCell(totalRow, 'AK', '');
   addCell(totalRow, 'AL', '');
   addCell(totalRow, 'AM', '');
+  addCell(totalRow, 'AN', '');
+  addCell(totalRow, 'AO', '');
+  addCell(totalRow, 'AP', '');
+  addCell(totalRow, 'AQ', '');
+  addCell(totalRow, 'AR', '');
+  addCell(totalRow, 'AS', '');
+  addCell(totalRow, 'AT', '');
 
   // Summary section
   const synthRow = totalRow + 2;
@@ -314,7 +334,7 @@ export function buildExportSheetData(
   addCell(synthRow + 7, 'A', 'Emprunt maximum');
   addCell(synthRow + 7, 'B', null, `MAX(Q${startRow}:Q${endRow})`);
 
-  // Column widths (expanded to 39 columns for portage lot tracking, two-loan financing, and construction payment tracking)
+  // Column widths (expanded to 46 columns for complete dual loan tracking and construction payment tracking)
   const columnWidths = [
     { col: 0, width: 25 }, { col: 1, width: 8 }, { col: 2, width: 10 }, { col: 3, width: 8 },
     { col: 4, width: 15 }, { col: 5, width: 14 }, { col: 6, width: 12 }, { col: 7, width: 12 },
@@ -325,7 +345,9 @@ export function buildExportSheetData(
     { col: 24, width: 10 }, { col: 25, width: 12 }, { col: 26, width: 30 }, { col: 27, width: 20 },
     { col: 28, width: 20 }, { col: 29, width: 12 }, { col: 30, width: 15 },
     { col: 31, width: 10 }, { col: 32, width: 15 }, { col: 33, width: 15 }, { col: 34, width: 15 },
-    { col: 35, width: 15 }, { col: 36, width: 25 }, { col: 37, width: 18 }, { col: 38, width: 20 }
+    { col: 35, width: 15 }, { col: 36, width: 15 }, { col: 37, width: 15 }, { col: 38, width: 15 },
+    { col: 39, width: 12 }, { col: 40, width: 15 }, { col: 41, width: 15 }, { col: 42, width: 15 },
+    { col: 43, width: 18 }, { col: 44, width: 20 }
   ];
 
   return {
