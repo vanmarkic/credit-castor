@@ -305,28 +305,28 @@ export default function ParticipantDetailModal({
               <label className="block text-xs text-gray-600 mb-1">Frais d'enregistrement</label>
               <div className="flex items-center gap-2 mb-1">
                 <label className="flex items-center gap-1.5 cursor-pointer px-3 py-2 border rounded-lg transition-colors hover:bg-gray-100" style={{
-                  borderColor: p.notaryFeesRate === 3 ? '#9ca3af' : '#e5e7eb',
-                  backgroundColor: p.notaryFeesRate === 3 ? '#f3f4f6' : 'white'
+                  borderColor: p.registrationFeesRate === 3 ? '#9ca3af' : '#e5e7eb',
+                  backgroundColor: p.registrationFeesRate === 3 ? '#f3f4f6' : 'white'
                 }}>
                   <input
                     type="radio"
                     name={`notaryRate-fullscreen-${idx}`}
                     value="3"
-                    checked={p.notaryFeesRate === 3}
+                    checked={p.registrationFeesRate === 3}
                     onChange={(e) => onUpdateNotaryRate(parseFloat(e.target.value))}
                     className="w-4 h-4"
                   />
                   <span className="font-medium text-gray-700 text-sm">3%</span>
                 </label>
                 <label className="flex items-center gap-1.5 cursor-pointer px-3 py-2 border rounded-lg transition-colors hover:bg-gray-100" style={{
-                  borderColor: p.notaryFeesRate === 12.5 ? '#9ca3af' : '#e5e7eb',
-                  backgroundColor: p.notaryFeesRate === 12.5 ? '#f3f4f6' : 'white'
+                  borderColor: p.registrationFeesRate === 12.5 ? '#9ca3af' : '#e5e7eb',
+                  backgroundColor: p.registrationFeesRate === 12.5 ? '#f3f4f6' : 'white'
                 }}>
                   <input
                     type="radio"
                     name={`notaryRate-fullscreen-${idx}`}
                     value="12.5"
-                    checked={p.notaryFeesRate === 12.5}
+                    checked={p.registrationFeesRate === 12.5}
                     onChange={(e) => onUpdateNotaryRate(parseFloat(e.target.value))}
                     className="w-4 h-4"
                   />

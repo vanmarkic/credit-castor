@@ -22,7 +22,7 @@ describe('useParticipantOperations', () => {
   const baseParticipant: Participant = {
     name: 'Test Participant',
     capitalApporte: 100000,
-    notaryFeesRate: 12.5,
+    registrationFeesRate: 12.5,
     unitId: 1,
     surface: 100,
     interestRate: 4.5,
@@ -125,7 +125,7 @@ describe('useParticipantOperations', () => {
       const participants = [baseParticipant];
       const result = updateNotaryRate(participants, 0, 15);
 
-      expect(result[0].notaryFeesRate).toBe(15);
+      expect(result[0].registrationFeesRate).toBe(15);
     });
   });
 

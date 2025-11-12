@@ -13,7 +13,7 @@ describe('JSON Export Completeness', () => {
     {
       name: 'Test Participant 1',
       capitalApporte: 100000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       unitId: 1,
       surface: 100,
       interestRate: 4.5,
@@ -26,7 +26,7 @@ describe('JSON Export Completeness', () => {
     {
       name: 'Test Participant 2',
       capitalApporte: 150000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       unitId: 3,
       surface: 120,
       interestRate: 4.0,
@@ -122,7 +122,7 @@ describe('JSON Export Completeness', () => {
     // Required fields
     expect(participant).toHaveProperty('name');
     expect(participant).toHaveProperty('capitalApporte');
-    expect(participant).toHaveProperty('notaryFeesRate');
+    expect(participant).toHaveProperty('registrationFeesRate');
     expect(participant).toHaveProperty('unitId');
     expect(participant).toHaveProperty('surface');
     expect(participant).toHaveProperty('interestRate');
@@ -383,7 +383,7 @@ describe('JSON Export Completeness', () => {
     const participantWithPortage: Participant = {
       name: 'Portage Participant',
       capitalApporte: 200000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       unitId: 1,
       surface: 200,
       interestRate: 4.5,
@@ -461,7 +461,7 @@ describe('JSON Export Completeness', () => {
     const newcomerParticipant: Participant = {
       name: 'Newcomer',
       capitalApporte: 320000,
-      notaryFeesRate: 3,
+      registrationFeesRate: 3,
       unitId: 3,
       surface: 100,
       interestRate: 4.5,
@@ -520,7 +520,7 @@ describe('JSON Export Completeness', () => {
     const founderParticipant: Participant = {
       name: 'Founder',
       capitalApporte: 200000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       unitId: 1,
       surface: 100,
       interestRate: 4.5,
@@ -534,7 +534,7 @@ describe('JSON Export Completeness', () => {
     const exitingParticipant: Participant = {
       name: 'Exiting',
       capitalApporte: 150000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       unitId: 2,
       surface: 120,
       interestRate: 4.5,
@@ -605,7 +605,7 @@ describe('JSON Export Completeness', () => {
     const twoLoanParticipant: Participant = {
       name: 'Two Loan Participant',
       capitalApporte: 100000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       unitId: 1,
       surface: 100,
       interestRate: 4.5,
@@ -667,7 +667,7 @@ describe('JSON Export Completeness', () => {
     const singleLoanParticipant: Participant = {
       name: 'Single Loan Participant',
       capitalApporte: 100000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       unitId: 1,
       surface: 100,
       interestRate: 4.5,

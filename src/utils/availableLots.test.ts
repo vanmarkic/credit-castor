@@ -9,7 +9,7 @@ describe('getAvailableLotsForNewcomer', () => {
       {
         name: 'Founder A',
         capitalApporte: 50000,
-        notaryFeesRate: 12.5,
+        registrationFeesRate: 12.5,
         interestRate: 4.5,
         durationYears: 25,
         isFounder: true,
@@ -51,7 +51,7 @@ describe('getAvailableLotsForNewcomer', () => {
       {
         name: 'Founder A',
         capitalApporte: 50000,
-        notaryFeesRate: 12.5,
+        registrationFeesRate: 12.5,
         interestRate: 4.5,
         durationYears: 25,
         isFounder: true,

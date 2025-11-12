@@ -8,7 +8,7 @@ import type { Lot } from '../types/timeline';
 export interface Participant {
   name: string;
   capitalApporte: number;
-  notaryFeesRate: number;
+  registrationFeesRate: number;
   interestRate: number;
   durationYears: number;
 
@@ -381,9 +381,9 @@ export function calculatePurchaseShare(
  */
 export function calculateDroitEnregistrements(
   purchaseShare: number,
-  notaryFeesRate: number
+  registrationFeesRate: number
 ): number {
-  return purchaseShare * (notaryFeesRate / 100);
+  return purchaseShare * (registrationFeesRate / 100);
 }
 
 /**
@@ -659,7 +659,7 @@ export function calculateAll(
     }
 
     const purchaseShare = calculatePurchaseShare(surface, pricePerM2);
-    const droitEnregistrements = calculateDroitEnregistrements(purchaseShare, p.notaryFeesRate);
+    const droitEnregistrements = calculateDroitEnregistrements(purchaseShare, p.registrationFeesRate);
     const fraisNotaireFixe = calculateFraisNotaireFixe(quantity);
 
     // Since surface is TOTAL, casco and parachevements are already for total surface

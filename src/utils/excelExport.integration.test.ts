@@ -14,7 +14,7 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
     {
       name: 'Test Participant 1',
       capitalApporte: 100000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       interestRate: 4.5,
       durationYears: 25,
       unitId: 1,
@@ -31,7 +31,7 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
     {
       name: 'Test Participant 2',
       capitalApporte: 150000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       interestRate: 4.5,
       durationYears: 25,
       unitId: 3,

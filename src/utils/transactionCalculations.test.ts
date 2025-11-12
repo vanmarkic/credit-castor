@@ -13,7 +13,7 @@ describe('transactionCalculations', () => {
       const seller: Participant = {
         name: 'Annabelle/Colin',
         capitalApporte: 100000,
-        notaryFeesRate: 12.5,
+        registrationFeesRate: 12.5,
         interestRate: 3.5,
         durationYears: 30,
         isFounder: true,
@@ -40,7 +40,7 @@ describe('transactionCalculations', () => {
       const buyer: Participant = {
         name: 'Nouveau·elle',
         capitalApporte: 50000,
-        notaryFeesRate: 12.5,
+        registrationFeesRate: 12.5,
         interestRate: 3.5,
         durationYears: 30,
         isFounder: false,
@@ -114,7 +114,7 @@ describe('transactionCalculations', () => {
       const seller: Participant = {
         name: 'Annabelle/Colin',
         capitalApporte: 100000,
-        notaryFeesRate: 12.5,
+        registrationFeesRate: 12.5,
         interestRate: 3.5,
         durationYears: 30,
         isFounder: true,
@@ -141,7 +141,7 @@ describe('transactionCalculations', () => {
       const buyer: Participant = {
         name: 'Nouveau·elle',
         capitalApporte: 50000,
-        notaryFeesRate: 12.5,
+        registrationFeesRate: 12.5,
         interestRate: 3.5,
         durationYears: 30,
         isFounder: false,
@@ -222,7 +222,7 @@ describe('transactionCalculations', () => {
       const participant: Participant = {
         name: 'Annabelle/Colin',
         capitalApporte: 100000,
-        notaryFeesRate: 12.5,
+        registrationFeesRate: 12.5,
         interestRate: 3.5,
         durationYears: 30,
         isFounder: true,
@@ -247,7 +247,7 @@ describe('transactionCalculations', () => {
       const coproBuyer: Participant = {
         name: 'New Copro Participant',
         capitalApporte: 50000,
-        notaryFeesRate: 12.5,
+        registrationFeesRate: 12.5,
         interestRate: 3.5,
         durationYears: 30,
         isFounder: false,
@@ -316,7 +316,7 @@ describe('transactionCalculations', () => {
     const mockBuyer: Participant = {
       name: 'New Buyer',
       capitalApporte: 50000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       interestRate: 3.5,
       durationYears: 30,
       isFounder: false,

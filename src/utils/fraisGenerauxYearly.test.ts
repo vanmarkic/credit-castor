@@ -52,7 +52,7 @@ describe('Frais Généraux Year-by-Year Distribution', () => {
     it('should calculate Year 1 costs = One-time + Recurring Year 1 + (Honoraires ÷ 3)', () => {
       // Given
       const participants: Participant[] = [
-        { name: 'Alice', surface: 100, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
+        { name: 'Alice', surface: 100, capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
       ];
 
       // When
@@ -70,9 +70,9 @@ describe('Frais Généraux Year-by-Year Distribution', () => {
     it('should split Year 1 costs equally among founders at deed date', () => {
       // Given
       const participants: Participant[] = [
-        { name: 'Alice', surface: 100, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
-        { name: 'Bob', surface: 100, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
-        { name: 'Charlie', surface: 100, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
+        { name: 'Alice', surface: 100, capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
+        { name: 'Bob', surface: 100, capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
+        { name: 'Charlie', surface: 100, capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
       ];
 
       // When
@@ -93,9 +93,9 @@ describe('Frais Généraux Year-by-Year Distribution', () => {
       // Given
       const emmaJoinsDate = new Date('2026-08-01');
       const participants: Participant[] = [
-        { name: 'Alice', surface: 100, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
-        { name: 'Bob', surface: 100, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
-        { name: 'Emma', surface: 100, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: false, entryDate: emmaJoinsDate, lotsOwned: [] },
+        { name: 'Alice', surface: 100, capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
+        { name: 'Bob', surface: 100, capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
+        { name: 'Emma', surface: 100, capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: false, entryDate: emmaJoinsDate, lotsOwned: [] },
       ];
 
       const emma = participants[2];
@@ -128,7 +128,7 @@ describe('Frais Généraux Year-by-Year Distribution', () => {
     it('should calculate Year 2 costs = Recurring Year 2 + (Honoraires ÷ 3)', () => {
       // Given
       const participants: Participant[] = [
-        { name: 'Alice', surface: 100, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
+        { name: 'Alice', surface: 100, capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
       ];
 
       // When
@@ -166,9 +166,9 @@ describe('Frais Généraux Year-by-Year Distribution', () => {
       // Given
       const charlieExitDate = new Date('2026-06-01');
       const participants: Participant[] = [
-        { name: 'Alice', surface: 100, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
-        { name: 'Bob', surface: 100, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
-        { name: 'Charlie', surface: 100, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, exitDate: charlieExitDate, lotsOwned: [] },
+        { name: 'Alice', surface: 100, capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
+        { name: 'Bob', surface: 100, capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, lotsOwned: [] },
+        { name: 'Charlie', surface: 100, capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1, isFounder: true, entryDate: deedDate, exitDate: charlieExitDate, lotsOwned: [] },
       ];
 
       // When

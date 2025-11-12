@@ -13,7 +13,7 @@ describe('Remboursements Attendus Display Logic', () => {
     const founder: Participant = {
       name: 'Alice Founder',
       capitalApporte: 150000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       interestRate: 4.5,
       durationYears: 25,
       isFounder: true,
@@ -44,7 +44,7 @@ describe('Remboursements Attendus Display Logic', () => {
     const newcomer: Participant = {
       name: 'Bob Newcomer',
       capitalApporte: 50000,
-      notaryFeesRate: 3,
+      registrationFeesRate: 3,
       interestRate: 4.5,
       durationYears: 25,
       isFounder: false,
@@ -112,7 +112,7 @@ describe('Remboursements Attendus Display Logic', () => {
     const founder: Participant = {
       name: 'Alice Founder',
       capitalApporte: 150000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       interestRate: 4.5,
       durationYears: 25,
       isFounder: true,
@@ -159,7 +159,7 @@ describe('Remboursements Attendus Display Logic', () => {
     const founder: Participant = {
       name: 'Alice Founder',
       capitalApporte: 150000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       interestRate: 4.5,
       durationYears: 25,
       isFounder: true,
@@ -182,7 +182,7 @@ describe('Remboursements Attendus Display Logic', () => {
     const newcomer: Participant = {
       name: 'Bob Newcomer',
       capitalApporte: 50000,
-      notaryFeesRate: 3,
+      registrationFeesRate: 3,
       interestRate: 4.5,
       durationYears: 25,
       isFounder: false,
@@ -217,7 +217,7 @@ describe('Remboursements Attendus Display Logic', () => {
     const nonFounder: Participant = {
       name: 'Not A Founder',
       capitalApporte: 150000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       interestRate: 4.5,
       durationYears: 25,
       isFounder: false, // NOT a founder

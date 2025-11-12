@@ -7,7 +7,7 @@ describe('validateTwoLoanFinancing', () => {
     const participant: Participant = {
       name: 'Test',
       capitalApporte: 100000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       interestRate: 4.5,
       durationYears: 20,
       useTwoLoans: true,
@@ -25,7 +25,7 @@ describe('validateTwoLoanFinancing', () => {
     const participant: Participant = {
       name: 'Test',
       capitalApporte: 100000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       interestRate: 4.5,
       durationYears: 20,
       useTwoLoans: true,
@@ -42,7 +42,7 @@ describe('validateTwoLoanFinancing', () => {
     const participant: Participant = {
       name: 'Test',
       capitalApporte: 100000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       interestRate: 4.5,
       durationYears: 20,
       useTwoLoans: true,
@@ -57,7 +57,7 @@ describe('validateTwoLoanFinancing', () => {
     const participant: Participant = {
       name: 'Test',
       capitalApporte: 100000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       interestRate: 4.5,
       durationYears: 20,
       useTwoLoans: true,
@@ -72,7 +72,7 @@ describe('validateTwoLoanFinancing', () => {
     const participant: Participant = {
       name: 'Test',
       capitalApporte: 100000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       interestRate: 4.5,
       durationYears: 20,
       useTwoLoans: false,

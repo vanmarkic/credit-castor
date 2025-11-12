@@ -121,7 +121,7 @@ export function addParticipant(
   return [...participants, {
     name: 'Participant·e ' + (participants.length + 1),
     capitalApporte: 100000,
-    notaryFeesRate: 12.5,
+    registrationFeesRate: 12.5,
     unitId: newId,
     surface: 100,
     interestRate: 4.5,
@@ -194,7 +194,7 @@ export function updateNotaryRate(
   value: number
 ): Participant[] {
   const newParticipants = [...participants];
-  newParticipants[index] = { ...newParticipants[index], notaryFeesRate: value };
+  newParticipants[index] = { ...newParticipants[index], registrationFeesRate: value };
   return newParticipants;
 }
 

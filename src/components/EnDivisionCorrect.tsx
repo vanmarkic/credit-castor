@@ -177,7 +177,7 @@ export default function EnDivisionCorrect() {
 
   const updateNotaryRate = (index: number, value: number) => {
     const newParticipants = [...participants];
-    newParticipants[index] = { ...newParticipants[index], notaryFeesRate: value };
+    newParticipants[index] = { ...newParticipants[index], registrationFeesRate: value };
     setParticipants(newParticipants);
   };
 

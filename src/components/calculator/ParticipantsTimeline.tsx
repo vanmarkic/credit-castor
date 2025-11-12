@@ -153,7 +153,7 @@ export const ParticipantsTimeline: React.FC<ParticipantsTimelineProps> = ({
                               </div>
                               <div>
                                 <span className="opacity-75">Frais notaire:</span>
-                                <div className="font-semibold">{p.notaryFeesRate}%</div>
+                                <div className="font-semibold">{p.registrationFeesRate}%</div>
                               </div>
                               {p.interestRate && (
                                 <div>

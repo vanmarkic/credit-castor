@@ -81,7 +81,7 @@ export function CostBreakdownGrid({ participant, participantCalc: p, projectPara
         <div className="bg-white rounded-lg p-3 border border-gray-200">
           <p className="text-xs text-gray-500 mb-1">Droit d'enregistrements</p>
           <p className="text-lg font-bold text-gray-900">{formatCurrency(p.droitEnregistrements)}</p>
-          <p className="text-xs text-gray-400 mt-0.5">{p.notaryFeesRate}%</p>
+          <p className="text-xs text-gray-400 mt-0.5">{p.registrationFeesRate}%</p>
         </div>
 
         {/* Frais de notaire (Fixed Notary Fees) */}

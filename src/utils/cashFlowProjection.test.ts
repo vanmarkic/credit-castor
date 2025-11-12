@@ -23,7 +23,7 @@ function createMockParticipant(name: string, deedDate: Date, lotsOwned: Lot[]): 
     entryDate: deedDate,
     lotsOwned,
     capitalApporte: 50000,
-    notaryFeesRate: 0.125,
+    registrationFeesRate: 0.125,
     interestRate: 0.04,
     durationYears: 20,
   };

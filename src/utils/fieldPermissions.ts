@@ -22,7 +22,7 @@ const COLLECTIVE_FIELD_PATTERNS = [
   // Participant financing terms (collective decision)
   'participants.*.interestRate',
   'participants.*.durationYears',
-  'participants.*.notaryFeesRate',
+  'participants.*.registrationFeesRate',
 
   // Two-loan configuration
   'participants.*.useTwoLoans',

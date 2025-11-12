@@ -17,7 +17,7 @@ describe('portageRecalculation', () => {
   const seller: Participant = {
     name: 'Seller',
     capitalApporte: 200000,
-    notaryFeesRate: 12.5,
+    registrationFeesRate: 12.5,
     interestRate: 4.5,
     durationYears: 25,
     isFounder: true,
@@ -41,7 +41,7 @@ describe('portageRecalculation', () => {
       const buyer: Participant = {
         name: 'Buyer',
         capitalApporte: 80000,
-        notaryFeesRate: 12.5,
+        registrationFeesRate: 12.5,
         interestRate: 4.5,
         durationYears: 25,
         isFounder: false,
@@ -68,7 +68,7 @@ describe('portageRecalculation', () => {
       const buyer: Participant = {
         name: 'Buyer',
         capitalApporte: 80000,
-        notaryFeesRate: 12.5,
+        registrationFeesRate: 12.5,
         interestRate: 4.5,
         durationYears: 25,
         isFounder: false,
@@ -97,7 +97,7 @@ describe('portageRecalculation', () => {
       const buyer: Participant = {
         name: 'Buyer',
         capitalApporte: 80000,
-        notaryFeesRate: 12.5,
+        registrationFeesRate: 12.5,
         interestRate: 4.5,
         durationYears: 25,
         isFounder: false,
@@ -123,7 +123,7 @@ describe('portageRecalculation', () => {
       const buyer: Participant = {
         name: 'Buyer',
         capitalApporte: 80000,
-        notaryFeesRate: 12.5,
+        registrationFeesRate: 12.5,
         interestRate: 4.5,
         durationYears: 25,
         isFounder: false,
@@ -146,7 +146,7 @@ describe('portageRecalculation', () => {
       const buyer: Participant = {
         name: 'Buyer',
         capitalApporte: 80000,
-        notaryFeesRate: 12.5,
+        registrationFeesRate: 12.5,
         interestRate: 4.5,
         durationYears: 25,
         isFounder: false,
@@ -173,7 +173,7 @@ describe('portageRecalculation', () => {
       const buyer: Participant = {
         name: 'Buyer',
         capitalApporte: 80000,
-        notaryFeesRate: 12.5,
+        registrationFeesRate: 12.5,
         interestRate: 4.5,
         durationYears: 25,
         isFounder: false,
@@ -213,7 +213,7 @@ describe('portageRecalculation', () => {
         {
           name: 'Buyer1',
           capitalApporte: 80000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           interestRate: 4.5,
           durationYears: 25,
           isFounder: false,
@@ -227,7 +227,7 @@ describe('portageRecalculation', () => {
         {
           name: 'Buyer2',
           capitalApporte: 90000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           interestRate: 4.5,
           durationYears: 25,
           isFounder: false,
@@ -288,7 +288,7 @@ describe('portageRecalculation', () => {
         {
           name: 'Buyer1',
           capitalApporte: 80000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           interestRate: 4.5,
           durationYears: 25,
           isFounder: false,
@@ -302,7 +302,7 @@ describe('portageRecalculation', () => {
         {
           name: 'Buyer2',
           capitalApporte: 90000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           interestRate: 4.5,
           durationYears: 25,
           isFounder: false,

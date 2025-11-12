@@ -31,7 +31,7 @@ describe('fieldPermissions', () => {
     it('should identify participant financing terms as collective', () => {
       expect(isCollectiveField('participants.0.interestRate')).toBe(true);
       expect(isCollectiveField('participants.1.durationYears')).toBe(true);
-      expect(isCollectiveField('participants.2.notaryFeesRate')).toBe(true);
+      expect(isCollectiveField('participants.2.registrationFeesRate')).toBe(true);
       expect(isCollectiveField('participants.5.interestRate')).toBe(true);
     });
 

@@ -58,7 +58,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
     const founderParticipant: Participant = {
       name: 'Founder Alice',
       capitalApporte: 150000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       interestRate: 4.5,
       durationYears: 25,
       isFounder: true,
@@ -90,7 +90,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
     const newcomerParticipant: Participant = {
       name: 'Newcomer Bob',
       capitalApporte: 50000,
-      notaryFeesRate: 3,
+      registrationFeesRate: 3,
       interestRate: 4.5,
       durationYears: 25,
       isFounder: false,
@@ -184,7 +184,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
     const founderParticipant: Participant = {
       name: 'Founder Alone',
       capitalApporte: 150000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       interestRate: 4.5,
       durationYears: 25,
       isFounder: true,
@@ -276,7 +276,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
     const founderParticipant: Participant = {
       name: 'Alice Founder',
       capitalApporte: 150000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       interestRate: 4.5,
       durationYears: 25,
       isFounder: true,
@@ -299,7 +299,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
     const newcomerParticipant: Participant = {
       name: 'Bob Newcomer',
       capitalApporte: 50000,
-      notaryFeesRate: 3,
+      registrationFeesRate: 3,
       interestRate: 4.5,
       durationYears: 25,
       isFounder: false,
@@ -394,7 +394,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
     const founderParticipant: Participant = {
       name: 'Founder Alice',
       capitalApporte: 200000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       interestRate: 4.5,
       durationYears: 25,
       isFounder: true,
@@ -433,7 +433,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
     const newcomer1: Participant = {
       name: 'Bob Newcomer',
       capitalApporte: 50000,
-      notaryFeesRate: 3,
+      registrationFeesRate: 3,
       interestRate: 4.5,
       durationYears: 25,
       isFounder: false,
@@ -451,7 +451,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
     const newcomer2: Participant = {
       name: 'Charlie Newcomer',
       capitalApporte: 60000,
-      notaryFeesRate: 3,
+      registrationFeesRate: 3,
       interestRate: 4.5,
       durationYears: 25,
       isFounder: false,
@@ -535,7 +535,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
     const founderParticipant: Participant = {
       name: 'Alice',
       capitalApporte: 150000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       interestRate: 4.5,
       durationYears: 25,
       isFounder: true,
@@ -558,7 +558,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
     const newcomer: Participant = {
       name: 'Bob',
       capitalApporte: 50000,
-      notaryFeesRate: 3,
+      registrationFeesRate: 3,
       interestRate: 4.5,
       durationYears: 25,
       isFounder: false,
@@ -636,7 +636,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
     const founderParticipant: Participant = {
       name: 'Annabelle/Colin',
       capitalApporte: 200000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       interestRate: 4.5,
       durationYears: 25,
       isFounder: true,
@@ -667,7 +667,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
     const participant5: Participant = {
       name: 'Participant 5',
       capitalApporte: 320300,
-      notaryFeesRate: 3,
+      registrationFeesRate: 3,
       interestRate: 4.5,
       durationYears: 25,
       isFounder: false,

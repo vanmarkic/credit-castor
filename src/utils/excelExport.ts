@@ -167,7 +167,7 @@ export function buildExportSheetData(
     addCell(r, 'C', p.surface);
     addCell(r, 'D', p.quantity || 1);
     addCell(r, 'E', p.capitalApporte);
-    addCell(r, 'F', p.notaryFeesRate);
+    addCell(r, 'F', p.registrationFeesRate);
     addCell(r, 'G', p.interestRate);
     addCell(r, 'H', p.durationYears);
     addCell(r, 'I', null, `C${r}*$B$7`);

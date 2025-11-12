@@ -75,7 +75,7 @@ describe('Event type unification', () => {
             acquiredDate: deedDate, // Lot acquired at deed date
           }],
           capitalApporte: 50000,
-          notaryFeesRate: 0.125,
+          registrationFeesRate: 0.125,
           interestRate: 0.04,
           durationYears: 20,
         },

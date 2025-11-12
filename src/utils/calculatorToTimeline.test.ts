@@ -15,7 +15,7 @@ describe('convertCalculatorToInitialPurchaseEvent', () => {
     {
       name: 'Alice',
       capitalApporte: 50000,
-      notaryFeesRate: 0.125,
+      registrationFeesRate: 0.125,
       unitId: 1,
       surface: 112,
       interestRate: 0.045,
@@ -26,7 +26,7 @@ describe('convertCalculatorToInitialPurchaseEvent', () => {
     {
       name: 'Bob',
       capitalApporte: 170000,
-      notaryFeesRate: 0.125,
+      registrationFeesRate: 0.125,
       unitId: 2,
       surface: 134,
       interestRate: 0.045,

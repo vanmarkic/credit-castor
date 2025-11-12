@@ -9,7 +9,7 @@ describe('participantSync', () => {
         {
           name: 'Seller',
           capitalApporte: 100000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           interestRate: 4.5,
           durationYears: 25,
           isFounder: true,
@@ -30,7 +30,7 @@ describe('participantSync', () => {
         {
           name: 'Buyer',
           capitalApporte: 80000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           interestRate: 4.5,
           durationYears: 25,
           isFounder: false,
@@ -58,7 +58,7 @@ describe('participantSync', () => {
         {
           name: 'Seller',
           capitalApporte: 100000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           interestRate: 4.5,
           durationYears: 25,
           isFounder: true,
@@ -86,7 +86,7 @@ describe('participantSync', () => {
         {
           name: 'Buyer',
           capitalApporte: 80000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           interestRate: 4.5,
           durationYears: 25,
           isFounder: false,
@@ -111,7 +111,7 @@ describe('participantSync', () => {
         {
           name: 'Buyer',
           capitalApporte: 80000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           interestRate: 4.5,
           durationYears: 25,
           isFounder: false,
@@ -135,7 +135,7 @@ describe('participantSync', () => {
         {
           name: 'Seller',
           capitalApporte: 100000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           interestRate: 4.5,
           durationYears: 25,
           isFounder: true,
@@ -166,7 +166,7 @@ describe('participantSync', () => {
         {
           name: 'Buyer1',
           capitalApporte: 80000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           interestRate: 4.5,
           durationYears: 25,
           isFounder: false,
@@ -180,7 +180,7 @@ describe('participantSync', () => {
         {
           name: 'Buyer2',
           capitalApporte: 90000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           interestRate: 4.5,
           durationYears: 25,
           isFounder: false,
@@ -207,7 +207,7 @@ describe('participantSync', () => {
         {
           name: 'Seller',
           capitalApporte: 100000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           interestRate: 4.5,
           durationYears: 25,
           isFounder: true,
@@ -229,7 +229,7 @@ describe('participantSync', () => {
         {
           name: 'Buyer',
           capitalApporte: 80000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           interestRate: 4.5,
           durationYears: 25,
           isFounder: false,
@@ -251,7 +251,7 @@ describe('participantSync', () => {
         {
           name: 'Seller',
           capitalApporte: 100000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           interestRate: 4.5,
           durationYears: 25,
           isFounder: true,
@@ -273,7 +273,7 @@ describe('participantSync', () => {
         {
           name: 'Buyer',
           capitalApporte: 80000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           interestRate: 4.5,
           durationYears: 25,
           isFounder: false,
@@ -296,7 +296,7 @@ describe('participantSync', () => {
         {
           name: 'Seller',
           capitalApporte: 100000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           interestRate: 4.5,
           durationYears: 25,
           isFounder: true,
@@ -318,7 +318,7 @@ describe('participantSync', () => {
         {
           name: 'Buyer',
           capitalApporte: 80000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           interestRate: 4.5,
           durationYears: 25,
           isFounder: false,

@@ -57,7 +57,7 @@ describe('Participant type extensions', () => {
       entryDate: deedDate, // Founders enter at deed date
       lotsOwned: [],
       capitalApporte: 50000,
-      notaryFeesRate: 0.125,
+      registrationFeesRate: 0.125,
       interestRate: 0.04,
       durationYears: 20,
     };
@@ -72,7 +72,7 @@ describe('Participant type extensions', () => {
       entryDate: new Date('2028-02-01'), // 2 years after initial deed
       lotsOwned: [],
       capitalApporte: 40000,
-      notaryFeesRate: 0.125,
+      registrationFeesRate: 0.125,
       interestRate: 0.04,
       durationYears: 20,
     };
@@ -88,7 +88,7 @@ describe('Participant type extensions', () => {
       exitDate: new Date('2028-06-01'),
       lotsOwned: [],
       capitalApporte: 40000,
-      notaryFeesRate: 0.125,
+      registrationFeesRate: 0.125,
       interestRate: 0.04,
       durationYears: 20,
     };
@@ -118,7 +118,7 @@ describe('Participant type extensions', () => {
         },
       ],
       capitalApporte: 170000,
-      notaryFeesRate: 0.125,
+      registrationFeesRate: 0.125,
       interestRate: 0.04,
       durationYears: 20,
     };
@@ -140,10 +140,10 @@ describe('Calculator Utils', () => {
   describe('calculateTotalSurface', () => {
     it('should sum up all participant surfaces', () => {
       const participants: Participant[] = [
-        { name: 'A', surface: 112, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
-        { name: 'B', surface: 134, capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, interestRate: 4.5, durationYears: 25, quantity: 1 },
-        { name: 'C', surface: 118, capitalApporte: 200000, notaryFeesRate: 12.5, unitId: 5, interestRate: 4.5, durationYears: 25, quantity: 1 },
-        { name: 'D', surface: 108, capitalApporte: 70000, notaryFeesRate: 12.5, unitId: 6, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'A', surface: 112, capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'B', surface: 134, capitalApporte: 170000, registrationFeesRate: 12.5, unitId: 3, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'C', surface: 118, capitalApporte: 200000, registrationFeesRate: 12.5, unitId: 5, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'D', surface: 108, capitalApporte: 70000, registrationFeesRate: 12.5, unitId: 6, interestRate: 4.5, durationYears: 25, quantity: 1 },
       ];
       const result = calculateTotalSurface(participants);
       expect(result).toBe(472);
@@ -151,7 +151,7 @@ describe('Calculator Utils', () => {
 
     it('should handle single participant', () => {
       const participants: Participant[] = [
-        { name: 'A', surface: 100, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'A', surface: 100, capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
       ];
       const result = calculateTotalSurface(participants);
       expect(result).toBe(100);
@@ -182,10 +182,10 @@ describe('Calculator Utils', () => {
 
     it('should calculate frais généraux based on Excel formula (Honoraires + recurring costs)', () => {
       const participants: Participant[] = [
-        { name: 'A', surface: 112, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
-        { name: 'B', surface: 134, capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, interestRate: 4.5, durationYears: 25, quantity: 1 },
-        { name: 'C', surface: 118, capitalApporte: 200000, notaryFeesRate: 12.5, unitId: 5, interestRate: 4.5, durationYears: 25, quantity: 1 },
-        { name: 'D', surface: 108, capitalApporte: 70000, notaryFeesRate: 12.5, unitId: 6, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'A', surface: 112, capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'B', surface: 134, capitalApporte: 170000, registrationFeesRate: 12.5, unitId: 3, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'C', surface: 118, capitalApporte: 200000, registrationFeesRate: 12.5, unitId: 5, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'D', surface: 108, capitalApporte: 70000, registrationFeesRate: 12.5, unitId: 6, interestRate: 4.5, durationYears: 25, quantity: 1 },
       ];
 
       // Total CASCO hors TVA = (112×1590) + (134×1590) + (118×1590) + (108×1590) + travaux communs
@@ -200,7 +200,7 @@ describe('Calculator Utils', () => {
 
     it('should handle single participant', () => {
       const participants: Participant[] = [
-        { name: 'A', surface: 112, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'A', surface: 112, capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
       ];
 
       const singleUnitDetails: UnitDetails = {
@@ -218,7 +218,7 @@ describe('Calculator Utils', () => {
 
     it('should handle multiple units for same participant', () => {
       const participants: Participant[] = [
-        { name: 'A', surface: 112, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 2 },
+        { name: 'A', surface: 112, capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 2 },
       ];
 
       const unitDetails: UnitDetails = {
@@ -236,8 +236,8 @@ describe('Calculator Utils', () => {
 
     it('should include shared notary fee base of €5,000', () => {
       const participants: Participant[] = [
-        { name: 'A', surface: 112, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
-        { name: 'B', surface: 134, capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'A', surface: 112, capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'B', surface: 134, capitalApporte: 170000, registrationFeesRate: 12.5, unitId: 3, interestRate: 4.5, durationYears: 25, quantity: 1 },
       ];
 
       // Calculate expected result:
@@ -257,7 +257,7 @@ describe('Calculator Utils', () => {
       // Where E14 = Total CASCO
 
       const participants: Participant[] = [
-        { name: 'A', surface: 100, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'A', surface: 100, capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
       ];
 
       const unitDetails: UnitDetails = {
@@ -328,8 +328,8 @@ describe('Calculator Utils', () => {
 
     it('should return detailed breakdown with all subcategories', () => {
       const participants: Participant[] = [
-        { name: 'A', surface: 112, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
-        { name: 'B', surface: 134, capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'A', surface: 112, capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'B', surface: 134, capitalApporte: 170000, registrationFeesRate: 12.5, unitId: 3, interestRate: 4.5, durationYears: 25, quantity: 1 },
       ];
 
       const result = getFraisGenerauxBreakdown(participants, projectParams, unitDetails);
@@ -359,8 +359,8 @@ describe('Calculator Utils', () => {
 
     it('should calculate correct amounts for honoraires', () => {
       const participants: Participant[] = [
-        { name: 'A', surface: 112, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
-        { name: 'B', surface: 134, capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'A', surface: 112, capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'B', surface: 134, capitalApporte: 170000, registrationFeesRate: 12.5, unitId: 3, interestRate: 4.5, durationYears: 25, quantity: 1 },
       ];
 
       const result = getFraisGenerauxBreakdown(participants, projectParams, unitDetails);
@@ -381,7 +381,7 @@ describe('Calculator Utils', () => {
 
     it('should calculate correct recurring costs totals', () => {
       const participants: Participant[] = [
-        { name: 'A', surface: 112, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'A', surface: 112, capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
       ];
 
       const result = getFraisGenerauxBreakdown(participants, projectParams, unitDetails);
@@ -396,7 +396,7 @@ describe('Calculator Utils', () => {
 
     it('should calculate correct one-time costs total', () => {
       const participants: Participant[] = [
-        { name: 'A', surface: 112, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'A', surface: 112, capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
       ];
 
       const result = getFraisGenerauxBreakdown(participants, projectParams, unitDetails);
@@ -407,8 +407,8 @@ describe('Calculator Utils', () => {
 
     it('should calculate correct grand total', () => {
       const participants: Participant[] = [
-        { name: 'A', surface: 112, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
-        { name: 'B', surface: 134, capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'A', surface: 112, capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'B', surface: 134, capitalApporte: 170000, registrationFeesRate: 12.5, unitId: 3, interestRate: 4.5, durationYears: 25, quantity: 1 },
       ];
 
       const result = getFraisGenerauxBreakdown(participants, projectParams, unitDetails);
@@ -419,8 +419,8 @@ describe('Calculator Utils', () => {
 
     it('should match calculateFraisGeneraux3ans result', () => {
       const participants: Participant[] = [
-        { name: 'A', surface: 112, capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
-        { name: 'B', surface: 134, capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'A', surface: 112, capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'B', surface: 134, capitalApporte: 170000, registrationFeesRate: 12.5, unitId: 3, interestRate: 4.5, durationYears: 25, quantity: 1 },
       ];
 
       const breakdown = getFraisGenerauxBreakdown(participants, projectParams, unitDetails);
@@ -780,7 +780,7 @@ describe('Calculator Utils', () => {
         {
           name: 'Participant 1',
           capitalApporte: 100000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           unitId: 1,
           surface: 100,
           interestRate: 4.5,
@@ -824,7 +824,7 @@ describe('Calculator Utils', () => {
         {
           name: 'Participant 1',
           capitalApporte: 100000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           unitId: 1,
           surface: 100,
           interestRate: 4.5,
@@ -866,7 +866,7 @@ describe('Calculator Utils', () => {
         {
           name: 'Participant 1',
           capitalApporte: 50000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           unitId: 1,
           surface: 112,
           interestRate: 4.5,
@@ -911,7 +911,7 @@ describe('Calculator Utils', () => {
         {
           name: 'Participant 1',
           capitalApporte: 100000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           unitId: 1,
           surface: 100,
           interestRate: 4.5,
@@ -950,10 +950,10 @@ describe('Calculator Utils', () => {
 
     it('should calculate all values correctly for default scenario', () => {
       const participants: Participant[] = [
-        { name: 'Manuela/Dragan', capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, surface: 112, interestRate: 4.5, durationYears: 25, quantity: 1 },
-        { name: 'Cathy/Jim', capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, surface: 134, interestRate: 4.5, durationYears: 25, quantity: 1 },
-        { name: 'Annabelle/Colin', capitalApporte: 200000, notaryFeesRate: 12.5, unitId: 5, surface: 118, interestRate: 4.5, durationYears: 25, quantity: 1 },
-        { name: 'Julie/Séverin', capitalApporte: 70000, notaryFeesRate: 12.5, unitId: 6, surface: 108, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'Manuela/Dragan', capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, surface: 112, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'Cathy/Jim', capitalApporte: 170000, registrationFeesRate: 12.5, unitId: 3, surface: 134, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'Annabelle/Colin', capitalApporte: 200000, registrationFeesRate: 12.5, unitId: 5, surface: 118, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'Julie/Séverin', capitalApporte: 70000, registrationFeesRate: 12.5, unitId: 6, surface: 108, interestRate: 4.5, durationYears: 25, quantity: 1 },
       ];
 
       const projectParams: ProjectParams = {
@@ -1022,7 +1022,7 @@ describe('Calculator Utils', () => {
         {
           name: 'Participant 1',
           capitalApporte: 50000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           unitId: 1,
           surface: 100,
           interestRate: 4.5,
@@ -1033,7 +1033,7 @@ describe('Calculator Utils', () => {
         {
           name: 'Participant 2',
           capitalApporte: 100000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           unitId: 2,
           surface: 120,
           interestRate: 4.5,
@@ -1081,18 +1081,18 @@ describe('Calculator Utils', () => {
     it('should produce identical results with and without explicit sqm values (backward compatibility)', () => {
       // Test that omitting sqm values produces the same result as explicitly setting them to full surface
       const participants1: Participant[] = [
-        { name: 'Manuela/Dragan', capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, surface: 112, interestRate: 4.5, durationYears: 25, quantity: 1 },
-        { name: 'Cathy/Jim', capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, surface: 134, interestRate: 4.5, durationYears: 25, quantity: 1 },
-        { name: 'Annabelle/Colin', capitalApporte: 200000, notaryFeesRate: 12.5, unitId: 5, surface: 118, interestRate: 4.5, durationYears: 25, quantity: 1 },
-        { name: 'Julie/Séverin', capitalApporte: 70000, notaryFeesRate: 12.5, unitId: 6, surface: 108, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'Manuela/Dragan', capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, surface: 112, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'Cathy/Jim', capitalApporte: 170000, registrationFeesRate: 12.5, unitId: 3, surface: 134, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'Annabelle/Colin', capitalApporte: 200000, registrationFeesRate: 12.5, unitId: 5, surface: 118, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'Julie/Séverin', capitalApporte: 70000, registrationFeesRate: 12.5, unitId: 6, surface: 108, interestRate: 4.5, durationYears: 25, quantity: 1 },
       ];
 
       // Same participants but with explicit sqm values set to full surface
       const participants2: Participant[] = [
-        { name: 'Manuela/Dragan', capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, surface: 112, interestRate: 4.5, durationYears: 25, quantity: 1, cascoSqm: 112, parachevementsSqm: 112 },
-        { name: 'Cathy/Jim', capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, surface: 134, interestRate: 4.5, durationYears: 25, quantity: 1, cascoSqm: 134, parachevementsSqm: 134 },
-        { name: 'Annabelle/Colin', capitalApporte: 200000, notaryFeesRate: 12.5, unitId: 5, surface: 118, interestRate: 4.5, durationYears: 25, quantity: 1, cascoSqm: 118, parachevementsSqm: 118 },
-        { name: 'Julie/Séverin', capitalApporte: 70000, notaryFeesRate: 12.5, unitId: 6, surface: 108, interestRate: 4.5, durationYears: 25, quantity: 1, cascoSqm: 108, parachevementsSqm: 108 },
+        { name: 'Manuela/Dragan', capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, surface: 112, interestRate: 4.5, durationYears: 25, quantity: 1, cascoSqm: 112, parachevementsSqm: 112 },
+        { name: 'Cathy/Jim', capitalApporte: 170000, registrationFeesRate: 12.5, unitId: 3, surface: 134, interestRate: 4.5, durationYears: 25, quantity: 1, cascoSqm: 134, parachevementsSqm: 134 },
+        { name: 'Annabelle/Colin', capitalApporte: 200000, registrationFeesRate: 12.5, unitId: 5, surface: 118, interestRate: 4.5, durationYears: 25, quantity: 1, cascoSqm: 118, parachevementsSqm: 118 },
+        { name: 'Julie/Séverin', capitalApporte: 70000, registrationFeesRate: 12.5, unitId: 6, surface: 108, interestRate: 4.5, durationYears: 25, quantity: 1, cascoSqm: 108, parachevementsSqm: 108 },
       ];
 
       const projectParams: ProjectParams = {
@@ -1152,11 +1152,11 @@ describe('Calculator Utils', () => {
     it('should produce different results when using partial sqm renovation vs full renovation', () => {
       // Test that using partial sqm produces lower costs than full renovation
       const participantsFullRenovation: Participant[] = [
-        { name: 'Test User', capitalApporte: 100000, notaryFeesRate: 12.5, unitId: 1, surface: 100, interestRate: 4.5, durationYears: 25, quantity: 1 },
+        { name: 'Test User', capitalApporte: 100000, registrationFeesRate: 12.5, unitId: 1, surface: 100, interestRate: 4.5, durationYears: 25, quantity: 1 },
       ];
 
       const participantsPartialRenovation: Participant[] = [
-        { name: 'Test User', capitalApporte: 100000, notaryFeesRate: 12.5, unitId: 1, surface: 100, interestRate: 4.5, durationYears: 25, quantity: 1, cascoSqm: 60, parachevementsSqm: 60 },
+        { name: 'Test User', capitalApporte: 100000, registrationFeesRate: 12.5, unitId: 1, surface: 100, interestRate: 4.5, durationYears: 25, quantity: 1, cascoSqm: 60, parachevementsSqm: 60 },
       ];
 
       const projectParams: ProjectParams = {
@@ -1213,7 +1213,7 @@ describe('Calculator Utils', () => {
         {
           name: 'Participant 1',
           capitalApporte: 50000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           unitId: 1,
           surface: 112,
           interestRate: 4.5,
@@ -1306,7 +1306,7 @@ describe('Calculator Utils', () => {
         {
           name: 'A',
           capitalApporte: 100000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           unitId: 1,
           surface: 100,
           interestRate: 4.5,
@@ -1317,7 +1317,7 @@ describe('Calculator Utils', () => {
         {
           name: 'B',
           capitalApporte: 150000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           unitId: 2,
           surface: 150,
           interestRate: 4.5,
@@ -1358,7 +1358,7 @@ describe('calculateTwoLoanFinancing', () => {
     const participant: Participant = {
       name: 'Test',
       capitalApporte: 100000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       interestRate: 4.5,
       durationYears: 20,
       useTwoLoans: true,
@@ -1405,7 +1405,7 @@ describe('calculateTwoLoanFinancing', () => {
     const participant: Participant = {
       name: 'Test',
       capitalApporte: 100000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       interestRate: 4.5,
       durationYears: 20,
       useTwoLoans: true,
@@ -1428,7 +1428,7 @@ describe('calculateTwoLoanFinancing', () => {
     const participant: Participant = {
       name: 'Test',
       capitalApporte: 0,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       interestRate: 4.5,
       durationYears: 20,
       useTwoLoans: true,
@@ -1453,7 +1453,7 @@ describe('calculateAll with two-loan financing', () => {
       {
         name: 'Two-Loan User',
         capitalApporte: 100000,
-        notaryFeesRate: 12.5,
+        registrationFeesRate: 12.5,
         interestRate: 4.5,
         durationYears: 20,
         unitId: 1,
@@ -1515,7 +1515,7 @@ describe('calculateAll with two-loan financing', () => {
       {
         name: 'Manuela/Dragan',
         capitalApporte: 120000,
-        notaryFeesRate: 3,
+        registrationFeesRate: 3,
         interestRate: 3.5,
         durationYears: 25,
         unitId: 1,
@@ -1571,7 +1571,7 @@ describe('calculateAll with two-loan financing', () => {
       {
         name: 'Single-Loan User',
         capitalApporte: 100000,
-        notaryFeesRate: 12.5,
+        registrationFeesRate: 12.5,
         interestRate: 4.5,
         durationYears: 20,
         unitId: 1,

@@ -79,7 +79,7 @@ export function ParticipantDetailsPanel({
   // Permission checks for collective financing fields
   const { canEdit: canEditInterestRate } = useParticipantFieldPermissions('interestRate', idx);
   const { canEdit: canEditDuration } = useParticipantFieldPermissions('durationYears', idx);
-  const { canEdit: canEditNotaryRate } = useParticipantFieldPermissions('notaryFeesRate', idx);
+  const { canEdit: canEditNotaryRate } = useParticipantFieldPermissions('registrationFeesRate', idx);
 
   // Helper to update the entire participant list - delegates to parent
   const setParticipants = (updater: (prev: Participant[]) => Participant[]) => {
@@ -394,14 +394,14 @@ export function ParticipantDetailsPanel({
             <label className="block text-xs text-gray-600 mb-1">Droit d'enregistrements</label>
             <div className="flex items-center gap-2 mb-1">
               <label className={`flex items-center gap-1.5 px-3 py-2 border rounded-lg transition-colors ${canEditNotaryRate ? 'cursor-pointer hover:bg-gray-100' : 'opacity-60 cursor-not-allowed'}`} style={{
-                borderColor: p.notaryFeesRate === 3 ? '#9ca3af' : '#e5e7eb',
-                backgroundColor: p.notaryFeesRate === 3 ? '#f3f4f6' : (canEditNotaryRate ? 'white' : '#f9fafb')
+                borderColor: p.registrationFeesRate === 3 ? '#9ca3af' : '#e5e7eb',
+                backgroundColor: p.registrationFeesRate === 3 ? '#f3f4f6' : (canEditNotaryRate ? 'white' : '#f9fafb')
               }}>
                 <input
                   type="radio"
                   name={`notaryRate-${idx}`}
                   value="3"
-                  checked={p.notaryFeesRate === 3}
+                  checked={p.registrationFeesRate === 3}
                   onChange={(e) => updateNotaryRate(idx, parseFloat(e.target.value))}
                   disabled={!canEditNotaryRate}
                   className="w-4 h-4"
@@ -409,14 +409,14 @@ export function ParticipantDetailsPanel({
                 <span className="font-medium text-gray-700 text-sm">3%</span>
               </label>
               <label className={`flex items-center gap-1.5 px-3 py-2 border rounded-lg transition-colors ${canEditNotaryRate ? 'cursor-pointer hover:bg-gray-100' : 'opacity-60 cursor-not-allowed'}`} style={{
-                borderColor: p.notaryFeesRate === 12.5 ? '#9ca3af' : '#e5e7eb',
-                backgroundColor: p.notaryFeesRate === 12.5 ? '#f3f4f6' : (canEditNotaryRate ? 'white' : '#f9fafb')
+                borderColor: p.registrationFeesRate === 12.5 ? '#9ca3af' : '#e5e7eb',
+                backgroundColor: p.registrationFeesRate === 12.5 ? '#f3f4f6' : (canEditNotaryRate ? 'white' : '#f9fafb')
               }}>
                 <input
                   type="radio"
                   name={`notaryRate-${idx}`}
                   value="12.5"
-                  checked={p.notaryFeesRate === 12.5}
+                  checked={p.registrationFeesRate === 12.5}
                   onChange={(e) => updateNotaryRate(idx, parseFloat(e.target.value))}
                   disabled={!canEditNotaryRate}
                   className="w-4 h-4"
@@ -490,7 +490,7 @@ export function ParticipantDetailsPanel({
                 {formatCurrency(p.droitEnregistrements)}
               </FormulaTooltip>
             </p>
-            <p className="text-xs text-gray-400 mt-0.5">{p.notaryFeesRate}%</p>
+            <p className="text-xs text-gray-400 mt-0.5">{p.registrationFeesRate}%</p>
           </div>
 
           <div className="bg-white rounded-lg p-3 border border-gray-200">

@@ -34,7 +34,7 @@ function createTestInitialPurchaseEvent(): InitialPurchaseEvent {
         surface: 112,
         unitId: 1,
         capitalApporte: 50000,
-        notaryFeesRate: 3,
+        registrationFeesRate: 3,
         interestRate: 4.5,
         durationYears: 25,
         parachevementsPerM2: 500
@@ -44,7 +44,7 @@ function createTestInitialPurchaseEvent(): InitialPurchaseEvent {
         surface: 134,
         unitId: 2,
         capitalApporte: 170000,
-        notaryFeesRate: 12.5,
+        registrationFeesRate: 12.5,
         interestRate: 4.5,
         durationYears: 25,
         parachevementsPerM2: 500
@@ -80,7 +80,7 @@ function createNewcomerJoinsEvent(): NewcomerJoinsEvent {
       surface: 134,
       unitId: 2,
       capitalApporte: 40000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       interestRate: 4.5,
       durationYears: 25,
       parachevementsPerM2: 500
@@ -163,7 +163,7 @@ describe('applyInitialPurchase', () => {
     expect(participant).toHaveProperty('surface');
     expect(participant).toHaveProperty('unitId');
     expect(participant).toHaveProperty('capitalApporte');
-    expect(participant).toHaveProperty('notaryFeesRate');
+    expect(participant).toHaveProperty('registrationFeesRate');
     expect(participant).toHaveProperty('interestRate');
     expect(participant).toHaveProperty('durationYears');
     expect(participant).toHaveProperty('quantity');
@@ -453,7 +453,7 @@ describe('projectTimeline', () => {
         surface: 100,
         unitId: 3,
         capitalApporte: 60000,
-        notaryFeesRate: 12.5,
+        registrationFeesRate: 12.5,
         interestRate: 4.5,
         durationYears: 25,
         parachevementsPerM2: 500
@@ -688,7 +688,7 @@ describe('Copropriété Cash Flows', () => {
         surface: 100,
         unitId: 5,
         capitalApporte: 80000,
-        notaryFeesRate: 12.5,
+        registrationFeesRate: 12.5,
         interestRate: 4.5,
         durationYears: 25,
         parachevementsPerM2: 500

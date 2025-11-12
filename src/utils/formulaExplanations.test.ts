@@ -19,7 +19,7 @@ import {
 const mockParticipant: ParticipantCalculation = {
   name: 'Alice',
   capitalApporte: 50000,
-  notaryFeesRate: 12.5,
+  registrationFeesRate: 12.5,
   interestRate: 3.5,
   durationYears: 20,
   surface: 100,

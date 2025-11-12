@@ -5,7 +5,7 @@
     {
       "name": "Test User",
       "capitalApporte": 50000,
-      "notaryFeesRate": 12.5,
+      "registrationFeesRate": 12.5,
       "unitId": 1,
       "surface": 112,
       "interestRate": 4.5,

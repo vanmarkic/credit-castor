@@ -16,7 +16,7 @@ describe('scenarioFileIO', () => {
     {
       name: 'Test Participant',
       capitalApporte: 100000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       unitId: 1,
       surface: 100,
       interestRate: 4.5,
@@ -57,7 +57,7 @@ describe('scenarioFileIO', () => {
       {
         name: 'Test Participant',
         capitalApporte: 100000,
-        notaryFeesRate: 12.5,
+        registrationFeesRate: 12.5,
         unitId: 1,
         surface: 100,
         interestRate: 4.5,
@@ -506,7 +506,7 @@ describe('scenarioFileIO', () => {
         {
           name: 'Test Participant 2',
           capitalApporte: 150000,
-          notaryFeesRate: 12.5,
+          registrationFeesRate: 12.5,
           unitId: 2,
           surface: 120,
           interestRate: 4.0,

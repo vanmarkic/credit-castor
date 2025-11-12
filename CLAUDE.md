@@ -151,6 +151,39 @@ The `unitDetails` object maps `unitId → { casco, parachevements }` for predefi
 - **Business logic tests**: Separated files with `.business-logic.test.ts` suffix
   - Focus on complex calculation scenarios
   - Use descriptive test names for documentation
+- **Schema validation tests**: `src/utils/dataSchema.test.ts`
+  - Detects breaking changes in stored data structures
+  - Run with `npm run test:schema`
+  - Must pass before committing changes to data interfaces
+
+## Version Management & Breaking Changes
+
+### Semantic Versioning
+- **Major (2.0.0)**: Breaking changes to stored data structures → triggers version warning
+- **Minor (1.17.0)**: New features, backward compatible → no warning
+- **Patch (1.16.1)**: Bug fixes, backward compatible → no warning
+
+### Critical Data Structures (Breaking Changes)
+Changes to these require a **major version bump**:
+- `Participant` interface (stored in localStorage, JSON, Firestore)
+- `ProjectParams` interface (stored in localStorage, JSON, Firestore)
+- `PortageFormulaParams` interface (stored in localStorage, JSON, Firestore)
+- `ScenarioData` interface (JSON export format)
+- `FirestoreScenarioData` interface (Firestore document structure)
+
+### Before Committing Data Structure Changes
+1. **Run schema validation**: `npm run test:schema`
+2. **Check the guide**: See `docs/development/breaking-changes-guide.md`
+3. **Use the checklist**: See `docs/development/pre-commit-checklist.md`
+4. **If breaking change detected**:
+   - Bump major version in `src/utils/version.ts`
+   - Create migration function if needed
+   - Update schema tests
+   - Document in version history
+
+### Quick Rules
+- ✅ **Safe**: Add optional fields, deprecate old fields (keep them)
+- ❌ **Breaking**: Rename fields, remove fields, change field types
 
 ## Documentation Guidelines
 

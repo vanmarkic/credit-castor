@@ -12,12 +12,12 @@ interface OldParticipant extends Participant {
 
 // Default values for reset functionality
 export const DEFAULT_PARTICIPANTS: Participant[] = [
-  { name: 'Manuela/Dragan', capitalApporte: 50000, notaryFeesRate: 12.5, unitId: 1, surface: 112, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500, isFounder: true, entryDate: new Date(DEFAULT_DEED_DATE) },
-  { name: 'Cathy/Jim', capitalApporte: 170000, notaryFeesRate: 12.5, unitId: 3, surface: 134, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500, isFounder: true, entryDate: new Date(DEFAULT_DEED_DATE) },
+  { name: 'Manuela/Dragan', capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, surface: 112, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500, isFounder: true, entryDate: new Date(DEFAULT_DEED_DATE) },
+  { name: 'Cathy/Jim', capitalApporte: 170000, registrationFeesRate: 12.5, unitId: 3, surface: 134, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500, isFounder: true, entryDate: new Date(DEFAULT_DEED_DATE) },
   {
     name: 'Annabelle/Colin',
     capitalApporte: 200000,
-    notaryFeesRate: 12.5,
+    registrationFeesRate: 12.5,
     unitId: 5,
     surface: 198,
     interestRate: 4.5,
@@ -48,11 +48,11 @@ export const DEFAULT_PARTICIPANTS: Participant[] = [
       }
     ]
   },
-  { name: 'Julie/Séverin', capitalApporte: 70000, notaryFeesRate: 12.5, unitId: 6, surface: 108, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500, isFounder: true, entryDate: new Date(DEFAULT_DEED_DATE) },
+  { name: 'Julie/Séverin', capitalApporte: 70000, registrationFeesRate: 12.5, unitId: 6, surface: 108, interestRate: 4.5, durationYears: 25, quantity: 1, parachevementsPerM2: 500, isFounder: true, entryDate: new Date(DEFAULT_DEED_DATE) },
   {
     name: 'Nouveau·elle Arrivant·e',
     capitalApporte: 80000,
-    notaryFeesRate: 12.5,
+    registrationFeesRate: 12.5,
     unitId: 5,
     surface: 80,
     interestRate: 4.5,

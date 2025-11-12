@@ -111,7 +111,7 @@ describe('Portage lot recalculation on entry date change', () => {
     const _seller: Participant = {
       name: 'Seller',
       capitalApporte: 200000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       interestRate: 4.5,
       durationYears: 25,
       isFounder: true,
@@ -134,7 +134,7 @@ describe('Portage lot recalculation on entry date change', () => {
     const buyer1: Participant = {
       name: 'Buyer',
       capitalApporte: 80000,
-      notaryFeesRate: 12.5,
+      registrationFeesRate: 12.5,
       interestRate: 4.5,
       durationYears: 25,
       isFounder: false,
@@ -182,7 +182,7 @@ describe('Portage lot recalculation on entry date change', () => {
       {
         name: 'Seller',
         capitalApporte: 200000,
-        notaryFeesRate: 12.5,
+        registrationFeesRate: 12.5,
         interestRate: 4.5,
         durationYears: 25,
         isFounder: true,
@@ -204,7 +204,7 @@ describe('Portage lot recalculation on entry date change', () => {
       {
         name: 'Buyer',
         capitalApporte: 80000,
-        notaryFeesRate: 12.5,
+        registrationFeesRate: 12.5,
         interestRate: 4.5,
         durationYears: 25,
         isFounder: false,
