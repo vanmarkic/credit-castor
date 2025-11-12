@@ -2,6 +2,24 @@ import React, { useState } from 'react';
 import { Clock, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Participant } from '../../utils/calculatorUtils';
 
+/**
+ * Safely converts a date value to an ISO date string (YYYY-MM-DD).
+ * Returns the fallback date if the input is invalid.
+ */
+function safeToISODateString(dateValue: string | Date | null | undefined, fallback: string): string {
+  if (!dateValue) return fallback
+
+  const date = dateValue instanceof Date ? dateValue : new Date(dateValue)
+
+  // Check if date is valid
+  if (isNaN(date.getTime())) {
+    console.warn(`Invalid date value in ParticipantsTimeline: ${dateValue}, using fallback: ${fallback}`)
+    return fallback
+  }
+
+  return date.toISOString().split('T')[0]
+}
+
 interface ParticipantsTimelineProps {
   participants: Participant[];
   deedDate: string;
@@ -20,16 +38,16 @@ export const ParticipantsTimeline: React.FC<ParticipantsTimelineProps> = ({
   };
   // Sort participants by entry date
   const sortedParticipants = [...participants].sort((a, b) => {
-    const dateA = a.entryDate ? new Date(a.entryDate) : new Date(deedDate);
-    const dateB = b.entryDate ? new Date(b.entryDate) : new Date(deedDate);
+    const dateStrA = safeToISODateString(a.entryDate, deedDate);
+    const dateStrB = safeToISODateString(b.entryDate, deedDate);
+    const dateA = new Date(dateStrA);
+    const dateB = new Date(dateStrB);
     return dateA.getTime() - dateB.getTime();
   });
 
   // Group by entry date
   const grouped = sortedParticipants.reduce((acc, p) => {
-    const dateKey = p.entryDate
-      ? new Date(p.entryDate).toISOString().split('T')[0]
-      : deedDate;
+    const dateKey = safeToISODateString(p.entryDate, deedDate);
     if (!acc[dateKey]) acc[dateKey] = [];
     acc[dateKey].push(p);
     return acc;

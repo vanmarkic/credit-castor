@@ -224,11 +224,27 @@ export const loadFromLocalStorage = () => {
           result.participants = result.participants.map((p: Participant) => {
             // Convert participant dates
             const participant = { ...p };
-            if (participant.entryDate && typeof participant.entryDate === 'string') {
-              participant.entryDate = new Date(participant.entryDate);
+
+            // Handle entryDate: convert string to Date, or validate existing Date
+            if (participant.entryDate) {
+              if (typeof participant.entryDate === 'string') {
+                participant.entryDate = new Date(participant.entryDate);
+              } else if (!(participant.entryDate instanceof Date) || isNaN(participant.entryDate.getTime())) {
+                // Invalid or corrupted date object - remove it
+                console.warn(`Corrupted entryDate for ${participant.name}, removing`);
+                delete participant.entryDate;
+              }
             }
-            if (participant.exitDate && typeof participant.exitDate === 'string') {
-              participant.exitDate = new Date(participant.exitDate);
+
+            // Handle exitDate: convert string to Date, or validate existing Date
+            if (participant.exitDate) {
+              if (typeof participant.exitDate === 'string') {
+                participant.exitDate = new Date(participant.exitDate);
+              } else if (!(participant.exitDate instanceof Date) || isNaN(participant.exitDate.getTime())) {
+                // Invalid or corrupted date object - remove it
+                console.warn(`Corrupted exitDate for ${participant.name}, removing`);
+                delete participant.exitDate;
+              }
             }
 
             // Convert lot dates

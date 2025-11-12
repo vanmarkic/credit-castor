@@ -10,6 +10,28 @@ import {
 } from './transactionCalculations'
 
 /**
+ * Safely converts a date value to an ISO date string (YYYY-MM-DD).
+ * Returns the fallback date if the input is invalid.
+ *
+ * @param dateValue - Date string, Date object, or falsy value
+ * @param fallback - Fallback date string to use if dateValue is invalid
+ * @returns ISO date string (YYYY-MM-DD)
+ */
+function safeToISODateString(dateValue: string | Date | null | undefined, fallback: string): string {
+  if (!dateValue) return fallback
+
+  const date = dateValue instanceof Date ? dateValue : new Date(dateValue)
+
+  // Check if date is valid
+  if (isNaN(date.getTime())) {
+    console.warn(`Invalid date value: ${dateValue}, using fallback: ${fallback}`)
+    return fallback
+  }
+
+  return date.toISOString().split('T')[0]
+}
+
+/**
  * Represents a copropriété inventory snapshot at a specific date.
  * Only created when inventory changes (sales occur).
  */
@@ -52,11 +74,7 @@ export function getUniqueSortedDates(
 ): Date[] {
   const dates = [
     ...new Set(
-      participants.map(p =>
-        p.entryDate
-          ? new Date(p.entryDate).toISOString().split('T')[0]
-          : deedDate
-      )
+      participants.map(p => safeToISODateString(p.entryDate, deedDate))
     )
   ].sort()
 
@@ -82,11 +100,7 @@ export function generateCoproSnapshots(
 
   const dates = [
     ...new Set(
-      participants.map(p =>
-        p.entryDate
-          ? new Date(p.entryDate).toISOString().split('T')[0]
-          : deedDate
-      )
+      participants.map(p => safeToISODateString(p.entryDate, deedDate))
     )
   ].sort()
 
@@ -98,9 +112,8 @@ export function generateCoproSnapshots(
 
     // Find participants who joined from copro at this date
     const joinedFromCopro = participants.filter(p => {
-      const pEntryDate = p.entryDate ? new Date(p.entryDate) : new Date(deedDate)
       return (
-        pEntryDate.toISOString().split('T')[0] === dateStr &&
+        safeToISODateString(p.entryDate, deedDate) === dateStr &&
         p.purchaseDetails?.buyingFrom === 'Copropriété'
       )
     })
@@ -234,11 +247,7 @@ export function generateParticipantSnapshots(
   // Get unique dates sorted
   const dates = [
     ...new Set(
-      participants.map(p =>
-        p.entryDate
-          ? new Date(p.entryDate).toISOString().split('T')[0]
-          : deedDate
-      )
+      participants.map(p => safeToISODateString(p.entryDate, deedDate))
     )
   ].sort()
 
@@ -248,8 +257,7 @@ export function generateParticipantSnapshots(
 
     // Find participants who joined at this exact date
     const joiningParticipants = participants.filter(p => {
-      const pEntryDate = p.entryDate ? new Date(p.entryDate) : new Date(deedDate)
-      return pEntryDate.toISOString().split('T')[0] === dateStr
+      return safeToISODateString(p.entryDate, deedDate) === dateStr
     })
 
     // Determine who is affected at this moment
