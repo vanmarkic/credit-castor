@@ -34,15 +34,29 @@ describe('useParticipantOperations', () => {
   };
 
   describe('addParticipant', () => {
-    it('should add a new participant with default values', () => {
+    it('should add a new participant with default values as newcomer from copro', () => {
       const participants = [baseParticipant];
-      const result = addParticipant(participants, '2023-02-01');
+      const deedDate = '2023-02-01';
+      const result = addParticipant(participants, deedDate);
 
       expect(result).toHaveLength(2);
       expect(result[1].name).toBe('Participant·e 2');
       expect(result[1].capitalApporte).toBe(100000);
       expect(result[1].unitId).toBe(2);
-      expect(result[1].isFounder).toBe(true);
+      expect(result[1].surface).toBe(100);
+
+      // Should be newcomer (not founder)
+      expect(result[1].isFounder).toBe(false);
+
+      // Entry date should be deed date + 1 day
+      const expectedEntryDate = new Date('2023-02-01');
+      expectedEntryDate.setDate(expectedEntryDate.getDate() + 1);
+      expect(result[1].entryDate).toEqual(expectedEntryDate);
+
+      // Should have purchaseDetails buying from Copropriété
+      expect(result[1].purchaseDetails).toBeDefined();
+      expect(result[1].purchaseDetails?.buyingFrom).toBe('Copropriété');
+      expect(result[1].purchaseDetails?.lotId).toBe(2);
     });
 
     it('should not mutate original array', () => {

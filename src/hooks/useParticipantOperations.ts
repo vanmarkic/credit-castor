@@ -111,12 +111,17 @@ export interface ParticipantOperations {
 
 /**
  * Add a new participant
+ * Default: Newcomer with 100 m² from copro, entry date = deed date + 1 day
  */
 export function addParticipant(
   participants: Participant[],
   deedDate: string
 ): Participant[] {
   const newId = Math.max(...participants.map(p => p.unitId || 0), 0) + 1;
+
+  // Calculate entry date as deed date + 1 day
+  const entryDate = new Date(deedDate);
+  entryDate.setDate(entryDate.getDate() + 1);
 
   return [...participants, {
     name: 'Participant·e ' + (participants.length + 1),
@@ -128,8 +133,13 @@ export function addParticipant(
     durationYears: 25,
     quantity: 1,
     parachevementsPerM2: 500,
-    isFounder: true,
-    entryDate: new Date(deedDate)
+    isFounder: false,  // Default to newcomer
+    entryDate: entryDate,  // Deed date + 1 day
+    purchaseDetails: {
+      buyingFrom: 'Copropriété',  // Buying from copro, not a founder
+      lotId: newId,
+      purchasePrice: 0  // Will be calculated based on surface and copro pricing
+    }
   }];
 }
 

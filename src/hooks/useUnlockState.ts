@@ -78,6 +78,27 @@ export function useUnlockState() {
     saveUnlockState(state);
   }, [state]);
 
+  // Auto-lock when user closes the app/tab
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (state.isUnlocked) {
+        // Lock the fields before the app closes
+        const lockedState: UnlockState = {
+          isUnlocked: false,
+          unlockedAt: null,
+          unlockedBy: null,
+        };
+        saveUnlockState(lockedState);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [state.isUnlocked]);
+
   /**
    * Attempt to unlock collective fields with admin password.
    * @param password Admin password
