@@ -3,15 +3,33 @@ import {
   saveScenarioToFirestore,
   updateScenarioFields,
   loadScenarioFromFirestore,
+  loadParticipantsFromSubcollection,
   subscribeToFirestoreChanges,
+  subscribeToAllParticipants,
+  saveParticipantToSubcollection,
   isFirestoreSyncAvailable,
   detectConflict,
   type FirestoreScenarioData,
   type FirestoreChangeEvent,
   type TrackableField,
 } from '../services/firestoreSync';
+import { getDb } from '../services/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import { saveToLocalStorage, loadFromLocalStorage } from '../utils/storage';
 import type { Participant, ProjectParams, PortageFormulaParams } from '../utils/calculatorUtils';
+
+/**
+ * Convert field names to human-readable French labels
+ */
+function getFieldLabel(field: TrackableField): string {
+  const labels: Record<TrackableField, string> = {
+    projectParams: 'Paramètres du projet',
+    deedDate: 'Date d\'acte',
+    portageFormula: 'Formule de portage',
+    participants: 'Participants',
+  };
+  return labels[field];
+}
 
 /**
  * Sync mode: determines whether to use Firestore or localStorage
@@ -39,10 +57,12 @@ export interface ConflictState {
  *
  * @param userEmail - Email of the current user (from unlock state)
  * @param enabled - Whether sync is enabled (default: true)
+ * @param onSyncSuccess - Optional callback when sync succeeds (for toast notifications)
  */
 export function useFirestoreSync(
   userEmail: string | null,
-  enabled: boolean = true
+  enabled: boolean = true,
+  onSyncSuccess?: (message: string, fields: TrackableField[]) => void
 ) {
   const [syncMode, setSyncMode] = useState<SyncMode>('offline');
   const [isSyncing, setIsSyncing] = useState(false);
@@ -54,6 +74,7 @@ export function useFirestoreSync(
 
   const localVersionRef = useRef<number>(1);
   const isSavingRef = useRef(false);
+  const [useSubcollection, setUseSubcollection] = useState(false);
 
   /**
    * Initialize sync mode based on Firebase availability
@@ -83,6 +104,41 @@ export function useFirestoreSync(
     portageFormula: PortageFormulaParams;
   } | null> => {
     if (syncMode === 'firestore') {
+      // Check if using subcollection
+      const db = getDb();
+      if (db) {
+        try {
+          const projectRef = doc(db, 'projects', 'shared-project');
+          const projectDoc = await getDoc(projectRef);
+
+          if (projectDoc.exists()) {
+            const data = projectDoc.data() as any;
+            const usesSubcoll = data.participantsInSubcollection === true;
+            setUseSubcollection(usesSubcoll);
+
+            if (usesSubcoll) {
+              // Load separately
+              const participantsResult = await loadParticipantsFromSubcollection('shared-project');
+              const projectResult = await loadScenarioFromFirestore();
+
+              if (participantsResult.success && projectResult.success && projectResult.data) {
+                localVersionRef.current = projectResult.data.version;
+                setLastSyncedAt(new Date());
+                return {
+                  participants: participantsResult.participants || [],
+                  projectParams: projectResult.data.projectParams,
+                  deedDate: projectResult.data.deedDate,
+                  portageFormula: projectResult.data.portageFormula,
+                };
+              }
+            }
+          }
+        } catch (err) {
+          console.error('Error checking subcollection:', err);
+        }
+      }
+
+      // Legacy: load from array
       const result = await loadScenarioFromFirestore();
       if (result.success && result.data) {
         localVersionRef.current = result.data.version;
@@ -169,6 +225,16 @@ export function useFirestoreSync(
               localVersionRef.current += 1;
               setLastSyncedAt(new Date());
               console.log(`✅ Granular update: ${result.updatedFields.join(', ')}`);
+
+              // Trigger toast notification with updated fields
+              if (onSyncSuccess) {
+                const fieldLabels = result.updatedFields.map(getFieldLabel);
+                const message = fieldLabels.length === 1
+                  ? fieldLabels[0]
+                  : fieldLabels.join(', ');
+                onSyncSuccess(message, result.updatedFields);
+              }
+
               return { success: true };
             } else {
               // Fallback to full save on conflict or error
@@ -222,39 +288,84 @@ export function useFirestoreSync(
       return;
     }
 
-    const unsubscribe = subscribeToFirestoreChanges((event: FirestoreChangeEvent) => {
-      // Skip if this is our own local write
-      if (event.source === 'local') {
-        return;
-      }
+    if (useSubcollection) {
+      // Subscribe to project document (without participants)
+      const unsubscribeProject = subscribeToFirestoreChanges((event: FirestoreChangeEvent) => {
+        if (event.source === 'local' || event.isFirstLoad) {
+          return;
+        }
 
-      // Skip first load (already handled by loadInitialData)
-      if (event.isFirstLoad) {
-        return;
-      }
+        const conflict = detectConflict(localVersionRef.current, event.data.version);
+        if (conflict.hasConflict) {
+          console.warn('⚠️ Project conflict detected:', conflict.message);
+          setConflictState({
+            hasConflict: true,
+            remoteData: event.data,
+            message: conflict.message,
+          });
+        } else {
+          localVersionRef.current = event.data.version;
+          setLastSyncedAt(new Date());
+        }
+      });
 
-      // Detect conflicts
-      const conflict = detectConflict(localVersionRef.current, event.data.version);
-      if (conflict.hasConflict) {
-        console.warn('⚠️ Conflict detected:', conflict.message);
-        setConflictState({
-          hasConflict: true,
-          remoteData: event.data,
-          message: conflict.message,
-        });
-      } else {
-        // Update local version
-        localVersionRef.current = event.data.version;
-        setLastSyncedAt(new Date());
-      }
-    });
+      // Subscribe to all participants in subcollection
+      const unsubscribeParticipants = subscribeToAllParticipants(
+        'shared-project',
+        (_participants, source) => {
+          if (source === 'remote') {
+            console.log('🔄 Remote participant update detected');
+            // Note: The actual state update would happen in the parent component
+            // This is just for logging and monitoring
+            setLastSyncedAt(new Date());
+          }
+        }
+      );
 
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
-  }, [syncMode, enabled]);
+      return () => {
+        if (unsubscribeProject) {
+          unsubscribeProject();
+        }
+        if (unsubscribeParticipants) {
+          unsubscribeParticipants();
+        }
+      };
+    } else {
+      // Legacy: subscribe to full document
+      const unsubscribe = subscribeToFirestoreChanges((event: FirestoreChangeEvent) => {
+        // Skip if this is our own local write
+        if (event.source === 'local') {
+          return;
+        }
+
+        // Skip first load (already handled by loadInitialData)
+        if (event.isFirstLoad) {
+          return;
+        }
+
+        // Detect conflicts
+        const conflict = detectConflict(localVersionRef.current, event.data.version);
+        if (conflict.hasConflict) {
+          console.warn('⚠️ Conflict detected:', conflict.message);
+          setConflictState({
+            hasConflict: true,
+            remoteData: event.data,
+            message: conflict.message,
+          });
+        } else {
+          // Update local version
+          localVersionRef.current = event.data.version;
+          setLastSyncedAt(new Date());
+        }
+      });
+
+      return () => {
+        if (unsubscribe) {
+          unsubscribe();
+        }
+      };
+    }
+  }, [syncMode, enabled, useSubcollection]);
 
   /**
    * Resolve conflict by choosing local or remote data
@@ -293,14 +404,60 @@ export function useFirestoreSync(
     [conflictState]
   );
 
+  /**
+   * Save single participant to subcollection
+   * Only works if useSubcollection is true
+   */
+  const saveParticipant = useCallback(
+    async (
+      participant: Participant,
+      participantIndex: number
+    ): Promise<{ success: boolean; error?: string }> => {
+      if (!useSubcollection) {
+        return {
+          success: false,
+          error: 'Subcollection mode not enabled',
+        };
+      }
+
+      if (!userEmail) {
+        return {
+          success: false,
+          error: 'User email required',
+        };
+      }
+
+      try {
+        const result = await saveParticipantToSubcollection(
+          participant,
+          participantIndex.toString(),
+          'shared-project',
+          userEmail
+        );
+
+        if (result.success) {
+          console.log(`✅ Saved participant ${participantIndex} to subcollection`);
+        }
+
+        return result;
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+        return { success: false, error: errorMessage };
+      }
+    },
+    [useSubcollection, userEmail]
+  );
+
   return {
     syncMode,
     isSyncing,
     lastSyncedAt,
     conflictState,
     syncError,
+    useSubcollection,
     loadInitialData,
     saveData,
+    saveParticipant,
     resolveConflict,
   };
 }

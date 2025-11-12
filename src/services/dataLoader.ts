@@ -11,7 +11,14 @@
  * - Show developer alert if no valid data source available
  */
 
-import { loadScenarioFromFirestore, isFirestoreSyncAvailable, type FirestoreErrorType } from './firestoreSync';
+import {
+  loadScenarioFromFirestore,
+  loadParticipantsFromSubcollection,
+  isFirestoreSyncAvailable,
+  type FirestoreErrorType
+} from './firestoreSync';
+import { getDb } from './firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import { loadFromLocalStorage } from '../utils/storage';
 import type { Participant, ProjectParams, PortageFormulaParams } from '../utils/calculatorUtils';
 
@@ -130,48 +137,103 @@ export async function loadApplicationData(options?: {
   // Step 1: Try loading from Firestore first
   if (firestoreAvailable) {
     console.log('🔥 Attempting to load from Firestore...');
-    const firestoreResult = await loadScenarioFromFirestore();
 
-    if (firestoreResult.success && firestoreResult.data) {
-      // Validate Firestore data
-      if (validateSchema(firestoreResult.data)) {
-        console.log('✅ Loaded valid data from Firestore');
+    // Check if using participant subcollection
+    const db = getDb();
+    let usesSubcollection = false;
 
-        // Check if we also have localStorage data (potential migration scenario)
-        const localData = loadFromLocalStorage();
-        const hasLocalData = localData && localData.isCompatible && validateSchema(localData);
+    if (db) {
+      try {
+        const projectRef = doc(db, 'projects', 'shared-project');
+        const projectDoc = await getDoc(projectRef);
 
-        return {
-          success: true,
-          data: {
-            participants: firestoreResult.data.participants,
-            projectParams: firestoreResult.data.projectParams,
-            deedDate: firestoreResult.data.deedDate,
-            portageFormula: firestoreResult.data.portageFormula,
-            source: 'firestore',
-            needsMigration: false,
-            ...(hasLocalData && {
-              localStorageData: {
-                participants: localData.participants,
-                projectParams: localData.projectParams,
-                deedDate: localData.deedDate,
-                portageFormula: localData.portageFormula,
-              }
-            })
-          },
+        if (projectDoc.exists()) {
+          const data = projectDoc.data() as any;
+          usesSubcollection = data.participantsInSubcollection === true;
+        }
+      } catch (err) {
+        console.error('Error checking subcollection flag:', err);
+      }
+    }
+
+    if (usesSubcollection) {
+      // Load from subcollection architecture
+      console.log('📚 Loading from subcollection architecture...');
+
+      const projectResult = await loadScenarioFromFirestore(); // Load project params
+      const participantsResult = await loadParticipantsFromSubcollection('shared-project');
+
+      if (projectResult.success && participantsResult.success && projectResult.data) {
+        const combinedData = {
+          ...projectResult.data,
+          participants: participantsResult.participants || [],
         };
-      } else {
-        console.error('❌ Firestore data failed schema validation');
-        alert(
-          '⚠️ DEVELOPER ALERT\n\n' +
-          'Firestore data failed schema validation:\n' +
-          '- Data structure is invalid or corrupted\n' +
-          '- Required fields may be missing\n\n' +
-          'Falling back to localStorage if available.\n' +
-          'Please check Firestore data integrity.'
-        );
+
+        if (validateSchema(combinedData)) {
+          console.log('✅ Loaded valid data from Firestore (subcollection)');
+
+          return {
+            success: true,
+            data: {
+              participants: combinedData.participants,
+              projectParams: combinedData.projectParams,
+              deedDate: combinedData.deedDate,
+              portageFormula: combinedData.portageFormula,
+              source: 'firestore',
+              needsMigration: false,
+            },
+          };
+        }
       }
     } else {
+      // Legacy: Load from main document (array)
+      const firestoreResult = await loadScenarioFromFirestore();
+
+      if (firestoreResult.success && firestoreResult.data) {
+        // Validate Firestore data
+        if (validateSchema(firestoreResult.data)) {
+          console.log('✅ Loaded valid data from Firestore (legacy array)');
+
+          // Check if we also have localStorage data (potential migration scenario)
+          const localData = loadFromLocalStorage();
+          const hasLocalData = localData && localData.isCompatible && validateSchema(localData);
+
+          return {
+            success: true,
+            data: {
+              participants: firestoreResult.data.participants,
+              projectParams: firestoreResult.data.projectParams,
+              deedDate: firestoreResult.data.deedDate,
+              portageFormula: firestoreResult.data.portageFormula,
+              source: 'firestore',
+              needsMigration: false,
+              ...(hasLocalData && {
+                localStorageData: {
+                  participants: localData.participants,
+                  projectParams: localData.projectParams,
+                  deedDate: localData.deedDate,
+                  portageFormula: localData.portageFormula,
+                }
+              })
+            },
+          };
+        } else {
+          console.error('❌ Firestore data failed schema validation');
+          alert(
+            '⚠️ DEVELOPER ALERT\n\n' +
+            'Firestore data failed schema validation:\n' +
+            '- Data structure is invalid or corrupted\n' +
+            '- Required fields may be missing\n\n' +
+            'Falling back to localStorage if available.\n' +
+            'Please check Firestore data integrity.'
+          );
+        }
+      }
+    }
+
+    // Check for errors
+    const firestoreResult = await loadScenarioFromFirestore();
+    if (!firestoreResult.success) {
       // Firestore load failed - check error type
       if (firestoreResult.errorType === 'network-error') {
         // Network error - don't fall back to localStorage, show toast
