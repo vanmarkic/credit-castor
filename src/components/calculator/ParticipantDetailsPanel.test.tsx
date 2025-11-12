@@ -40,7 +40,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
     participantBreakdown: [],
     totals: {
       purchase: 1000000,
-      totalNotaryFees: 50000,
+      totalDroitEnregistrements: 50000,
       construction: 500000,
       shared: 138000,
       totalTravauxCommuns: 368900,
@@ -109,7 +109,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
       ...founderParticipant,
       pricePerM2: 1000,
       purchaseShare: 300000,
-      notaryFees: 37500,
+      droitEnregistrements: 37500,
       fraisNotaireFixe: 2000, // 2 lots * 1000€
       casco: 477000,
       parachevements: 150000,
@@ -216,7 +216,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
       ...founderParticipant,
       pricePerM2: 1000,
       purchaseShare: 300000,
-      notaryFees: 37500,
+      droitEnregistrements: 37500,
       fraisNotaireFixe: 2000, // 2 lots * 1000€
       casco: 477000,
       parachevements: 150000,
@@ -318,7 +318,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
       ...founderParticipant,
       pricePerM2: 1000,
       purchaseShare: 300000,
-      notaryFees: 37500,
+      droitEnregistrements: 37500,
       fraisNotaireFixe: 2000, // 2 lots * 1000€
       casco: 477000,
       parachevements: 150000,
@@ -470,7 +470,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
       ...founderParticipant,
       pricePerM2: 1000,
       purchaseShare: 400000,
-      notaryFees: 50000,
+      droitEnregistrements: 50000,
       fraisNotaireFixe: 3000, // 3 lots * 1000€
       casco: 636000,
       parachevements: 200000,
@@ -577,7 +577,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
       ...founderParticipant,
       pricePerM2: 1000,
       purchaseShare: 300000,
-      notaryFees: 37500,
+      droitEnregistrements: 37500,
       fraisNotaireFixe: 2000, // 2 lots * 1000€
       casco: 477000,
       parachevements: 150000,
@@ -686,7 +686,7 @@ describe('ParticipantDetailsPanel - Remboursements attendus', () => {
       ...founderParticipant,
       pricePerM2: 1000,
       purchaseShare: 218000,
-      notaryFees: 27250,
+      droitEnregistrements: 27250,
       fraisNotaireFixe: 2000, // 2 lots * 1000€
       casco: 346620,
       parachevements: 109000,

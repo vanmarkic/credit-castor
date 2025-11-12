@@ -52,7 +52,7 @@ export function convertCalculatorToInitialPurchaseEvent(
       const isPortage = i > 0; // First lot is own, rest are portage
 
       const pricePerLot = (participantResults.purchaseShare || 0) / quantity;
-      const notaryPerLot = (participantResults.notaryFees || 0) / quantity;
+      const notaryPerLot = (participantResults.droitEnregistrements || 0) / quantity;
 
       // Construction cost per lot includes:
       // - CASCO

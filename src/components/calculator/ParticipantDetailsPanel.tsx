@@ -425,7 +425,7 @@ export function ParticipantDetailsPanel({
               </label>
             </div>
             <div className="text-sm text-gray-600">
-              = {formatCurrency(p.notaryFees)}
+              = {formatCurrency(p.droitEnregistrements)}
             </div>
           </div>
 
@@ -487,7 +487,7 @@ export function ParticipantDetailsPanel({
             <p className="text-xs text-gray-500 mb-1">Droit d'enreg.</p>
             <p className="text-base font-bold text-gray-900">
               <FormulaTooltip formula={getNotaryFeesFormula(p)}>
-                {formatCurrency(p.notaryFees)}
+                {formatCurrency(p.droitEnregistrements)}
               </FormulaTooltip>
             </p>
             <p className="text-xs text-gray-400 mt-0.5">{p.notaryFeesRate}%</p>
@@ -686,10 +686,16 @@ export function ParticipantDetailsPanel({
           </div>
 
           <div className="bg-white rounded-lg p-2 border border-gray-200">
-            <p className="text-xs text-gray-500 mb-1">Mensualité</p>
+            <p className="text-xs text-gray-500 mb-1">
+              {p.useTwoLoans && p.loan1MonthlyPayment && p.loan2MonthlyPayment ? 'Mensualité combi' : 'Mensualité'}
+            </p>
             <p className="text-base font-bold text-red-600">
               <FormulaTooltip formula={getMonthlyPaymentFormula(p)}>
-                {formatCurrency(p.monthlyPayment)}
+                {formatCurrency(
+                  p.useTwoLoans && p.loan1MonthlyPayment && p.loan2MonthlyPayment
+                    ? p.loan1MonthlyPayment + p.loan2MonthlyPayment
+                    : p.monthlyPayment
+                )}
               </FormulaTooltip>
             </p>
             <p className="text-xs text-gray-400 mt-0.5">{p.durationYears} ans @ {p.interestRate}%</p>

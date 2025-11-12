@@ -52,7 +52,7 @@ export function getAvailableLotsForNewcomer(
           // If calculations are provided and lot doesn't have values, calculate them
           if (participantCalc && (!originalPrice || !originalNotaryFees || !originalConstructionCost)) {
             originalPrice = (participantCalc.purchaseShare || 0) / quantity;
-            originalNotaryFees = (participantCalc.notaryFees || 0) / quantity;
+            originalNotaryFees = (participantCalc.droitEnregistrements || 0) / quantity;
             originalConstructionCost = (participantCalc.constructionCost || 0) / quantity;
           }
 

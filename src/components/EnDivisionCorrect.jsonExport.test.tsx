@@ -216,7 +216,8 @@ describe('JSON Export Completeness', () => {
     expect(participantCalc).toHaveProperty('quantity');
     expect(participantCalc).toHaveProperty('pricePerM2');
     expect(participantCalc).toHaveProperty('purchaseShare');
-    expect(participantCalc).toHaveProperty('notaryFees');
+    expect(participantCalc).toHaveProperty('droitEnregistrements');
+    expect(participantCalc).toHaveProperty('fraisNotaireFixe');
     expect(participantCalc).toHaveProperty('casco');
     expect(participantCalc).toHaveProperty('parachevements');
     expect(participantCalc).toHaveProperty('personalRenovationCost');
@@ -248,7 +249,7 @@ describe('JSON Export Completeness', () => {
     const totals = exportData.calculations.totals;
 
     expect(totals).toHaveProperty('purchase');
-    expect(totals).toHaveProperty('totalNotaryFees');
+    expect(totals).toHaveProperty('totalDroitEnregistrements');
     expect(totals).toHaveProperty('construction');
     expect(totals).toHaveProperty('shared');
     expect(totals).toHaveProperty('totalTravauxCommuns');

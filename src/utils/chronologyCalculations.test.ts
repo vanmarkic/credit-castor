@@ -97,7 +97,7 @@ function createNewcomerJoinsEvent(): NewcomerJoinsEvent {
         renovations: 0
       }
     },
-    notaryFees: 20625,
+    droitEnregistrements: 20625,
     financing: {
       capitalApporte: 40000,
       loanAmount: 145625,
@@ -470,7 +470,7 @@ describe('projectTimeline', () => {
           renovations: 0
         }
       },
-      notaryFees: 22500,
+      droitEnregistrements: 22500,
       financing: {
         capitalApporte: 60000,
         loanAmount: 142500,
@@ -705,7 +705,7 @@ describe('Copropriété Cash Flows', () => {
           amount: 109000
         }
       },
-      notaryFees: 25000
+      droitEnregistrements: 25000
     };
 
     const events = [

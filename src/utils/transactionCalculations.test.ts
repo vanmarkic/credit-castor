@@ -583,7 +583,8 @@ function mockBreakdownDefaults() {
   return {
     pricePerM2: 0,
     purchaseShare: 0,
-    notaryFees: 0,
+    droitEnregistrements: 0,
+    fraisNotaireFixe: 0,
     casco: 0,
     parachevements: 0,
     personalRenovationCost: 0,

@@ -38,7 +38,7 @@ const createMockCalculations = (
     lotsOwned: [],
     pricePerM2: 2000,
     purchaseShare: 1 / participantCount,
-    notaryFees: 5000,
+    droitEnregistrements: 5000,
     casco: 80000,
     parachevements: 20000,
     personalRenovationCost: 100000,
@@ -62,7 +62,7 @@ const createMockCalculations = (
     participantBreakdown,
     totals: {
       purchase: totalSurface * 2000,
-      totalNotaryFees: 15000,
+      totalDroitEnregistrements: 15000,
       construction: 600000,
       shared: 90000,
       totalTravauxCommuns: 30000,

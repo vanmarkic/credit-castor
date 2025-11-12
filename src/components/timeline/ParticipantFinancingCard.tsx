@@ -12,6 +12,10 @@ interface ParticipantFinancingCardProps {
   transaction?: TimelineTransaction;
   onClick: () => void;
   showFinancingDetails: boolean; // Hide for redistribution cards
+  // Two-loan financing
+  useTwoLoans?: boolean;
+  loan1MonthlyPayment?: number;
+  loan2MonthlyPayment?: number;
 }
 
 const getZoneBackgroundClass = (zoneIndex: number, isT0: boolean, _isFounder: boolean) => {
@@ -40,8 +44,17 @@ export default function ParticipantFinancingCard({
   colorZone,
   transaction,
   onClick,
-  showFinancingDetails
+  showFinancingDetails,
+  useTwoLoans,
+  loan1MonthlyPayment,
+  loan2MonthlyPayment
 }: ParticipantFinancingCardProps) {
+  const displayMonthlyPayment = useTwoLoans && loan1MonthlyPayment && loan2MonthlyPayment
+    ? loan1MonthlyPayment + loan2MonthlyPayment
+    : monthlyPayment;
+  const monthlyLabel = useTwoLoans && loan1MonthlyPayment && loan2MonthlyPayment
+    ? 'Mensualité combi'
+    : 'Mensualité';
   return (
     <div
       className={`
@@ -74,9 +87,9 @@ export default function ParticipantFinancingCard({
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-xs text-gray-600">Mensualité</span>
+            <span className="text-xs text-gray-600">{monthlyLabel}</span>
             <span className="text-sm font-bold text-red-600">
-              {formatCurrency(monthlyPayment)}
+              {formatCurrency(displayMonthlyPayment)}
             </span>
           </div>
         </div>

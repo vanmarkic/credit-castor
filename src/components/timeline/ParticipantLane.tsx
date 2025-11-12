@@ -13,6 +13,10 @@ interface TimelineSnapshot {
   colorZone: number;
   transaction?: TimelineTransaction;
   showFinancingDetails: boolean;
+  // Two-loan financing
+  useTwoLoans?: boolean;
+  loan1MonthlyPayment?: number;
+  loan2MonthlyPayment?: number;
 }
 
 interface ParticipantLaneProps {
@@ -48,6 +52,9 @@ export default function ParticipantLane({
                 transaction={snapshot.transaction}
                 onClick={() => onOpenParticipantDetails(snapshot.participantIndex)}
                 showFinancingDetails={snapshot.showFinancingDetails}
+                useTwoLoans={snapshot.useTwoLoans}
+                loan1MonthlyPayment={snapshot.loan1MonthlyPayment}
+                loan2MonthlyPayment={snapshot.loan2MonthlyPayment}
               />
             )}
           </div>

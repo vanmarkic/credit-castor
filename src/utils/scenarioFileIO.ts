@@ -128,7 +128,7 @@ export function serializeScenario(
         quantity: p.quantity,
         pricePerM2: p.pricePerM2,
         purchaseShare: p.purchaseShare,
-        notaryFees: p.notaryFees,
+        notaryFees: p.droitEnregistrements,
         casco: p.casco,
         parachevements: p.parachevements,
         personalRenovationCost: p.personalRenovationCost,
@@ -153,7 +153,7 @@ export function serializeScenario(
       })),
       totals: {
         purchase: calculations.totals.purchase,
-        totalNotaryFees: calculations.totals.totalNotaryFees,
+        totalNotaryFees: calculations.totals.totalDroitEnregistrements,
         construction: calculations.totals.construction,
         shared: calculations.totals.shared,
         totalTravauxCommuns: calculations.totals.totalTravauxCommuns,

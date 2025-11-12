@@ -239,7 +239,7 @@ export default function EnDivisionCorrect() {
           allocatedSurface: 80,
           acquiredDate: new Date(deedDate),
           originalPrice: participantCalc?.purchaseShare || 0,
-          originalNotaryFees: participantCalc?.notaryFees || 0,
+          originalNotaryFees: participantCalc?.droitEnregistrements || 0,
           originalConstructionCost: participantCalc?.casco || 0
         }
       ]
@@ -412,7 +412,7 @@ export default function EnDivisionCorrect() {
 
             <div className="p-3 bg-white rounded-lg border border-gray-200 flex-1">
               <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Frais de Notaire</p>
-              <p className="text-lg font-bold text-gray-900">{formatCurrency(calculations.totals.totalNotaryFees)}</p>
+              <p className="text-lg font-bold text-gray-900">{formatCurrency(calculations.totals.totalDroitEnregistrements)}</p>
               <p className="text-xs text-gray-400 mt-1">taux individuels</p>
             </div>
 
@@ -483,6 +483,7 @@ export default function EnDivisionCorrect() {
               allParticipants={participants}
               calculations={calculations}
               projectParams={projectParams}
+              unitDetails={unitDetails}
               formulaParams={portageFormula}
               isPinned={pinnedParticipant === p.name}
               onPin={() => handlePinParticipant(p.name)}

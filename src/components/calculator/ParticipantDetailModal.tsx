@@ -10,7 +10,7 @@ import { CostBreakdownGrid } from '../shared/CostBreakdownGrid';
 import { FinancingResultCard } from '../shared/FinancingResultCard';
 import { getAvailableLotsForNewcomer, type AvailableLot } from '../../utils/availableLots';
 import type { PortageLotPrice } from '../../utils/portageCalculations';
-import type { Participant, ParticipantCalculation, CalculationResults, ProjectParams, PortageFormulaParams } from '../../utils/calculatorUtils';
+import type { Participant, ParticipantCalculation, CalculationResults, ProjectParams, PortageFormulaParams, UnitDetails } from '../../utils/calculatorUtils';
 import { validateTwoLoanFinancing } from '../../utils/twoLoanValidation';
 
 interface ParticipantDetailModalProps {
@@ -23,6 +23,7 @@ interface ParticipantDetailModalProps {
   allParticipants: Participant[];
   calculations: CalculationResults;
   projectParams: ProjectParams;
+  unitDetails: UnitDetails;
   formulaParams: PortageFormulaParams;
   isPinned: boolean;
   onPin: () => void;
@@ -56,6 +57,7 @@ export default function ParticipantDetailModal({
   allParticipants,
   calculations,
   projectParams,
+  unitDetails,
   formulaParams,
   isPinned,
   onPin,
@@ -137,8 +139,16 @@ export default function ParticipantDetailModal({
                 <p className="text-xl font-bold text-red-700">{formatCurrency(p.loanNeeded)}</p>
               </div>
               <div className="bg-white rounded-lg p-3 border border-gray-200">
-                <p className="text-xs text-gray-500 mb-1">Mensualité</p>
-                <p className="text-xl font-bold text-red-600">{formatCurrency(p.monthlyPayment)}</p>
+                <p className="text-xs text-gray-500 mb-1">
+                  {p.useTwoLoans && p.loan1MonthlyPayment && p.loan2MonthlyPayment ? 'Mensualité combi' : 'Mensualité'}
+                </p>
+                <p className="text-xl font-bold text-red-600">
+                  {formatCurrency(
+                    p.useTwoLoans && p.loan1MonthlyPayment && p.loan2MonthlyPayment
+                      ? p.loan1MonthlyPayment + p.loan2MonthlyPayment
+                      : p.monthlyPayment
+                  )}
+                </p>
               </div>
             </div>
           </div>
@@ -292,7 +302,7 @@ export default function ParticipantDetailModal({
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-600 mb-1">Frais de notaire</label>
+              <label className="block text-xs text-gray-600 mb-1">Frais d'enregistrement</label>
               <div className="flex items-center gap-2 mb-1">
                 <label className="flex items-center gap-1.5 cursor-pointer px-3 py-2 border rounded-lg transition-colors hover:bg-gray-100" style={{
                   borderColor: p.notaryFeesRate === 3 ? '#9ca3af' : '#e5e7eb',
@@ -324,7 +334,7 @@ export default function ParticipantDetailModal({
                 </label>
               </div>
               <div className="text-sm text-gray-600">
-                = {formatCurrency(p.notaryFees)}
+                = {formatCurrency(p.droitEnregistrements)}
               </div>
             </div>
 
@@ -371,7 +381,13 @@ export default function ParticipantDetailModal({
         </div>
 
         {/* Cost Breakdown */}
-        <CostBreakdownGrid participant={participant} participantCalc={p} />
+        <CostBreakdownGrid
+          participant={participant}
+          participantCalc={p}
+          projectParams={projectParams}
+          allParticipants={allParticipants}
+          unitDetails={unitDetails}
+        />
 
         {/* Construction Detail */}
         <ConstructionDetailSection

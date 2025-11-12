@@ -129,7 +129,7 @@ export interface NewcomerJoinsEvent extends BaseEvent {
       renovations: number;
     };
   };
-  notaryFees: number;
+  droitEnregistrements: number;
   financing: {
     capitalApporte: number;
     loanAmount: number;
@@ -149,7 +149,7 @@ export interface HiddenLotRevealedEvent extends BaseEvent {
       amount: number;
     };
   };
-  notaryFees: number;
+  droitEnregistrements: number;
 }
 
 export interface PortageSettlementEvent extends BaseEvent {
@@ -206,7 +206,7 @@ export interface CoproSaleEvent extends BaseEvent {
       };
     };
   };
-  notaryFees: number;
+  droitEnregistrements: number;
   financing: {
     capitalApporte: number;
     loanAmount: number;

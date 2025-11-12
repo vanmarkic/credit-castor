@@ -67,7 +67,7 @@ export function calculateYear1Costs(
 ): YearlyFraisGeneraux {
   const breakdown = getFraisGenerauxBreakdown(participants, projectParams, unitDetails);
 
-  const honorairesYear1 = breakdown.honoraires / 3;
+  const honorairesYear1 = breakdown.honorairesYearly;
   const recurringYear1 = breakdown.recurringYearly.total;
   const oneTimeCosts = breakdown.oneTimeCosts.total;
 
@@ -95,7 +95,7 @@ export function calculateYear2Costs(
 ): YearlyFraisGeneraux {
   const breakdown = getFraisGenerauxBreakdown(participants, projectParams, unitDetails);
 
-  const honorairesYear2 = breakdown.honoraires / 3;
+  const honorairesYear2 = breakdown.honorairesYearly;
   const recurringYear2 = breakdown.recurringYearly.total;
 
   const total = recurringYear2 + honorairesYear2;
@@ -126,7 +126,7 @@ export function calculateYear3Costs(
 ): YearlyFraisGeneraux {
   const breakdown = getFraisGenerauxBreakdown(participants, projectParams, unitDetails);
 
-  const honorairesYear3 = breakdown.honoraires / 3;
+  const honorairesYear3 = breakdown.honorairesYearly;
   const recurringYear3 = breakdown.recurringYearly.total;
 
   const total = recurringYear3 + honorairesYear3;

@@ -65,7 +65,7 @@ describe('scenarioFileIO', () => {
         quantity: 1,
         pricePerM2: 6500,
         purchaseShare: 650000,
-        notaryFees: 81250,
+        droitEnregistrements: 81250,
         casco: 159000,
         parachevements: 50000,
         personalRenovationCost: 209000,
@@ -83,7 +83,7 @@ describe('scenarioFileIO', () => {
     ],
     totals: {
       purchase: 650000,
-      totalNotaryFees: 81250,
+      totalDroitEnregistrements: 81250,
       construction: 209000,
       shared: 10000,
       totalTravauxCommuns: 0,

@@ -82,7 +82,7 @@ export interface ParticipantOperations {
     deedDate: string,
     participantCalc?: {
       purchaseShare: number;
-      notaryFees: number;
+      droitEnregistrements: number;
       casco: number;
     }
   ) => Participant[];
@@ -288,7 +288,7 @@ export function addPortageLot(
   deedDate: string,
   participantCalc?: {
     purchaseShare: number;
-    notaryFees: number;
+    droitEnregistrements: number;
     casco: number;
   }
 ): Participant[] {
@@ -317,7 +317,7 @@ export function addPortageLot(
     allocatedSurface: 0,
     acquiredDate: new Date(deedDate),
     originalPrice: participantCalc?.purchaseShare,
-    originalNotaryFees: participantCalc?.notaryFees,
+    originalNotaryFees: participantCalc?.droitEnregistrements,
     originalConstructionCost: participantCalc?.casco
   });
 

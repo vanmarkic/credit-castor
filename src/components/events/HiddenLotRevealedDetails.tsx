@@ -22,7 +22,7 @@ export function HiddenLotRevealedDetails({ event: e }: HiddenLotRevealedDetailsP
         </div>
         <div>
           <div className="text-xs text-gray-500">Notary Fees</div>
-          <div className="font-medium text-gray-900">{formatCurrency(e.notaryFees)}</div>
+          <div className="font-medium text-gray-900">{formatCurrency(e.droitEnregistrements)}</div>
         </div>
         <div>
           <div className="text-xs text-gray-500">Buyer Surface</div>

@@ -240,7 +240,7 @@ describe('useParticipantOperations', () => {
       const participants = [baseParticipant];
       const participantCalc = {
         purchaseShare: 150000,
-        notaryFees: 18750,
+        droitEnregistrements: 18750,
         casco: 30000
       };
       const result = addPortageLot(participants, 0, '2023-02-01', participantCalc);

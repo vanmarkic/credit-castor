@@ -185,7 +185,7 @@ function applyNewcomerJoins(
       type: 'NOTARY_FEES',
       from: event.buyer.name,
       to: 'NOTARY',
-      amount: event.notaryFees,
+      amount: event.droitEnregistrements,
       date: event.date
     }
   ];
@@ -446,7 +446,7 @@ function applyCoproSale(
     type: 'NOTARY_FEES',
     from: event.buyer.name,
     to: 'NOTARY',
-    amount: event.notaryFees,
+    amount: event.droitEnregistrements,
     date: event.date
   });
 
@@ -697,7 +697,7 @@ function calculateParticipantCashFlow(
   };
 
   // Calculate cumulative position
-  let totalInvested = participantData.capitalApporte + participantData.notaryFees;
+  let totalInvested = participantData.capitalApporte + participantData.droitEnregistrements;
   let totalReceived = 0;
 
   // Add cumulative from previous phases

@@ -105,7 +105,7 @@ export interface UnitDetails {
 export interface ParticipantCalculation extends Participant {
   pricePerM2: number;
   purchaseShare: number;
-  notaryFees: number;
+  droitEnregistrements: number; // Registration fees (percentage-based on purchase share)
   fraisNotaireFixe: number; // Fixed notary fees: 1000€ per lot (quantity)
   casco: number;
   parachevements: number;
@@ -133,7 +133,7 @@ export interface ParticipantCalculation extends Participant {
 
 export interface CalculationTotals {
   purchase: number;
-  totalNotaryFees: number;
+  totalDroitEnregistrements: number; // Total registration fees (formerly totalNotaryFees)
   construction: number;
   shared: number;
   totalTravauxCommuns: number;
@@ -250,7 +250,8 @@ export function calculateTravauxCommunsPerUnit(
 
 export interface FraisGenerauxBreakdown {
   totalCasco: number;
-  honoraires: number;
+  honorairesYearly: number;
+  honorairesTotal3Years: number;
   recurringYearly: {
     precompteImmobilier: number;
     comptable: number;
@@ -279,32 +280,28 @@ export function getFraisGenerauxBreakdown(
   projectParams: ProjectParams,
   unitDetails: UnitDetails
 ): FraisGenerauxBreakdown {
-  // Calculate total CASCO costs (not including parachevements or common works)
-  let totalCasco = 0;
+  // Calculate total CASCO costs HORS TVA (not including parachevements or common works)
+  // Honoraires are calculated on CASCO HORS TVA
+  let totalCascoHorsTva = 0;
 
   for (const participant of participants) {
     // Skip if legacy fields not present (using new lotsOwned instead)
     if (!participant.unitId || !participant.surface || !participant.quantity) continue;
 
-    const { casco } = calculateCascoAndParachevements(
-      participant.unitId,
-      participant.surface,
-      unitDetails,
-      projectParams.globalCascoPerM2,
-      participant.parachevementsPerM2,
-      participant.cascoSqm,
-      participant.parachevementsSqm,
-      projectParams.cascoTvaRate || 0
-    );
-    totalCasco += casco * participant.quantity;
+    // Calculate CASCO without TVA for honoraires calculation
+    const actualCascoSqm = participant.cascoSqm !== undefined ? participant.cascoSqm : participant.surface;
+    const cascoHorsTva = actualCascoSqm * projectParams.globalCascoPerM2;
+    totalCascoHorsTva += cascoHorsTva * participant.quantity;
   }
 
-  // Add common building works CASCO
-  totalCasco += calculateTotalTravauxCommuns(projectParams);
+  // Add common building works CASCO (without TVA)
+  totalCascoHorsTva += calculateTotalTravauxCommuns(projectParams);
 
-  // Calculate Honoraires (professional fees) = Total CASCO × 15% × 30%
+  // Calculate Honoraires (professional fees) = Total CASCO HORS TVA × 15% × 30%
   // This represents architects, stability experts, study offices, PEB, etc.
-  const honoraires = totalCasco * 0.15 * 0.30;
+  // This is the TOTAL amount to be paid over 3 years (divided into 3 annual payments)
+  const honorairesTotal3Years = totalCascoHorsTva * 0.15 * 0.30;
+  const honorairesYearly = honorairesTotal3Years / 3;
 
   // Recurring yearly costs
   const precompteImmobilier = 388.38;
@@ -317,18 +314,21 @@ export function getFraisGenerauxBreakdown(
   const recurringYearly = precompteImmobilier + comptable + podioAbonnement +
                           assuranceBatiment + fraisReservation + imprevus;
 
+  // Recurring costs over 3 years (including honoraires paid annually)
+  const recurringTotal3Years = recurringYearly * 3;
+
   // One-time costs (year 1 only)
   const fraisDossierCredit = 500;
   const fraisGestionCredit = 45;
   const fraisNotaireBasePartagee = 5000; // Shared notary fee base (total, will be divided among participants later)
 
   const oneTimeTotal = fraisDossierCredit + fraisGestionCredit + fraisNotaireBasePartagee;
-  const recurringTotal3Years = recurringYearly * 3;
-  const total = honoraires + recurringTotal3Years + oneTimeTotal;
+  const total = honorairesTotal3Years + recurringTotal3Years + oneTimeTotal;
 
   return {
-    totalCasco,
-    honoraires,
+    totalCasco: totalCascoHorsTva,
+    honorairesYearly,
+    honorairesTotal3Years,
     recurringYearly: {
       precompteImmobilier,
       comptable,
@@ -377,9 +377,9 @@ export function calculatePurchaseShare(
 }
 
 /**
- * Calculate notary fees
+ * Calculate droit d'enregistrements (registration fees)
  */
-export function calculateNotaryFees(
+export function calculateDroitEnregistrements(
   purchaseShare: number,
   notaryFeesRate: number
 ): number {
@@ -539,12 +539,12 @@ export function calculateFinancingRatio(
 
 /**
  * Calculate two-loan financing breakdown
- * Loan 1: purchaseShare + notaryFees + sharedCosts + (personalRenovationCost - loan2RenovationAmount) - capitalForLoan1
+ * Loan 1: purchaseShare + droitEnregistrements + fraisNotaireFixe + sharedCosts + (personalRenovationCost - loan2RenovationAmount) - capitalForLoan1
  * Loan 2: loan2RenovationAmount - capitalForLoan2
  */
 export function calculateTwoLoanFinancing(
   purchaseShare: number,
-  notaryFees: number,
+  droitEnregistrements: number,
   fraisNotaireFixe: number,
   sharedCosts: number,
   personalRenovationCost: number,
@@ -566,7 +566,7 @@ export function calculateTwoLoanFinancing(
 
   // Loan 1: Everything except the renovation going to loan 2
   const loan1RenovationPortion = personalRenovationCost - loan2RenovationAmount;
-  const loan1Amount = Math.max(0, purchaseShare + notaryFees + fraisNotaireFixe + sharedCosts + loan1RenovationPortion - capitalForLoan1);
+  const loan1Amount = Math.max(0, purchaseShare + droitEnregistrements + fraisNotaireFixe + sharedCosts + loan1RenovationPortion - capitalForLoan1);
 
   // Loan 2: Only the specified renovation amount
   const loan2Amount = Math.max(0, loan2RenovationAmount - capitalForLoan2);
@@ -659,7 +659,7 @@ export function calculateAll(
     }
 
     const purchaseShare = calculatePurchaseShare(surface, pricePerM2);
-    const notaryFees = calculateNotaryFees(purchaseShare, p.notaryFeesRate);
+    const droitEnregistrements = calculateDroitEnregistrements(purchaseShare, p.notaryFeesRate);
     const fraisNotaireFixe = calculateFraisNotaireFixe(quantity);
 
     // Since surface is TOTAL, casco and parachevements are already for total surface
@@ -672,7 +672,7 @@ export function calculateAll(
     const constructionCost = personalRenovationCost + travauxCommunsTotal;
     const constructionCostPerUnit = constructionCost / quantity;
 
-    const totalCost = purchaseShare + notaryFees + fraisNotaireFixe + constructionCost + sharedPerPerson;
+    const totalCost = purchaseShare + droitEnregistrements + fraisNotaireFixe + constructionCost + sharedPerPerson;
 
     // Two-loan financing or single loan
     let loanNeeded: number;
@@ -691,7 +691,7 @@ export function calculateAll(
       // Use two-loan financing
       const twoLoanCalc = calculateTwoLoanFinancing(
         purchaseShare,
-        notaryFees,
+        droitEnregistrements,
         fraisNotaireFixe,
         sharedPerPerson,
         personalRenovationCost,
@@ -706,8 +706,8 @@ export function calculateAll(
       loan2MonthlyPayment = twoLoanCalc.loan2MonthlyPayment;
       loan2Interest = twoLoanCalc.loan2Interest;
 
-      // For backward compatibility, loanNeeded = loan1Amount
-      loanNeeded = loan1Amount;
+      // Total loan needed is the sum of both loans
+      loanNeeded = loan1Amount + loan2Amount;
       monthlyPayment = loan1MonthlyPayment;
       totalRepayment = (loan1MonthlyPayment * p.durationYears * 12) + (loan2MonthlyPayment * loan2DurationYears * 12);
       totalInterest = twoLoanCalc.totalInterest;
@@ -726,7 +726,7 @@ export function calculateAll(
       quantity,
       pricePerM2,
       purchaseShare,
-      notaryFees,
+      droitEnregistrements,
       fraisNotaireFixe,
       casco,
       parachevements,
@@ -754,13 +754,13 @@ export function calculateAll(
 
   const totals: CalculationTotals = {
     purchase: projectParams.totalPurchase,
-    totalNotaryFees: participantBreakdown.reduce((sum, p) => sum + p.notaryFees, 0),
+    totalDroitEnregistrements: participantBreakdown.reduce((sum, p) => sum + p.droitEnregistrements, 0),
     construction: participantBreakdown.reduce((sum, p) => sum + p.constructionCost, 0),
     shared: sharedCosts,
     totalTravauxCommuns: calculateTotalTravauxCommuns(projectParams),
     travauxCommunsPerUnit,
     total: projectParams.totalPurchase +
-           participantBreakdown.reduce((sum, p) => sum + p.notaryFees, 0) +
+           participantBreakdown.reduce((sum, p) => sum + p.droitEnregistrements, 0) +
            participantBreakdown.reduce((sum, p) => sum + p.constructionCost, 0) +
            sharedCosts,
     capitalTotal: participants.reduce((sum, p) => sum + p.capitalApporte, 0),

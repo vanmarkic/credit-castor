@@ -80,7 +80,7 @@ describe('ParticipantDetailModal - Reactive Portage Price Recalculation', () => 
         entryDate: new Date(deedDate),
         pricePerM2: 1000,
         purchaseShare: 100000,
-        notaryFees: 12500,
+        droitEnregistrements: 12500,
         casco: 50000,
         parachevements: 30000,
         personalRenovationCost: 80000,
@@ -108,7 +108,7 @@ describe('ParticipantDetailModal - Reactive Portage Price Recalculation', () => 
         entryDate: new Date('2027-06-01'),
         pricePerM2: 1667,
         purchaseShare: 256563, // Initial price for 16 months
-        notaryFees: 32070,
+        droitEnregistrements: 32070,
         casco: 45000,
         parachevements: 27000,
         personalRenovationCost: 72000,
@@ -131,7 +131,7 @@ describe('ParticipantDetailModal - Reactive Portage Price Recalculation', () => 
     ],
     totals: {
       purchase: 356563,
-      totalNotaryFees: 44570,
+      totalDroitEnregistrements: 44570,
       construction: 152000,
       shared: 40000,
       totalTravauxCommuns: 0,

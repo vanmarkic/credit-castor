@@ -26,7 +26,7 @@ const mockParticipant: ParticipantCalculation = {
   quantity: 1,
   pricePerM2: 1500,
   purchaseShare: 150000,
-  notaryFees: 18750,
+  droitEnregistrements: 18750,
   fraisNotaireFixe: 1000, // 1 lot * 1000€
   casco: 30000,
   parachevements: 50000,
@@ -45,7 +45,7 @@ const mockParticipant: ParticipantCalculation = {
 
 const mockTotals: CalculationTotals = {
   purchase: 450000,
-  totalNotaryFees: 56250,
+  totalDroitEnregistrements: 56250,
   construction: 360000,
   shared: 75000,
   totalTravauxCommuns: 120000,

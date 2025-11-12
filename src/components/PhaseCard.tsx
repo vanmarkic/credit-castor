@@ -211,7 +211,7 @@ export default function PhaseCard({ phase }: PhaseCardProps) {
               <div className="bg-purple-50 rounded-lg p-3">
                 <div className="text-xs text-purple-600 font-medium mb-1">Notary Fees</div>
                 <div className="text-lg font-bold text-purple-900">
-                  {formatCurrency(phase.snapshot.totals.totalNotaryFees)}
+                  {formatCurrency(phase.snapshot.totals.totalDroitEnregistrements)}
                 </div>
               </div>
 

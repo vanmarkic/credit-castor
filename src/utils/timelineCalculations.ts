@@ -58,6 +58,10 @@ export interface TimelineSnapshot {
   colorZone: number // Index for color-coding related events
   transaction?: TimelineTransaction
   showFinancingDetails: boolean // Hide for redistribution cards
+  // Two-loan financing
+  useTwoLoans?: boolean
+  loan1MonthlyPayment?: number
+  loan2MonthlyPayment?: number
 }
 
 /**
@@ -387,7 +391,11 @@ export function generateParticipantSnapshots(
         isT0: dateIdx === 0 && p.isFounder === true,
         colorZone: dateIdx, // Each date gets its own color zone
         transaction,
-        showFinancingDetails
+        showFinancingDetails,
+        // Two-loan financing
+        useTwoLoans: breakdown.useTwoLoans,
+        loan1MonthlyPayment: breakdown.loan1MonthlyPayment,
+        loan2MonthlyPayment: breakdown.loan2MonthlyPayment
       }
 
       if (!result.has(p.name)) {

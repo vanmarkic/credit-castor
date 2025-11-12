@@ -64,6 +64,9 @@ export function TwoLoanFinancingSection({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Montant rénovation dans prêt 2 (€)
             </label>
+            <p className="text-xs text-gray-600 mb-2">
+              Répartition des coûts de rénovation entre les deux prêts. Le solde sera financé dans le prêt 1.
+            </p>
             <input
               type="number"
               value={participant.loan2RenovationAmount || 0}
@@ -74,9 +77,9 @@ export function TwoLoanFinancingSection({
               min="0"
               step="1000"
             />
-            <p className="text-xs text-gray-600 mt-1">
-              Rénovation totale: €{personalRenovationCost?.toLocaleString() || '0'}
-            </p>
+            <div className="text-xs text-gray-600 mt-1">
+              Rénovation totale: <span className="font-semibold">€{personalRenovationCost?.toLocaleString() || '0'}</span> | Dans prêt 2: <span className="font-semibold">€{(participant.loan2RenovationAmount || 0).toLocaleString()}</span> | Dans prêt 1: <span className="font-semibold">€{(personalRenovationCost - (participant.loan2RenovationAmount || 0)).toLocaleString()}</span>
+            </div>
             {validationErrors.renovationAmount && (
               <div className="text-red-600 text-xs mt-1 p-2 bg-red-50 rounded">
                 ⚠️ {validationErrors.renovationAmount}

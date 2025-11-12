@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { formatCurrency } from '../../utils/formatting';
 import { ExpenseCategorySection } from '../ExpenseCategorySection';
 import {
@@ -39,6 +40,9 @@ export function ExpenseCategoriesManager({
   participants,
   unitDetails
 }: ExpenseCategoriesManagerProps) {
+  // Collapsible state for Frais Généraux section
+  const [isFraisGenerauxExpanded, setIsFraisGenerauxExpanded] = useState(true);
+
   // Permission checks for collective fields
   const { canEdit: canEditGlobalCasco } = useProjectParamPermissions('globalCascoPerM2');
   const { canEdit: canEditCascoTva } = useProjectParamPermissions('cascoTvaRate');
@@ -116,15 +120,34 @@ export function ExpenseCategoriesManager({
 
       {/* Frais Généraux section */}
       <div className="border border-gray-200 rounded-lg overflow-hidden">
-        <div className="flex justify-between items-center p-3 bg-gray-50">
-          <h4 className="text-sm font-semibold text-gray-800 uppercase tracking-wide">
-            Frais Généraux étalés sur 3 ans
-          </h4>
+        <button
+          onClick={() => setIsFraisGenerauxExpanded(!isFraisGenerauxExpanded)}
+          className="flex justify-between items-center p-3 bg-gray-50 w-full hover:bg-gray-100 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <svg
+              className={`w-4 h-4 text-gray-600 transition-transform ${isFraisGenerauxExpanded ? 'rotate-90' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            <div>
+              <h4 className="text-sm font-semibold text-gray-800 uppercase tracking-wide">
+                Frais Généraux (3 ans)
+              </h4>
+              <p className="text-xs text-gray-500 italic mt-0.5">
+                Répartition : par personne (égale)
+              </p>
+            </div>
+          </div>
           <span className="text-sm font-bold text-purple-700">
             {formatCurrency(sharedCosts - calculateExpenseCategoriesTotal(expenseCategories))}
           </span>
-        </div>
-        <div className="p-3 bg-white space-y-2">
+        </button>
+        {isFraisGenerauxExpanded && (
+          <div className="p-3 bg-white space-y-2">
           {/* Global CASCO rate input */}
           <div className="flex items-center gap-2">
             <label className="text-xs text-gray-600 whitespace-nowrap">
@@ -177,11 +200,11 @@ export function ExpenseCategoriesManager({
             {/* Honoraires */}
             <div className="bg-blue-50 p-2 rounded">
               <div className="flex justify-between items-center">
-                <span className="text-xs font-medium text-gray-700">Honoraires (15% × 30% CASCO)</span>
-                <span className="text-xs font-bold text-blue-700">{formatCurrency(fraisGenerauxBreakdown.honoraires)}</span>
+                <span className="text-xs font-medium text-gray-700">Honoraires (15% × 30% CASCO hors TVA sur 3 ans)</span>
+                <span className="text-xs font-bold text-blue-700">{formatCurrency(fraisGenerauxBreakdown.honorairesTotal3Years)}</span>
               </div>
               <p className="text-xs text-gray-500 mt-0.5">
-                Base CASCO: {formatCurrency(fraisGenerauxBreakdown.totalCasco)}
+                Base CASCO hors TVA: {formatCurrency(fraisGenerauxBreakdown.totalCasco)} | {formatCurrency(fraisGenerauxBreakdown.honorairesYearly)}/an
               </p>
             </div>
 
@@ -250,6 +273,7 @@ export function ExpenseCategoriesManager({
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   );

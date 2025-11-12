@@ -12,7 +12,7 @@ import type { PortageLotPrice } from './portageCalculations';
 export function getTotalCostFormula(p: ParticipantCalculation): string[] {
   return [
     "Coût total pour ce participant",
-    `Achat €${p.purchaseShare.toLocaleString()} + Droit enreg. €${p.notaryFees.toLocaleString()} + Frais notaire €${p.fraisNotaireFixe.toLocaleString()} + Construction €${p.constructionCost.toLocaleString()} + Commun €${p.sharedCosts.toLocaleString()}`
+    `Achat €${p.purchaseShare.toLocaleString()} + Droit enreg. €${p.droitEnregistrements.toLocaleString()} + Frais notaire €${p.fraisNotaireFixe.toLocaleString()} + Construction €${p.constructionCost.toLocaleString()} + Commun €${p.sharedCosts.toLocaleString()}`
   ];
 }
 
@@ -32,7 +32,7 @@ export function getPurchaseShareFormula(p: ParticipantCalculation, pricePerM2: n
 export function getNotaryFeesFormula(p: ParticipantCalculation): string[] {
   return [
     "Droit d'enregistrements belge pour le transfert",
-    `€${p.purchaseShare.toLocaleString()} achat × ${p.notaryFeesRate}% taux = €${p.notaryFees.toLocaleString()}`
+    `€${p.purchaseShare.toLocaleString()} achat × ${p.notaryFeesRate}% taux = €${p.droitEnregistrements.toLocaleString()}`
   ];
 }
 
