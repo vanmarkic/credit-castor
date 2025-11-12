@@ -40,7 +40,8 @@ export interface ScenarioData {
       quantity?: number;
       pricePerM2: number;
       purchaseShare: number;
-      notaryFees: number;
+      droitEnregistrements: number;
+      fraisNotaireFixe: number;
       casco: number;
       parachevements: number;
       personalRenovationCost: number;
@@ -65,7 +66,8 @@ export interface ScenarioData {
     }>;
     totals: {
       purchase: number;
-      totalNotaryFees: number;
+      totalDroitEnregistrements: number;
+      totalFraisNotaireFixe: number;
       construction: number;
       shared: number;
       totalTravauxCommuns: number;
