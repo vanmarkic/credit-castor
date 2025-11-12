@@ -24,5 +24,3 @@ yarn-debug.log*
 
 # Git worktrees
 .worktrees/
-
-.env
