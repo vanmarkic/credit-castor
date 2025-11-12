@@ -2,8 +2,15 @@ import {
   doc,
   getDoc,
   setDoc,
+  updateDoc,
   onSnapshot,
   serverTimestamp,
+  collection,
+  getDocs,
+  deleteDoc,
+  writeBatch,
+  query,
+  orderBy,
   type Unsubscribe,
 } from 'firebase/firestore';
 import { getDb } from './firebase';
@@ -28,6 +35,13 @@ export interface FirestoreScenarioData {
   lastModifiedAt: string;
   version: number;
   serverTimestamp?: any; // Firestore serverTimestamp
+  // Field-level versioning for granular updates
+  fieldVersions?: {
+    projectParams?: number;
+    deedDate?: number;
+    portageFormula?: number;
+    participants?: number;
+  };
 }
 
 /**
@@ -47,6 +61,78 @@ export interface ConflictDetectionResult {
   localVersion: number;
   remoteVersion: number;
   message?: string;
+}
+
+/**
+ * Trackable field types for dirty tracking
+ */
+export type TrackableField =
+  | 'projectParams'
+  | 'deedDate'
+  | 'portageFormula'
+  | 'participants';
+
+/**
+ * Change tracking for field-level updates
+ */
+export interface FieldChangeTracker {
+  changedFields: Set<TrackableField>;
+  lastSaveTimestamp: number;
+}
+
+/**
+ * Field-specific update payload
+ */
+export interface FieldUpdate {
+  field: TrackableField;
+  value: any;
+  userEmail: string;
+  timestamp: string;
+}
+
+/**
+ * Result of a field-level update operation
+ */
+export interface FieldUpdateResult {
+  success: boolean;
+  error?: string;
+  updatedFields: TrackableField[];
+}
+
+/**
+ * Participant document structure in subcollection
+ *
+ * Path: projects/{projectId}/participants/{participantId}
+ */
+export interface FirestoreParticipantData extends Participant {
+  // Metadata
+  lastModifiedBy: string;
+  lastModifiedAt: string;
+  version: number;
+  serverTimestamp?: any;
+  // Order/index for stable sorting
+  displayOrder: number;
+}
+
+/**
+ * Main project document (without participants array)
+ */
+export interface FirestoreProjectData {
+  projectParams: ProjectParams;
+  deedDate: string;
+  portageFormula: PortageFormulaParams;
+  // Metadata
+  lastModifiedBy: string;
+  lastModifiedAt: string;
+  version: number;
+  serverTimestamp?: any;
+  fieldVersions?: {
+    projectParams?: number;
+    deedDate?: number;
+    portageFormula?: number;
+  };
+  // Migration flag
+  participantsInSubcollection?: boolean;
 }
 
 /**
@@ -90,6 +176,92 @@ export async function saveScenarioToFirestore(
     return {
       success: false,
       error: 'Erreur lors de la sauvegarde sur Firestore.',
+    };
+  }
+}
+
+/**
+ * Update specific fields in Firestore (granular updates)
+ *
+ * Uses updateDoc() instead of setDoc() to only modify changed fields.
+ * Falls back to full save if document doesn't exist.
+ *
+ * @param fields - Map of field names to values
+ * @param userEmail - Email of user making changes
+ * @param baseVersion - Current version number for conflict detection
+ * @returns Success boolean, updated fields, and error if failed
+ */
+export async function updateScenarioFields(
+  fields: Partial<Pick<FirestoreScenarioData, 'projectParams' | 'deedDate' | 'portageFormula'>>,
+  userEmail: string,
+  baseVersion: number
+): Promise<FieldUpdateResult> {
+  try {
+    const db = getDb();
+    if (!db) {
+      return {
+        success: false,
+        error: 'Firebase non configuré.',
+        updatedFields: [],
+      };
+    }
+
+    const projectRef = doc(db, 'projects', PROJECT_DOC_ID);
+
+    // Check if document exists
+    const docSnapshot = await getDoc(projectRef);
+    if (!docSnapshot.exists()) {
+      // Document doesn't exist, can't use updateDoc
+      return {
+        success: false,
+        error: 'Document does not exist. Use saveScenarioToFirestore for initial save.',
+        updatedFields: [],
+      };
+    }
+
+    // Check for conflicts
+    const currentData = docSnapshot.data() as FirestoreScenarioData;
+    if (currentData.version > baseVersion) {
+      return {
+        success: false,
+        error: `Version conflict: local=${baseVersion}, remote=${currentData.version}`,
+        updatedFields: [],
+      };
+    }
+
+    // Build update payload
+    const updatePayload: any = {
+      ...fields,
+      lastModifiedBy: userEmail,
+      lastModifiedAt: new Date().toISOString(),
+      version: baseVersion + 1,
+      serverTimestamp: serverTimestamp(),
+    };
+
+    // Update field-level versions
+    const fieldVersions = currentData.fieldVersions || {};
+    const updatedFields = Object.keys(fields) as TrackableField[];
+
+    updatedFields.forEach(field => {
+      const currentFieldVersion = fieldVersions[field] || 0;
+      fieldVersions[field] = currentFieldVersion + 1;
+    });
+
+    updatePayload.fieldVersions = fieldVersions;
+
+    // Use updateDoc for partial update
+    await updateDoc(projectRef, updatePayload);
+
+    return {
+      success: true,
+      updatedFields,
+    };
+  } catch (error) {
+    console.error('Error updating Firestore fields:', error);
+    return {
+      success: false,
+      error: 'Erreur lors de la mise à jour des champs.',
+      updatedFields: [],
     };
   }
 }
@@ -350,4 +522,326 @@ export function mergeScenarioData(
  */
 export function isFirestoreSyncAvailable(): boolean {
   return getDb() !== null;
+}
+
+/**
+ * Save participant to subcollection
+ *
+ * @param participant - Participant data
+ * @param participantId - Unique ID for participant (use index or generate)
+ * @param projectId - Project document ID
+ * @param userEmail - User making the change
+ * @returns Success result
+ */
+export async function saveParticipantToSubcollection(
+  participant: Participant,
+  participantId: string,
+  projectId: string,
+  userEmail: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const db = getDb();
+    if (!db) {
+      return {
+        success: false,
+        error: 'Firebase non configuré.',
+      };
+    }
+
+    const participantRef = doc(db, 'projects', projectId, 'participants', participantId);
+
+    // Get current version if exists
+    const existingDoc = await getDoc(participantRef);
+    const currentVersion = existingDoc.exists()
+      ? (existingDoc.data() as FirestoreParticipantData).version
+      : 0;
+
+    const participantData: FirestoreParticipantData = {
+      ...participant,
+      lastModifiedBy: userEmail,
+      lastModifiedAt: new Date().toISOString(),
+      version: currentVersion + 1,
+      serverTimestamp: serverTimestamp(),
+      displayOrder: parseInt(participantId), // Maintain order
+    };
+
+    await setDoc(participantRef, participantData);
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error saving participant to subcollection:', error);
+    return {
+      success: false,
+      error: 'Erreur lors de la sauvegarde du participant.',
+    };
+  }
+}
+
+/**
+ * Load all participants from subcollection
+ *
+ * @param projectId - Project document ID
+ * @returns List of participants ordered by displayOrder
+ */
+export async function loadParticipantsFromSubcollection(
+  projectId: string
+): Promise<{ success: boolean; participants?: Participant[]; error?: string }> {
+  try {
+    const db = getDb();
+    if (!db) {
+      return {
+        success: false,
+        error: 'Firebase non configuré.',
+      };
+    }
+
+    const participantsRef = collection(db, 'projects', projectId, 'participants');
+    const q = query(participantsRef, orderBy('displayOrder', 'asc'));
+    const querySnapshot = await getDocs(q);
+
+    const participants: Participant[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data() as FirestoreParticipantData;
+
+      // Convert back to Participant type (exclude metadata)
+      const { lastModifiedBy, lastModifiedAt, version, serverTimestamp: _, displayOrder, ...participant } = data;
+
+      participants.push(participant as Participant);
+    });
+
+    return {
+      success: true,
+      participants,
+    };
+  } catch (error) {
+    console.error('Error loading participants from subcollection:', error);
+    return {
+      success: false,
+      error: 'Erreur lors du chargement des participants.',
+    };
+  }
+}
+
+/**
+ * Delete participant from subcollection
+ *
+ * @param participantId - Participant document ID
+ * @param projectId - Project document ID
+ * @returns Success result
+ */
+export async function deleteParticipantFromSubcollection(
+  participantId: string,
+  projectId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const db = getDb();
+    if (!db) {
+      return {
+        success: false,
+        error: 'Firebase non configuré.',
+      };
+    }
+
+    const participantRef = doc(db, 'projects', projectId, 'participants', participantId);
+    await deleteDoc(participantRef);
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting participant from subcollection:', error);
+    return {
+      success: false,
+      error: 'Erreur lors de la suppression du participant.',
+    };
+  }
+}
+
+/**
+ * Migrate participants from array to subcollection
+ *
+ * Atomically moves participants from main document to subcollection.
+ * Uses batched writes for atomicity.
+ *
+ * @param projectId - Project document ID
+ * @param userEmail - User performing migration
+ * @returns Success result
+ */
+export async function migrateParticipantsToSubcollection(
+  projectId: string,
+  userEmail: string
+): Promise<{ success: boolean; error?: string; migratedCount?: number }> {
+  try {
+    const db = getDb();
+    if (!db) {
+      return {
+        success: false,
+        error: 'Firebase non configuré.',
+      };
+    }
+
+    const projectRef = doc(db, 'projects', projectId);
+    const projectDoc = await getDoc(projectRef);
+
+    if (!projectDoc.exists()) {
+      return {
+        success: false,
+        error: 'Project document does not exist.',
+      };
+    }
+
+    const projectData = projectDoc.data() as FirestoreScenarioData;
+
+    // Check if already migrated
+    if ((projectData as any).participantsInSubcollection) {
+      return {
+        success: true,
+        migratedCount: 0,
+        error: 'Already migrated.',
+      };
+    }
+
+    const participants = projectData.participants || [];
+    const batch = writeBatch(db);
+
+    // Save each participant to subcollection
+    participants.forEach((participant, index) => {
+      const participantRef = doc(db, 'projects', projectId, 'participants', index.toString());
+      const participantData: FirestoreParticipantData = {
+        ...participant,
+        lastModifiedBy: userEmail,
+        lastModifiedAt: new Date().toISOString(),
+        version: 1,
+        displayOrder: index,
+        serverTimestamp: serverTimestamp(),
+      };
+      batch.set(participantRef, participantData);
+    });
+
+    // Update main document to remove participants array and set migration flag
+    const updatedProjectData: Partial<FirestoreProjectData> = {
+      participantsInSubcollection: true,
+      lastModifiedBy: userEmail,
+      lastModifiedAt: new Date().toISOString(),
+      serverTimestamp: serverTimestamp(),
+    };
+
+    batch.update(projectRef, {
+      ...updatedProjectData,
+      participants: [], // Clear array (keep for backward compat, but empty)
+    });
+
+    // Commit batch
+    await batch.commit();
+
+    console.log(`✅ Migrated ${participants.length} participants to subcollection`);
+
+    return {
+      success: true,
+      migratedCount: participants.length,
+    };
+  } catch (error) {
+    console.error('Error migrating participants to subcollection:', error);
+    return {
+      success: false,
+      error: 'Erreur lors de la migration des participants.',
+    };
+  }
+}
+
+/**
+ * Subscribe to real-time changes for a single participant
+ *
+ * @param participantId - Participant document ID
+ * @param projectId - Project document ID
+ * @param callback - Called when participant changes
+ * @returns Unsubscribe function
+ */
+export function subscribeToParticipantChanges(
+  participantId: string,
+  projectId: string,
+  callback: (participant: Participant | null, source: 'local' | 'remote') => void
+): Unsubscribe | null {
+  try {
+    const db = getDb();
+    if (!db) {
+      console.warn('Firebase not configured');
+      return null;
+    }
+
+    const participantRef = doc(db, 'projects', projectId, 'participants', participantId);
+
+    const unsubscribe = onSnapshot(
+      participantRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data() as FirestoreParticipantData;
+          const source = snapshot.metadata.hasPendingWrites ? 'local' : 'remote';
+
+          // Convert to Participant (exclude metadata)
+          const { lastModifiedBy, lastModifiedAt, version, serverTimestamp: _, displayOrder, ...participant } = data;
+
+          callback(participant as Participant, source);
+        } else {
+          callback(null, 'remote'); // Participant deleted
+        }
+      },
+      (error) => {
+        console.error('Error in participant snapshot listener:', error);
+      }
+    );
+
+    return unsubscribe;
+  } catch (error) {
+    console.error('Error subscribing to participant changes:', error);
+    return null;
+  }
+}
+
+/**
+ * Subscribe to all participants in subcollection
+ *
+ * @param projectId - Project document ID
+ * @param callback - Called when any participant changes
+ * @returns Unsubscribe function
+ */
+export function subscribeToAllParticipants(
+  projectId: string,
+  callback: (participants: Participant[], source: 'local' | 'remote') => void
+): Unsubscribe | null {
+  try {
+    const db = getDb();
+    if (!db) {
+      console.warn('Firebase not configured');
+      return null;
+    }
+
+    const participantsRef = collection(db, 'projects', projectId, 'participants');
+    const q = query(participantsRef, orderBy('displayOrder', 'asc'));
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const participants: Participant[] = [];
+        const source = snapshot.metadata.hasPendingWrites ? 'local' : 'remote';
+
+        snapshot.forEach((doc) => {
+          const data = doc.data() as FirestoreParticipantData;
+
+          // Convert to Participant (exclude metadata)
+          const { lastModifiedBy, lastModifiedAt, version, serverTimestamp: _, displayOrder, ...participant } = data;
+
+          participants.push(participant as Participant);
+        });
+
+        callback(participants, source);
+      },
+      (error) => {
+        console.error('Error in participants collection listener:', error);
+      }
+    );
+
+    return unsubscribe;
+  } catch (error) {
+    console.error('Error subscribing to participants collection:', error);
+    return null;
+  }
 }

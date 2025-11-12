@@ -62,6 +62,11 @@ export interface ExpenseCategories {
   premierTravaux: ExpenseLineItem[];
 }
 
+export interface TravauxCommuns {
+  enabled: boolean; // Toggle for entire section
+  items: ExpenseLineItem[]; // Customizable line items
+}
+
 export interface ProjectParams {
   totalPurchase: number;
   mesuresConservatoires: number;
@@ -76,6 +81,7 @@ export interface ProjectParams {
   globalCascoPerM2: number;
   cascoTvaRate?: number; // TVA percentage for CASCO costs (e.g., 6 or 21)
   expenseCategories?: ExpenseCategories;
+  travauxCommuns?: TravauxCommuns; // Customizable common works with equal cost distribution
 }
 
 // Scenario interface removed - no longer using percentage-based adjustments
@@ -230,11 +236,19 @@ export function calculateSharedCosts(
 export function calculateTotalTravauxCommuns(
   projectParams: ProjectParams
 ): number {
-  return (
+  // Calculate base travaux communs from fixed fields
+  const baseTotal = (
     projectParams.batimentFondationConservatoire +
     projectParams.batimentFondationComplete +
     projectParams.batimentCoproConservatoire
   );
+
+  // Add customizable travaux communs if enabled
+  const customTotal = projectParams.travauxCommuns?.enabled
+    ? projectParams.travauxCommuns.items.reduce((sum, item) => sum + item.amount, 0)
+    : 0;
+
+  return baseTotal + customTotal;
 }
 
 /**

@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { formatCurrency } from '../../utils/formatting';
 import { ExpenseCategorySection } from '../ExpenseCategorySection';
+import { Plus, X } from 'lucide-react';
 import {
   calculateExpenseCategoriesTotal,
   getFraisGenerauxBreakdown,
+  calculateTotalTravauxCommuns,
   type ExpenseCategories,
   type ProjectParams,
   type Participant,
@@ -40,7 +42,8 @@ export function ExpenseCategoriesManager({
   participants,
   unitDetails
 }: ExpenseCategoriesManagerProps) {
-  // Collapsible state for Frais Généraux section
+  // Collapsible state for sections
+  const [isTravauxCommunsExpanded, setIsTravauxCommunsExpanded] = useState(false);
   const [isFraisGenerauxExpanded, setIsFraisGenerauxExpanded] = useState(true);
 
   // Permission checks for collective fields
@@ -50,6 +53,17 @@ export function ExpenseCategoriesManager({
 
   // Calculate detailed breakdown
   const fraisGenerauxBreakdown = getFraisGenerauxBreakdown(participants, projectParams, unitDetails);
+
+  // Initialize travauxCommuns with default values if undefined
+  const travauxCommuns = projectParams.travauxCommuns ?? {
+    enabled: false,
+    items: [{ label: 'Rénovation complète', amount: 270000 }]
+  };
+
+  // Calculate custom travaux communs total (only the new customizable items)
+  const travauxCommunsTotal = travauxCommuns.enabled
+    ? travauxCommuns.items.reduce((sum, item) => sum + item.amount, 0)
+    : 0;
 
   /**
    * Generic handler to update an item in any category
@@ -102,8 +116,159 @@ export function ExpenseCategoriesManager({
     onUpdateProjectParams({ ...projectParams, expenseCategories: newCategories });
   };
 
+  /**
+   * Handlers for TRAVAUX COMMUNS
+   */
+  const handleTravauxCommunsToggle = () => {
+    onUpdateProjectParams({
+      ...projectParams,
+      travauxCommuns: {
+        ...travauxCommuns,
+        enabled: !travauxCommuns.enabled
+      }
+    });
+  };
+
+  const handleTravauxCommunsItemChange = (index: number, value: number) => {
+    const newItems = travauxCommuns.items.map((item, i) =>
+      i === index ? { ...item, amount: value } : item
+    );
+    onUpdateProjectParams({
+      ...projectParams,
+      travauxCommuns: {
+        ...travauxCommuns,
+        items: newItems
+      }
+    });
+  };
+
+  const handleTravauxCommunsItemLabelChange = (index: number, label: string) => {
+    const newItems = travauxCommuns.items.map((item, i) =>
+      i === index ? { ...item, label } : item
+    );
+    onUpdateProjectParams({
+      ...projectParams,
+      travauxCommuns: {
+        ...travauxCommuns,
+        items: newItems
+      }
+    });
+  };
+
+  const handleTravauxCommunsAddItem = () => {
+    onUpdateProjectParams({
+      ...projectParams,
+      travauxCommuns: {
+        ...travauxCommuns,
+        items: [...travauxCommuns.items, { label: 'Nouvelle dépense', amount: 0 }]
+      }
+    });
+  };
+
+  const handleTravauxCommunsRemoveItem = (index: number) => {
+    onUpdateProjectParams({
+      ...projectParams,
+      travauxCommuns: {
+        ...travauxCommuns,
+        items: travauxCommuns.items.filter((_, i) => i !== index)
+      }
+    });
+  };
+
   return (
     <div className="space-y-3">
+      {/* TRAVAUX COMMUNS section */}
+      <div className={`border border-gray-200 rounded-lg overflow-hidden ${!travauxCommuns.enabled ? 'opacity-60' : ''}`}>
+        <button
+          onClick={() => {
+            if (travauxCommuns.enabled) {
+              setIsTravauxCommunsExpanded(!isTravauxCommunsExpanded);
+            }
+          }}
+          disabled={!travauxCommuns.enabled}
+          className={`flex justify-between items-center p-3 bg-gray-50 w-full transition-colors ${travauxCommuns.enabled ? 'hover:bg-gray-100' : 'cursor-default'}`}
+        >
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={travauxCommuns.enabled}
+              onChange={(e) => {
+                e.stopPropagation();
+                handleTravauxCommunsToggle();
+                if (!travauxCommuns.enabled) {
+                  setIsTravauxCommunsExpanded(true);
+                }
+              }}
+              disabled={!canEditExpenseCategories}
+              className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+            />
+            {travauxCommuns.enabled && (
+              <svg
+                className={`w-4 h-4 text-gray-600 transition-transform ${isTravauxCommunsExpanded ? 'rotate-90' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            )}
+            <div>
+              <h4 className="text-sm font-semibold text-gray-800 uppercase tracking-wide">
+                TRAVAUX COMMUNS
+              </h4>
+              <p className="text-xs text-gray-500 italic mt-0.5">
+                Répartition : par personne (égale)
+              </p>
+            </div>
+          </div>
+          <span className={`text-sm font-bold ${travauxCommuns.enabled ? 'text-purple-700' : 'text-gray-400'}`}>
+            {travauxCommuns.enabled ? formatCurrency(travauxCommunsTotal) : '0 €'}
+          </span>
+        </button>
+        {travauxCommuns.enabled && isTravauxCommunsExpanded && (
+          <div className="p-3 bg-white space-y-2">
+            {travauxCommuns.items.map((item, index) => (
+              <div key={index} className="grid grid-cols-[1fr_auto_auto] gap-2 items-center">
+                <input
+                  type="text"
+                  value={item.label}
+                  onChange={(e) => handleTravauxCommunsItemLabelChange(index, e.target.value)}
+                  disabled={!canEditExpenseCategories}
+                  className={`px-3 py-2 text-xs border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white ${!canEditExpenseCategories ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''}`}
+                  placeholder="Label"
+                />
+                <input
+                  type="number"
+                  step="100"
+                  value={item.amount}
+                  onChange={(e) => handleTravauxCommunsItemChange(index, parseFloat(e.target.value) || 0)}
+                  disabled={!canEditExpenseCategories}
+                  className={`w-32 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white ${!canEditExpenseCategories ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''}`}
+                />
+                <button
+                  onClick={() => handleTravauxCommunsRemoveItem(index)}
+                  disabled={!canEditExpenseCategories}
+                  className={`p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors ${!canEditExpenseCategories ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  title="Supprimer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+
+            {/* Add Item Button */}
+            <button
+              onClick={handleTravauxCommunsAddItem}
+              disabled={!canEditExpenseCategories}
+              className={`w-full mt-2 flex items-center justify-center gap-2 px-3 py-2 text-sm text-purple-700 border border-purple-300 rounded-lg hover:bg-purple-50 transition-colors ${!canEditExpenseCategories ? 'opacity-60 cursor-not-allowed' : ''}`}
+            >
+              <Plus className="w-4 h-4" />
+              Ajouter une ligne
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Render each category using the same handlers */}
       {CATEGORIES.map(({ key, title }) => (
         <ExpenseCategorySection

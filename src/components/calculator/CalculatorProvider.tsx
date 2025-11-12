@@ -20,6 +20,7 @@ import { useCalculatorState } from '../../hooks/useCalculatorState';
 import { useParticipantOperations } from '../../hooks/useParticipantOperations';
 import { useStoragePersistence } from '../../hooks/useStoragePersistence';
 import { useFirestoreSync } from '../../hooks/useFirestoreSync';
+import { useDirtyTracking } from '../../hooks/useDirtyTracking';
 import { usePresenceDetection } from '../../hooks/usePresenceDetection';
 import { useUnlock } from '../../contexts/UnlockContext';
 import { initializeFirebase } from '../../services/firebase';
@@ -175,6 +176,49 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
     };
   }, []); // Run once on mount
 
+  // Dirty tracking for field-level updates
+  const {
+    markDirty,
+    getDirtyFields,
+    clearDirty,
+  } = useDirtyTracking();
+
+  // Track projectParams changes
+  const prevProjectParamsRef = useRef(projectParams);
+  useEffect(() => {
+    if (isInitialized && projectParams !== prevProjectParamsRef.current) {
+      markDirty('projectParams');
+      prevProjectParamsRef.current = projectParams;
+    }
+  }, [projectParams, isInitialized, markDirty]);
+
+  // Track deedDate changes
+  const prevDeedDateRef = useRef(deedDate);
+  useEffect(() => {
+    if (isInitialized && deedDate !== prevDeedDateRef.current) {
+      markDirty('deedDate');
+      prevDeedDateRef.current = deedDate;
+    }
+  }, [deedDate, isInitialized, markDirty]);
+
+  // Track portageFormula changes
+  const prevPortageFormulaRef = useRef(portageFormula);
+  useEffect(() => {
+    if (isInitialized && portageFormula !== prevPortageFormulaRef.current) {
+      markDirty('portageFormula');
+      prevPortageFormulaRef.current = portageFormula;
+    }
+  }, [portageFormula, isInitialized, markDirty]);
+
+  // Track participants changes (always full save)
+  const prevParticipantsRef = useRef(participants);
+  useEffect(() => {
+    if (isInitialized && participants !== prevParticipantsRef.current) {
+      markDirty('participants');
+      prevParticipantsRef.current = participants;
+    }
+  }, [participants, isInitialized, markDirty]);
+
   // Firestore sync
   const {
     syncMode,
@@ -190,13 +234,25 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
   // Debounced by 500ms to batch rapid changes (e.g., typing in surface fields)
   useEffect(() => {
     if (unlockedBy && isInitialized && participants && projectParams && deedDate && portageFormula) {
-      const timeoutId = setTimeout(() => {
-        saveData(participants, projectParams, deedDate, portageFormula);
+      const timeoutId = setTimeout(async () => {
+        const dirtyFields = getDirtyFields();
+        if (dirtyFields.length > 0) {
+          const result = await saveData(
+            participants,
+            projectParams,
+            deedDate,
+            portageFormula,
+            dirtyFields // Pass dirty fields for optimization
+          );
+          if (result.success) {
+            clearDirty(); // Clear dirty flags after successful save
+          }
+        }
       }, 500);
 
       return () => clearTimeout(timeoutId);
     }
-  }, [participants, projectParams, deedDate, portageFormula, saveData, unlockedBy, isInitialized]);
+  }, [participants, projectParams, deedDate, portageFormula, saveData, unlockedBy, isInitialized, getDirtyFields, clearDirty]);
 
   // Presence detection
   const { activeUsers } = usePresenceDetection(unlockedBy);
@@ -292,6 +348,58 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
     if (!participants) return;
     const newParticipants = participantOps.updateParticipantSurface(participants, index, surface);
     setParticipants(newParticipants);
+  };
+
+  /**
+   * Handle deed date changes with cascading updates to all participant entry dates
+   * When the deed date changes, all participant entry dates shift by the same delta
+   */
+  const handleDeedDateChange = (newDeedDate: string) => {
+    if (!participants || !deedDate) {
+      setDeedDate(newDeedDate);
+      return;
+    }
+
+    try {
+      const oldDate = new Date(deedDate);
+      const newDate = new Date(newDeedDate);
+
+      // Calculate the time delta in milliseconds
+      const delta = newDate.getTime() - oldDate.getTime();
+
+      // Update all participant entry dates by the same delta
+      const updatedParticipants = participants.map(participant => {
+        if (!participant.entryDate) {
+          return participant;
+        }
+
+        const oldEntryDate = new Date(participant.entryDate);
+        const newEntryDate = new Date(oldEntryDate.getTime() + delta);
+
+        return {
+          ...participant,
+          entryDate: newEntryDate
+        };
+      });
+
+      // Update both deed date and participants
+      setDeedDate(newDeedDate);
+      setParticipants(updatedParticipants);
+
+    } catch (error) {
+      console.error('Error updating deed date:', error);
+      toast.custom(
+        (t) => (
+          <SimpleNotificationToast
+            title="Erreur"
+            message="Erreur de calcul avec cette date. Veuillez choisir une autre date."
+            type="error"
+            onDismiss={() => toast.dismiss(t.id)}
+          />
+        ),
+        { duration: 5000 }
+      );
+    }
   };
 
   const exportToExcel = () => {
@@ -424,6 +532,7 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
       setParticipants,
       setProjectParams,
       setDeedDate,
+      handleDeedDateChange,
       setPortageFormula,
       setFullscreenParticipantIndex,
       setVersionMismatch,

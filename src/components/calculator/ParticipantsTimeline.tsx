@@ -116,6 +116,9 @@ export const ParticipantsTimeline: React.FC<ParticipantsTimelineProps> = ({
                       <div className="text-xs text-green-600 font-medium">
                         T0 - Date de l'acte (Fondateurs)
                       </div>
+                      <div className="text-xs text-gray-500 italic mt-1">
+                        ℹ️ Changer cette date ajustera automatiquement toutes les dates d'entrée des participants
+                      </div>
                     </div>
                   ) : (
                     <div className="text-sm font-semibold text-gray-700">

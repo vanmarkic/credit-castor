@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   saveScenarioToFirestore,
+  updateScenarioFields,
   loadScenarioFromFirestore,
   subscribeToFirestoreChanges,
   isFirestoreSyncAvailable,
   detectConflict,
   type FirestoreScenarioData,
   type FirestoreChangeEvent,
+  type TrackableField,
 } from '../services/firestoreSync';
 import { saveToLocalStorage, loadFromLocalStorage } from '../utils/storage';
 import type { Participant, ProjectParams, PortageFormulaParams } from '../utils/calculatorUtils';
@@ -110,13 +112,20 @@ export function useFirestoreSync(
 
   /**
    * Save data to Firestore and/or localStorage
+   *
+   * Strategy:
+   * - If only simple fields changed: use updateDoc (granular)
+   * - If participants array changed: use setDoc (full save)
+   *
+   * @param dirtyFields - Optional list of changed fields for optimization
    */
   const saveData = useCallback(
     async (
       participants: Participant[],
       projectParams: ProjectParams,
       deedDate: string,
-      portageFormula: PortageFormulaParams
+      portageFormula: PortageFormulaParams,
+      dirtyFields?: TrackableField[]
     ): Promise<{ success: boolean; error?: string }> => {
       // Prevent concurrent saves
       if (isSavingRef.current) {
@@ -133,6 +142,41 @@ export function useFirestoreSync(
 
         // If Firestore sync is enabled and user is authenticated
         if (syncMode === 'firestore' && userEmail) {
+          // Determine if we can use field-level update
+          const participantsChanged = !dirtyFields || dirtyFields.includes('participants');
+
+          if (!participantsChanged && dirtyFields && dirtyFields.length > 0) {
+            // Use granular update (only changed fields)
+            const fieldsToUpdate: any = {};
+
+            if (dirtyFields.includes('projectParams')) {
+              fieldsToUpdate.projectParams = projectParams;
+            }
+            if (dirtyFields.includes('deedDate')) {
+              fieldsToUpdate.deedDate = deedDate;
+            }
+            if (dirtyFields.includes('portageFormula')) {
+              fieldsToUpdate.portageFormula = portageFormula;
+            }
+
+            const result = await updateScenarioFields(
+              fieldsToUpdate,
+              userEmail,
+              localVersionRef.current
+            );
+
+            if (result.success) {
+              localVersionRef.current += 1;
+              setLastSyncedAt(new Date());
+              console.log(`✅ Granular update: ${result.updatedFields.join(', ')}`);
+              return { success: true };
+            } else {
+              // Fallback to full save on conflict or error
+              console.warn('⚠️ Granular update failed, falling back to full save');
+            }
+          }
+
+          // Full document save (participants changed or fallback)
           localVersionRef.current += 1;
 
           const result = await saveScenarioToFirestore(
@@ -148,6 +192,7 @@ export function useFirestoreSync(
 
           if (result.success) {
             setLastSyncedAt(new Date());
+            console.log('✅ Full document save');
             return { success: true };
           } else {
             setSyncError(result.error || 'Erreur de synchronisation');

@@ -508,6 +508,100 @@ describe('Calculator Utils', () => {
       const result = calculateTravauxCommunsPerUnit(projectParams, 3);
       expect(result).toBeCloseTo(122966.67, 2);
     });
+
+    it('should include enabled travauxCommuns items in total', () => {
+      const projectParams: ProjectParams = {
+        totalPurchase: 650000,
+        mesuresConservatoires: 20000,
+        demolition: 40000,
+        infrastructures: 90000,
+        etudesPreparatoires: 59820,
+        fraisEtudesPreparatoires: 27320,
+        fraisGeneraux3ans: 136825.63,
+        batimentFondationConservatoire: 43700,
+        batimentFondationComplete: 269200,
+        batimentCoproConservatoire: 56000,
+        globalCascoPerM2: 1590,
+        travauxCommuns: {
+          enabled: true,
+          items: [
+            { label: 'Rénovation complète', amount: 270000 },
+            { label: 'Isolation', amount: 50000 }
+          ]
+        }
+      };
+      // Total should be: 43700 + 269200 + 56000 + 270000 + 50000 = 688900
+      const result = calculateTotalTravauxCommuns(projectParams);
+      expect(result).toBe(688900);
+    });
+
+    it('should exclude disabled travauxCommuns items from total', () => {
+      const projectParams: ProjectParams = {
+        totalPurchase: 650000,
+        mesuresConservatoires: 20000,
+        demolition: 40000,
+        infrastructures: 90000,
+        etudesPreparatoires: 59820,
+        fraisEtudesPreparatoires: 27320,
+        fraisGeneraux3ans: 136825.63,
+        batimentFondationConservatoire: 43700,
+        batimentFondationComplete: 269200,
+        batimentCoproConservatoire: 56000,
+        globalCascoPerM2: 1590,
+        travauxCommuns: {
+          enabled: false,
+          items: [
+            { label: 'Rénovation complète', amount: 270000 }
+          ]
+        }
+      };
+      // Total should only be old fields: 43700 + 269200 + 56000 = 368900
+      const result = calculateTotalTravauxCommuns(projectParams);
+      expect(result).toBe(368900);
+    });
+
+    it('should handle undefined travauxCommuns (backward compatibility)', () => {
+      const projectParams: ProjectParams = {
+        totalPurchase: 650000,
+        mesuresConservatoires: 20000,
+        demolition: 40000,
+        infrastructures: 90000,
+        etudesPreparatoires: 59820,
+        fraisEtudesPreparatoires: 27320,
+        fraisGeneraux3ans: 136825.63,
+        batimentFondationConservatoire: 43700,
+        batimentFondationComplete: 269200,
+        batimentCoproConservatoire: 56000,
+        globalCascoPerM2: 1590
+        // travauxCommuns is undefined
+      };
+      // Total should only be old fields: 43700 + 269200 + 56000 = 368900
+      const result = calculateTotalTravauxCommuns(projectParams);
+      expect(result).toBe(368900);
+    });
+
+    it('should handle empty items array when enabled', () => {
+      const projectParams: ProjectParams = {
+        totalPurchase: 650000,
+        mesuresConservatoires: 20000,
+        demolition: 40000,
+        infrastructures: 90000,
+        etudesPreparatoires: 59820,
+        fraisEtudesPreparatoires: 27320,
+        fraisGeneraux3ans: 136825.63,
+        batimentFondationConservatoire: 43700,
+        batimentFondationComplete: 269200,
+        batimentCoproConservatoire: 56000,
+        globalCascoPerM2: 1590,
+        travauxCommuns: {
+          enabled: true,
+          items: []
+        }
+      };
+      // Total should only be old fields: 43700 + 269200 + 56000 = 368900
+      const result = calculateTotalTravauxCommuns(projectParams);
+      expect(result).toBe(368900);
+    });
   });
 
   describe('calculatePurchaseShare', () => {

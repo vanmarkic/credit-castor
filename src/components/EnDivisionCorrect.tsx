@@ -63,7 +63,7 @@ export default function EnDivisionCorrect() {
   const {
     setParticipants,
     setProjectParams,
-    setDeedDate,
+    handleDeedDateChange,
     setPortageFormula,
     setFullscreenParticipantIndex,
     setVersionMismatch,
@@ -601,7 +601,7 @@ export default function EnDivisionCorrect() {
         <ParticipantsTimeline
           participants={participants}
           deedDate={deedDate}
-          onDeedDateChange={setDeedDate}
+          onDeedDateChange={handleDeedDateChange}
         />
 
         {/* Global Portage Formula Configuration */}
