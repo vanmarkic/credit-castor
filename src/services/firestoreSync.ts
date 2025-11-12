@@ -4,7 +4,6 @@ import {
   setDoc,
   onSnapshot,
   serverTimestamp,
-  type Firestore,
   type Unsubscribe,
 } from 'firebase/firestore';
 import { getDb } from './firebase';

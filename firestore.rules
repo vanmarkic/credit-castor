@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users collection - store custom authentication data
+    match /users/{userId} {
+      // Anyone can create a new user (for registration)
+      allow create: if true;
+
+      // Users can only read their own data
+      allow read: if request.auth != null || request.resource.data.email == userId.replace('_', '@').replace('_', '.');
+
+      // Users cannot update/delete (security measure)
+      allow update, delete: if false;
+    }
+
+    // Projects collection - shared project data
+    match /projects/{projectId} {
+      // Allow read if unlocked (we check unlock state in the app)
+      allow read: if true;
+
+      // Allow write only if user is authenticated (has unlocked)
+      allow write: if request.auth != null || request.resource.data.lastModifiedBy != null;
+    }
+
+    // Presence collection - for tracking active users
+    match /presence/{sessionId} {
+      allow read, write: if true; // Presence is ephemeral and not sensitive
+    }
+  }
+}

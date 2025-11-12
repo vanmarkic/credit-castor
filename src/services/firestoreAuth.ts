@@ -6,7 +6,6 @@ import {
   query,
   where,
   getDocs,
-  type Firestore,
 } from 'firebase/firestore';
 import { getDb } from './firebase';
 
