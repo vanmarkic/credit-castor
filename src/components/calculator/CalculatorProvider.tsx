@@ -9,7 +9,7 @@
  * - Actions (mutations)
  */
 
-import { ReactNode, useMemo, useRef, useEffect, useState } from 'react';
+import { ReactNode, useMemo, useRef, useEffect, useState, useCallback } from 'react';
 import { calculateAll, DEFAULT_PORTAGE_FORMULA } from '../../utils/calculatorUtils';
 import { exportCalculations } from '../../utils/excelExport';
 import { XlsxWriter } from '../../utils/exportWriter';
@@ -25,10 +25,13 @@ import { usePresenceDetection } from '../../hooks/usePresenceDetection';
 import { useUnlock } from '../../contexts/UnlockContext';
 import { initializeFirebase } from '../../services/firebase';
 import { loadApplicationData } from '../../services/dataLoader';
-import { saveScenarioToFirestore } from '../../services/firestoreSync';
+import { saveScenarioToFirestore, migrateParticipantsToSubcollection } from '../../services/firestoreSync';
+import { getDb } from '../../services/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import { syncSoldDatesFromPurchaseDetails } from '../../utils/participantSync';
 import { CalculatorContext, type CalculatorContextValue } from '../../contexts/CalculatorContext';
 import { MigrationModal, type MigrationData } from '../MigrationModal';
+import { ParticipantMigrationDialog } from '../ParticipantMigrationDialog';
 import { SimpleNotificationToast } from '../shared/NotificationToast';
 import toast from 'react-hot-toast';
 import type { Participant } from '../../utils/calculatorUtils';
@@ -81,6 +84,9 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
   const [migrationData, setMigrationData] = useState<MigrationData | null>(null);
   const [showMigrationModal, setShowMigrationModal] = useState(false);
 
+  // Participant subcollection migration state
+  const [showParticipantMigrationDialog, setShowParticipantMigrationDialog] = useState(false);
+
   // Participant operations
   const participantOps = useParticipantOperations();
 
@@ -131,6 +137,32 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
               portageFormula: result.data.portageFormula,
             });
             setShowMigrationModal(true);
+          }
+
+          // Check if migration to subcollection is needed
+          if (result.data.source === 'firestore' && processedParticipants.length > 0 && unlockedBy) {
+            // Don't prompt if user already skipped this session
+            const skipMigration = sessionStorage.getItem('skipParticipantMigration');
+
+            if (!skipMigration) {
+              const db = getDb();
+              if (db) {
+                try {
+                  const projectRef = doc(db, 'projects', 'shared-project');
+                  const projectDoc = await getDoc(projectRef);
+
+                  if (projectDoc.exists()) {
+                    const data = projectDoc.data() as any;
+                    if (!data.participantsInSubcollection) {
+                      // Migration needed
+                      setShowParticipantMigrationDialog(true);
+                    }
+                  }
+                } catch (err) {
+                  console.error('Error checking for subcollection migration:', err);
+                }
+              }
+            }
           }
         } else {
           // Check if this is a network error that should show a toast
@@ -220,6 +252,21 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
   }, [participants, isInitialized, markDirty]);
 
   // Firestore sync
+  // Callback for successful sync (shows toast with updated fields)
+  const handleSyncSuccess = useCallback((message: string, fields: any[]) => {
+    toast.custom(
+      (t) => (
+        <SimpleNotificationToast
+          title="Synchronisé"
+          message={`✅ ${message}`}
+          type="success"
+          onDismiss={() => toast.dismiss(t.id)}
+        />
+      ),
+      { duration: 2000 }
+    );
+  }, []);
+
   const {
     syncMode,
     isSyncing,
@@ -228,7 +275,7 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
     syncError,
     saveData,
     resolveConflict,
-  } = useFirestoreSync(unlockedBy, true);
+  } = useFirestoreSync(unlockedBy, true, handleSyncSuccess);
 
   // Auto-save data to Firestore when it changes (only if initialized)
   // Debounced by 500ms to batch rapid changes (e.g., typing in surface fields)
@@ -504,6 +551,30 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
     setMigrationData(null);
   };
 
+  const handleParticipantMigration = async () => {
+    if (!unlockedBy) return;
+
+    console.log('🔄 Migrating participants to subcollection...');
+
+    const result = await migrateParticipantsToSubcollection('shared-project', unlockedBy);
+
+    setShowParticipantMigrationDialog(false);
+
+    if (result.success) {
+      alert(`✅ Migration réussie! ${result.migratedCount} participant(s) migré(s).`);
+      // Reload to use new architecture
+      window.location.reload();
+    } else {
+      alert('❌ Échec de la migration: ' + result.error);
+    }
+  };
+
+  const handleSkipParticipantMigration = () => {
+    setShowParticipantMigrationDialog(false);
+    // Store preference to not show again this session
+    sessionStorage.setItem('skipParticipantMigration', 'true');
+  };
+
   // Context value (only created after data is loaded, so we can safely assert non-null)
   const contextValue: CalculatorContextValue = {
     state: {
@@ -616,6 +687,15 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
           data={migrationData}
           onConfirm={handleMigrationConfirm}
           onCancel={handleMigrationCancel}
+        />
+      )}
+
+      {/* Participant migration dialog */}
+      {showParticipantMigrationDialog && (
+        <ParticipantMigrationDialog
+          participantCount={participants?.length || 0}
+          onConfirm={handleParticipantMigration}
+          onCancel={handleSkipParticipantMigration}
         />
       )}
     </CalculatorContext.Provider>
