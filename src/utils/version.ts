@@ -13,7 +13,7 @@
  * - 1.0.0: Initial version with portage lots, purchaseDetails, and timeline features
  */
 
-export const RELEASE_VERSION = '1.16.1';
+export const RELEASE_VERSION = '1.17.0';
 
 export interface VersionedData {
   releaseVersion: string;
