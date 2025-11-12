@@ -2,7 +2,7 @@ import { createContext, useContext, type ReactNode, useCallback } from 'react';
 import { useUnlockState, type UnlockState } from '../hooks/useUnlockState';
 import type { LockNotification } from '../hooks/useEditLock';
 import toast from 'react-hot-toast';
-import { SimpleNotificationToast } from '../components/shared/SimpleNotificationToast';
+import { SimpleNotificationToast } from '../components/shared/NotificationToast';
 
 /**
  * Context value including the unlock state and control methods.

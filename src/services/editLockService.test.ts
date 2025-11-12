@@ -51,7 +51,7 @@ vi.mock('firebase/firestore', async (importOriginal) => {
       // Serialize transactions to prevent race conditions
       const currentLock = transactionLock;
       let resolveLock: () => void;
-      transactionLock = new Promise(resolve => {
+      transactionLock = new Promise<void>(resolve => {
         resolveLock = resolve;
       });
 

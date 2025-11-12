@@ -49,6 +49,9 @@ export function isFirebaseConfigured(): boolean {
 let app: FirebaseApp | null = null;
 let db: Firestore | null = null;
 
+// Export db for direct access (initialized lazily)
+export { db };
+
 export function initializeFirebase(): { app: FirebaseApp | null; db: Firestore | null } {
   // If already initialized, return existing instances
   if (app && db) {

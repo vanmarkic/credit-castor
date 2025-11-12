@@ -258,8 +258,9 @@ export function useUnlockState(
 
 /**
  * Get the current unlock state without using a hook (for utility functions).
+ * Note: This returns only localStorage state, not Firestore lock status
  */
-export function getUnlockState(): UnlockState {
+export function getUnlockState(): Omit<UnlockState, 'isLockedByOther' | 'lockDetails'> {
   return loadUnlockState();
 }
 

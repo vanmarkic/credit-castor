@@ -9,7 +9,6 @@ import { db } from './firebase';
 import {
   doc,
   getDoc,
-  setDoc,
   deleteDoc,
   runTransaction,
   serverTimestamp,
@@ -113,9 +112,10 @@ interface EditLockDocument {
 
 /**
  * Get lock document reference
+ * Note: Assumes db is not null (callers must verify)
  */
 function getLockDocRef(projectId: string): DocumentReference {
-  return doc(db, 'editLocks', projectId);
+  return doc(db!, 'editLocks', projectId);
 }
 
 /**
@@ -148,6 +148,14 @@ export async function acquireEditLock(
   userEmail: string,
   sessionId: string
 ): Promise<LockAcquisitionResult> {
+  if (!db) {
+    return {
+      success: false,
+      reason: 'error',
+      error: 'Firestore is not configured',
+    };
+  }
+
   try {
     const lockRef = getLockDocRef(projectId);
 
@@ -261,6 +269,10 @@ export async function releaseEditLock(
   userEmail: string,
   sessionId: string
 ): Promise<boolean> {
+  if (!db) {
+    return false;
+  }
+
   try {
     const lockRef = getLockDocRef(projectId);
 
@@ -293,6 +305,13 @@ export async function releaseEditLock(
  * Check current lock status
  */
 export async function checkLockStatus(projectId: string): Promise<LockStatus> {
+  if (!db) {
+    return {
+      isLocked: false,
+      lock: null,
+    };
+  }
+
   try {
     const lockRef = getLockDocRef(projectId);
     const lockDoc = await getDoc(lockRef);
@@ -338,6 +357,10 @@ export async function extendLockExpiration(
   userEmail: string,
   sessionId: string
 ): Promise<boolean> {
+  if (!db) {
+    return false;
+  }
+
   try {
     const lockRef = getLockDocRef(projectId);
 
@@ -387,6 +410,14 @@ export async function forceReleaseLock(
       success: false,
       error: 'invalid-password',
       message: 'Mot de passe administrateur incorrect',
+    };
+  }
+
+  if (!db) {
+    return {
+      success: false,
+      error: 'firestore-error',
+      message: 'Firestore is not configured',
     };
   }
 
