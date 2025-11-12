@@ -39,6 +39,7 @@ const createMockCalculations = (
     pricePerM2: 2000,
     purchaseShare: 1 / participantCount,
     droitEnregistrements: 5000,
+    fraisNotaireFixe: 1000,
     casco: 80000,
     parachevements: 20000,
     personalRenovationCost: 100000,

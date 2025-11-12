@@ -81,6 +81,7 @@ describe('ParticipantDetailModal - Reactive Portage Price Recalculation', () => 
         pricePerM2: 1000,
         purchaseShare: 100000,
         droitEnregistrements: 12500,
+        fraisNotaireFixe: 1000,
         casco: 50000,
         parachevements: 30000,
         personalRenovationCost: 80000,
@@ -109,6 +110,7 @@ describe('ParticipantDetailModal - Reactive Portage Price Recalculation', () => 
         pricePerM2: 1667,
         purchaseShare: 256563, // Initial price for 16 months
         droitEnregistrements: 32070,
+        fraisNotaireFixe: 1000,
         casco: 45000,
         parachevements: 27000,
         personalRenovationCost: 72000,

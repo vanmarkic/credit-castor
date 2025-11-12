@@ -66,6 +66,7 @@ describe('scenarioFileIO', () => {
         pricePerM2: 6500,
         purchaseShare: 650000,
         droitEnregistrements: 81250,
+        fraisNotaireFixe: 1000,
         casco: 159000,
         parachevements: 50000,
         personalRenovationCost: 209000,
