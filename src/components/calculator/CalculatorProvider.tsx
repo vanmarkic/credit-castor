@@ -301,6 +301,10 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
     );
   }, [setParticipants, setProjectParams, setDeedDate, setPortageFormula]);
 
+  // Use fallback userEmail for participant edits when admin hasn't unlocked
+  // This allows participant details to sync to Firestore without admin password
+  const effectiveUserEmail = unlockedBy || 'participant-edit';
+
   const {
     syncMode,
     isSyncing,
@@ -309,12 +313,13 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
     syncError,
     saveData,
     resolveConflict,
-  } = useFirestoreSync(unlockedBy, true, handleSyncSuccess, handleRemoteDataAccepted);
+  } = useFirestoreSync(effectiveUserEmail, true, handleSyncSuccess, handleRemoteDataAccepted);
 
   // Auto-save data to Firestore when it changes (only if initialized)
   // Debounced by 500ms to batch rapid changes (e.g., typing in surface fields)
+  // Note: Now saves even without admin unlock to allow participant detail edits to sync
   useEffect(() => {
-    if (unlockedBy && isInitialized && participants && projectParams && deedDate && portageFormula) {
+    if (isInitialized && participants && projectParams && deedDate && portageFormula) {
       const timeoutId = setTimeout(async () => {
         const dirtyFields = getDirtyFields();
         if (dirtyFields.length > 0) {
@@ -337,16 +342,14 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
       return () => clearTimeout(timeoutId);
     } else {
       // Log why save is not happening
-      if (!unlockedBy) {
-        console.log('⚠️ Not saving: User not unlocked');
-      } else if (!isInitialized) {
+      if (!isInitialized) {
         console.log('⚠️ Not saving: Data not initialized');
       }
     }
-  }, [participants, projectParams, deedDate, portageFormula, saveData, unlockedBy, isInitialized, getDirtyFields, clearDirty]);
+  }, [participants, projectParams, deedDate, portageFormula, saveData, isInitialized, getDirtyFields, clearDirty]);
 
-  // Presence detection
-  const { activeUsers } = usePresenceDetection(unlockedBy);
+  // Presence detection (use effective userEmail to track presence even without admin unlock)
+  const { activeUsers } = usePresenceDetection(effectiveUserEmail);
 
   // Auto-save to localStorage (only if initialized)
   useStoragePersistence(
