@@ -9,6 +9,9 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:schema": "vitest run src/utils/dataSchema.test.ts src/utils/schemaRegistry.test.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
@@ -31,6 +34,7 @@
     "@astrojs/react": "^4.4.0",
     "@astrojs/tailwind": "^6.0.2",
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.56.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
