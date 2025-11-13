@@ -49,6 +49,16 @@ All business logic is in **pure, testable functions** in `src/utils/calculatorUt
 - Financial formulas include loan amortization (PMT), price per m², notary fees
 - `calculateFraisGeneraux3ans()` dynamically calculates 3-year general expenses based on total CASCO costs (15% × 30% for honoraires + recurring costs)
 
+### Firebase Integration
+The app includes **optional Firebase/Firestore integration** for real-time multi-user collaboration:
+- **src/services/firestoreSync.ts** - Real-time synchronization with Firestore
+- **src/services/editLockService.ts** - Optimistic locking to prevent concurrent edit conflicts
+- **src/services/participantSyncCoordinator.ts** - Coordinates per-participant data sync
+- **src/services/dataLoader.ts** - Unified data loading abstraction (localStorage + Firestore)
+- **Graceful degradation**: App works fully offline with localStorage if Firebase is not configured
+- **Environment variables**: All Firebase config uses `PUBLIC_` prefix (Astro requirement for client-side vars)
+- See `docs/development/firebase-setup-guide.md` for complete setup instructions
+
 ### State Management Architecture
 The application uses **XState v5** for managing complex business workflows:
 - **creditCastorMachine.ts** - Main state machine orchestrating project lifecycle
