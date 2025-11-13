@@ -578,6 +578,84 @@ export async function saveParticipantToSubcollection(
 }
 
 /**
+ * Update specific fields of a participant (granular update)
+ *
+ * Uses updateDoc() instead of setDoc() to only modify changed fields.
+ * More efficient for partial updates like detail data changes.
+ *
+ * @param participantId - Participant document ID
+ * @param projectId - Project document ID
+ * @param fields - Map of field names to values (subset of Participant)
+ * @param userEmail - Email of user making changes
+ * @param baseVersion - Current version number for conflict detection
+ * @returns Success result with updated fields
+ */
+export async function updateParticipantFields(
+  participantId: string,
+  projectId: string,
+  fields: Partial<Participant>,
+  userEmail: string,
+  baseVersion?: number
+): Promise<{ success: boolean; error?: string; updatedFields?: string[] }> {
+  try {
+    const db = getDb();
+    if (!db) {
+      return {
+        success: false,
+        error: 'Firebase non configuré.',
+      };
+    }
+
+    const participantRef = doc(db, 'projects', projectId, 'participants', participantId);
+
+    // Check if document exists
+    const docSnapshot = await getDoc(participantRef);
+    if (!docSnapshot.exists()) {
+      return {
+        success: false,
+        error: 'Participant does not exist.',
+      };
+    }
+
+    // Check for conflicts if baseVersion provided
+    if (baseVersion !== undefined) {
+      const currentData = docSnapshot.data() as FirestoreParticipantData;
+      if (currentData.version > baseVersion) {
+        return {
+          success: false,
+          error: `Version conflict: local=${baseVersion}, remote=${currentData.version}`,
+        };
+      }
+    }
+
+    const currentData = docSnapshot.data() as FirestoreParticipantData;
+
+    // Build update payload with only changed fields
+    const updatePayload: any = {
+      ...fields,
+      lastModifiedBy: userEmail,
+      lastModifiedAt: new Date().toISOString(),
+      version: currentData.version + 1,
+      serverTimestamp: serverTimestamp(),
+    };
+
+    // Use updateDoc for partial update
+    await updateDoc(participantRef, updatePayload);
+
+    return {
+      success: true,
+      updatedFields: Object.keys(fields),
+    };
+  } catch (error) {
+    console.error('Error updating participant fields:', error);
+    return {
+      success: false,
+      error: 'Erreur lors de la mise à jour du participant.',
+    };
+  }
+}
+
+/**
  * Load all participants from subcollection
  *
  * @param projectId - Project document ID
