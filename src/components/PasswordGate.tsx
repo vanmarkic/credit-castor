@@ -13,7 +13,7 @@ export default function PasswordGate({ onUnlock }: PasswordGateProps) {
     e.preventDefault();
 
     // Simple password check - can be changed in environment variable
-    const correctPassword = import.meta.env.VITE_APP_PASSWORD || 'castor2025';
+    const correctPassword = import.meta.env.PUBLIC_APP_PASSWORD || 'castor2025';
 
     if (password === correctPassword) {
       setError(false);

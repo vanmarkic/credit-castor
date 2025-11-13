@@ -29,7 +29,7 @@ export const HEARTBEAT_INTERVAL_MS = 30 * 1000;
 /**
  * Admin password for force unlock
  */
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD || 'admin2025';
+const ADMIN_PASSWORD = import.meta.env.PUBLIC_ADMIN_PASSWORD || 'admin2025';
 
 /**
  * Represents an active edit lock

@@ -94,7 +94,12 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Unlock state
-  const { unlockedBy } = useUnlock();
+  const { unlockedBy, isUnlocked } = useUnlock();
+
+  // Debug unlock state
+  useEffect(() => {
+    console.log('🔐 Unlock state:', { isUnlocked, unlockedBy });
+  }, [isUnlocked, unlockedBy]);
 
   // Initialize data on mount - load from Firestore → localStorage → Error
   useEffect(() => {
@@ -313,6 +318,7 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
       const timeoutId = setTimeout(async () => {
         const dirtyFields = getDirtyFields();
         if (dirtyFields.length > 0) {
+          console.log('🔄 Auto-saving changes:', dirtyFields);
           const result = await saveData(
             participants,
             projectParams,
@@ -322,11 +328,20 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
           );
           if (result.success) {
             clearDirty(); // Clear dirty flags after successful save
+          } else {
+            console.error('❌ Auto-save failed:', result.error);
           }
         }
       }, 500);
 
       return () => clearTimeout(timeoutId);
+    } else {
+      // Log why save is not happening
+      if (!unlockedBy) {
+        console.log('⚠️ Not saving: User not unlocked');
+      } else if (!isInitialized) {
+        console.log('⚠️ Not saving: Data not initialized');
+      }
     }
   }, [participants, projectParams, deedDate, portageFormula, saveData, unlockedBy, isInitialized, getDirtyFields, clearDirty]);
 

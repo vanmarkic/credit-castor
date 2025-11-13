@@ -17,7 +17,7 @@ interface EditLockBannerProps {
   isOwnLock: boolean;
 
   /** Callback to force release the lock (admin only) */
-  onForceUnlock?: (password: string) => Promise<{ success: boolean; error?: string }>;
+  onForceUnlock?: (password: string, email: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 /**
@@ -26,6 +26,7 @@ interface EditLockBannerProps {
 export function EditLockBanner({ lock, isOwnLock, onForceUnlock }: EditLockBannerProps) {
   const [showForceUnlockDialog, setShowForceUnlockDialog] = useState(false);
   const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -41,6 +42,11 @@ export function EditLockBanner({ lock, isOwnLock, onForceUnlock }: EditLockBanne
       return;
     }
 
+    if (!email.trim()) {
+      setError('Veuillez entrer votre email');
+      return;
+    }
+
     if (!password.trim()) {
       setError('Veuillez entrer le mot de passe');
       return;
@@ -50,11 +56,12 @@ export function EditLockBanner({ lock, isOwnLock, onForceUnlock }: EditLockBanne
     setError(null);
 
     try {
-      const result = await onForceUnlock(password);
+      const result = await onForceUnlock(password, email);
 
       if (result.success) {
         setShowForceUnlockDialog(false);
         setPassword('');
+        setEmail('');
         setError(null);
       } else {
         setError(result.error || 'Mot de passe incorrect');
@@ -145,6 +152,25 @@ export function EditLockBanner({ lock, isOwnLock, onForceUnlock }: EditLockBanne
                 </div>
 
                 <div>
+                  <label htmlFor="admin-email" className="block text-sm font-medium text-gray-700 mb-1">
+                    Votre email
+                  </label>
+                  <input
+                    id="admin-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setError(null);
+                    }}
+                    disabled={isLoading}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    placeholder="votre-email@exemple.com"
+                    autoFocus
+                  />
+                </div>
+
+                <div>
                   <label htmlFor="admin-password" className="block text-sm font-medium text-gray-700 mb-1">
                     Mot de passe administrateur
                   </label>
@@ -159,7 +185,6 @@ export function EditLockBanner({ lock, isOwnLock, onForceUnlock }: EditLockBanne
                     disabled={isLoading}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     placeholder="••••••••"
-                    autoFocus
                   />
                 </div>
 
@@ -177,6 +202,7 @@ export function EditLockBanner({ lock, isOwnLock, onForceUnlock }: EditLockBanne
                   onClick={() => {
                     setShowForceUnlockDialog(false);
                     setPassword('');
+                    setEmail('');
                     setError(null);
                   }}
                   disabled={isLoading}

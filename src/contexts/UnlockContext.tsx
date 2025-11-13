@@ -1,8 +1,5 @@
-import { createContext, useContext, type ReactNode, useCallback } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
 import { useUnlockState, type UnlockState } from '../hooks/useUnlockState';
-import type { LockNotification } from '../hooks/useEditLock';
-import toast from 'react-hot-toast';
-import { SimpleNotificationToast } from '../components/shared/NotificationToast';
 
 /**
  * Context value including the unlock state and control methods.
@@ -10,7 +7,6 @@ import { SimpleNotificationToast } from '../components/shared/NotificationToast'
 interface UnlockContextValue extends UnlockState {
   unlock: (password: string, userEmail: string) => Promise<boolean>;
   lock: () => Promise<void>;
-  forceUnlock: (password: string) => Promise<{ success: boolean; error?: string }>;
   validatePassword: (password: string) => boolean;
   isLoading: boolean;
 }
@@ -34,30 +30,7 @@ export function UnlockProvider({
   children: ReactNode;
   projectId?: string;
 }) {
-  // Handle lock notifications
-  const handleNotification = useCallback((notification: LockNotification) => {
-    const typeMap = {
-      'lock-acquired': 'success',
-      'lock-released': 'info',
-      'lock-denied': 'error',
-      'lock-stolen': 'error',
-      'lock-error': 'error',
-    } as const;
-
-    toast.custom((t) => (
-      <SimpleNotificationToast
-        title={notification.type === 'lock-acquired' ? 'Déverrouillé' :
-               notification.type === 'lock-released' ? 'Verrouillé' :
-               notification.type === 'lock-denied' ? 'Accès refusé' :
-               notification.type === 'lock-stolen' ? 'Verrou perdu' : 'Erreur'}
-        message={notification.message}
-        type={typeMap[notification.type]}
-        onDismiss={() => toast.dismiss(t.id)}
-      />
-    ));
-  }, []);
-
-  const unlockState = useUnlockState(projectId, handleNotification);
+  const unlockState = useUnlockState(projectId);
 
   return (
     <UnlockContext.Provider value={unlockState}>

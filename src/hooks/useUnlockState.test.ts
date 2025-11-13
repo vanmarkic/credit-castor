@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useUnlockState, getUnlockState, clearUnlockState } from './useUnlockState';
+import { useUnlockState, getUnlockState } from './useUnlockState';
 
 // Use the default fallback password from the hook ('admin2025')
 

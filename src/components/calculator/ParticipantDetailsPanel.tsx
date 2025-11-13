@@ -1,5 +1,6 @@
 import { Star } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatting';
+import { formatDateForInput } from '../../utils/dateValidation';
 import PortageLotConfig from '../PortageLotConfig';
 import AvailableLotsView from '../AvailableLotsView';
 import { ExpectedPaybacksCard } from '../shared/ExpectedPaybacksCard';
@@ -197,11 +198,7 @@ export function ParticipantDetailsPanel({
           </label>
           <input
             type="date"
-            value={(() => {
-              if (!participants[idx].entryDate) return deedDate;
-              const date = new Date(participants[idx].entryDate);
-              return isNaN(date.getTime()) ? deedDate : date.toISOString().split('T')[0];
-            })()}
+            value={formatDateForInput(participants[idx].entryDate, deedDate)}
             onChange={(e) => {
               const newDate = new Date(e.target.value);
               if (newDate < new Date(deedDate)) {

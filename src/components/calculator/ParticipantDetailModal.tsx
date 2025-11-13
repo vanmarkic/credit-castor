@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { X, Star } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatting';
+import { formatDateForInput } from '../../utils/dateValidation';
 import AvailableLotsView from '../AvailableLotsView';
 import PortageLotConfig from '../PortageLotConfig';
 import { ExpectedPaybacksCard } from '../shared/ExpectedPaybacksCard';
@@ -447,11 +448,7 @@ export default function ParticipantDetailModal({
               </label>
               <input
                 type="date"
-                value={(() => {
-                  if (!participant.entryDate) return deedDate;
-                  const date = new Date(participant.entryDate);
-                  return isNaN(date.getTime()) ? deedDate : date.toISOString().split('T')[0];
-                })()}
+                value={formatDateForInput(participant.entryDate, deedDate)}
                 onChange={(e) => {
                   const newDate = new Date(e.target.value);
                   if (newDate < new Date(deedDate)) {

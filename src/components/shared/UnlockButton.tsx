@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Lock, Unlock, X } from 'lucide-react';
 import { useUnlock } from '../../contexts/UnlockContext';
-import { EditLockBanner } from './EditLockBanner';
 
 /**
  * Password prompt dialog for admin unlock.
@@ -146,12 +145,8 @@ export function UnlockButton() {
     isUnlocked,
     unlockedBy,
     unlockedAt,
-    isLockedByOther,
-    lockDetails,
     unlock,
     lock,
-    forceUnlock,
-    isLoading,
   } = useUnlock();
 
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
@@ -164,10 +159,7 @@ export function UnlockButton() {
       setShowPasswordPrompt(false);
       setError(null);
     } else {
-      setError(isLockedByOther
-        ? 'Un autre utilisateur modifie le projet'
-        : 'Mot de passe incorrect'
-      );
+      setError('Mot de passe incorrect');
     }
   };
 
@@ -180,64 +172,28 @@ export function UnlockButton() {
     if (isUnlocked) {
       handleLock();
     } else {
-      // Check if locked by another user
-      if (isLockedByOther) {
-        setError(`${lockDetails?.userEmail} est en train de modifier le projet`);
-      } else {
-        setShowPasswordPrompt(true);
-      }
+      setShowPasswordPrompt(true);
     }
   };
 
-  // Convert EditLock to format expected by EditLockBanner
-  const bannerLock = lockDetails ? {
-    userEmail: lockDetails.userEmail,
-    sessionId: lockDetails.sessionId,
-    acquiredAt: new Date(), // Not available in lockDetails, use placeholder
-    expiresAt: lockDetails.expiresAt,
-    lastHeartbeat: lockDetails.lastHeartbeat,
-  } : null;
-
   return (
     <>
-      {/* Show banner if another user is editing */}
-      {isLockedByOther && bannerLock && (
-        <div className="mb-3">
-          <EditLockBanner
-            lock={bannerLock}
-            isOwnLock={false}
-            onForceUnlock={forceUnlock}
-          />
-        </div>
-      )}
-
       <button
         onClick={handleToggle}
-        disabled={isLoading || isLockedByOther}
         className={`
           flex items-center gap-2 px-4 py-2 rounded-md font-medium transition-colors
           ${isUnlocked
             ? 'bg-green-100 text-green-700 border border-green-300 hover:bg-green-200'
-            : isLockedByOther
-              ? 'bg-gray-100 text-gray-400 border border-gray-300 cursor-not-allowed opacity-60'
-              : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
+            : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
           }
-          ${isLoading ? 'opacity-60 cursor-wait' : ''}
         `}
         title={
-          isLockedByOther
-            ? `En cours d'édition par ${lockDetails?.userEmail}`
-            : isUnlocked
-              ? `Déverrouillé par ${unlockedBy} le ${unlockedAt?.toLocaleString('fr-BE')}`
-              : 'Cliquez pour déverrouiller les champs collectifs'
+          isUnlocked
+            ? `Déverrouillé par ${unlockedBy} le ${unlockedAt?.toLocaleString('fr-BE')}`
+            : 'Cliquez pour déverrouiller les champs collectifs'
         }
       >
-        {isLoading ? (
-          <>
-            <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-            <span>Chargement...</span>
-          </>
-        ) : isUnlocked ? (
+        {isUnlocked ? (
           <>
             <Unlock className="w-4 h-4" />
             <span>Verrouiller</span>
@@ -262,7 +218,7 @@ export function UnlockButton() {
         />
       )}
 
-      {error && !isLockedByOther && (
+      {error && (
         <div className="mt-2 bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md text-sm">
           {error}
         </div>
