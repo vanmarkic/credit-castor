@@ -1,6 +1,6 @@
 import { formatCurrency } from '../../utils/formatting';
 import type { Participant, ParticipantCalculation, ProjectParams } from '../../utils/calculatorUtils';
-import { getFraisGenerauxBreakdown, calculateExpenseCategoriesTotal, type UnitDetails } from '../../utils/calculatorUtils';
+import { getFraisGenerauxBreakdown, calculateExpenseCategoriesTotal, calculateTotalTravauxCommuns, type UnitDetails } from '../../utils/calculatorUtils';
 
 interface CostBreakdownGridProps {
   participant: Participant;
@@ -25,6 +25,11 @@ export function CostBreakdownGrid({ participant, participantCalc: p, projectPara
     ? calculateExpenseCategoriesTotal(projectParams.expenseCategories) / (allParticipants?.length || 1)
     : 0;
 
+  // Calculate travaux communs total per participant
+  const travauxCommunsPerParticipant = projectParams && allParticipants
+    ? calculateTotalTravauxCommuns(projectParams) / allParticipants.length
+    : 0;
+
   return (
     <div className="mb-6">
       <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">
@@ -41,13 +46,19 @@ export function CostBreakdownGrid({ participant, participantCalc: p, projectPara
         {/* Commun */}
         <div className="bg-white rounded-lg p-3 border border-purple-200">
           <p className="text-xs text-gray-500 mb-1">Commun</p>
-          <p className="text-lg font-bold text-purple-700">{formatCurrency(p.sharedCosts)}</p>
-          {(expenseCategoriesTotal > 0 || fraisGenerauxBreakdown) && (
+          <p className="text-lg font-bold text-purple-700">{formatCurrency(p.sharedCosts + travauxCommunsPerParticipant)}</p>
+          {(expenseCategoriesTotal > 0 || fraisGenerauxBreakdown || travauxCommunsPerParticipant > 0) && (
             <div className="mt-2 pt-2 border-t border-purple-100 space-y-0.5 text-xs text-gray-600">
               {expenseCategoriesTotal > 0 && (
                 <div className="flex justify-between">
                   <span>Infrastructures</span>
                   <span className="font-medium">{formatCurrency(expenseCategoriesTotal)}</span>
+                </div>
+              )}
+              {travauxCommunsPerParticipant > 0 && (
+                <div className="flex justify-between">
+                  <span>Travaux communs</span>
+                  <span className="font-medium">{formatCurrency(travauxCommunsPerParticipant)}</span>
                 </div>
               )}
               {fraisGenerauxBreakdown && (

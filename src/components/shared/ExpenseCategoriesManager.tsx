@@ -60,10 +60,8 @@ export function ExpenseCategoriesManager({
     items: [{ label: 'Rénovation complète', amount: 270000 }]
   };
 
-  // Calculate custom travaux communs total (only the new customizable items)
-  const travauxCommunsTotal = travauxCommuns.enabled
-    ? travauxCommuns.items.reduce((sum, item) => sum + item.amount, 0)
-    : 0;
+  // Calculate the full travaux communs total using the utility function
+  const fullTravauxCommunsTotal = calculateTotalTravauxCommuns(projectParams);
 
   /**
    * Generic handler to update an item in any category
@@ -181,12 +179,9 @@ export function ExpenseCategoriesManager({
       <div className={`border border-gray-200 rounded-lg overflow-hidden ${!travauxCommuns.enabled ? 'opacity-60' : ''}`}>
         <button
           onClick={() => {
-            if (travauxCommuns.enabled) {
-              setIsTravauxCommunsExpanded(!isTravauxCommunsExpanded);
-            }
+            setIsTravauxCommunsExpanded(!isTravauxCommunsExpanded);
           }}
-          disabled={!travauxCommuns.enabled}
-          className={`flex justify-between items-center p-3 bg-gray-50 w-full transition-colors ${travauxCommuns.enabled ? 'hover:bg-gray-100' : 'cursor-default'}`}
+          className="flex justify-between items-center p-3 bg-gray-50 w-full transition-colors hover:bg-gray-100"
         >
           <div className="flex items-center gap-2">
             <input
@@ -199,19 +194,16 @@ export function ExpenseCategoriesManager({
                   setIsTravauxCommunsExpanded(true);
                 }
               }}
-              disabled={!canEditExpenseCategories}
               className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
             />
-            {travauxCommuns.enabled && (
-              <svg
-                className={`w-4 h-4 text-gray-600 transition-transform ${isTravauxCommunsExpanded ? 'rotate-90' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            )}
+            <svg
+              className={`w-4 h-4 text-gray-600 transition-transform ${isTravauxCommunsExpanded ? 'rotate-90' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
             <div>
               <h4 className="text-sm font-semibold text-gray-800 uppercase tracking-wide">
                 TRAVAUX COMMUNS
@@ -222,49 +214,79 @@ export function ExpenseCategoriesManager({
             </div>
           </div>
           <span className={`text-sm font-bold ${travauxCommuns.enabled ? 'text-purple-700' : 'text-gray-400'}`}>
-            {travauxCommuns.enabled ? formatCurrency(travauxCommunsTotal) : '0 €'}
+            {formatCurrency(fullTravauxCommunsTotal)}
           </span>
         </button>
-        {travauxCommuns.enabled && isTravauxCommunsExpanded && (
+        {isTravauxCommunsExpanded && (
           <div className="p-3 bg-white space-y-2">
-            {travauxCommuns.items.map((item, index) => (
-              <div key={index} className="grid grid-cols-[1fr_auto_auto] gap-2 items-center">
-                <input
-                  type="text"
-                  value={item.label}
-                  onChange={(e) => handleTravauxCommunsItemLabelChange(index, e.target.value)}
-                  disabled={!canEditExpenseCategories}
-                  className={`px-3 py-2 text-xs border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white ${!canEditExpenseCategories ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''}`}
-                  placeholder="Label"
-                />
-                <input
-                  type="number"
-                  step="100"
-                  value={item.amount}
-                  onChange={(e) => handleTravauxCommunsItemChange(index, parseFloat(e.target.value) || 0)}
-                  disabled={!canEditExpenseCategories}
-                  className={`w-32 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white ${!canEditExpenseCategories ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''}`}
-                />
-                <button
-                  onClick={() => handleTravauxCommunsRemoveItem(index)}
-                  disabled={!canEditExpenseCategories}
-                  className={`p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors ${!canEditExpenseCategories ? 'opacity-60 cursor-not-allowed' : ''}`}
-                  title="Supprimer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+            {/* Display custom travaux communs items only when enabled */}
+            {!travauxCommuns.enabled && (
+              <div className="p-3 bg-gray-50 rounded text-center">
+                <p className="text-sm text-gray-500 italic">
+                  Activez les travaux communs pour ajouter des éléments personnalisables
+                </p>
               </div>
-            ))}
+            )}
+            {travauxCommuns.enabled && (
+              <>
+                {travauxCommuns.items.length > 0 && (
+                  <h5 className="text-xs font-semibold text-gray-700 uppercase">Travaux additionnels (personnalisables)</h5>
+                )}
+                {travauxCommuns.items.map((item, index) => (
+                  <div key={index} className="grid grid-cols-[1fr_auto_auto] gap-2 items-center">
+                    <input
+                      type="text"
+                      value={item.label}
+                      onChange={(e) => handleTravauxCommunsItemLabelChange(index, e.target.value)}
+                      disabled={!canEditExpenseCategories}
+                      className={`px-3 py-2 text-xs border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white ${!canEditExpenseCategories ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''}`}
+                      placeholder="Label"
+                    />
+                    <input
+                      type="number"
+                      step="100"
+                      value={item.amount}
+                      onChange={(e) => handleTravauxCommunsItemChange(index, parseFloat(e.target.value) || 0)}
+                      disabled={!canEditExpenseCategories}
+                      className={`w-32 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white ${!canEditExpenseCategories ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''}`}
+                    />
+                    <button
+                      onClick={() => handleTravauxCommunsRemoveItem(index)}
+                      disabled={!canEditExpenseCategories}
+                      className={`p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors ${!canEditExpenseCategories ? 'opacity-60 cursor-not-allowed' : ''}`}
+                      title="Supprimer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
 
-            {/* Add Item Button */}
-            <button
-              onClick={handleTravauxCommunsAddItem}
-              disabled={!canEditExpenseCategories}
-              className={`w-full mt-2 flex items-center justify-center gap-2 px-3 py-2 text-sm text-purple-700 border border-purple-300 rounded-lg hover:bg-purple-50 transition-colors ${!canEditExpenseCategories ? 'opacity-60 cursor-not-allowed' : ''}`}
-            >
-              <Plus className="w-4 h-4" />
-              Ajouter une ligne
-            </button>
+                {/* Add Item Button */}
+                <button
+                  onClick={handleTravauxCommunsAddItem}
+                  disabled={!canEditExpenseCategories}
+                  className={`w-full mt-2 flex items-center justify-center gap-2 px-3 py-2 text-sm text-purple-700 border border-purple-300 rounded-lg hover:bg-purple-50 transition-colors ${!canEditExpenseCategories ? 'opacity-60 cursor-not-allowed' : ''}`}
+                >
+                  <Plus className="w-4 h-4" />
+                  Ajouter une ligne
+                </button>
+              </>
+            )}
+
+            {/* Total summary */}
+            <div className="mt-3 p-2 bg-purple-100 rounded border border-purple-300">
+              <div className="space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-sm font-bold text-gray-800">TOTAL Travaux Communs</span>
+                  <span className="text-sm font-bold text-purple-800">{formatCurrency(fullTravauxCommunsTotal)}</span>
+                </div>
+                {participants.length > 0 && (
+                  <div className="text-xs text-gray-600 mt-1 italic">
+                    Par participant: {formatCurrency(fullTravauxCommunsTotal / participants.length)}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>

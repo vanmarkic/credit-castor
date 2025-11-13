@@ -17,7 +17,7 @@ import {
 import { Timestamp } from 'firebase/firestore';
 
 // In-memory lock storage for testing
-let mockLockStore: Map<string, any> = new Map();
+const mockLockStore: Map<string, any> = new Map();
 
 // Transaction lock to serialize concurrent access
 let transactionLock: Promise<any> = Promise.resolve();

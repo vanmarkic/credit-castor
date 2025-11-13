@@ -550,7 +550,7 @@ describe('Participant Cash Flows', () => {
 
     const initialState = createInitialState();
     // Apply initial event (state not used in subsequent code)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/ban-ts-comment
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore - State setup for future use
     const _state = applyEvent(initialState, initialEvent);
 

@@ -106,7 +106,7 @@ describe('Portage lot recalculation on entry date change', () => {
     // changing their entryDate should trigger a recalculation of purchasePrice
 
     // Seller configuration (defined but not used in current implementation)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/ban-ts-comment
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore - Seller will be used when auto-recalculation is implemented
     const _seller: Participant = {
       name: 'Seller',

@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 import * as Tooltip from '@radix-ui/react-tooltip';
-import { type Participant } from '../utils/calculatorUtils';
+import { type Participant, calculateTotalTravauxCommuns } from '../utils/calculatorUtils';
 import { ParticipantsTimeline } from './calculator/ParticipantsTimeline';
 import { ProjectHeader } from './calculator/ProjectHeader';
 import { VerticalToolbar } from './calculator/VerticalToolbar';
@@ -395,8 +395,12 @@ export default function EnDivisionCorrect() {
 
             <div className="p-3 bg-white rounded-lg border border-purple-200 flex-1">
               <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Commun Infrastr.</p>
-              <p className="text-lg font-bold text-purple-700">{formatCurrency(calculations.sharedCosts)}</p>
-              <p className="text-xs text-purple-500 mt-1">{formatCurrency(calculations.sharedPerPerson)}/pers</p>
+              <p className="text-lg font-bold text-purple-700">
+                {formatCurrency(calculations.sharedCosts + calculateTotalTravauxCommuns(projectParams))}
+              </p>
+              <p className="text-xs text-purple-500 mt-1">
+                {formatCurrency((calculations.sharedCosts + calculateTotalTravauxCommuns(projectParams)) / participants.length)}/pers
+              </p>
             </div>
 
             <div className="text-2xl font-bold text-gray-400 flex-shrink-0">+</div>
@@ -451,10 +455,12 @@ export default function EnDivisionCorrect() {
             <div className="mt-4 p-3 bg-purple-100 rounded-lg border border-purple-300">
               <div className="flex justify-between items-center">
                 <p className="text-sm font-semibold text-gray-700">Total commun:</p>
-                <p className="text-lg font-bold text-purple-800">{formatCurrency(calculations.sharedCosts)}</p>
+                <p className="text-lg font-bold text-purple-800">
+                  {formatCurrency(calculations.sharedCosts + calculateTotalTravauxCommuns(projectParams))}
+                </p>
               </div>
               <p className="text-xs text-gray-600 mt-1">
-                {formatCurrency(calculations.sharedPerPerson)} par personne
+                {formatCurrency((calculations.sharedCosts + calculateTotalTravauxCommuns(projectParams)) / participants.length)} par personne
               </p>
             </div>
           </div>
