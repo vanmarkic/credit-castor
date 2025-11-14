@@ -13,7 +13,7 @@ import { DEFAULT_MAX_TOTAL_LOTS } from './lotValidation';
  * Default values for migrating old travauxCommuns format
  * These represent reasonable defaults based on the application's typical usage
  */
-const DEFAULT_TRAVAUX_SQM = 336; // Default surface area in m²
+// const DEFAULT_TRAVAUX_SQM = 336; // Default surface area in m²
 const DEFAULT_CASCO_PRICE_PER_SQM = 600; // Default CASCO price per m²
 const DEFAULT_PARACHEVEMENTS_PRICE_PER_SQM = 200; // Default parachèvements price per m²
 
