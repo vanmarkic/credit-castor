@@ -234,8 +234,10 @@ describe('useExpectedPaybacks', () => {
     const defaultCoproPayback = defaultResult.current.paybacks.find(pb => pb.type === 'copro');
     expect(defaultCoproPayback).toBeDefined();
     // With 30% to reserves, 70% goes to participants
-    // Since founder is the only eligible participant, they get 100% of the 70%
-    expect(defaultCoproPayback?.amount).toBe(70000);
+    // Founder's quotité: 100m² / (100m² + 50m²) = 66.67%
+    // Founder gets 66.67% of 70,000€ = 46,666.67€
+    const founderQuotite = 100 / (100 + 50); // 0.6667
+    expect(defaultCoproPayback?.amount).toBeCloseTo(70000 * founderQuotite, 2);
 
     // Custom: 60% to copro reserves, 40% to participants
     const { result: customResult } = renderHook(() =>
@@ -245,7 +247,8 @@ describe('useExpectedPaybacks', () => {
     const customCoproPayback = customResult.current.paybacks.find(pb => pb.type === 'copro');
     expect(customCoproPayback).toBeDefined();
     // With 60% to reserves, 40% goes to participants
-    expect(customCoproPayback?.amount).toBe(40000);
+    // Founder gets 66.67% of 40,000€ = 26,666.67€
+    expect(customCoproPayback?.amount).toBeCloseTo(40000 * founderQuotite, 2);
   });
 
   it('applies coproReservesShare split before time-based redistribution', () => {
@@ -293,8 +296,11 @@ describe('useExpectedPaybacks', () => {
 
     const aliceCoproPayback = aliceResult.current.paybacks.find(pb => pb.type === 'copro');
     expect(aliceCoproPayback).toBeDefined();
-    // 60% of 100k = 60k, split between 2 founders = 30k each
-    expect(aliceCoproPayback?.amount).toBe(30000);
+    // 60% of 100k = 60k, distributed by quotité
+    // Alice quotité: 100m² / (100m² + 100m² + 50m²) = 40%
+    // Alice gets 40% of 60,000€ = 24,000€
+    const aliceQuotite = 100 / (100 + 100 + 50); // 0.4
+    expect(aliceCoproPayback?.amount).toBeCloseTo(60000 * aliceQuotite, 2);
 
     const { result: bobResult } = renderHook(() =>
       useExpectedPaybacks(founder2, [founder, founder2, buyer], deedDate, 40)
@@ -302,6 +308,7 @@ describe('useExpectedPaybacks', () => {
 
     const bobCoproPayback = bobResult.current.paybacks.find(pb => pb.type === 'copro');
     expect(bobCoproPayback).toBeDefined();
-    expect(bobCoproPayback?.amount).toBe(30000);
+    // Bob has same quotité as Alice: 40%
+    expect(bobCoproPayback?.amount).toBeCloseTo(60000 * aliceQuotite, 2);
   });
 });

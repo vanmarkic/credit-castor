@@ -786,24 +786,21 @@ export function calculateAll(
     
     if (!p.isFounder && p.purchaseDetails?.buyingFrom === 'Copropriété' && p.entryDate && deedDate) {
       // Use quotité-based calculation for newcomers buying from copropriété
-      // IMPORTANT: Calculate quotité based on existing participants BEFORE this buyer (exclude the buyer)
-      // This treats earlier newcomers like founders when calculating the buyer's quotité
+      // Calculate quotité based on ALL participants who entered on or before this buyer's entry date
+      // This includes the buyer themselves in the total surface
       const existingParticipants = participants.filter(existing => {
-        // Exclude the current participant (the buyer themselves)
-        if (existing === p) return false;
-        
-        // Include all participants who entered before this buyer
+        // Include all participants who entered before or on the same day as this buyer (including the buyer)
         const existingEntryDate = existing.entryDate || (existing.isFounder ? new Date(deedDate) : null);
         if (!existingEntryDate) return false;
         
         const buyerEntryDate = p.entryDate instanceof Date ? p.entryDate : new Date(p.entryDate);
-        return existingEntryDate < buyerEntryDate; // Strictly before, not equal
+        return existingEntryDate <= buyerEntryDate;
       });
       
       try {
         const newcomerPrice = calculateNewcomerPurchasePrice(
           surface,
-          existingParticipants, // Only existing participants, excluding the buyer
+          existingParticipants, // All participants up to and including the buyer's entry date
           projectParams.totalPurchase,
           deedDate,
           p.entryDate,

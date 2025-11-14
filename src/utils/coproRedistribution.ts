@@ -223,3 +223,46 @@ export function calculateCoproRedistributionForParticipant(
   
   return paybacks;
 }
+
+/**
+ * Sum all amounts in a Map<string, number>
+ */
+export function sumDistributionAmounts(distributionMap: Map<string, number>): number {
+  let total = 0;
+  for (const amount of distributionMap.values()) {
+    total += amount;
+  }
+  return total;
+}
+
+/**
+ * Calculate distribution percentages for copro reserves and participants
+ */
+export function calculateDistributionPercentages(
+  toCoproReserves: number,
+  toParticipants: number,
+  totalPrice: number
+): { coproReservesPercent: number; foundersPercent: number } {
+  if (totalPrice <= 0) {
+    return { coproReservesPercent: 0, foundersPercent: 0 };
+  }
+  
+  const coproReservesPercent = (toCoproReserves / totalPrice) * 100;
+  const foundersPercent = (toParticipants / totalPrice) * 100;
+  
+  return { coproReservesPercent, foundersPercent };
+}
+
+/**
+ * Calculate quotité from distribution amount
+ */
+export function calculateQuotiteFromAmount(
+  amount: number,
+  totalToParticipants: number
+): number {
+  if (totalToParticipants <= 0) {
+    return 0;
+  }
+  return (amount / totalToParticipants) * 100;
+}
+

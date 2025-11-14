@@ -134,7 +134,9 @@ describe('Copro Redistribution Display - Main View and Detail Modal', () => {
 
     const participantsShare = 1 - (coproReservesShare / 100);
     const amountToParticipants = coproSalePricing.totalPrice * participantsShare;
-    const expectedRedistribution = amountToParticipants; // 100% for single founder
+    // Founder's share: quotité = 200m² / (200m² + 50m²) = 80%
+    const founderQuotite = 200 / (200 + 50); // 0.8
+    const expectedRedistribution = amountToParticipants * founderQuotite;
 
     const newcomer: Participant = {
       name: 'Newcomer Bob',
@@ -271,7 +273,9 @@ describe('Copro Redistribution Display - Main View and Detail Modal', () => {
 
     const participantsShare = 1 - (coproReservesShare / 100);
     const amountToParticipants = coproSalePricing.totalPrice * participantsShare;
-    const expectedRedistribution = amountToParticipants;
+    // Founder's share: quotité = 200m² / (200m² + 50m²) = 80%
+    const founderQuotite = 200 / (200 + 50); // 0.8
+    const expectedRedistribution = amountToParticipants * founderQuotite;
 
     const newcomer: Participant = {
       name: 'Newcomer Bob',
@@ -425,8 +429,12 @@ describe('Copro Redistribution Display - Main View and Detail Modal', () => {
 
     // Calculate redistributions
     const participantsShare = 1 - (coproReservesShare / 100);
-    const redistributionBefore = coproSalePricingBefore.totalPrice * participantsShare;
-    const redistributionAfter = coproSalePricingAfter.totalPrice * participantsShare;
+    // For "Before" sale: quotité = 200m² / (200m² + 50m²) = 80%
+    const founderQuotiteBefore = 200 / (200 + 50); // 0.8
+    const redistributionBefore = coproSalePricingBefore.totalPrice * participantsShare * founderQuotiteBefore;
+    // For "After" sale: quotité = 200m² / (200m² + 50m² + 50m²) = 66.67%
+    const founderQuotiteAfter = 200 / (200 + 50 + 50); // 0.6667
+    const redistributionAfter = coproSalePricingAfter.totalPrice * participantsShare * founderQuotiteAfter;
 
     // Redistribution after should be higher (includes renovation)
     expect(redistributionAfter).toBeGreaterThan(redistributionBefore);

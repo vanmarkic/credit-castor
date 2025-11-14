@@ -92,23 +92,20 @@ export function CostBreakdownGrid({ participant, participantCalc: p, projectPara
   if (isNewcomer && participant.purchaseDetails?.buyingFrom === 'Copropriété' && 
       allParticipants && projectParams && deedDate && participant.entryDate) {
     try {
-      // Calculate quotité based on existing participants BEFORE this buyer (exclude the buyer)
-      // This treats earlier newcomers like founders when calculating the buyer's quotité
+      // Calculate quotité based on ALL participants who entered on or before this buyer's entry date
+      // This includes the buyer themselves in the total surface
       const existingParticipants = allParticipants.filter(existing => {
-        // Exclude the current participant (the buyer themselves)
-        if (existing.name === participant.name) return false;
-        
-        // Include all participants who entered before this buyer
+        // Include all participants who entered before or on the same day as this buyer (including the buyer)
         const existingEntryDate = existing.entryDate || (existing.isFounder ? new Date(deedDate) : null);
         if (!existingEntryDate) return false;
         
         const buyerEntryDate = participant.entryDate instanceof Date ? participant.entryDate : new Date(participant.entryDate);
-        return existingEntryDate < buyerEntryDate; // Strictly before, not equal
+        return existingEntryDate <= buyerEntryDate;
       });
       
       newcomerPriceCalculation = calculateNewcomerPurchasePrice(
         participant.surface || 0,
-        existingParticipants, // Only existing participants, excluding the buyer
+        existingParticipants, // All participants up to and including the buyer's entry date
         projectParams.totalPurchase,
         deedDate,
         participant.entryDate,
