@@ -257,7 +257,14 @@ export function ParticipantDetailsPanel({
                   purchaseDetails: {
                     buyingFrom: lot.fromParticipant || 'Copropriété',
                     lotId: lot.lotId,
-                    purchasePrice: price.totalPrice
+                    purchasePrice: price.totalPrice,
+                    breakdown: {
+                      basePrice: price.basePrice,
+                      indexation: price.indexation,
+                      carryingCostRecovery: price.carryingCostRecovery,
+                      feesRecovery: price.feesRecovery || 0,
+                      renovations: 0 // Can be added if needed
+                    }
                   }
                 };
 

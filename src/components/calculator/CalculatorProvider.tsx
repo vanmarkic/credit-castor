@@ -400,8 +400,8 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
         }
       };
     }
-    return calculateAll(participants, projectParams, unitDetails);
-  }, [participants, projectParams, isInitialized]);
+    return calculateAll(participants, projectParams, unitDetails, deedDate || undefined, portageFormula);
+  }, [participants, projectParams, deedDate, portageFormula, isInitialized]);
 
   // Actions
   const addParticipant = () => {

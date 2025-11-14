@@ -4,6 +4,7 @@
  */
 
 import type { Lot } from '../types/timeline';
+import { calculateIndexation } from './portageCalculations';
 
 export interface Participant {
   name: string;
@@ -679,11 +680,19 @@ export function calculateTwoLoanFinancing(
 
 /**
  * Main calculation function that computes all participant breakdowns and totals
+ * 
+ * @param participants - Array of all participants
+ * @param projectParams - Project parameters
+ * @param unitDetails - Unit details for CASCO and parachèvements
+ * @param deedDate - Optional deed date for newcomer calculations
+ * @param formulaParams - Optional portage formula parameters for newcomer calculations
  */
 export function calculateAll(
   participants: Participant[],
   projectParams: ProjectParams,
-  unitDetails: UnitDetails
+  unitDetails: UnitDetails,
+  deedDate?: string,
+  formulaParams?: PortageFormulaParams
 ): CalculationResults {
   // Filter enabled participants for calculations (enabled defaults to true for backward compatibility)
   const enabledParticipants = participants.filter(p => p.enabled !== false);
@@ -770,7 +779,32 @@ export function calculateAll(
       }
     }
 
-    const purchaseShare = calculatePurchaseShare(surface, pricePerM2);
+    // Calculate purchase share
+    // For newcomers buying from copropriété, use quotité-based calculation
+    // For others (founders or buying from participant), use standard calculation or stored value
+    let purchaseShare: number;
+    
+    if (!p.isFounder && p.purchaseDetails?.buyingFrom === 'Copropriété' && p.entryDate && deedDate) {
+      // Use quotité-based calculation for newcomers buying from copropriété
+      try {
+        const newcomerPrice = calculateNewcomerPurchasePrice(
+          surface,
+          participants,
+          projectParams.totalPurchase,
+          deedDate,
+          p.entryDate,
+          formulaParams
+        );
+        purchaseShare = newcomerPrice.totalPrice;
+      } catch (error) {
+        console.error('Error calculating newcomer price, falling back to standard calculation:', error);
+        purchaseShare = p.purchaseDetails?.purchasePrice ?? calculatePurchaseShare(surface, pricePerM2);
+      }
+    } else {
+      // For founders or newcomers buying from participants, use stored price or standard calculation
+      purchaseShare = p.purchaseDetails?.purchasePrice ?? calculatePurchaseShare(surface, pricePerM2);
+    }
+    
     const droitEnregistrements = calculateDroitEnregistrements(purchaseShare, p.registrationFeesRate);
     const fraisNotaireFixe = calculateFraisNotaireFixe(quantity);
 
@@ -888,5 +922,331 @@ export function calculateAll(
     sharedPerPerson,
     participantBreakdown,
     totals,
+  };
+}
+
+// ============================================
+// Newcomer Quotité and Purchase Price Calculation
+// ============================================
+
+/**
+ * Calculate quotité for a newcomer buying from copropriété
+ * Quotité = newcomer's surface / total building surface (all participants)
+ * 
+ * @param newcomerSurface - Surface area the newcomer is purchasing (m²)
+ * @param allParticipants - All participants (founders + newcomers)
+ * @returns Quotité as a decimal (e.g., 0.079 for 79/1000)
+ */
+export function calculateNewcomerQuotite(
+  newcomerSurface: number,
+  allParticipants: Participant[]
+): number {
+  const totalBuildingSurface = allParticipants.reduce((sum, p) => sum + (p.surface || 0), 0);
+  
+  if (totalBuildingSurface <= 0) {
+    return 0;
+  }
+  
+  return newcomerSurface / totalBuildingSurface;
+}
+
+/**
+ * Calculate purchase price for newcomer using quotité-based portage formula
+ * 
+ * Formula:
+ * 1. Quotité = newcomer's surface / total building surface (all participants)
+ * 2. Base Price = Quotité × Total Project Cost
+ * 3. Apply portage formula: indexation + carrying cost recovery
+ * 4. Final Price = Base Price + Indexation + Carrying Cost Recovery
+ * 
+ * @param newcomerSurface - Surface area the newcomer is purchasing (m²)
+ * @param allParticipants - All participants (founders + newcomers)
+ * @param totalProjectCost - Original total project cost (purchase price)
+ * @param deedDate - Project deed date (T0)
+ * @param entryDate - Date when newcomer is entering
+ * @param formulaParams - Portage formula parameters
+ * @returns Purchase price breakdown
+ */
+export function calculateNewcomerPurchasePrice(
+  newcomerSurface: number,
+  allParticipants: Participant[],
+  totalProjectCost: number,
+  deedDate: string | Date,
+  entryDate: string | Date,
+  formulaParams?: PortageFormulaParams
+): {
+  quotite: number;
+  basePrice: number;
+  indexation: number;
+  carryingCostRecovery: number;
+  totalPrice: number;
+  yearsHeld: number;
+} {
+  // Calculate quotité
+  const quotite = calculateNewcomerQuotite(newcomerSurface, allParticipants);
+  
+  // Calculate base price using quotité
+  const basePrice = quotite * totalProjectCost;
+  
+  // Calculate years held (from deed date to entry date)
+  const deedDateObj = deedDate instanceof Date ? deedDate : new Date(deedDate);
+  const entryDateObj = entryDate instanceof Date ? entryDate : new Date(entryDate);
+  const yearsHeld = (entryDateObj.getTime() - deedDateObj.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+  
+  // Apply portage formula
+  const indexationRate = formulaParams?.indexationRate ?? 2; // 2% per year default
+  const indexation = basePrice * (Math.pow(1 + indexationRate / 100, yearsHeld) - 1);
+  
+  // Carrying costs (simplified - proportional to quotité)
+  // TODO: Use actual carrying costs calculation
+  const monthlyCarryingCosts = 500; // €500/month (should be calculated from actual costs)
+  const totalCarryingCosts = monthlyCarryingCosts * yearsHeld * 12;
+  const carryingCostRecovery = totalCarryingCosts * quotite;
+  
+  // Final price
+  const totalPrice = basePrice + indexation + carryingCostRecovery;
+  
+  return {
+    quotite,
+    basePrice,
+    indexation,
+    carryingCostRecovery,
+    totalPrice,
+    yearsHeld
+  };
+}
+
+// ============================================
+// Commun Costs Breakdown Calculations
+// ============================================
+
+/**
+ * Calculate number of participants at purchase time (founders + those buying same day as deed date)
+ */
+export function calculateParticipantsAtPurchaseTime(
+  allParticipants: Participant[],
+  deedDate?: string
+): number {
+  if (!allParticipants || allParticipants.length === 0) {
+    return 1;
+  }
+
+  if (!deedDate) {
+    return Math.max(1, allParticipants.length);
+  }
+
+  try {
+    const deedDateObj = new Date(deedDate);
+    if (isNaN(deedDateObj.getTime())) {
+      return Math.max(1, allParticipants.length);
+    }
+
+    const deedDateStr = deedDateObj.toISOString().split('T')[0];
+    const count = allParticipants.filter(p => {
+      // Include founders (they are always at purchase time)
+      if (p.isFounder === true) {
+        return true;
+      }
+      // Include non-founders who entered on the deed date
+      if (p.entryDate) {
+        try {
+          const entryDateObj = new Date(p.entryDate);
+          if (isNaN(entryDateObj.getTime())) return false;
+          const entryDateStr = entryDateObj.toISOString().split('T')[0];
+          return entryDateStr === deedDateStr;
+        } catch {
+          return false;
+        }
+      }
+      return false;
+    }).length;
+    return Math.max(1, count);
+  } catch {
+    return Math.max(1, allParticipants.length);
+  }
+}
+
+/**
+ * Calculate number of participants at a given entry date (for newcomers)
+ * Includes all founders + all newcomers who entered on or before the entry date
+ */
+export function calculateParticipantsAtEntryDate(
+  allParticipants: Participant[],
+  entryDate: Date | string,
+  deedDate?: string
+): number {
+  if (!allParticipants || allParticipants.length === 0) {
+    return 1;
+  }
+
+  try {
+    const entryDateObj = entryDate instanceof Date ? entryDate : new Date(entryDate);
+    if (isNaN(entryDateObj.getTime())) {
+      // Fallback to purchase time count
+      return calculateParticipantsAtPurchaseTime(allParticipants, deedDate);
+    }
+
+    const entryDateStr = entryDateObj.toISOString().split('T')[0];
+    const count = allParticipants.filter(p => {
+      // Include all founders
+      if (p.isFounder === true) {
+        return true;
+      }
+      // Include all newcomers who entered on or before this entry date
+      if (p.entryDate) {
+        try {
+          const pEntryDateObj = new Date(p.entryDate);
+          if (isNaN(pEntryDateObj.getTime())) return false;
+          const pEntryDateStr = pEntryDateObj.toISOString().split('T')[0];
+          return pEntryDateStr <= entryDateStr;
+        } catch {
+          return false;
+        }
+      }
+      return false;
+    }).length;
+    return Math.max(1, count);
+  } catch {
+    // Fallback to purchase time count
+    return calculateParticipantsAtPurchaseTime(allParticipants, deedDate);
+  }
+}
+
+export interface CommunCostsBreakdown {
+  totalCommunBeforeDivision: number;
+  expenseCategoriesTotal: number;
+  honorairesPerParticipant: number;
+  frais3ansPerParticipant: number;
+  ponctuelsPerParticipant: number;
+  travauxCommunsPerParticipant: number;
+  sharedCostsPerParticipant: number;
+  participantsCount: number;
+}
+
+export interface CommunCostsWithPortageCopro {
+  base: number;
+  indexation: number;
+  total: number;
+  yearsHeld: number;
+}
+
+/**
+ * Calculate commun costs breakdown for a participant
+ * Returns per-participant amounts for each component
+ */
+export function calculateCommunCostsBreakdown(
+  participant: Participant,
+  allParticipants: Participant[],
+  projectParams: ProjectParams,
+  unitDetails: UnitDetails,
+  deedDate?: string
+): CommunCostsBreakdown {
+  // Calculate frais généraux breakdown
+  const fraisGenerauxBreakdown = getFraisGenerauxBreakdown(
+    allParticipants,
+    projectParams,
+    unitDetails
+  );
+
+  // Calculate totals before division
+  const expenseCategoriesTotalBeforeDivision = projectParams.expenseCategories
+    ? (calculateExpenseCategoriesTotal(projectParams.expenseCategories) || 0)
+    : 0;
+
+  const travauxCommunsTotalBeforeDivision = calculateTotalTravauxCommuns(projectParams) || 0;
+
+  const totalFraisGeneraux = (fraisGenerauxBreakdown.honorairesTotal3Years || 0) +
+    (fraisGenerauxBreakdown.recurringTotal3Years || 0) +
+    ((fraisGenerauxBreakdown.oneTimeCosts?.total) || 0);
+
+  const totalCommunBeforeDivision = expenseCategoriesTotalBeforeDivision +
+    totalFraisGeneraux +
+    travauxCommunsTotalBeforeDivision;
+
+  // Determine participant count (founders vs newcomers)
+  const isNewcomer = !participant.isFounder;
+  let participantsCount: number;
+
+  if (isNewcomer && participant.entryDate) {
+    participantsCount = calculateParticipantsAtEntryDate(
+      allParticipants,
+      participant.entryDate,
+      deedDate
+    );
+  } else {
+    participantsCount = calculateParticipantsAtPurchaseTime(allParticipants, deedDate);
+  }
+
+  // Calculate per-participant amounts
+  const honorairesPerParticipant = (fraisGenerauxBreakdown.honorairesTotal3Years || 0) / participantsCount;
+  const frais3ansPerParticipant = (fraisGenerauxBreakdown.recurringTotal3Years || 0) / participantsCount;
+  const ponctuelsPerParticipant = ((fraisGenerauxBreakdown.oneTimeCosts?.total) || 0) / participantsCount;
+  const expenseCategoriesTotal = expenseCategoriesTotalBeforeDivision / participantsCount;
+  const travauxCommunsPerParticipant = travauxCommunsTotalBeforeDivision / participantsCount;
+
+  const sharedCostsPerParticipant = expenseCategoriesTotal +
+    honorairesPerParticipant +
+    frais3ansPerParticipant +
+    ponctuelsPerParticipant +
+    travauxCommunsPerParticipant;
+
+  return {
+    totalCommunBeforeDivision,
+    expenseCategoriesTotal,
+    honorairesPerParticipant,
+    frais3ansPerParticipant,
+    ponctuelsPerParticipant,
+    travauxCommunsPerParticipant,
+    sharedCostsPerParticipant,
+    participantsCount
+  };
+}
+
+/**
+ * Calculate commun costs for newcomer using portage copro formula
+ * Formula: base (total ÷ participants) + indexation
+ */
+export function calculateCommunCostsWithPortageCopro(
+  totalCommunBeforeDivision: number,
+  participantsAtEntryDate: number,
+  deedDate: string,
+  entryDate: Date | string,
+  formulaParams: PortageFormulaParams
+): CommunCostsWithPortageCopro {
+  // Calculate base commun cost per participant at entry date
+  const baseCommunCost = totalCommunBeforeDivision / participantsAtEntryDate;
+
+  // Calculate years held from deed date to entry date
+  const deedDateObj = new Date(deedDate);
+  const entryDateObj = entryDate instanceof Date ? entryDate : new Date(entryDate);
+
+  if (isNaN(deedDateObj.getTime()) || isNaN(entryDateObj.getTime())) {
+    // Invalid dates, return base only
+    return {
+      base: baseCommunCost,
+      indexation: 0,
+      total: baseCommunCost,
+      yearsHeld: 0
+    };
+  }
+
+  const yearsHeld = (entryDateObj.getTime() - deedDateObj.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+
+  // Apply indexation using portage copro formula
+  const indexationRate = formulaParams.indexationRate || 2;
+  const indexation = calculateIndexation(
+    baseCommunCost,
+    indexationRate,
+    Math.max(0, yearsHeld)
+  );
+
+  // Total = base + indexation
+  const total = baseCommunCost + indexation;
+
+  return {
+    base: baseCommunCost,
+    indexation,
+    total,
+    yearsHeld: Math.max(0, yearsHeld)
   };
 }

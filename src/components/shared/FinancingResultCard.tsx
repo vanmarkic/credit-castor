@@ -1,8 +1,13 @@
 import { formatCurrency } from '../../utils/formatting';
-import type { ParticipantCalculation } from '../../utils/calculatorUtils';
+import type { Participant, ParticipantCalculation, ProjectParams } from '../../utils/calculatorUtils';
+import { getFraisGenerauxBreakdown, calculateExpenseCategoriesTotal, calculateTotalTravauxCommuns, type UnitDetails } from '../../utils/calculatorUtils';
 
 interface FinancingResultCardProps {
   participantCalc: ParticipantCalculation;
+  projectParams?: ProjectParams;
+  allParticipants?: Participant[];
+  unitDetails?: UnitDetails;
+  deedDate?: string;
 }
 
 /**
@@ -10,8 +15,45 @@ interface FinancingResultCardProps {
  * Shows total cost, capital, loan needed, interest, total repayment, and monthly payment
  * When useTwoLoans is enabled, displays two separate loan sections
  */
-export function FinancingResultCard({ participantCalc: p }: FinancingResultCardProps) {
+export function FinancingResultCard({ participantCalc: p, projectParams, allParticipants, unitDetails, deedDate }: FinancingResultCardProps) {
   const hasTwoLoans = p.useTwoLoans && p.loan1Amount && p.loan2Amount;
+
+  // Calculate enabled participants count - p.sharedCosts is calculated as sharedCosts / enabledCount
+  // We need to use the same denominator to make the breakdown sum to p.sharedCosts
+  const enabledCount = allParticipants 
+    ? Math.max(1, allParticipants.filter(p => p.enabled !== false).length)
+    : 1;
+
+  // Calculate frais généraux breakdown if data is available
+  const fraisGenerauxBreakdown = projectParams && allParticipants && unitDetails
+    ? getFraisGenerauxBreakdown(allParticipants, projectParams, unitDetails)
+    : null;
+
+  // Calculate expense categories totals (before and after division)
+  // Use enabledCount to match how p.sharedCosts is calculated (sharedCosts / enabledCount)
+  const expenseCategoriesTotalBeforeDivision = projectParams?.expenseCategories
+    ? (calculateExpenseCategoriesTotal(projectParams.expenseCategories) || 0)
+    : 0;
+  const expenseCategoriesTotal = (expenseCategoriesTotalBeforeDivision || 0) / enabledCount;
+
+  // Calculate travaux communs totals (before and after division)
+  // Note: travaux communs are NOT included in p.sharedCosts, they're in constructionCost
+  // So we don't include them in the Commun breakdown here
+  const travauxCommunsTotalBeforeDivision = projectParams
+    ? (calculateTotalTravauxCommuns(projectParams) || 0)
+    : 0;
+
+  // Calculate per-participant amounts for each frais généraux component
+  // Divide by enabledCount to match how p.sharedCosts is calculated
+  const honorairesPerParticipant = fraisGenerauxBreakdown 
+    ? ((fraisGenerauxBreakdown.honorairesTotal3Years || 0) / enabledCount)
+    : 0;
+  const frais3ansPerParticipant = fraisGenerauxBreakdown 
+    ? ((fraisGenerauxBreakdown.recurringTotal3Years || 0) / enabledCount)
+    : 0;
+  const ponctuelsPerParticipant = fraisGenerauxBreakdown 
+    ? (((fraisGenerauxBreakdown.oneTimeCosts?.total) || 0) / enabledCount)
+    : 0;
 
   return (
     <div className="bg-red-50 rounded-lg p-5 border border-red-200 mb-6">
@@ -34,6 +76,39 @@ export function FinancingResultCard({ participantCalc: p }: FinancingResultCardP
         <div className="bg-white rounded-lg p-3 border border-gray-200 flex-1">
           <p className="text-xs text-gray-500 mb-1">Coût du projet</p>
           <p className="text-lg font-bold text-gray-900">{formatCurrency(p.totalCost)}</p>
+          {/* Full calculation breakdown with real values */}
+          <div className="mt-2 pt-2 border-t border-gray-100 text-xs text-gray-500 space-y-0.5">
+            <div className="font-medium text-gray-600 mb-1">Calcul:</div>
+            <div>Part d'achat: {formatCurrency(p.purchaseShare)}</div>
+            <div>+ Droit d'enregistrements: {formatCurrency(p.droitEnregistrements)}</div>
+            <div>+ Frais de notaire: {formatCurrency(p.fraisNotaireFixe)}</div>
+            <div>+ CASCO: {formatCurrency(p.casco)}</div>
+            <div>+ Parachèvements: {formatCurrency(p.parachevements)}</div>
+            {((p.constructionCost - p.personalRenovationCost) > 0) && (
+              <div>+ Travaux communs: {formatCurrency(p.constructionCost - p.personalRenovationCost)}</div>
+            )}
+            <div>+ Commun: {formatCurrency(p.sharedCosts)}</div>
+            {/* Breakdown of Commun */}
+            {(expenseCategoriesTotal > 0 || honorairesPerParticipant > 0 || frais3ansPerParticipant > 0 || ponctuelsPerParticipant > 0) && (
+              <div className="ml-4 mt-1 pt-1 border-l-2 border-purple-200 pl-2 space-y-0.5 text-xs text-purple-700">
+                {expenseCategoriesTotal > 0 && (
+                  <div>• Infrastructures: {formatCurrency(expenseCategoriesTotal || 0)}</div>
+                )}
+                {honorairesPerParticipant > 0 && (
+                  <div>• Honoraires: {formatCurrency(honorairesPerParticipant || 0)}</div>
+                )}
+                {frais3ansPerParticipant > 0 && (
+                  <div>• Frais 3 ans: {formatCurrency(frais3ansPerParticipant || 0)}</div>
+                )}
+                {ponctuelsPerParticipant > 0 && (
+                  <div>• Ponctuels: {formatCurrency(ponctuelsPerParticipant || 0)}</div>
+                )}
+              </div>
+            )}
+            <div className="font-semibold text-gray-900 pt-1 border-t border-gray-50 mt-1">
+              = {formatCurrency(p.totalCost)}
+            </div>
+          </div>
         </div>
 
         <div className="text-xl font-bold text-gray-400 flex-shrink-0">−</div>

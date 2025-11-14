@@ -210,7 +210,14 @@ export default function ParticipantDetailModal({
                     purchaseDetails: {
                       buyingFrom: lot.fromParticipant || 'Copropriété',
                       lotId: lot.lotId,
-                      purchasePrice: price.totalPrice
+                      purchasePrice: price.totalPrice,
+                      breakdown: {
+                        basePrice: price.basePrice,
+                        indexation: price.indexation,
+                        carryingCostRecovery: price.carryingCostRecovery,
+                        feesRecovery: price.feesRecovery || 0,
+                        renovations: 0 // Can be added if needed
+                      }
                     }
                   });
                 }}
@@ -375,6 +382,7 @@ export default function ParticipantDetailModal({
           {/* Two-Loan Financing Section */}
           <TwoLoanFinancingSection
             participant={participant}
+            participantCalc={p}
             personalRenovationCost={p.personalRenovationCost || 0}
             validationErrors={validationErrors}
             onUpdateParticipant={onUpdateParticipant}
@@ -388,6 +396,8 @@ export default function ParticipantDetailModal({
           projectParams={projectParams}
           allParticipants={allParticipants}
           unitDetails={unitDetails}
+          deedDate={deedDate}
+          formulaParams={formulaParams}
         />
 
         {/* Construction Detail */}
@@ -401,7 +411,13 @@ export default function ParticipantDetailModal({
         />
 
         {/* Financing Result */}
-        <FinancingResultCard participantCalc={p} />
+        <FinancingResultCard 
+          participantCalc={p}
+          projectParams={projectParams}
+          allParticipants={allParticipants}
+          unitDetails={unitDetails}
+          deedDate={deedDate}
+        />
 
         {/* Expected Paybacks */}
         <ExpectedPaybacksCard

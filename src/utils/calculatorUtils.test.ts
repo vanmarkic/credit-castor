@@ -21,6 +21,10 @@ import {
   getFraisGenerauxBreakdown,
   calculateTwoLoanFinancing,
   calculateAll,
+  calculateParticipantsAtPurchaseTime,
+  calculateParticipantsAtEntryDate,
+  calculateCommunCostsBreakdown,
+  calculateCommunCostsWithPortageCopro,
   type Participant,
   type ProjectParams,
   type UnitDetails,
@@ -1727,6 +1731,230 @@ describe('Calculator Utils', () => {
 // ============================================
 // Task 3: calculateTwoLoanFinancing Tests
 // ============================================
+
+// ============================================
+// Commun Costs Breakdown Calculations Tests
+// ============================================
+
+describe('calculateParticipantsAtPurchaseTime', () => {
+  const deedDate = '2024-01-01';
+
+  it('should return 1 if no participants provided', () => {
+    expect(calculateParticipantsAtPurchaseTime([], deedDate)).toBe(1);
+  });
+
+  it('should count only founders when no deed date provided', () => {
+    const participants: Participant[] = [
+      { name: 'Founder1', capitalApporte: 100000, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: true },
+      { name: 'Founder2', capitalApporte: 100000, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: true },
+      { name: 'Newcomer', capitalApporte: 100000, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: false, entryDate: new Date('2024-06-01') },
+    ];
+    expect(calculateParticipantsAtPurchaseTime(participants)).toBe(3);
+  });
+
+  it('should count founders and newcomers entering on deed date', () => {
+    const participants: Participant[] = [
+      { name: 'Founder1', capitalApporte: 100000, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: true },
+      { name: 'Founder2', capitalApporte: 100000, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: true },
+      { name: 'NewcomerSameDay', capitalApporte: 100000, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: false, entryDate: new Date(deedDate) },
+      { name: 'NewcomerLater', capitalApporte: 100000, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: false, entryDate: new Date('2024-06-01') },
+    ];
+    expect(calculateParticipantsAtPurchaseTime(participants, deedDate)).toBe(3);
+  });
+
+  it('should handle invalid deed date gracefully', () => {
+    const participants: Participant[] = [
+      { name: 'Founder1', capitalApporte: 100000, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: true },
+    ];
+    expect(calculateParticipantsAtPurchaseTime(participants, 'invalid-date')).toBe(1);
+  });
+});
+
+describe('calculateParticipantsAtEntryDate', () => {
+  const deedDate = '2024-01-01';
+
+  it('should return 1 if no participants provided', () => {
+    expect(calculateParticipantsAtEntryDate([], new Date('2024-06-01'), deedDate)).toBe(1);
+  });
+
+  it('should count all founders plus newcomers up to entry date', () => {
+    const participants: Participant[] = [
+      { name: 'Founder1', capitalApporte: 100000, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: true },
+      { name: 'Founder2', capitalApporte: 100000, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: true },
+      { name: 'Newcomer1', capitalApporte: 100000, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: false, entryDate: new Date('2024-06-01') },
+      { name: 'Newcomer2', capitalApporte: 100000, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: false, entryDate: new Date('2024-09-01') },
+    ];
+    // When checking for entry date 2024-06-01, should include 2 founders + 1 newcomer
+    expect(calculateParticipantsAtEntryDate(participants, new Date('2024-06-01'), deedDate)).toBe(3);
+    // When checking for entry date 2024-09-01, should include 2 founders + 2 newcomers
+    expect(calculateParticipantsAtEntryDate(participants, new Date('2024-09-01'), deedDate)).toBe(4);
+  });
+
+  it('should fallback to purchase time count for invalid entry date', () => {
+    const participants: Participant[] = [
+      { name: 'Founder1', capitalApporte: 100000, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: true },
+    ];
+    expect(calculateParticipantsAtEntryDate(participants, 'invalid-date', deedDate)).toBe(1);
+  });
+});
+
+describe('calculateCommunCostsBreakdown', () => {
+  const baseProjectParams: ProjectParams = {
+    totalPurchase: 650000,
+    mesuresConservatoires: 0,
+    demolition: 0,
+    infrastructures: 0,
+    etudesPreparatoires: 0,
+    fraisEtudesPreparatoires: 0,
+    fraisGeneraux3ans: 0,
+    batimentFondationConservatoire: 0,
+    batimentFondationComplete: 0,
+    batimentCoproConservatoire: 0,
+    globalCascoPerM2: 1590,
+    expenseCategories: {
+      conservatoire: [{ label: 'Test', amount: 10000 }],
+      habitabiliteSommaire: [],
+      premierTravaux: []
+    },
+    travauxCommuns: {
+      enabled: false,
+      items: []
+    }
+  };
+
+  const baseUnitDetails: UnitDetails = {
+    1: { casco: 178080, parachevements: 56000 }
+  };
+
+  it('should calculate breakdown for founder', () => {
+    const participants: Participant[] = [
+      { name: 'Founder1', capitalApporte: 100000, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: true, unitId: 1, surface: 100, quantity: 1 },
+      { name: 'Founder2', capitalApporte: 100000, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: true, unitId: 1, surface: 100, quantity: 1 },
+    ];
+
+    const breakdown = calculateCommunCostsBreakdown(
+      participants[0],
+      participants,
+      baseProjectParams,
+      baseUnitDetails,
+      '2024-01-01'
+    );
+
+    expect(breakdown.participantsCount).toBe(2);
+    expect(breakdown.totalCommunBeforeDivision).toBeGreaterThan(0);
+    expect(breakdown.sharedCostsPerParticipant).toBeGreaterThan(0);
+  });
+
+  it('should calculate breakdown for newcomer using entry date count', () => {
+    const participants: Participant[] = [
+      { name: 'Founder1', capitalApporte: 100000, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: true, unitId: 1, surface: 100, quantity: 1 },
+      { name: 'Founder2', capitalApporte: 100000, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: true, unitId: 1, surface: 100, quantity: 1 },
+      { name: 'Newcomer1', capitalApporte: 100000, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: false, entryDate: new Date('2024-06-01'), unitId: 1, surface: 100, quantity: 1 },
+      { name: 'Newcomer2', capitalApporte: 100000, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: false, entryDate: new Date('2024-09-01'), unitId: 1, surface: 100, quantity: 1 },
+    ];
+
+    const breakdown = calculateCommunCostsBreakdown(
+      participants[2], // Newcomer1
+      participants,
+      baseProjectParams,
+      baseUnitDetails,
+      '2024-01-01'
+    );
+
+    // Should use 3 participants (2 founders + 1 newcomer)
+    expect(breakdown.participantsCount).toBe(3);
+    expect(breakdown.sharedCostsPerParticipant).toBeGreaterThan(0);
+  });
+});
+
+describe('calculateCommunCostsWithPortageCopro', () => {
+  const formulaParams: PortageFormulaParams = {
+    indexationRate: 2.0,
+    carryingCostRecovery: 100,
+    averageInterestRate: 4.5,
+    coproReservesShare: 30
+  };
+
+  it('should calculate base commun cost correctly', () => {
+    const result = calculateCommunCostsWithPortageCopro(
+      213711, // totalCommunBeforeDivision
+      9, // participantsAtEntryDate
+      '2024-01-01', // deedDate
+      '2024-06-01', // entryDate
+      formulaParams
+    );
+
+    expect(result.base).toBeCloseTo(23745.67, 2); // 213711 / 9
+    expect(result.yearsHeld).toBeGreaterThan(0);
+    expect(result.indexation).toBeGreaterThan(0);
+    expect(result.total).toBeGreaterThan(result.base);
+  });
+
+  it('should return base only for zero years held', () => {
+    const result = calculateCommunCostsWithPortageCopro(
+      213711,
+      9,
+      '2024-01-01',
+      '2024-01-01', // Same day
+      formulaParams
+    );
+
+    expect(result.base).toBeCloseTo(23745.67, 2);
+    expect(result.yearsHeld).toBeCloseTo(0, 2);
+    expect(result.indexation).toBeCloseTo(0, 2);
+    expect(result.total).toBeCloseTo(result.base, 2);
+  });
+
+  it('should handle invalid dates gracefully', () => {
+    const result = calculateCommunCostsWithPortageCopro(
+      213711,
+      9,
+      'invalid-date',
+      '2024-06-01',
+      formulaParams
+    );
+
+    expect(result.base).toBeCloseTo(23745.67, 2);
+    expect(result.indexation).toBe(0);
+    expect(result.total).toBeCloseTo(result.base, 2);
+    expect(result.yearsHeld).toBe(0);
+  });
+
+  it('should apply correct indexation for 1 year', () => {
+    const result = calculateCommunCostsWithPortageCopro(
+      100000, // totalCommunBeforeDivision
+      4, // participantsAtEntryDate
+      '2024-01-01',
+      '2025-01-01', // 1 year later
+      formulaParams
+    );
+
+    const base = 100000 / 4; // 25000
+    expect(result.base).toBe(25000);
+    // Indexation should be approximately 2% of base (500), but allow for small rounding differences
+    expect(result.indexation).toBeGreaterThan(490);
+    expect(result.indexation).toBeLessThan(510);
+    expect(result.total).toBeGreaterThan(base);
+    expect(result.total).toBeLessThan(base * 1.03); // Should be less than 3% increase
+    expect(result.yearsHeld).toBeCloseTo(1.0, 1);
+  });
+
+  it('should handle multiple newcomers joining same day', () => {
+    // Scenario: 4 founders + 5 newcomers joining same day = 9 total
+    const result = calculateCommunCostsWithPortageCopro(
+      213711, // totalCommunBeforeDivision
+      9, // participantsAtEntryDate (4 founders + 5 newcomers)
+      '2024-01-01',
+      '2024-06-01', // 5 months later
+      formulaParams
+    );
+
+    expect(result.base).toBeCloseTo(23745.67, 2); // 213711 / 9
+    expect(result.yearsHeld).toBeCloseTo(0.42, 2); // ~5 months
+    expect(result.indexation).toBeGreaterThan(0);
+    expect(result.total).toBeGreaterThan(result.base);
+  });
+});
 
 describe('calculateTwoLoanFinancing', () => {
   it('should split costs between two loans with default 2/3 split', () => {
