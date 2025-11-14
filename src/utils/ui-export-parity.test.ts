@@ -7,7 +7,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { buildExportSheetData } from './excelExport';
-import type { Participant, ParticipantCalculation, CalculationResults, ProjectParams } from './calculatorUtils';
+import type { ParticipantCalculation, CalculationResults, ProjectParams } from './calculatorUtils';
 
 describe('UI-to-Export Parity', () => {
   /**

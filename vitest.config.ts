@@ -9,6 +9,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: true,
+    // Exclude e2e tests (Playwright tests)
+    exclude: ['**/node_modules/**', '**/dist/**', '**/e2e/**'],
     // Memory leak prevention
     pool: 'forks',
     poolOptions: {

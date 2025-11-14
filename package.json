@@ -5,7 +5,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "test": "vitest",
+    "test": "vitest run",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:schema": "vitest run src/utils/dataSchema.test.ts src/utils/schemaRegistry.test.ts",

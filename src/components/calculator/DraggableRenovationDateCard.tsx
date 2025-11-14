@@ -221,7 +221,7 @@ export const DraggableRenovationDateCard: React.FC<DraggableRenovationDateCardPr
             </div>
             <div className="text-xs text-gray-500 italic flex items-center gap-1">
               <Info className="w-3 h-3" />
-              Date de début des travaux de rénovation (liée à la date de l'acte)
+              Date de début des travaux de rénovation.
             </div>
           </div>
         </div>

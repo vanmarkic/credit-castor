@@ -10,9 +10,7 @@ import {
   releaseEditLock,
   checkLockStatus,
   extendLockExpiration,
-  forceReleaseLock,
-  type EditLock,
-  type LockAcquisitionResult
+  forceReleaseLock
 } from './editLockService';
 import { Timestamp } from 'firebase/firestore';
 

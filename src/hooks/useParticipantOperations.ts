@@ -3,7 +3,7 @@
  * Provides pure functions for participant manipulation
  */
 
-import type { Participant, ProjectParams } from '../utils/calculatorUtils';
+import type { Participant } from '../utils/calculatorUtils';
 import type { CoproLot } from '../types/timeline';
 import { validateAddPortageLot, DEFAULT_MAX_TOTAL_LOTS } from '../utils/lotValidation';
 

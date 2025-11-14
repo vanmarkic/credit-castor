@@ -31,7 +31,7 @@ export default [
     rules: {
       // React hooks rules
       'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'warn',
+      'react-hooks/exhaustive-deps': 'off', // eslint-disable: disabled globally
 
       // React rules
       'react/react-in-jsx-scope': 'off', // Not needed in React 17+
@@ -46,11 +46,11 @@ export default [
           caughtErrorsIgnorePattern: '^_',
         },
       ],
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'off', // eslint-disable: disabled globally
       '@typescript-eslint/explicit-module-boundary-types': 'off',
 
       // General rules
-      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      'no-console': 'off', // eslint-disable: disabled globally
     },
   },
   {

@@ -8,7 +8,7 @@ import {
   validateSchema,
   getBreakingChangeFormats,
 } from './schemaRegistry';
-import type { Participant, ProjectParams, PortageFormulaParams } from './calculatorUtils';
+import type { Participant } from './calculatorUtils';
 import type { ScenarioData } from './scenarioFileIO';
 import type { FirestoreScenarioData } from '../services/firestoreSync';
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   saveScenarioToFirestore,
   updateScenarioFields,
+  updateParticipantFields,
   loadScenarioFromFirestore,
   loadParticipantsFromSubcollection,
   subscribeToFirestoreChanges,
@@ -16,6 +17,7 @@ import {
 import { getDb } from '../services/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { saveToLocalStorage, loadFromLocalStorage } from '../utils/storage';
+import { detectChangedParticipants } from '../services/participantSyncCoordinator';
 import type { Participant, ProjectParams, PortageFormulaParams } from '../utils/calculatorUtils';
 
 /**
@@ -82,6 +84,7 @@ export function useFirestoreSync(
   const localVersionRef = useRef<number>(1);
   const isSavingRef = useRef(false);
   const [useSubcollection, setUseSubcollection] = useState(false);
+  const prevParticipantsRef = useRef<Participant[]>([]);
 
   /**
    * Initialize sync mode based on Firebase availability
@@ -131,8 +134,10 @@ export function useFirestoreSync(
               if (participantsResult.success && projectResult.success && projectResult.data) {
                 localVersionRef.current = projectResult.data.version;
                 setLastSyncedAt(new Date());
+                const loadedParticipants = participantsResult.participants || [];
+                prevParticipantsRef.current = [...loadedParticipants];
                 return {
-                  participants: participantsResult.participants || [],
+                  participants: loadedParticipants,
                   projectParams: projectResult.data.projectParams,
                   deedDate: projectResult.data.deedDate,
                   portageFormula: projectResult.data.portageFormula,
@@ -150,8 +155,10 @@ export function useFirestoreSync(
       if (result.success && result.data) {
         localVersionRef.current = result.data.version;
         setLastSyncedAt(new Date());
+        const loadedParticipants = result.data.participants;
+        prevParticipantsRef.current = [...loadedParticipants];
         return {
-          participants: result.data.participants,
+          participants: loadedParticipants,
           projectParams: result.data.projectParams,
           deedDate: result.data.deedDate,
           portageFormula: result.data.portageFormula,
@@ -178,7 +185,8 @@ export function useFirestoreSync(
    *
    * Strategy:
    * - If only simple fields changed: use updateDoc (granular)
-   * - If participants array changed: use setDoc (full save)
+   * - If only one participant changed AND subcollection mode: use updateParticipantFields (granular)
+   * - Otherwise: use setDoc (full save)
    *
    * @param dirtyFields - Optional list of changed fields for optimization
    */
@@ -208,6 +216,63 @@ export function useFirestoreSync(
           // Determine if we can use field-level update
           const participantsChanged = !dirtyFields || dirtyFields.includes('participants');
 
+          // Try granular participant update if:
+          // 1. Participants changed
+          // 2. Subcollection mode is enabled
+          // 3. Only one participant changed
+          if (participantsChanged && useSubcollection && prevParticipantsRef.current.length > 0) {
+            const changedIndices = detectChangedParticipants(prevParticipantsRef.current, participants);
+            
+            if (changedIndices.length === 1) {
+              // Only one participant changed - use granular update
+              const changedIndex = changedIndices[0];
+              const changedParticipant = participants[changedIndex];
+              
+              // Calculate which fields changed by comparing old vs new
+              const oldParticipant = prevParticipantsRef.current[changedIndex];
+              const fieldsToUpdate: Partial<Participant> = {};
+              
+              // Compare and collect changed fields
+              if (oldParticipant) {
+                Object.keys(changedParticipant).forEach(key => {
+                  const typedKey = key as keyof Participant;
+                  if (JSON.stringify(changedParticipant[typedKey]) !== JSON.stringify(oldParticipant[typedKey])) {
+                    (fieldsToUpdate as any)[typedKey] = changedParticipant[typedKey];
+                  }
+                });
+              } else {
+                // New participant - update all fields
+                Object.assign(fieldsToUpdate, changedParticipant);
+              }
+
+              if (Object.keys(fieldsToUpdate).length > 0) {
+                const result = await updateParticipantFields(
+                  changedIndex.toString(),
+                  'shared-project',
+                  fieldsToUpdate,
+                  userEmail
+                );
+
+                if (result.success) {
+                  prevParticipantsRef.current = [...participants];
+                  setLastSyncedAt(new Date());
+                  console.log(`✅ Granular participant update: participant ${changedIndex} (${result.updatedFields?.join(', ') || 'all fields'})`);
+
+                  // Trigger toast notification
+                  if (onSyncSuccess) {
+                    onSyncSuccess(`Participant ${changedParticipant.name || changedIndex}`, ['participants']);
+                  }
+
+                  return { success: true };
+                } else {
+                  // Fallback to full save on error
+                  console.warn('⚠️ Granular participant update failed, falling back to full save:', result.error);
+                }
+              }
+            }
+          }
+
+          // If only simple fields changed (not participants), use granular update
           if (!participantsChanged && dirtyFields && dirtyFields.length > 0) {
             // Use granular update (only changed fields)
             const fieldsToUpdate: any = {};
@@ -249,7 +314,8 @@ export function useFirestoreSync(
             }
           }
 
-          // Full document save (participants changed or fallback)
+          // Full document save (multiple participants changed, or fallback)
+          prevParticipantsRef.current = [...participants];
           localVersionRef.current += 1;
 
           const result = await saveScenarioToFirestore(
@@ -274,6 +340,7 @@ export function useFirestoreSync(
         }
 
         // localStorage-only mode
+        prevParticipantsRef.current = [...participants];
         return { success: true };
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
@@ -284,7 +351,7 @@ export function useFirestoreSync(
         setIsSyncing(false);
       }
     },
-    [syncMode, userEmail]
+    [syncMode, userEmail, useSubcollection, onSyncSuccess]
   );
 
   /**

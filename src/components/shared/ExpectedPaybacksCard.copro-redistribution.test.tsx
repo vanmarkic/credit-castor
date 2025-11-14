@@ -132,7 +132,7 @@ describe('ExpectedPaybacksCard - Copro Redistribution with Renovation Costs', ()
     expect(screen.getByText('Newcomer Bob')).toBeInTheDocument();
 
     // Calculate expected formatted amount (French locale format)
-    const formattedAmount = new Intl.NumberFormat('fr-BE', {
+    const _formattedAmount = new Intl.NumberFormat('fr-BE', {
       style: 'currency',
       currency: 'EUR',
       minimumFractionDigits: 0,

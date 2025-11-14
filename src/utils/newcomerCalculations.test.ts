@@ -25,7 +25,7 @@ function calculatePortagePaybacks(
  * Share is based on time in project (months from entry to sale)
  */
 // @ts-expect-error - Function defined for future use
-function calculateCoproRedistribution(
+function _calculateCoproRedistribution(
   participants: Participant[],
   participantIndex: number,
   deedDate: string

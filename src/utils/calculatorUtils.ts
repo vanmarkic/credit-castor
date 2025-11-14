@@ -360,7 +360,7 @@ export interface FraisGenerauxBreakdown {
 export function getFraisGenerauxBreakdown(
   participants: Participant[],
   projectParams: ProjectParams,
-  unitDetails: UnitDetails
+  _unitDetails: UnitDetails
 ): FraisGenerauxBreakdown {
   // Calculate total CASCO costs HORS TVA (not including parachevements or common works)
   // Honoraires are calculated on CASCO HORS TVA

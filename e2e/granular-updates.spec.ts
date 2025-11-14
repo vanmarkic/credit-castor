@@ -13,7 +13,7 @@ import { test, expect, Page } from '@playwright/test';
 // Test data
 const ADMIN_PASSWORD = 'admin2025';
 const TEST_EMAIL = 'test@example.com';
-const PROJECT_ID = 'shared-project';
+const _PROJECT_ID = 'shared-project';
 
 /**
  * Helper to unlock collective fields
@@ -172,7 +172,7 @@ test.describe('Granular Participant Updates', () => {
     await expect(alicePayback).toBeVisible();
   });
 
-  test('should prevent concurrent edits with edit lock', async ({ page, context }) => {
+  test('should prevent concurrent edits with edit lock', async ({ page: _page, context }) => {
     // First user is already editing (current page)
 
     // Open second browser tab (simulating second user)
@@ -204,7 +204,7 @@ test.describe('Granular Participant Updates', () => {
 
     // Get initial value
     const surfaceInput = page.locator('input[name="surface"], input[placeholder*="surface"]');
-    const initialValue = await surfaceInput.inputValue();
+    const _initialValue = await surfaceInput.inputValue();
 
     // Update surface area
     await surfaceInput.clear();
@@ -381,7 +381,7 @@ test.describe('Error Handling', () => {
     await page.getByRole('button', { name: /sauvegarder|save/i }).click();
 
     // Either saves successfully or shows conflict message
-    const successIndicator = page.getByRole('dialog').isHidden();
+    const _successIndicator = page.getByRole('dialog').isHidden();
     const errorIndicator = page.locator('text=/conflit|conflict|erreur|error/i');
 
     // Wait for one of them

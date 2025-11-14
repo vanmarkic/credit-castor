@@ -3,7 +3,6 @@ import { render, screen } from '@testing-library/react';
 import { ParticipantDetailsPanel } from './ParticipantDetailsPanel';
 import ParticipantDetailModal from './ParticipantDetailModal';
 import { calculateCoproSalePrice } from '../../utils/portageCalculations';
-import { DEFAULT_PORTAGE_FORMULA } from '../../utils/calculatorUtils';
 import type { Participant, ParticipantCalculation, CalculationResults, ProjectParams, UnitDetails } from '../../utils/calculatorUtils';
 import { UnlockProvider } from '../../contexts/UnlockContext';
 import * as Tooltip from '@radix-ui/react-tooltip';

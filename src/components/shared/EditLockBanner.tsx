@@ -66,7 +66,7 @@ export function EditLockBanner({ lock, isOwnLock, onForceUnlock }: EditLockBanne
       } else {
         setError(result.error || 'Mot de passe incorrect');
       }
-    } catch (err) {
+    } catch (_err) {
       setError('Erreur lors du déverrouillage forcé');
     } finally {
       setIsLoading(false);

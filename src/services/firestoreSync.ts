@@ -611,9 +611,11 @@ export async function updateParticipantFields(
     // Check if document exists
     const docSnapshot = await getDoc(participantRef);
     if (!docSnapshot.exists()) {
+      // Participant doesn't exist - this means subcollection migration hasn't been run
+      // Return error so caller can fall back to full document save
       return {
         success: false,
-        error: 'Participant does not exist.',
+        error: 'Participant does not exist. Subcollection migration may be needed.',
       };
     }
 
@@ -682,7 +684,7 @@ export async function loadParticipantsFromSubcollection(
       const data = doc.data() as FirestoreParticipantData;
 
       // Convert back to Participant type (exclude metadata)
-      const { lastModifiedBy, lastModifiedAt, version, serverTimestamp: _, displayOrder, ...participant } = data;
+      const { lastModifiedBy: _lastModifiedBy, lastModifiedAt: _lastModifiedAt, version: _version, serverTimestamp: _, displayOrder: _displayOrder, ...participant } = data;
 
       participants.push(participant as Participant);
     });
@@ -855,7 +857,7 @@ export function subscribeToParticipantChanges(
           const source = snapshot.metadata.hasPendingWrites ? 'local' : 'remote';
 
           // Convert to Participant (exclude metadata)
-          const { lastModifiedBy, lastModifiedAt, version, serverTimestamp: _, displayOrder, ...participant } = data;
+          const { lastModifiedBy: _lastModifiedBy, lastModifiedAt: _lastModifiedAt, version: _version, serverTimestamp: _, displayOrder: _displayOrder, ...participant } = data;
 
           callback(participant as Participant, source);
         } else {
@@ -905,7 +907,7 @@ export function subscribeToAllParticipants(
           const data = doc.data() as FirestoreParticipantData;
 
           // Convert to Participant (exclude metadata)
-          const { lastModifiedBy, lastModifiedAt, version, serverTimestamp: _, displayOrder, ...participant } = data;
+          const { lastModifiedBy: _lastModifiedBy, lastModifiedAt: _lastModifiedAt, version: _version, serverTimestamp: _, displayOrder: _displayOrder, ...participant } = data;
 
           participants.push(participant as Participant);
         });

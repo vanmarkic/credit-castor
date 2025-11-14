@@ -8,26 +8,38 @@ describe('DraggableRenovationDateCard', () => {
   const mockParticipants: Participant[] = [
     {
       name: 'Founder 1',
+      capitalApporte: 100000,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
       unitId: 1,
       surface: 50,
       isFounder: true,
-      entryDate: '2024-01-01',
+      entryDate: new Date('2024-01-01'),
       enabled: true,
     },
     {
       name: 'Newcomer 1',
+      capitalApporte: 80000,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
       unitId: 2,
       surface: 60,
       isFounder: false,
-      entryDate: '2024-06-01',
+      entryDate: new Date('2024-06-01'),
       enabled: true,
     },
     {
       name: 'Newcomer 2',
+      capitalApporte: 90000,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
       unitId: 3,
       surface: 70,
       isFounder: false,
-      entryDate: '2024-09-01',
+      entryDate: new Date('2024-09-01'),
       enabled: true,
     },
   ];
@@ -173,19 +185,49 @@ describe('DraggableRenovationDateCard', () => {
   describe('date calculation on drop', () => {
     it('sets date to eventDate + 1 day when dropped after a date group', async () => {
       const onDateChange = vi.fn();
+      // Use a date that exists in participants (Newcomer 1 has entryDate '2024-06-01')
+      const testParticipants: Participant[] = [
+        {
+          name: 'Founder 1',
+          capitalApporte: 100000,
+          registrationFeesRate: 12.5,
+          interestRate: 4.5,
+          durationYears: 25,
+          unitId: 1,
+          surface: 50,
+          isFounder: true,
+          entryDate: new Date('2024-01-01'),
+          enabled: true,
+        },
+        {
+          name: 'Newcomer 1',
+          capitalApporte: 80000,
+          registrationFeesRate: 12.5,
+          interestRate: 4.5,
+          durationYears: 25,
+          unitId: 2,
+          surface: 60,
+          isFounder: false,
+          entryDate: new Date('2024-06-01'),
+          enabled: true,
+        },
+      ];
+      
       const { container } = render(
         <div data-timeline-container style={{ position: 'relative', minHeight: '500px' }}>
           <div className="relative pl-20" style={{ padding: '20px', marginBottom: '100px' }}>
-            <div className="mb-2" data-timeline-date="2024-02-01">1 février 2024</div>
+            <div className="mb-2" data-timeline-date="2024-06-01">1 juin 2024</div>
             <div className="flex flex-wrap gap-2">
-              <div>Participant 1</div>
+              <div>Newcomer 1</div>
             </div>
           </div>
           <DraggableRenovationDateCard
-            {...defaultProps}
-            renovationStartDate="2024-03-15"
-            deedDate="2024-02-01"
+            renovationStartDate="2024-07-15"
+            deedDate="2024-01-01"
+            participants={testParticipants}
             onDateChange={onDateChange}
+            canEdit={true}
+            isLocked={false}
           />
         </div>
       );
@@ -200,8 +242,8 @@ describe('DraggableRenovationDateCard', () => {
         expect(card).toHaveAttribute('data-dragging', 'true');
       });
       
-      // Simulate dragging to position after the Feb 1 group
-      const dateGroup = container.querySelector('[data-timeline-date="2024-02-01"]')?.closest('.relative.pl-20');
+      // Simulate dragging to position after the June 1 group
+      const dateGroup = container.querySelector('[data-timeline-date="2024-06-01"]')?.closest('.relative.pl-20');
       if (dateGroup) {
         const rect = dateGroup.getBoundingClientRect();
         // Position mouse after the group (at bottom + some offset)
@@ -211,9 +253,9 @@ describe('DraggableRenovationDateCard', () => {
       // End drag
       fireEvent.mouseUp(document);
       
-      // Should set date to Feb 1 + 1 day = Feb 2
+      // Should set date to June 1 + 1 day = June 2
       await waitFor(() => {
-        expect(onDateChange).toHaveBeenCalledWith('2024-02-02');
+        expect(onDateChange).toHaveBeenCalledWith('2024-06-02');
       }, { timeout: 3000 });
     });
 
@@ -222,7 +264,7 @@ describe('DraggableRenovationDateCard', () => {
       const { container } = render(
         <div data-timeline-container style={{ position: 'relative', minHeight: '500px' }}>
           <div className="relative pl-20" style={{ padding: '20px', marginBottom: '100px' }}>
-            <div className="mb-2" data-timeline-date="2024-02-01">T0 - Date de l'acte</div>
+            <div className="mb-2" data-timeline-date="2024-01-01">T0 - Date de l'acte</div>
             <div className="flex flex-wrap gap-2">
               <div>Founder 1</div>
             </div>
@@ -230,7 +272,7 @@ describe('DraggableRenovationDateCard', () => {
           <DraggableRenovationDateCard
             {...defaultProps}
             renovationStartDate="2024-03-15"
-            deedDate="2024-02-01"
+            deedDate="2024-01-01"
             onDateChange={onDateChange}
           />
         </div>
@@ -247,7 +289,7 @@ describe('DraggableRenovationDateCard', () => {
       });
       
       // Simulate dragging to position after the deed date group
-      const dateGroup = container.querySelector('[data-timeline-date="2024-02-01"]')?.closest('.relative.pl-20');
+      const dateGroup = container.querySelector('[data-timeline-date="2024-01-01"]')?.closest('.relative.pl-20');
       if (dateGroup) {
         const rect = dateGroup.getBoundingClientRect();
         fireEvent.mouseMove(document, { clientY: rect.bottom + 100 });
@@ -256,9 +298,9 @@ describe('DraggableRenovationDateCard', () => {
       // End drag
       fireEvent.mouseUp(document);
       
-      // Should set date to Feb 1 + 1 day = Feb 2
+      // Should set date to Jan 1 + 1 day = Jan 2
       await waitFor(() => {
-        expect(onDateChange).toHaveBeenCalledWith('2024-02-02');
+        expect(onDateChange).toHaveBeenCalledWith('2024-01-02');
       }, { timeout: 3000 });
     });
   });

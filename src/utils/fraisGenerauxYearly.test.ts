@@ -3,13 +3,9 @@ import type { Participant, ProjectParams, UnitDetails } from './calculatorUtils'
 import {
   calculateYear1Costs,
   calculateYear2Costs,
-  calculateYear3Costs,
-  calculateAllYearlyFraisGeneraux,
-  getActiveParticipantsAtDate,
   calculateParticipantYearlyPayments,
   calculateFoundersInitialPayment,
-  calculateNewcomerReimbursement,
-  calculateMultipleNewcomerReimbursements
+  calculateNewcomerReimbursement
 } from './fraisGenerauxYearly';
 
 /**

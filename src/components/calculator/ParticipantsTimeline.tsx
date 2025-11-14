@@ -132,7 +132,7 @@ export const ParticipantsTimeline: React.FC<ParticipantsTimelineProps> = ({
 
             return (
               <React.Fragment key={date}>
-                <div className="relative pl-20">
+                <div className="relative pl-20 transition-all duration-300 ease-in-out">
                   {/* Timeline dot */}
                   <div className={`absolute left-6 w-5 h-5 rounded-full border-4 ${
                     isFounders
@@ -155,7 +155,7 @@ export const ParticipantsTimeline: React.FC<ParticipantsTimelineProps> = ({
                           T0 - Date de l'acte (Fondateurs)
                         </div>
                         <div className="text-xs text-gray-500 italic mt-1">
-                          ℹ️ Changer cette date ajustera automatiquement toutes les dates d'entrée des participants
+                          ℹ️ Changer cette date ajustera automatiquement toutes les dates d'entrée des participants et la date des travaux
                         </div>
                       </div>
                     </div>
@@ -292,7 +292,7 @@ export const ParticipantsTimeline: React.FC<ParticipantsTimelineProps> = ({
                       onDateChange={onRenovationStartDateChange}
                       canEdit={canEditRenovationStartDate}
                       isLocked={isRenovationStartDateLocked}
-                      lockReason={renovationStartDateLockReason}
+                      lockReason={renovationStartDateLockReason !== null ? renovationStartDateLockReason : undefined}
                     />
                   </div>
                 )}
@@ -318,9 +318,9 @@ export const ParticipantsTimeline: React.FC<ParticipantsTimelineProps> = ({
                 deedDate={deedDate}
                 participants={participants}
                 onDateChange={onRenovationStartDateChange}
-                canEdit={canEditRenovationStartDate}
-                isLocked={isRenovationStartDateLocked}
-                lockReason={renovationStartDateLockReason}
+              canEdit={canEditRenovationStartDate}
+              isLocked={isRenovationStartDateLocked}
+              lockReason={renovationStartDateLockReason !== null ? renovationStartDateLockReason : undefined}
               />
             </div>
           )}

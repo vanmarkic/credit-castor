@@ -117,7 +117,7 @@ export function getMigrationInfo(): { participantCount: number; timestamp: strin
       participantCount: parsed.participants?.length || 0,
       timestamp: parsed.timestamp ? new Date(parsed.timestamp).toLocaleString() : 'Unknown'
     };
-  } catch (e) {
+  } catch (_e) {
     return null;
   }
 }
