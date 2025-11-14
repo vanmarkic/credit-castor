@@ -252,6 +252,62 @@ describe('timelineCalculations', () => {
       expect(snapshots[0].date).toEqual(new Date(deedDate))
       expect(snapshots[0].soldThisDate).toHaveLength(0)
     })
+
+    it('should show remaining lots AFTER sales on the same date', () => {
+      // Scenario: 10 total participants, 5 buy from copro on same date
+      // Card should show remaining lots AFTER those 5 bought, not before
+      const saleDate = '2024-02-01'
+      const participants: Participant[] = [
+        // 5 founders
+        ...Array.from({ length: 5 }, (_, i) =>
+          createMockParticipant({
+            name: `Founder ${i + 1}`,
+            surface: 100,
+            entryDate: undefined,
+            isFounder: true
+          })
+        ),
+        // 5 buyers from copro on same date
+        ...Array.from({ length: 5 }, (_, i) =>
+          createMockParticipant({
+            name: `Participant-e ${i + 6}`,
+            surface: 100,
+            entryDate: new Date(saleDate),
+            purchaseDetails: {
+              buyingFrom: 'Copropriété',
+              purchasePrice: 150000,
+              lotId: i + 1
+            }
+          })
+        )
+      ]
+
+      const calculations = createMockCalculations(10, 1000) // 10 participants, 1000m² total
+      const snapshots = generateCoproSnapshots(participants, calculations, deedDate)
+
+      // Find the sale snapshot
+      const saleSnapshot = snapshots.find(s =>
+        s.date.toISOString().split('T')[0] === saleDate
+      )
+
+      expect(saleSnapshot).toBeDefined()
+      // Should show 5 buyers
+      expect(saleSnapshot!.soldThisDate).toHaveLength(5)
+      
+      // CRITICAL: availableLots should be AFTER the 5 sales
+      // 10 total - 5 sold = 5 remaining
+      expect(saleSnapshot!.availableLots).toBe(5)
+      
+      // CRITICAL: totalSurface should be AFTER the 5 sales
+      // 1000m² total - (5 * 100m²) = 500m² remaining
+      expect(saleSnapshot!.totalSurface).toBe(500)
+
+      // Verify T0 snapshot shows all 10 lots available
+      const t0Snapshot = snapshots.find(s => s.date.toISOString().split('T')[0] === deedDate)
+      expect(t0Snapshot).toBeDefined()
+      expect(t0Snapshot!.availableLots).toBe(10)
+      expect(t0Snapshot!.totalSurface).toBe(1000)
+    })
   })
 
   describe('determineAffectedParticipants', () => {

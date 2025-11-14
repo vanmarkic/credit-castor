@@ -65,6 +65,20 @@ function safeToISODateString(dateValue: string | Date | null | undefined | any, 
 }
 
 /**
+ * Compare two dates ignoring time components (date-only comparison).
+ * Returns true if date1 <= date2 when comparing only the date part.
+ *
+ * @param date1 - First date (Date object or ISO string)
+ * @param date2 - Second date (Date object or ISO string)
+ * @returns true if date1 <= date2 (date-only)
+ */
+function compareDatesOnly(date1: Date | string, date2: Date | string): boolean {
+  const d1Str = typeof date1 === 'string' ? date1 : date1.toISOString().split('T')[0]
+  const d2Str = typeof date2 === 'string' ? date2 : date2.toISOString().split('T')[0]
+  return d1Str <= d2Str
+}
+
+/**
  * Represents a copropriété inventory snapshot at a specific date.
  * Only created when inventory changes (sales occur).
  */
@@ -174,20 +188,24 @@ export function generateCoproSnapshots(
       return sum + purchasePrice * (coproReservesShare / 100)
     }, 0)
 
-    // Calculate remaining lots/surface
+    // Calculate remaining lots/surface AFTER sales on this date
+    // Use date-only comparison to ensure sales on the same date are included
+    // dateStr is already available from the forEach loop parameter
     const soldLots = participants.filter(p => {
-      const pEntryDate = p.entryDate ? new Date(p.entryDate) : new Date(deedDate)
+      const fallback = p.isFounder ? deedDate : fallbackNonFounder
+      const pEntryDateStr = safeToISODateString(p.entryDate, fallback)
       return (
-        pEntryDate <= date &&
+        compareDatesOnly(pEntryDateStr, dateStr) &&
         p.purchaseDetails?.buyingFrom === 'Copropriété'
       )
     }).length
 
     const soldSurface = participants
       .filter(p => {
-        const pEntryDate = p.entryDate ? new Date(p.entryDate) : new Date(deedDate)
+        const fallback = p.isFounder ? deedDate : fallbackNonFounder
+        const pEntryDateStr = safeToISODateString(p.entryDate, fallback)
         return (
-          pEntryDate <= date &&
+          compareDatesOnly(pEntryDateStr, dateStr) &&
           p.purchaseDetails?.buyingFrom === 'Copropriété'
         )
       })

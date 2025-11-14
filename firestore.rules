@@ -19,16 +19,40 @@ service cloud.firestore {
       // Allow read if unlocked (we check unlock state in the app)
       allow read: if true;
 
+      // Helper function to validate ProjectParams structure
+      function isValidProjectParams() {
+        // If projectParams doesn't exist, validation passes (for partial updates)
+        return !exists(request.resource.data.projectParams) || 
+               (!exists(request.resource.data.projectParams.maxTotalLots) || 
+                (request.resource.data.projectParams.maxTotalLots is int && 
+                 request.resource.data.projectParams.maxTotalLots > 0));
+      }
+
       // Allow write only if user is authenticated (has unlocked)
-      allow write: if request.auth != null || request.resource.data.lastModifiedBy != null;
+      // Also validate projectParams structure
+      allow write: if (request.auth != null || request.resource.data.lastModifiedBy != null) &&
+                     isValidProjectParams();
 
       // Participants subcollection - individual participant documents
       match /participants/{participantId} {
         // Allow read if unlocked (same as parent project)
         allow read: if true;
 
+        // Helper function to validate Participant structure
+        function isValidParticipant() {
+          // lotsOwned must be an array if present
+          let lotsOwnedValid = !exists(request.resource.data.lotsOwned) || 
+                               request.resource.data.lotsOwned is list;
+          // enabled must be boolean if present
+          let enabledValid = !exists(request.resource.data.enabled) || 
+                            request.resource.data.enabled is bool;
+          return lotsOwnedValid && enabledValid;
+        }
+
         // Allow write only if user is authenticated (has unlocked)
-        allow write: if request.auth != null || request.resource.data.lastModifiedBy != null;
+        // Also validate participant structure
+        allow write: if (request.auth != null || request.resource.data.lastModifiedBy != null) &&
+                       isValidParticipant();
       }
     }
 
