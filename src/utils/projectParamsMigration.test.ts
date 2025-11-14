@@ -27,9 +27,10 @@ describe('migrateTravauxCommuns', () => {
 
     const result = migrateTravauxCommuns(oldFormat);
 
-    expect(result.enabled).toBe(false);
-    expect(result.items).toHaveLength(1);
-    expect(result.items[0]).toMatchObject({
+    expect(result).toBeDefined();
+    expect(result?.enabled).toBe(false);
+    expect(result?.items).toHaveLength(1);
+    expect(result?.items[0]).toMatchObject({
       label: 'Rénovation complète',
       sqm: expect.any(Number),
       cascoPricePerSqm: expect.any(Number),
@@ -82,13 +83,14 @@ describe('migrateTravauxCommuns', () => {
 
     const result = migrateTravauxCommuns(oldFormat);
 
-    expect(result.items).toHaveLength(2);
-    expect(result.items[0].sqm).toBeDefined();
-    expect(result.items[0].cascoPricePerSqm).toBeDefined();
-    expect(result.items[0].parachevementPricePerSqm).toBeDefined();
-    expect(result.items[1].sqm).toBeDefined();
-    expect(result.items[1].cascoPricePerSqm).toBeDefined();
-    expect(result.items[1].parachevementPricePerSqm).toBeDefined();
+    expect(result).toBeDefined();
+    expect(result?.items).toHaveLength(2);
+    expect(result?.items[0].sqm).toBeDefined();
+    expect(result?.items[0].cascoPricePerSqm).toBeDefined();
+    expect(result?.items[0].parachevementPricePerSqm).toBeDefined();
+    expect(result?.items[1].sqm).toBeDefined();
+    expect(result?.items[1].cascoPricePerSqm).toBeDefined();
+    expect(result?.items[1].parachevementPricePerSqm).toBeDefined();
   });
 
   test('handles null or undefined input gracefully', () => {
@@ -109,7 +111,8 @@ describe('migrateTravauxCommuns', () => {
 
     const result = migrateTravauxCommuns(oldFormat);
 
-    const item = result.items[0];
+    expect(result).toBeDefined();
+    const item = result!.items[0];
     const calculatedAmount = (item.sqm * item.cascoPricePerSqm) +
                             (item.sqm * item.parachevementPricePerSqm);
 

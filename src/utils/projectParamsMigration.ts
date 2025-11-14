@@ -18,16 +18,23 @@ const DEFAULT_CASCO_PRICE_PER_SQM = 600; // Default CASCO price per m²
 const DEFAULT_PARACHEVEMENTS_PRICE_PER_SQM = 200; // Default parachèvements price per m²
 
 /**
- * Check if a TravauxCommuns item has the OLD format (just label + amount)
+ * Old format for TravauxCommuns item (before sqm fields were added)
  */
-function isOldFormat(item: any): boolean {
+interface OldTravauxCommunsItem {
+  label: string;
+  amount: number;
+}
+
+/**
+ * Type guard: Check if a TravauxCommuns item has the OLD format (just label + amount)
+ */
+function isOldFormat(item: OldTravauxCommunsItem | TravauxCommunsItem): item is OldTravauxCommunsItem {
   return (
-    item &&
-    typeof item.label === 'string' &&
-    typeof item.amount === 'number' &&
-    !item.sqm &&
-    !item.cascoPricePerSqm &&
-    !item.parachevementPricePerSqm
+    'label' in item &&
+    'amount' in item &&
+    !('sqm' in item) &&
+    !('cascoPricePerSqm' in item) &&
+    !('parachevementPricePerSqm' in item)
   );
 }
 
@@ -40,13 +47,13 @@ function isOldFormat(item: any): boolean {
  * OLD format: { label, amount }
  * NEW format: { label, sqm, cascoPricePerSqm, parachevementPricePerSqm, amount? }
  */
-function migrateTravauxCommunsItem(oldItem: any): TravauxCommunsItem {
+function migrateTravauxCommunsItem(item: OldTravauxCommunsItem | TravauxCommunsItem): TravauxCommunsItem {
   // Already in new format
-  if (!isOldFormat(oldItem)) {
-    return oldItem;
+  if (!isOldFormat(item)) {
+    return item;
   }
 
-  const { label, amount } = oldItem;
+  const { label, amount } = item;
 
   // Calculate sqm based on amount and default prices
   // Formula: amount = (sqm * casco) + (sqm * parachevements)
@@ -65,13 +72,21 @@ function migrateTravauxCommunsItem(oldItem: any): TravauxCommunsItem {
 }
 
 /**
+ * Old format for TravauxCommuns (before sqm fields were added)
+ */
+interface OldTravauxCommuns {
+  enabled: boolean;
+  items: OldTravauxCommunsItem[];
+}
+
+/**
  * Migrate travauxCommuns from OLD to NEW format
  *
  * @param travauxCommuns - TravauxCommuns object (may be old or new format)
  * @returns Migrated TravauxCommuns with NEW format items
  */
 export function migrateTravauxCommuns(
-  travauxCommuns: TravauxCommuns | null | undefined
+  travauxCommuns: TravauxCommuns | OldTravauxCommuns | null | undefined
 ): TravauxCommuns | null | undefined {
   if (!travauxCommuns) {
     return travauxCommuns;
@@ -94,17 +109,19 @@ export function migrateTravauxCommuns(
  * @returns Migrated ProjectParams with current schema
  */
 export function migrateProjectParams(projectParams: ProjectParams): ProjectParams {
-  const migrated = { ...projectParams };
-
   // Migration 1: Add maxTotalLots if missing
-  if (!migrated.maxTotalLots || migrated.maxTotalLots <= 0) {
-    migrated.maxTotalLots = DEFAULT_MAX_TOTAL_LOTS;
-  }
+  const maxTotalLots = projectParams.maxTotalLots && projectParams.maxTotalLots > 0
+    ? projectParams.maxTotalLots
+    : DEFAULT_MAX_TOTAL_LOTS;
 
   // Migration 2: Migrate travauxCommuns if present
-  if (migrated.travauxCommuns) {
-    migrated.travauxCommuns = migrateTravauxCommuns(migrated.travauxCommuns) || undefined;
-  }
+  const travauxCommuns = projectParams.travauxCommuns
+    ? migrateTravauxCommuns(projectParams.travauxCommuns)
+    : projectParams.travauxCommuns;
 
-  return migrated;
+  return {
+    ...projectParams,
+    maxTotalLots,
+    travauxCommuns: travauxCommuns || undefined,
+  };
 }
