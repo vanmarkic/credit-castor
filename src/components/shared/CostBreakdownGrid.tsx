@@ -66,6 +66,15 @@ export function CostBreakdownGrid({ participant, participantCalc: p, projectPara
   // Calculate quotité for founders
   const quotite = calculateQuotiteForFounder(participant, allParticipants);
 
+  // Calculate founder surface info for display
+  const founderSurface = participant.isFounder ? (participant.surface || 0) : 0;
+  const totalFounderSurface = participant.isFounder && allParticipants
+    ? allParticipants
+        .filter(p => p.isFounder === true)
+        .reduce((sum, p) => sum + (p.surface || 0), 0)
+    : 0;
+  const showSurfaceInfo = participant.isFounder && founderSurface > 0 && totalFounderSurface > 0;
+
   // Calculate frais généraux breakdown if data is available
   const fraisGenerauxBreakdown = projectParams && allParticipants && unitDetails
     ? getFraisGenerauxBreakdown(allParticipants, projectParams, unitDetails)
@@ -95,7 +104,12 @@ export function CostBreakdownGrid({ participant, participantCalc: p, projectPara
           <p className="text-lg font-bold text-gray-900">{formatCurrency(p.purchaseShare)}</p>
           <p className="text-xs text-blue-600 mt-0.5">{p.surface}m²</p>
           {quotite && (
-            <p className="text-xs text-gray-500 mt-0.5">Quotité: {quotite}</p>
+            <>
+              <p className="text-xs text-gray-500 mt-0.5">Quotité: {quotite}</p>
+              {showSurfaceInfo && (
+                <p className="text-xs text-gray-400 mt-0.5">{founderSurface}m² / {totalFounderSurface}m²</p>
+              )}
+            </>
           )}
         </div>
 
