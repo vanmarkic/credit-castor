@@ -9,7 +9,6 @@ import {
   migrateToSubcollections,
   isAlreadyMigrated,
   validateMigration,
-  type MigrationResult,
 } from './subcollectionMigration';
 import type { Participant } from '../utils/calculatorUtils';
 
@@ -35,21 +34,21 @@ describe('subcollectionMigration', () => {
 
   const mockParticipants: Participant[] = [
     {
-      id: '0',
       name: 'Alice',
-      surface: 100,
       capitalApporte: 50000,
+      registrationFeesRate: 0.125,
+      interestRate: 0.03,
+      durationYears: 25,
       isFounder: true,
-      enabled: true,
       lotsOwned: [],
     },
     {
-      id: '1',
       name: 'Bob',
-      surface: 150,
       capitalApporte: 75000,
+      registrationFeesRate: 0.125,
+      interestRate: 0.03,
+      durationYears: 25,
       isFounder: true,
-      enabled: true,
       lotsOwned: [],
     },
   ];
@@ -218,23 +217,30 @@ describe('subcollectionMigration', () => {
 
     it('should preserve all participant fields during migration', async () => {
       const participantWithAllFields: Participant = {
-        id: '0',
         name: 'Charlie',
-        surface: 200,
         capitalApporte: 100000,
+        registrationFeesRate: 0.125,
+        interestRate: 0.03,
+        durationYears: 25,
         isFounder: false,
-        enabled: true,
-        lotsOwned: [{ lotId: 'lot1', purchaseDate: '2024-01-01' }],
-        entryDate: '2024-01-15',
-        exitDate: '2025-01-15',
-        unitId: 'duplex',
-        cascoPerM2: 1200,
+        lotsOwned: [{ lotId: 1, surface: 200, unitId: 1, isPortage: false, acquiredDate: new Date('2024-01-01') }],
+        entryDate: new Date('2024-01-15'),
+        exitDate: new Date('2025-01-15'),
+        unitId: 1,
         parachevementsPerM2: 400,
         cascoSqm: 180,
         parachevementsSqm: 180,
         purchaseDetails: {
-          terrainCost: 50000,
-          notaryFees: 5000,
+          buyingFrom: 'Copropriété',
+          lotId: 1,
+          purchasePrice: 150000,
+          breakdown: {
+            basePrice: 100000,
+            indexation: 10000,
+            carryingCostRecovery: 20000,
+            feesRecovery: 10000,
+            renovations: 10000,
+          },
         },
       };
 
@@ -267,21 +273,29 @@ describe('subcollectionMigration', () => {
         expect.anything(),
         expect.objectContaining({
           name: 'Charlie',
-          surface: 200,
           capitalApporte: 100000,
+          registrationFeesRate: 0.125,
+          interestRate: 0.03,
+          durationYears: 25,
           isFounder: false,
-          enabled: true,
-          lotsOwned: [{ lotId: 'lot1', purchaseDate: '2024-01-01' }],
-          entryDate: '2024-01-15',
-          exitDate: '2025-01-15',
-          unitId: 'duplex',
-          cascoPerM2: 1200,
+          lotsOwned: [{ lotId: 1, surface: 200, unitId: 1, isPortage: false, acquiredDate: new Date('2024-01-01') }],
+          entryDate: new Date('2024-01-15'),
+          exitDate: new Date('2025-01-15'),
+          unitId: 1,
           parachevementsPerM2: 400,
           cascoSqm: 180,
           parachevementsSqm: 180,
           purchaseDetails: {
-            terrainCost: 50000,
-            notaryFees: 5000,
+            buyingFrom: 'Copropriété',
+            lotId: 1,
+            purchasePrice: 150000,
+            breakdown: {
+              basePrice: 100000,
+              indexation: 10000,
+              carryingCostRecovery: 20000,
+              feesRecovery: 10000,
+              renovations: 10000,
+            },
           },
           version: 1,
           displayOrder: 0,
@@ -291,10 +305,11 @@ describe('subcollectionMigration', () => {
 
     it('should handle participants without enabled field', async () => {
       const participantWithoutEnabled = {
-        id: '0',
         name: 'Dave',
-        surface: 100,
         capitalApporte: 50000,
+        registrationFeesRate: 0.125,
+        interestRate: 0.03,
+        durationYears: 25,
         isFounder: true,
         lotsOwned: [],
         // No enabled field

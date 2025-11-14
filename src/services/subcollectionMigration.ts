@@ -16,7 +16,7 @@
  * - Preserves all participant fields and metadata
  */
 
-import { doc, getDoc, writeBatch, serverTimestamp, setDoc } from 'firebase/firestore';
+import { doc, getDoc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { getDb } from './firebase';
 import type { Participant } from '../utils/calculatorUtils';
 import type { FirestoreParticipantData } from './firestoreSync';

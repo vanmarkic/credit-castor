@@ -49,16 +49,30 @@ interface ParticipantWithMetadata {
 /**
  * Deep equality check for participants (ignores functions, only data)
  *
- * Compares all participant fields to detect actual changes.
+ * Compares ALL participant INPUT fields to detect actual changes.
+ * Only compares fields that the user can edit (not calculated fields).
  * Used to avoid unnecessary Firestore writes when nothing changed.
  */
 function participantEquals(a: Participant, b: Participant): boolean {
-  // Compare primitives
+  // Basic identity fields
   if (a.name !== b.name) return false;
-  if (a.surface !== b.surface) return false;
-  if (a.isFounder !== b.isFounder) return false;
+  if (a.enabled !== b.enabled) return false;
 
-  // Compare dates (convert to timestamps)
+  // Financial input fields
+  if (a.capitalApporte !== b.capitalApporte) return false;
+  if (a.registrationFeesRate !== b.registrationFeesRate) return false;
+  if (a.interestRate !== b.interestRate) return false;
+  if (a.durationYears !== b.durationYears) return false;
+
+  // Two-loan financing fields
+  if (a.useTwoLoans !== b.useTwoLoans) return false;
+  if (a.loan2DelayYears !== b.loan2DelayYears) return false;
+  if (a.loan2RenovationAmount !== b.loan2RenovationAmount) return false;
+  if (a.capitalForLoan1 !== b.capitalForLoan1) return false;
+  if (a.capitalForLoan2 !== b.capitalForLoan2) return false;
+
+  // Timeline fields
+  if (a.isFounder !== b.isFounder) return false;
   const aEntry = a.entryDate ? new Date(a.entryDate).getTime() : null;
   const bEntry = b.entryDate ? new Date(b.entryDate).getTime() : null;
   if (aEntry !== bEntry) return false;
@@ -67,16 +81,18 @@ function participantEquals(a: Participant, b: Participant): boolean {
   const bExit = b.exitDate ? new Date(b.exitDate).getTime() : null;
   if (aExit !== bExit) return false;
 
-  // Compare unit details
+  // Legacy unit fields
   if (a.unitId !== b.unitId) return false;
+  if (a.surface !== b.surface) return false;
+  if (a.quantity !== b.quantity) return false;
+
+  // Optional overrides
   if (a.parachevementsPerM2 !== b.parachevementsPerM2) return false;
   if (a.cascoSqm !== b.cascoSqm) return false;
   if (a.parachevementsSqm !== b.parachevementsSqm) return false;
 
-  // Compare purchase details
+  // Complex objects (purchase details and lots owned)
   if (JSON.stringify(a.purchaseDetails) !== JSON.stringify(b.purchaseDetails)) return false;
-
-  // Compare lots owned
   if (JSON.stringify(a.lotsOwned) !== JSON.stringify(b.lotsOwned)) return false;
 
   return true;
