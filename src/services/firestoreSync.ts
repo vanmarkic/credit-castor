@@ -11,10 +11,79 @@ import {
   writeBatch,
   query,
   orderBy,
+  deleteField,
   type Unsubscribe,
 } from 'firebase/firestore';
 import { getDb } from './firebase';
 import type { Participant, ProjectParams, PortageFormulaParams } from '../utils/calculatorUtils';
+import { DEFAULT_MAX_TOTAL_LOTS } from '../utils/lotValidation';
+
+/**
+ * Default values for new/optional projectParams fields
+ * These are initialized only when creating a new document (runs once)
+ * 
+ * IMPORTANT: When adding a new optional field to ProjectParams:
+ * 1. Add its default value here
+ * 2. Add initialization logic in initializeNewDocumentDefaults()
+ * 3. Update Firestore rules if validation is needed
+ */
+const NEW_FIELD_DEFAULTS = {
+  maxTotalLots: DEFAULT_MAX_TOTAL_LOTS,
+  travauxCommuns: {
+    enabled: false,
+    items: [
+      {
+        label: 'Travaux communs',
+        sqm: 336,
+        cascoPricePerSqm: 600,
+        parachevementPricePerSqm: 200,
+      }
+    ]
+  },
+  // Add new field defaults here as they are added to ProjectParams
+} as const;
+
+/**
+ * Initialize default values for new/optional fields when creating a new document
+ * This runs only once when the document is first created
+ * 
+ * @param projectParams - The projectParams object to initialize
+ * @returns The projectParams with defaults applied for missing/invalid fields
+ */
+function initializeNewDocumentDefaults(projectParams: any): any {
+  const initialized = { ...projectParams };
+
+  // Initialize maxTotalLots if missing or invalid
+  if (!('maxTotalLots' in initialized) || 
+      !initialized.maxTotalLots || 
+      typeof initialized.maxTotalLots !== 'number' ||
+      initialized.maxTotalLots <= 0) {
+    initialized.maxTotalLots = NEW_FIELD_DEFAULTS.maxTotalLots;
+    console.log('🔧 Initializing maxTotalLots to default value:', NEW_FIELD_DEFAULTS.maxTotalLots);
+  }
+
+  // Initialize travauxCommuns if missing or invalid
+  if (!initialized.travauxCommuns || 
+      typeof initialized.travauxCommuns !== 'object' ||
+      !initialized.travauxCommuns.items ||
+      !Array.isArray(initialized.travauxCommuns.items) ||
+      initialized.travauxCommuns.items.length === 0) {
+    initialized.travauxCommuns = { ...NEW_FIELD_DEFAULTS.travauxCommuns };
+    console.log('🔧 Initializing travauxCommuns to default values:', {
+      sqm: NEW_FIELD_DEFAULTS.travauxCommuns.items[0].sqm,
+      cascoPricePerSqm: NEW_FIELD_DEFAULTS.travauxCommuns.items[0].cascoPricePerSqm,
+      parachevementPricePerSqm: NEW_FIELD_DEFAULTS.travauxCommuns.items[0].parachevementPricePerSqm,
+    });
+  }
+
+  // Add initialization for new fields here following the same pattern:
+  // if (!initialized.newField || isValid(initialized.newField)) {
+  //   initialized.newField = NEW_FIELD_DEFAULTS.newField;
+  //   console.log('🔧 Initializing newField to default value:', NEW_FIELD_DEFAULTS.newField);
+  // }
+
+  return initialized;
+}
 
 /**
  * Document ID for the shared project scenario
@@ -183,6 +252,21 @@ export async function saveScenarioToFirestore(
       if (existingData.projectParams) {
         // Start with existing projectParams to preserve all fields
         projectParamsToSave = { ...existingData.projectParams };
+        
+        // CRITICAL: Remove maxTotalLots from existing data if it's invalid (null, 0, or undefined)
+        // Firestore rules fail if maxTotalLots is null, 0, or undefined
+        // We must explicitly remove it to prevent rule validation failures
+        if ('maxTotalLots' in projectParamsToSave) {
+          const maxTotalLotsValue = projectParamsToSave.maxTotalLots;
+          if (maxTotalLotsValue === null || 
+              maxTotalLotsValue === undefined || 
+              maxTotalLotsValue === 0 || 
+              (typeof maxTotalLotsValue === 'number' && !Number.isInteger(maxTotalLotsValue)) ||
+              (typeof maxTotalLotsValue === 'number' && maxTotalLotsValue <= 0)) {
+            // Remove invalid maxTotalLots
+            delete projectParamsToSave.maxTotalLots;
+          }
+        }
       }
     }
     
@@ -215,18 +299,41 @@ export async function saveScenarioToFirestore(
       }
     });
 
-    // Clean nested objects (projectParams) - remove undefined and null values
-    // Firestore rules fail if maxTotalLots is null (must be either missing or a valid int > 0)
+    // Clean nested objects (projectParams) - remove undefined, null, and invalid values
+    // Firestore rules fail if maxTotalLots is null, 0, or undefined (must be either missing or a valid int > 0)
     if (dataToSave.projectParams && typeof dataToSave.projectParams === 'object') {
       const cleanedProjectParams: any = {};
       Object.keys(dataToSave.projectParams).forEach(key => {
         const value = dataToSave.projectParams[key];
-        // Only include defined, non-null values
-        if (value !== undefined && value !== null) {
-          cleanedProjectParams[key] = value;
+        // Special handling for maxTotalLots: remove if null, undefined, or 0
+        if (key === 'maxTotalLots') {
+          // Only include maxTotalLots if it's a valid int > 0
+          if (typeof value === 'number' && value > 0 && Number.isInteger(value)) {
+            cleanedProjectParams[key] = value;
+          }
+          // Otherwise, don't include it (removes invalid values)
+        } else {
+          // For other fields, only include defined, non-null values
+          if (value !== undefined && value !== null) {
+            cleanedProjectParams[key] = value;
+          }
         }
       });
       dataToSave.projectParams = cleanedProjectParams;
+    }
+
+    // CRITICAL: Initialize default values when creating a new document (runs only once)
+    // This ensures required fields are always present in new documents, satisfying the rules requirement
+    // 
+    // PATTERN FOR NEW FIELDS:
+    // When adding a new optional field to ProjectParams:
+    // 1. Add default value to NEW_FIELD_DEFAULTS constant above
+    // 2. Add initialization logic in initializeNewDocumentDefaults() function above
+    // 3. This will automatically initialize the field when creating new documents
+    if (!docSnapshot.exists() && dataToSave.projectParams) {
+      // Document doesn't exist yet - this is the first save
+      // Initialize all new/optional fields with their default values
+      dataToSave.projectParams = initializeNewDocumentDefaults(dataToSave.projectParams);
     }
 
     // Only include participants array if NOT using subcollections
@@ -256,10 +363,126 @@ export async function saveScenarioToFirestore(
       existingMaxTotalLots: docSnapshot.exists() ? (docSnapshot.data() as any)?.projectParams?.maxTotalLots : undefined,
     });
 
-    // Always use setDoc with merge: true
-    // This works better with Firestore rules validation
-    // merge: true ensures existing fields are preserved and rules validate correctly
-    await setDoc(projectRef, dataToSave, { merge: true });
+    // Log the actual projectParams object to verify maxTotalLots is not present
+    if (dataToSave.projectParams) {
+      console.log('📋 projectParams being saved:', JSON.stringify(dataToSave.projectParams, null, 2));
+      console.log('🔍 maxTotalLots in projectParams?', 'maxTotalLots' in dataToSave.projectParams);
+      console.log('🔍 maxTotalLots value:', dataToSave.projectParams.maxTotalLots);
+    }
+    
+    // Log what was passed in to understand what's missing
+    console.log('📥 Input data.projectParams keys:', data.projectParams ? Object.keys(data.projectParams) : []);
+    console.log('📥 Input data.projectParams.maxTotalLots:', (data.projectParams as any)?.maxTotalLots);
+    console.log('📥 Input data.projectParams.travauxCommuns:', (data.projectParams as any)?.travauxCommuns ? 'exists' : 'missing');
+
+    // CRITICAL: Use updateDoc instead of setDoc with merge: true
+    // setDoc with merge: true MERGES nested objects, which means if the existing document
+    // has projectParams.maxTotalLots: null, and we send projectParams without maxTotalLots,
+    // the merge will KEEP the null value, causing rule validation to fail.
+    // 
+    // updateDoc REPLACES nested objects entirely, so if we don't include maxTotalLots in projectParams,
+    // it will be removed from the document. However, to be extra safe, we explicitly delete it
+    // if it exists and is invalid.
+    //
+    // However, if the document doesn't exist, we need to use setDoc (without merge) to create it.
+    if (docSnapshot.exists()) {
+      // Document exists - use updateDoc to update only specified fields
+      // This ensures that maxTotalLots is not included if it's not in dataToSave.projectParams
+      const updateData: any = {
+        projectParams: dataToSave.projectParams,
+        deedDate: dataToSave.deedDate,
+        portageFormula: dataToSave.portageFormula,
+        lastModifiedBy: dataToSave.lastModifiedBy,
+        lastModifiedAt: dataToSave.lastModifiedAt,
+        serverTimestamp: dataToSave.serverTimestamp,
+        version: dataToSave.version,
+      };
+      
+      // CRITICAL: According to Firestore docs, updateDoc REPLACES nested objects entirely
+      // However, security rules evaluate request.resource.data which is the document AFTER the update
+      // IMPORTANT: Even though updateDoc replaces nested objects, if the existing document has
+      // maxTotalLots: null, and we send projectParams without it, the rules might still evaluate
+      // the existing null value. To be safe, we ALWAYS explicitly delete maxTotalLots if it exists
+      // in the document, UNLESS we're explicitly setting a valid value.
+      const existingData = docSnapshot.data() as any;
+      const existingProjectParams = existingData?.projectParams;
+      const existingMaxTotalLots = existingProjectParams?.maxTotalLots;
+      const newMaxTotalLots = dataToSave.projectParams?.maxTotalLots;
+      
+      // Check if maxTotalLots exists in the document (including null values)
+      // Use 'in' operator to check for the key, not just undefined check
+      const maxTotalLotsExistsInDoc = existingProjectParams && 'maxTotalLots' in existingProjectParams;
+      
+      console.log('🔍 Checking maxTotalLots:', {
+        maxTotalLotsExistsInDoc,
+        existingValue: existingMaxTotalLots,
+        existingType: typeof existingMaxTotalLots,
+        newExists: newMaxTotalLots !== undefined,
+        newValue: newMaxTotalLots,
+      });
+      
+      // Strategy:
+      // 1. If maxTotalLots exists in the document (even if null), and we're NOT setting it, delete it
+      // 2. This ensures rules see it as explicitly removed, not just missing
+      // 3. We only keep it if we're explicitly setting a valid positive integer
+      if (maxTotalLotsExistsInDoc && newMaxTotalLots === undefined) {
+        // maxTotalLots exists in document but we're not setting it - delete it explicitly
+        console.log('🧹 Explicitly deleting maxTotalLots (exists in doc, not in new data):', existingMaxTotalLots);
+        updateData['projectParams.maxTotalLots'] = deleteField();
+      } else if (newMaxTotalLots !== undefined) {
+        // We're explicitly setting maxTotalLots - validate it's valid
+        if (typeof newMaxTotalLots === 'number' && Number.isInteger(newMaxTotalLots) && newMaxTotalLots > 0) {
+          console.log('✅ Keeping valid maxTotalLots:', newMaxTotalLots);
+          // It's already in updateData.projectParams, so no action needed
+        } else {
+          console.log('🧹 Deleting invalid maxTotalLots from new data:', newMaxTotalLots);
+          // Remove it from projectParams and explicitly delete it
+          delete updateData.projectParams.maxTotalLots;
+          updateData['projectParams.maxTotalLots'] = deleteField();
+        }
+      } else {
+        console.log('✅ maxTotalLots does not exist in document or new data, no action needed');
+      }
+      
+      // Only include participants if NOT using subcollections
+      if (!usesSubcollections && dataToSave.participants) {
+        updateData.participants = dataToSave.participants;
+      }
+      
+      // Include fieldVersions if present
+      if (dataToSave.fieldVersions) {
+        updateData.fieldVersions = dataToSave.fieldVersions;
+      }
+      
+      console.log('📝 Using updateDoc (document exists)');
+      console.log('📦 Update data being sent:', {
+        hasProjectParams: !!updateData.projectParams,
+        projectParamsKeys: updateData.projectParams ? Object.keys(updateData.projectParams) : [],
+        hasMaxTotalLots: 'projectParams.maxTotalLots' in updateData,
+        lastModifiedBy: updateData.lastModifiedBy,
+        lastModifiedByType: typeof updateData.lastModifiedBy,
+        lastModifiedByLength: updateData.lastModifiedBy?.length,
+        hasParticipants: !!updateData.participants,
+        updateDataKeys: Object.keys(updateData),
+      });
+      
+      // Log the actual updateData structure to see what's being sent
+      console.log('📋 Full updateData structure:', JSON.stringify({
+        ...updateData,
+        projectParams: updateData.projectParams ? {
+          ...updateData.projectParams,
+          // Don't log the entire projectParams, just the keys
+          _keys: Object.keys(updateData.projectParams),
+        } : null,
+        participants: updateData.participants ? `[${updateData.participants.length} participants]` : null,
+      }, null, 2));
+      
+      await updateDoc(projectRef, updateData);
+    } else {
+      // Document doesn't exist - use setDoc to create it
+      console.log('📝 Using setDoc (document does not exist)');
+      await setDoc(projectRef, dataToSave);
+    }
 
     return {
       success: true,
