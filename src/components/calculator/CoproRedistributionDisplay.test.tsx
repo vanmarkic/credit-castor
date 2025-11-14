@@ -185,6 +185,7 @@ describe('Copro Redistribution Display - Main View and Detail Modal', () => {
       <UnlockProvider>
         <Tooltip.Provider>
           <ParticipantDetailsPanel
+            participant={founder}
             participantCalc={founderCalc}
             participantIndex={0}
             allParticipants={allParticipants}
@@ -195,7 +196,19 @@ describe('Copro Redistribution Display - Main View and Detail Modal', () => {
             pinnedParticipant={null}
             onPinParticipant={() => {}}
             onUnpinParticipant={() => {}}
-            unitDetails={mockUnitDetails}
+            onUpdateParticipant={() => {}}
+            onUpdateParticipantSurface={() => {}}
+            onUpdateCapital={() => {}}
+            onUpdateNotaryRate={() => {}}
+            onUpdateQuantity={() => {}}
+            onUpdateParachevementsPerM2={() => {}}
+            onUpdateCascoSqm={() => {}}
+            onUpdateParachevementsSqm={() => {}}
+            onUpdateInterestRate={() => {}}
+            onUpdateDuration={() => {}}
+            onAddPortageLot={() => {}}
+            onRemovePortageLot={() => {}}
+            onUpdatePortageLotSurface={() => {}}
           />
         </Tooltip.Provider>
       </UnlockProvider>
@@ -486,6 +499,7 @@ describe('Copro Redistribution Display - Main View and Detail Modal', () => {
       <UnlockProvider>
         <Tooltip.Provider>
           <ParticipantDetailsPanel
+            participant={founder}
             participantCalc={founderCalc}
             participantIndex={0}
             allParticipants={allParticipants}
@@ -496,7 +510,19 @@ describe('Copro Redistribution Display - Main View and Detail Modal', () => {
             pinnedParticipant={null}
             onPinParticipant={() => {}}
             onUnpinParticipant={() => {}}
-            unitDetails={mockUnitDetails}
+            onUpdateParticipant={() => {}}
+            onUpdateParticipantSurface={() => {}}
+            onUpdateCapital={() => {}}
+            onUpdateNotaryRate={() => {}}
+            onUpdateQuantity={() => {}}
+            onUpdateParachevementsPerM2={() => {}}
+            onUpdateCascoSqm={() => {}}
+            onUpdateParachevementsSqm={() => {}}
+            onUpdateInterestRate={() => {}}
+            onUpdateDuration={() => {}}
+            onAddPortageLot={() => {}}
+            onRemovePortageLot={() => {}}
+            onUpdatePortageLotSurface={() => {}}
           />
         </Tooltip.Provider>
       </UnlockProvider>
@@ -536,5 +562,6 @@ describe('Copro Redistribution Display - Main View and Detail Modal', () => {
     expect(totalText).toContain(totalValue);
   });
 });
+
 
 
