@@ -594,7 +594,8 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
       participants,
       calculations,
       deedDate,
-      portageFormula
+      portageFormula,
+      projectParams
     );
 
     exportCalculations(

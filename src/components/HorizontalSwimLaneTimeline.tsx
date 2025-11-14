@@ -89,9 +89,10 @@ export default function HorizontalSwimLaneTimeline({
       participants,
       calculations,
       deedDate,
-      { ...DEFAULT_PORTAGE_FORMULA, coproReservesShare }
+      { ...DEFAULT_PORTAGE_FORMULA, coproReservesShare },
+      projectParams
     );
-  }, [participants, calculations, deedDate, coproReservesShare]);
+  }, [participants, calculations, deedDate, coproReservesShare, projectParams]);
 
   return (
     <>

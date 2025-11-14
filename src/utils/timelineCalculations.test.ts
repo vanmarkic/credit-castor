@@ -465,7 +465,8 @@ describe('timelineCalculations', () => {
         participants,
         calculations,
         deedDate,
-        DEFAULT_PORTAGE_FORMULA
+        DEFAULT_PORTAGE_FORMULA,
+        undefined
       )
 
       expect(snapshots.size).toBe(2)
@@ -513,7 +514,8 @@ describe('timelineCalculations', () => {
         participants,
         calculations,
         deedDate,
-        DEFAULT_PORTAGE_FORMULA
+        DEFAULT_PORTAGE_FORMULA,
+        undefined
       )
 
       expect(snapshots.has('Seller')).toBe(true)
@@ -558,7 +560,8 @@ describe('timelineCalculations', () => {
         participants,
         calculations,
         deedDate,
-        DEFAULT_PORTAGE_FORMULA
+        DEFAULT_PORTAGE_FORMULA,
+        undefined
       )
 
       expect(snapshots.size).toBe(3)
@@ -608,7 +611,8 @@ describe('timelineCalculations', () => {
         participants,
         calculations,
         deedDate,
-        DEFAULT_PORTAGE_FORMULA
+        DEFAULT_PORTAGE_FORMULA,
+        undefined
       )
 
       const sellerSnapshots = snapshots.get('Seller')!
@@ -666,7 +670,8 @@ describe('timelineCalculations', () => {
         participants,
         calculations,
         deedDate,
-        DEFAULT_PORTAGE_FORMULA
+        DEFAULT_PORTAGE_FORMULA,
+        undefined
       )
 
       const founderSnapshots = snapshots.get('Founder')!

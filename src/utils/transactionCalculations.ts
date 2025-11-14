@@ -2,7 +2,9 @@ import { Participant, ParticipantCalculation, PortageFormulaParams } from './cal
 import { TimelineTransaction } from '../types/timeline'
 import {
   calculateResalePrice,
-  calculateCarryingCosts
+  calculateCarryingCosts,
+  calculateCoproSalePrice,
+  calculateYearsHeld
 } from './portageCalculations'
 
 // Local interface for TimelineSnapshot to avoid circular dependency
@@ -98,11 +100,21 @@ export function calculatePortageTransaction(
  * - The remainder is distributed to founders by their frozen T0 quotité
  * - Each founder receives cash (negative delta) proportional to their surface
  *
+ * If renovation data is provided and the sale happens before renovationStartDate,
+ * the price is recalculated excluding renovation costs (matching useExpectedPaybacks logic).
+ *
  * @param affectedParticipant - A founder receiving distribution from the copro sale
  * @param coproBuyer - The newcomer buying from copropriété
  * @param _previousSnapshot - Participant's snapshot before this date (unused for now)
  * @param allParticipants - All participants (to calculate total founder surface and quotité)
  * @param coproReservesShare - Percentage of sale price going to copro reserves (default 30%)
+ * @param formulaParams - Portage formula parameters (for recalculating price if needed)
+ * @param deedDate - Initial deed date (for calculating years held)
+ * @param saleDate - Date of the sale (for renovation exclusion check)
+ * @param totalProjectCost - Total project cost (for recalculating price if needed)
+ * @param totalBuildingSurface - Total building surface (for recalculating price if needed)
+ * @param renovationStartDate - Date when renovations start (for exclusion check)
+ * @param totalRenovationCosts - Total renovation costs (for exclusion calculation)
  * @returns Transaction object with calculated delta (negative = cash received)
  */
 export function calculateCooproTransaction(
@@ -110,26 +122,72 @@ export function calculateCooproTransaction(
   coproBuyer: Participant,
   _previousSnapshot: TimelineSnapshot,
   allParticipants: Participant[],
-  coproReservesShare: number = 30
+  coproReservesShare: number = 30,
+  formulaParams?: PortageFormulaParams,
+  deedDate?: Date | string,
+  saleDate?: Date | string,
+  totalProjectCost?: number,
+  totalBuildingSurface?: number,
+  renovationStartDate?: Date | string,
+  totalRenovationCosts?: number
 ): TimelineTransaction {
-  // Get the purchase price from buyer's purchase details
-  const purchasePrice = coproBuyer.purchaseDetails?.purchasePrice || 0
+  // Calculate distribution amount
+  let distributionAmount: number;
+  const participantsShare = 1 - (coproReservesShare / 100);
+  
+  // Try to recalculate with renovation cost exclusion if we have the necessary data
+  const surfacePurchased = coproBuyer.surface || 0;
+  const shouldRecalculate = 
+    formulaParams &&
+    deedDate &&
+    saleDate &&
+    totalProjectCost !== undefined &&
+    totalProjectCost > 0 &&
+    totalBuildingSurface !== undefined &&
+    totalBuildingSurface > 0 &&
+    surfacePurchased > 0 &&
+    renovationStartDate !== undefined &&
+    totalRenovationCosts !== undefined &&
+    totalRenovationCosts > 0;
 
-  if (purchasePrice === 0) {
-    // No purchase price available - return 0 delta
-    return {
-      type: 'copro_sale',
-      delta: {
-        totalCost: 0,
-        loanNeeded: 0,
-        reason: `${coproBuyer.name} joined (copro sale)`
+  if (shouldRecalculate) {
+    // Recalculate copro sale price with renovation cost exclusion logic
+    const deedDateObj = deedDate instanceof Date ? deedDate : new Date(deedDate);
+    const saleDateObj = saleDate instanceof Date ? saleDate : new Date(saleDate);
+    const yearsHeld = calculateYearsHeld(deedDateObj, saleDateObj);
+    
+    const coproSalePricing = calculateCoproSalePrice(
+      surfacePurchased,
+      totalProjectCost,
+      totalBuildingSurface,
+      yearsHeld,
+      formulaParams,
+      0, // Carrying costs - simplified (could be calculated if available)
+      renovationStartDate,
+      saleDate,
+      totalRenovationCosts
+    );
+    
+    // Use the recalculated toParticipants amount
+    distributionAmount = coproSalePricing.distribution.toParticipants;
+  } else {
+    // Fallback to stored purchasePrice if we don't have enough data to recalculate
+    const purchasePrice = coproBuyer.purchaseDetails?.purchasePrice || 0;
+    
+    if (purchasePrice === 0) {
+      // No purchase price available - return 0 delta
+      return {
+        type: 'copro_sale',
+        delta: {
+          totalCost: 0,
+          loanNeeded: 0,
+          reason: `${coproBuyer.name} joined (copro sale)`
+        }
       }
     }
+    
+    distributionAmount = purchasePrice * participantsShare;
   }
-
-  // Calculate distribution amount (based on coproReservesShare)
-  const participantsShare = 1 - (coproReservesShare / 100)
-  const distributionAmount = purchasePrice * participantsShare
 
   // Calculate surface-based redistribution among founders (excluding the buyer)
   const founders = allParticipants.filter(p =>

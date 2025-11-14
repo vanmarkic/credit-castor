@@ -1,7 +1,8 @@
 import type {
   Participant,
   CalculationResults,
-  PortageFormulaParams
+  PortageFormulaParams,
+  ProjectParams
 } from './calculatorUtils'
 import type { TimelineTransaction } from '../types/timeline'
 import {
@@ -301,13 +302,15 @@ export function determineAffectedParticipants(
  * @param calculations - Calculation results for all participants
  * @param deedDate - Initial deed date (ISO string)
  * @param formulaParams - Portage formula parameters
+ * @param projectParams - Optional project parameters (for renovation cost exclusion in copro sales)
  * @returns Map of participant name to array of snapshots
  */
 export function generateParticipantSnapshots(
   participants: Participant[],
   calculations: CalculationResults,
   deedDate: string,
-  formulaParams: PortageFormulaParams
+  formulaParams: PortageFormulaParams,
+  projectParams?: ProjectParams
 ): Map<string, TimelineSnapshot[]> {
   const result: Map<string, TimelineSnapshot[]> = new Map()
   const previousSnapshots: Map<string, TimelineSnapshot> = new Map()
@@ -444,16 +447,34 @@ export function generateParticipantSnapshots(
             return participantEntryDate <= date
           })
 
+          // Calculate total project cost and renovation costs for price recalculation
+          const totalProjectCost = (calculations.totals.purchase || 0) +
+            (calculations.totals.totalDroitEnregistrements || 0) +
+            (calculations.totals.construction || 0);
+          const totalRenovationCosts = calculations.participantBreakdown.reduce(
+            (sum, pb) => sum + (pb.personalRenovationCost || 0),
+            0
+          );
+          const renovationStartDate = projectParams?.renovationStartDate;
+
           // Calculate transaction for each copro sale and aggregate
-          const transactions = coproSales.map(coproSale =>
-            calculateCooproTransaction(
+          const transactions = coproSales.map(coproSale => {
+            const saleDate = coproSale.entryDate ? new Date(coproSale.entryDate) : date;
+            return calculateCooproTransaction(
               p,
               coproSale,
               prevSnapshot,
               activeParticipants,
-              formulaParams.coproReservesShare
-            )
-          )
+              formulaParams.coproReservesShare,
+              formulaParams,
+              deedDate,
+              saleDate,
+              totalProjectCost,
+              calculations.totalSurface,
+              renovationStartDate,
+              totalRenovationCosts
+            );
+          })
 
           // Aggregate: sum the deltas and combine reasons
           const totalDelta = transactions.reduce(
