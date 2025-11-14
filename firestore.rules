@@ -19,18 +19,38 @@ service cloud.firestore {
       // Allow read if unlocked (we check unlock state in the app)
       allow read: if true;
 
+      // Helper function to validate TravauxCommuns structure
+      function isValidTravauxCommuns(travauxCommuns) {
+        // enabled must be boolean if present
+        let enabledValid = !exists(travauxCommuns.enabled) || travauxCommuns.enabled is bool;
+        
+        // If items exist, they must be a list
+        // Note: Detailed item structure validation (label, sqm, cascoPricePerSqm, parachevementPricePerSqm, amount)
+        // happens in the application layer. Firestore Security Rules don't support iterating through lists
+        // to validate individual items, so we only validate that items is a list if present.
+        let itemsValid = !exists(travauxCommuns.items) || travauxCommuns.items is list;
+        
+        return enabledValid && itemsValid;
+      }
+
       // Helper function to validate ProjectParams structure
       function isValidProjectParams() {
         // If projectParams doesn't exist, validation passes (for partial updates)
         return !exists(request.resource.data.projectParams) || 
-               (!exists(request.resource.data.projectParams.maxTotalLots) || 
-                (request.resource.data.projectParams.maxTotalLots is int && 
-                 request.resource.data.projectParams.maxTotalLots > 0));
+               ((!exists(request.resource.data.projectParams.maxTotalLots) || 
+                 (request.resource.data.projectParams.maxTotalLots is int && 
+                  request.resource.data.projectParams.maxTotalLots > 0)) &&
+                (!exists(request.resource.data.projectParams.travauxCommuns) || 
+                 isValidTravauxCommuns(request.resource.data.projectParams.travauxCommuns)));
       }
 
-      // Allow write only if user is authenticated (has unlocked)
-      // Also validate projectParams structure
-      allow write: if (request.auth != null || request.resource.data.lastModifiedBy != null) &&
+      // Allow write if lastModifiedBy is set (custom auth system) - must be a non-empty string
+      // OR if Firebase Auth user is authenticated
+      // Also validate projectParams structure if present
+      allow write: if ((exists(request.resource.data.lastModifiedBy) && 
+                        request.resource.data.lastModifiedBy is string && 
+                        request.resource.data.lastModifiedBy.size() > 0) || 
+                       request.auth != null) &&
                      isValidProjectParams();
 
       // Participants subcollection - individual participant documents
@@ -49,9 +69,13 @@ service cloud.firestore {
           return lotsOwnedValid && enabledValid;
         }
 
-        // Allow write only if user is authenticated (has unlocked)
+        // Allow write if lastModifiedBy is set (custom auth system) - must be a non-empty string
+        // OR if Firebase Auth user is authenticated
         // Also validate participant structure
-        allow write: if (request.auth != null || request.resource.data.lastModifiedBy != null) &&
+        allow write: if ((exists(request.resource.data.lastModifiedBy) && 
+                          request.resource.data.lastModifiedBy is string && 
+                          request.resource.data.lastModifiedBy.size() > 0) || 
+                         request.auth != null) &&
                        isValidParticipant();
       }
     }

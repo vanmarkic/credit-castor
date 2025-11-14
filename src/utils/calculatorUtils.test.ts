@@ -5,6 +5,9 @@ import {
   calculateSharedCosts,
   calculateTotalTravauxCommuns,
   calculateTravauxCommunsPerUnit,
+  calculateTravauxCommunsItemAmount,
+  calculateTravauxCommunsItemCascoAmount,
+  calculateTravauxCommunsCascoAmount,
   calculatePurchaseShare,
   calculateDroitEnregistrements,
   calculateFraisNotaireFixe,
@@ -365,7 +368,7 @@ describe('Calculator Utils', () => {
 
       const result = getFraisGenerauxBreakdown(participants, projectParams, unitDetails);
 
-      // Total CASCO hors TVA = (112 × 1590) + (134 × 1590) + travaux communs
+      // Total CASCO hors TVA = (112 × 1590) + (134 × 1590) + travaux communs (base only, no custom items)
       // = 178080 + 213060 + 43700 + 269200 + 56000 = 760,040
       const expectedTotalCasco = 178080 + 213060 + 43700 + 269200 + 56000;
       expect(result.totalCasco).toBeCloseTo(expectedTotalCasco, 2);
@@ -377,6 +380,41 @@ describe('Calculator Utils', () => {
       // Honoraires yearly = Honoraires total / 3
       const expectedHonorairesYearly = expectedHonorairesTotal / 3;
       expect(result.honorairesYearly).toBeCloseTo(expectedHonorairesYearly, 2);
+    });
+
+    it('should include only CASCO portion from travaux communs in honoraires calculation', () => {
+      const participants: Participant[] = [
+        { name: 'A', surface: 112, capitalApporte: 50000, registrationFeesRate: 12.5, unitId: 1, interestRate: 4.5, durationYears: 25, quantity: 1 },
+      ];
+
+      const projectParamsWithTravauxCommuns: ProjectParams = {
+        ...projectParams,
+        travauxCommuns: {
+          enabled: true,
+          items: [
+            { 
+              label: 'Test', 
+              sqm: 100, 
+              cascoPricePerSqm: 2000, 
+              parachevementPricePerSqm: 700 
+              // CASCO: 100 * 2000 = 200000
+              // Parachevement: 100 * 700 = 70000 (should NOT be included in honoraires)
+            }
+          ]
+        }
+      };
+
+      const result = getFraisGenerauxBreakdown(participants, projectParamsWithTravauxCommuns, unitDetails);
+
+      // Total CASCO hors TVA = participant CASCO (112 × 1590) + base travaux communs + custom CASCO only
+      // = 178080 + 43700 + 269200 + 56000 + 200000 = 744,980
+      // Note: parachevements (70000) should NOT be included
+      const expectedTotalCasco = 178080 + 43700 + 269200 + 56000 + 200000;
+      expect(result.totalCasco).toBeCloseTo(expectedTotalCasco, 2);
+
+      // Verify parachevements are NOT included
+      const totalIfIncludingParachevements = expectedTotalCasco + 70000;
+      expect(result.totalCasco).not.toBeCloseTo(totalIfIncludingParachevements, 2);
     });
 
     it('should calculate correct recurring costs totals', () => {
@@ -509,7 +547,7 @@ describe('Calculator Utils', () => {
       expect(result).toBeCloseTo(122966.67, 2);
     });
 
-    it('should include enabled travauxCommuns items in total', () => {
+    it('should include enabled travauxCommuns items in total (calculated from sqm and prices)', () => {
       const projectParams: ProjectParams = {
         totalPurchase: 650000,
         mesuresConservatoires: 20000,
@@ -525,12 +563,50 @@ describe('Calculator Utils', () => {
         travauxCommuns: {
           enabled: true,
           items: [
-            { label: 'Rénovation complète', amount: 270000 },
-            { label: 'Isolation', amount: 50000 }
+            { 
+              label: 'Rénovation complète', 
+              sqm: 100, 
+              cascoPricePerSqm: 2000, 
+              parachevementPricePerSqm: 700 
+              // amount = (100 * 2000) + (100 * 700) = 270000
+            },
+            { 
+              label: 'Isolation', 
+              sqm: 50, 
+              cascoPricePerSqm: 800, 
+              parachevementPricePerSqm: 200 
+              // amount = (50 * 800) + (50 * 200) = 50000
+            }
           ]
         }
       };
       // Total should be: 43700 + 269200 + 56000 + 270000 + 50000 = 688900
+      const result = calculateTotalTravauxCommuns(projectParams);
+      expect(result).toBe(688900);
+    });
+
+    it('should support backward compatibility with amount field (when sqm is 0 or undefined)', () => {
+      const projectParams: ProjectParams = {
+        totalPurchase: 650000,
+        mesuresConservatoires: 20000,
+        demolition: 40000,
+        infrastructures: 90000,
+        etudesPreparatoires: 59820,
+        fraisEtudesPreparatoires: 27320,
+        fraisGeneraux3ans: 136825.63,
+        batimentFondationConservatoire: 43700,
+        batimentFondationComplete: 269200,
+        batimentCoproConservatoire: 56000,
+        globalCascoPerM2: 1590,
+        travauxCommuns: {
+          enabled: true,
+          items: [
+            { label: 'Rénovation complète', amount: 270000, sqm: 0, cascoPricePerSqm: 0, parachevementPricePerSqm: 0 },
+            { label: 'Isolation', amount: 50000, sqm: 0, cascoPricePerSqm: 0, parachevementPricePerSqm: 0 }
+          ]
+        }
+      };
+      // Should use amount field when sqm is 0
       const result = calculateTotalTravauxCommuns(projectParams);
       expect(result).toBe(688900);
     });
@@ -600,6 +676,211 @@ describe('Calculator Utils', () => {
       };
       // Total should only be old fields: 43700 + 269200 + 56000 = 368900
       const result = calculateTotalTravauxCommuns(projectParams);
+      expect(result).toBe(368900);
+    });
+  });
+
+  describe('calculateTravauxCommunsItemAmount', () => {
+    it('should calculate amount from sqm and prices', () => {
+      const item = {
+        label: 'Test',
+        sqm: 100,
+        cascoPricePerSqm: 2000,
+        parachevementPricePerSqm: 700
+      };
+      // amount = (100 * 2000) + (100 * 700) = 270000
+      const result = calculateTravauxCommunsItemAmount(item);
+      expect(result).toBe(270000);
+    });
+
+    it('should handle zero sqm', () => {
+      const item = {
+        label: 'Test',
+        sqm: 0,
+        cascoPricePerSqm: 2000,
+        parachevementPricePerSqm: 700,
+        amount: 100000
+      };
+      // Should use amount field when sqm is 0
+      const result = calculateTravauxCommunsItemAmount(item);
+      expect(result).toBe(100000);
+    });
+
+    it('should handle missing prices (defaults to 0)', () => {
+      const item = {
+        label: 'Test',
+        sqm: 100,
+        cascoPricePerSqm: 0,
+        parachevementPricePerSqm: 0
+      };
+      const result = calculateTravauxCommunsItemAmount(item);
+      expect(result).toBe(0);
+    });
+  });
+
+  describe('calculateTravauxCommunsItemCascoAmount', () => {
+    it('should calculate CASCO-only amount from sqm and casco price', () => {
+      const item = {
+        label: 'Test',
+        sqm: 100,
+        cascoPricePerSqm: 2000,
+        parachevementPricePerSqm: 700
+      };
+      // CASCO amount = 100 * 2000 = 200000 (does not include parachevements)
+      const result = calculateTravauxCommunsItemCascoAmount(item);
+      expect(result).toBe(200000);
+    });
+
+    it('should handle zero sqm', () => {
+      const item = {
+        label: 'Test',
+        sqm: 0,
+        cascoPricePerSqm: 2000,
+        parachevementPricePerSqm: 700
+      };
+      const result = calculateTravauxCommunsItemCascoAmount(item);
+      expect(result).toBe(0);
+    });
+
+    it('should handle missing casco price (defaults to 0)', () => {
+      const item = {
+        label: 'Test',
+        sqm: 100,
+        cascoPricePerSqm: 0,
+        parachevementPricePerSqm: 700
+      };
+      const result = calculateTravauxCommunsItemCascoAmount(item);
+      expect(result).toBe(0);
+    });
+  });
+
+  describe('calculateTravauxCommunsCascoAmount', () => {
+    it('should calculate only CASCO portion from travaux communs', () => {
+      const projectParams: ProjectParams = {
+        totalPurchase: 650000,
+        mesuresConservatoires: 20000,
+        demolition: 40000,
+        infrastructures: 90000,
+        etudesPreparatoires: 59820,
+        fraisEtudesPreparatoires: 27320,
+        fraisGeneraux3ans: 136825.63,
+        batimentFondationConservatoire: 43700,
+        batimentFondationComplete: 269200,
+        batimentCoproConservatoire: 56000,
+        globalCascoPerM2: 1590,
+        travauxCommuns: {
+          enabled: true,
+          items: [
+            { 
+              label: 'Rénovation complète', 
+              sqm: 100, 
+              cascoPricePerSqm: 2000, 
+              parachevementPricePerSqm: 700 
+              // CASCO: 100 * 2000 = 200000
+              // Parachevement: 100 * 700 = 70000
+              // Total: 270000
+            },
+            { 
+              label: 'Isolation', 
+              sqm: 50, 
+              cascoPricePerSqm: 800, 
+              parachevementPricePerSqm: 200 
+              // CASCO: 50 * 800 = 40000
+              // Parachevement: 50 * 200 = 10000
+              // Total: 50000
+            }
+          ]
+        }
+      };
+      // CASCO amount = base (43700 + 269200 + 56000) + custom CASCO (200000 + 40000) = 608900
+      // Base: 43700 + 269200 + 56000 = 368900
+      // Custom CASCO: (100 * 2000) + (50 * 800) = 200000 + 40000 = 240000
+      // Total: 368900 + 240000 = 608900
+      // Note: base travaux communs are included in total (they don't have separate breakdown)
+      const result = calculateTravauxCommunsCascoAmount(projectParams);
+      expect(result).toBe(608900);
+    });
+
+    it('should exclude parachevements from CASCO calculation', () => {
+      const projectParams: ProjectParams = {
+        totalPurchase: 650000,
+        mesuresConservatoires: 20000,
+        demolition: 40000,
+        infrastructures: 90000,
+        etudesPreparatoires: 59820,
+        fraisEtudesPreparatoires: 27320,
+        fraisGeneraux3ans: 136825.63,
+        batimentFondationConservatoire: 43700,
+        batimentFondationComplete: 269200,
+        batimentCoproConservatoire: 56000,
+        globalCascoPerM2: 1590,
+        travauxCommuns: {
+          enabled: true,
+          items: [
+            { 
+              label: 'Test', 
+              sqm: 100, 
+              cascoPricePerSqm: 1000, 
+              parachevementPricePerSqm: 5000 
+              // CASCO: 100 * 1000 = 100000
+              // Parachevement: 100 * 5000 = 500000 (should NOT be included)
+            }
+          ]
+        }
+      };
+      // CASCO amount = base (43700 + 269200 + 56000) + custom CASCO (100000) = 468900
+      // Should NOT include parachevements (500000)
+      const result = calculateTravauxCommunsCascoAmount(projectParams);
+      expect(result).toBe(468900);
+    });
+
+    it('should return base total when travaux communs is disabled', () => {
+      const projectParams: ProjectParams = {
+        totalPurchase: 650000,
+        mesuresConservatoires: 20000,
+        demolition: 40000,
+        infrastructures: 90000,
+        etudesPreparatoires: 59820,
+        fraisEtudesPreparatoires: 27320,
+        fraisGeneraux3ans: 136825.63,
+        batimentFondationConservatoire: 43700,
+        batimentFondationComplete: 269200,
+        batimentCoproConservatoire: 56000,
+        globalCascoPerM2: 1590,
+        travauxCommuns: {
+          enabled: false,
+          items: [
+            { 
+              label: 'Test', 
+              sqm: 100, 
+              cascoPricePerSqm: 2000, 
+              parachevementPricePerSqm: 700 
+            }
+          ]
+        }
+      };
+      // Should only include base: 43700 + 269200 + 56000 = 368900
+      const result = calculateTravauxCommunsCascoAmount(projectParams);
+      expect(result).toBe(368900);
+    });
+
+    it('should handle undefined travaux communs (backward compatibility)', () => {
+      const projectParams: ProjectParams = {
+        totalPurchase: 650000,
+        mesuresConservatoires: 20000,
+        demolition: 40000,
+        infrastructures: 90000,
+        etudesPreparatoires: 59820,
+        fraisEtudesPreparatoires: 27320,
+        fraisGeneraux3ans: 136825.63,
+        batimentFondationConservatoire: 43700,
+        batimentFondationComplete: 269200,
+        batimentCoproConservatoire: 56000,
+        globalCascoPerM2: 1590
+        // travauxCommuns is undefined
+      };
+      // Should only include base: 43700 + 269200 + 56000 = 368900
+      const result = calculateTravauxCommunsCascoAmount(projectParams);
       expect(result).toBe(368900);
     });
   });

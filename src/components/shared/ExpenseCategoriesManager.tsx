@@ -6,6 +6,7 @@ import {
   calculateExpenseCategoriesTotal,
   getFraisGenerauxBreakdown,
   calculateTotalTravauxCommuns,
+  calculateTravauxCommunsItemAmount,
   type ExpenseCategories,
   type ProjectParams,
   type Participant,
@@ -58,7 +59,13 @@ export function ExpenseCategoriesManager({
   // Initialize travauxCommuns with default values if undefined
   const travauxCommuns = projectParams.travauxCommuns ?? {
     enabled: false,
-    items: [{ label: 'Rénovation complète', amount: 270000 }]
+    items: [{ 
+      label: 'Rénovation complète', 
+      sqm: 0, 
+      cascoPricePerSqm: 0, 
+      parachevementPricePerSqm: 0,
+      amount: 270000 // Backward compatibility: use amount if sqm is 0
+    }]
   };
 
   // Calculate the full travaux communs total using the utility function
@@ -128,9 +135,35 @@ export function ExpenseCategoriesManager({
     });
   };
 
-  const handleTravauxCommunsItemChange = (index: number, value: number) => {
+  const handleTravauxCommunsItemSqmChange = (index: number, value: number) => {
     const newItems = travauxCommuns.items.map((item, i) =>
-      i === index ? { ...item, amount: value } : item
+      i === index ? { ...item, sqm: value || 0 } : item
+    );
+    onUpdateProjectParams({
+      ...projectParams,
+      travauxCommuns: {
+        ...travauxCommuns,
+        items: newItems
+      }
+    });
+  };
+
+  const handleTravauxCommunsItemCascoPriceChange = (index: number, value: number) => {
+    const newItems = travauxCommuns.items.map((item, i) =>
+      i === index ? { ...item, cascoPricePerSqm: value || 0 } : item
+    );
+    onUpdateProjectParams({
+      ...projectParams,
+      travauxCommuns: {
+        ...travauxCommuns,
+        items: newItems
+      }
+    });
+  };
+
+  const handleTravauxCommunsItemParachevementPriceChange = (index: number, value: number) => {
+    const newItems = travauxCommuns.items.map((item, i) =>
+      i === index ? { ...item, parachevementPricePerSqm: value || 0 } : item
     );
     onUpdateProjectParams({
       ...projectParams,
@@ -159,7 +192,12 @@ export function ExpenseCategoriesManager({
       ...projectParams,
       travauxCommuns: {
         ...travauxCommuns,
-        items: [...travauxCommuns.items, { label: 'Nouvelle dépense', amount: 0 }]
+        items: [...travauxCommuns.items, { 
+          label: 'Nouvelle dépense', 
+          sqm: 0, 
+          cascoPricePerSqm: 0, 
+          parachevementPricePerSqm: 0 
+        }]
       }
     });
   };
@@ -233,34 +271,83 @@ export function ExpenseCategoriesManager({
                 {travauxCommuns.items.length > 0 && (
                   <h5 className="text-xs font-semibold text-gray-700 uppercase">Travaux additionnels (personnalisables)</h5>
                 )}
-                {travauxCommuns.items.map((item, index) => (
-                  <div key={index} className="grid grid-cols-[1fr_auto_auto] gap-2 items-center">
-                    <input
-                      type="text"
-                      value={item.label}
-                      onChange={(e) => handleTravauxCommunsItemLabelChange(index, e.target.value)}
-                      disabled={!canEditExpenseCategories}
-                      className={`px-3 py-2 text-xs border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white ${!canEditExpenseCategories ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''}`}
-                      placeholder="Label"
-                    />
-                    <input
-                      type="number"
-                      step="100"
-                      value={item.amount}
-                      onChange={(e) => handleTravauxCommunsItemChange(index, parseFloat(e.target.value) || 0)}
-                      disabled={!canEditExpenseCategories}
-                      className={`w-32 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white ${!canEditExpenseCategories ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''}`}
-                    />
-                    <button
-                      onClick={() => handleTravauxCommunsRemoveItem(index)}
-                      disabled={!canEditExpenseCategories}
-                      className={`p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors ${!canEditExpenseCategories ? 'opacity-60 cursor-not-allowed' : ''}`}
-                      title="Supprimer"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+                {travauxCommuns.items.map((item, index) => {
+                  const calculatedAmount = calculateTravauxCommunsItemAmount(item);
+                  return (
+                    <div key={index} className="space-y-2 p-3 border border-gray-200 rounded-lg bg-gray-50">
+                      <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
+                        <input
+                          type="text"
+                          value={item.label}
+                          onChange={(e) => handleTravauxCommunsItemLabelChange(index, e.target.value)}
+                          disabled={!canEditExpenseCategories}
+                          className={`px-3 py-2 text-xs border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white ${!canEditExpenseCategories ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''}`}
+                          placeholder="Label"
+                        />
+                        <button
+                          onClick={() => handleTravauxCommunsRemoveItem(index)}
+                          disabled={!canEditExpenseCategories}
+                          className={`p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors ${!canEditExpenseCategories ? 'opacity-60 cursor-not-allowed' : ''}`}
+                          title="Supprimer"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-4 gap-2 items-center">
+                        <div>
+                          <label htmlFor={`travaux-sqm-${index}`} className="text-xs text-gray-600 block mb-1">m²</label>
+                          <input
+                            id={`travaux-sqm-${index}`}
+                            type="number"
+                            step="0.01"
+                            value={item.sqm || ''}
+                            onChange={(e) => handleTravauxCommunsItemSqmChange(index, parseFloat(e.target.value) || 0)}
+                            disabled={!canEditExpenseCategories}
+                            className={`w-full px-2 py-1 text-xs border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white ${!canEditExpenseCategories ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''}`}
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor={`travaux-casco-${index}`} className="text-xs text-gray-600 block mb-1">CASCO €/m²</label>
+                          <input
+                            id={`travaux-casco-${index}`}
+                            type="number"
+                            step="0.01"
+                            value={item.cascoPricePerSqm || ''}
+                            onChange={(e) => handleTravauxCommunsItemCascoPriceChange(index, parseFloat(e.target.value) || 0)}
+                            disabled={!canEditExpenseCategories}
+                            className={`w-full px-2 py-1 text-xs border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white ${!canEditExpenseCategories ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''}`}
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor={`travaux-parach-${index}`} className="text-xs text-gray-600 block mb-1">Parach. €/m²</label>
+                          <input
+                            id={`travaux-parach-${index}`}
+                            type="number"
+                            step="0.01"
+                            value={item.parachevementPricePerSqm || ''}
+                            onChange={(e) => handleTravauxCommunsItemParachevementPriceChange(index, parseFloat(e.target.value) || 0)}
+                            disabled={!canEditExpenseCategories}
+                            className={`w-full px-2 py-1 text-xs border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none bg-white ${!canEditExpenseCategories ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''}`}
+                            placeholder="0"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor={`travaux-total-${index}`} className="text-xs text-gray-600 block mb-1">Total</label>
+                          <input
+                            id={`travaux-total-${index}`}
+                            type="text"
+                            value={formatCurrency(calculatedAmount)}
+                            readOnly
+                            disabled
+                            className="w-full px-2 py-1 text-xs border border-gray-300 rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
 
                 {/* Add Item Button */}
                 <button

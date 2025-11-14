@@ -2,7 +2,7 @@ import { formatCurrency } from '../../utils/formatting';
 import { FormulaTooltip } from '../FormulaTooltip';
 import { getExpectedPaybacksFormula } from '../../utils/formulaExplanations';
 import { useExpectedPaybacks } from '../../hooks/useExpectedPaybacks';
-import type { Participant } from '../../utils/calculatorUtils';
+import type { Participant, ProjectParams, CalculationResults, PortageFormulaParams } from '../../utils/calculatorUtils';
 
 interface ExpectedPaybacksCardProps {
   participant: Participant;
@@ -12,6 +12,12 @@ interface ExpectedPaybacksCardProps {
   coproReservesShare?: number;
   /** Optional CSS class for custom styling */
   className?: string;
+  /** Project parameters (needed for renovationStartDate logic) */
+  projectParams?: ProjectParams;
+  /** Calculation results (needed for totalProjectCost and totalRenovationCosts) */
+  calculations?: CalculationResults;
+  /** Portage formula parameters (needed for copro sale price calculation) */
+  formulaParams?: PortageFormulaParams;
 }
 
 /**
@@ -23,13 +29,19 @@ export function ExpectedPaybacksCard({
   allParticipants,
   deedDate,
   coproReservesShare = 30,
-  className = ''
+  className = '',
+  projectParams,
+  calculations,
+  formulaParams
 }: ExpectedPaybacksCardProps) {
   const { paybacks, totalRecovered } = useExpectedPaybacks(
     participant,
     allParticipants,
     deedDate,
-    coproReservesShare
+    coproReservesShare,
+    projectParams,
+    calculations,
+    formulaParams
   );
 
   // Don't render if no paybacks

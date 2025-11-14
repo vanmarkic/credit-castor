@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { type Participant, calculateTotalTravauxCommuns } from '../utils/calculatorUtils';
 import { ParticipantsTimeline } from './calculator/ParticipantsTimeline';
@@ -42,6 +43,8 @@ interface CoproSnapshot {
 }
 
 export default function EnDivisionCorrect() {
+  const [isCostBreakdownExpanded, setIsCostBreakdownExpanded] = useState(false);
+  
   // Get state and actions from context
   const { state, actions } = useCalculator();
   const {
@@ -391,91 +394,105 @@ export default function EnDivisionCorrect() {
         />
 
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Décomposition des Coûts</h2>
+          <button
+            onClick={() => setIsCostBreakdownExpanded(!isCostBreakdownExpanded)}
+            className="flex items-center justify-between w-full mb-4 bg-white rounded p-1 -ml-1 transition-colors"
+          >
+            <h2 className="text-xl font-bold text-gray-800">Décomposition des Coûts</h2>
+            <div className="flex items-center gap-2">
+              {isCostBreakdownExpanded ? (
+                <ChevronUp className="w-5 h-5 text-gray-500" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-gray-500" />
+              )}
+            </div>
+          </button>
           <div className="flex items-center justify-center gap-3">
-            <div className="p-3 bg-white rounded-lg border border-gray-200 flex-1">
-              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Achat Total</p>
-              <p className="text-lg font-bold text-gray-900">{formatCurrency(calculations.totals.purchase)}</p>
-              <p className="text-xs text-blue-600 mt-1">
-                <FormulaTooltip formula={getPricePerM2Formula(calculations.totals, calculations.totalSurface)}>
-                  {formatCurrency(calculations.pricePerM2)}/m²
-                </FormulaTooltip>
-              </p>
-            </div>
+                <div className="p-3 bg-white rounded-lg border border-gray-200 flex-1">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Achat Total</p>
+                  <p className="text-lg font-bold text-gray-900">{formatCurrency(calculations.totals.purchase)}</p>
+                  <p className="text-xs text-blue-600 mt-1">
+                    <FormulaTooltip formula={getPricePerM2Formula(calculations.totals, calculations.totalSurface)}>
+                      {formatCurrency(calculations.pricePerM2)}/m²
+                    </FormulaTooltip>
+                  </p>
+                </div>
 
-            <div className="text-2xl font-bold text-gray-400 flex-shrink-0">+</div>
+                <div className="text-2xl font-bold text-gray-400 flex-shrink-0">+</div>
 
-            <div className="p-3 bg-white rounded-lg border border-purple-200 flex-1">
-              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Commun Infrastr.</p>
-              <p className="text-lg font-bold text-purple-700">
-                {formatCurrency(calculations.sharedCosts + calculateTotalTravauxCommuns(projectParams))}
-              </p>
-              <p className="text-xs text-purple-500 mt-1">
-                {formatCurrency((calculations.sharedCosts + calculateTotalTravauxCommuns(projectParams)) / participants.length)}/pers
-              </p>
-            </div>
+                <div className="p-3 bg-white rounded-lg border border-purple-200 flex-1">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Commun Infrastr.</p>
+                  <p className="text-lg font-bold text-purple-700">
+                    {formatCurrency(calculations.sharedCosts + calculateTotalTravauxCommuns(projectParams))}
+                  </p>
+                  <p className="text-xs text-purple-500 mt-1">
+                    {formatCurrency((calculations.sharedCosts + calculateTotalTravauxCommuns(projectParams)) / participants.length)}/pers
+                  </p>
+                </div>
 
-            <div className="text-2xl font-bold text-gray-400 flex-shrink-0">+</div>
+                <div className="text-2xl font-bold text-gray-400 flex-shrink-0">+</div>
 
-            <div className="p-3 bg-white rounded-lg border border-orange-200 flex-1">
-              <FormulaTooltip formula={[
-                "Rénovations personnelles",
-                `CASCO (gros œuvre): ${formatCurrency(calculations.participantBreakdown.reduce((sum, p) => sum + p.casco, 0))}`,
-                `+ Parachèvements: ${formatCurrency(calculations.participantBreakdown.reduce((sum, p) => sum + p.parachevements, 0))}`,
-                `= ${formatCurrency(calculations.participantBreakdown.reduce((sum, p) => sum + p.personalRenovationCost, 0))}`
-              ]}>
-                <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Rénovations Perso.</p>
-              </FormulaTooltip>
-              <p className="text-lg font-bold text-orange-700">{formatCurrency(calculations.participantBreakdown.reduce((sum, p) => sum + p.personalRenovationCost, 0))}</p>
-              <p className="text-xs text-orange-500 mt-1">CASCO + Parachèv.</p>
-            </div>
+                <div className="p-3 bg-white rounded-lg border border-orange-200 flex-1">
+                  <FormulaTooltip formula={[
+                    "Rénovations personnelles",
+                    `CASCO (gros œuvre): ${formatCurrency(calculations.participantBreakdown.reduce((sum, p) => sum + p.casco, 0))}`,
+                    `+ Parachèvements: ${formatCurrency(calculations.participantBreakdown.reduce((sum, p) => sum + p.parachevements, 0))}`,
+                    `= ${formatCurrency(calculations.participantBreakdown.reduce((sum, p) => sum + p.personalRenovationCost, 0))}`
+                  ]}>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Rénovations Perso.</p>
+                  </FormulaTooltip>
+                  <p className="text-lg font-bold text-orange-700">{formatCurrency(calculations.participantBreakdown.reduce((sum, p) => sum + p.personalRenovationCost, 0))}</p>
+                  <p className="text-xs text-orange-500 mt-1">CASCO + Parachèv.</p>
+                </div>
 
-            <div className="text-2xl font-bold text-gray-400 flex-shrink-0">+</div>
+                <div className="text-2xl font-bold text-gray-400 flex-shrink-0">+</div>
 
-            <div className="p-3 bg-white rounded-lg border border-gray-200 flex-1">
-              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Frais d'enregistrements</p>
-              <p className="text-lg font-bold text-gray-900">{formatCurrency(calculations.totals.totalDroitEnregistrements)}</p>
-              <p className="text-xs text-gray-400 mt-1">taux individuels</p>
-            </div>
+                <div className="p-3 bg-white rounded-lg border border-gray-200 flex-1">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Frais d'enregistrements</p>
+                  <p className="text-lg font-bold text-gray-900">{formatCurrency(calculations.totals.totalDroitEnregistrements)}</p>
+                  <p className="text-xs text-gray-400 mt-1">taux individuels</p>
+                </div>
 
-            <div className="text-2xl font-bold text-gray-400 flex-shrink-0">=</div>
+                <div className="text-2xl font-bold text-gray-400 flex-shrink-0">=</div>
 
-            <div className="p-3 bg-gray-50 rounded-lg border border-gray-300 flex-1">
-              <p className="text-xs text-gray-600 uppercase tracking-wide mb-1 font-semibold">TOTAL</p>
-              <p className="text-lg font-bold text-gray-900">
-                <FormulaTooltip formula={getTotalProjectCostFormula()}>
-                  {formatCurrency(calculations.totals.total)}
-                </FormulaTooltip>
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
-            <h3 className="text-sm font-semibold text-gray-800 mb-3">Détail Commun</h3>
-
-            {projectParams.expenseCategories && (
-              <ExpenseCategoriesManager
-                expenseCategories={projectParams.expenseCategories}
-                projectParams={projectParams}
-                sharedCosts={calculations.sharedCosts}
-                onUpdateProjectParams={setProjectParams}
-                participants={participants}
-                unitDetails={unitDetails}
-              />
-            )}
-
-            <div className="mt-4 p-3 bg-purple-100 rounded-lg border border-purple-300">
-              <div className="flex justify-between items-center">
-                <p className="text-sm font-semibold text-gray-700">Total commun:</p>
-                <p className="text-lg font-bold text-purple-800">
-                  {formatCurrency(calculations.sharedCosts + calculateTotalTravauxCommuns(projectParams))}
-                </p>
+                <div className="p-3 bg-gray-50 rounded-lg border border-gray-300 flex-1">
+                  <p className="text-xs text-gray-600 uppercase tracking-wide mb-1 font-semibold">TOTAL</p>
+                  <p className="text-lg font-bold text-gray-900">
+                    <FormulaTooltip formula={getTotalProjectCostFormula()}>
+                      {formatCurrency(calculations.totals.total)}
+                    </FormulaTooltip>
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-gray-600 mt-1">
-                {formatCurrency((calculations.sharedCosts + calculateTotalTravauxCommuns(projectParams)) / participants.length)} par personne
-              </p>
-            </div>
-          </div>
+
+          {isCostBreakdownExpanded && (
+              <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                <h3 className="text-sm font-semibold text-gray-800 mb-3">Détail Commun</h3>
+
+                {projectParams.expenseCategories && (
+                  <ExpenseCategoriesManager
+                    expenseCategories={projectParams.expenseCategories}
+                    projectParams={projectParams}
+                    sharedCosts={calculations.sharedCosts}
+                    onUpdateProjectParams={setProjectParams}
+                    participants={participants}
+                    unitDetails={unitDetails}
+                  />
+                )}
+
+                <div className="mt-4 p-3 bg-purple-100 rounded-lg border border-purple-300">
+                  <div className="flex justify-between items-center">
+                    <p className="text-sm font-semibold text-gray-700">Total commun:</p>
+                    <p className="text-lg font-bold text-purple-800">
+                      {formatCurrency(calculations.sharedCosts + calculateTotalTravauxCommuns(projectParams))}
+                    </p>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1">
+                    {formatCurrency((calculations.sharedCosts + calculateTotalTravauxCommuns(projectParams)) / participants.length)} par personne
+                  </p>
+                </div>
+              </div>
+          )}
         </div>
 
         {/* Horizontal Timeline */}

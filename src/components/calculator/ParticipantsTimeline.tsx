@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { Clock, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Participant } from '../../utils/calculatorUtils';
 import { useProjectParamPermissions } from '../../hooks/useFieldPermissions';
+import { DraggableRenovationDateCard } from './DraggableRenovationDateCard';
 
 /**
  * Convert Firestore Timestamp to Date if needed
@@ -56,6 +57,7 @@ export const ParticipantsTimeline: React.FC<ParticipantsTimelineProps> = ({
   onUpdateParticipant
 }) => {
   const [expandedParticipant, setExpandedParticipant] = useState<string | null>(null);
+  const timelineContainerRef = useRef<HTMLDivElement>(null);
   const { canEdit: canEditRenovationStartDate, isLocked: isRenovationStartDateLocked, lockReason: renovationStartDateLockReason } = useProjectParamPermissions('renovationStartDate');
 
   const toggleExpand = (name: string) => {
@@ -86,6 +88,26 @@ export const ParticipantsTimeline: React.FC<ParticipantsTimelineProps> = ({
     });
   };
 
+  // Determine where to insert the renovation date card in the timeline
+  // Returns the date after which the card should be inserted, or null if before all
+  const getRenovationCardInsertPosition = useMemo(() => {
+    if (!renovationStartDate || !onRenovationStartDateChange) return null;
+    
+    const sortedDates = Object.keys(grouped).sort();
+    const renovationDate = new Date(renovationStartDate).getTime();
+    
+    // Find the last date group that the renovation date is after
+    for (let i = sortedDates.length - 1; i >= 0; i--) {
+      const groupDate = new Date(sortedDates[i]).getTime();
+      if (renovationDate >= groupDate) {
+        return sortedDates[i];
+      }
+    }
+    
+    // If before all dates, return null (will be inserted before first)
+    return null;
+  }, [renovationStartDate, grouped, onRenovationStartDateChange]);
+
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
       <div className="flex items-center gap-3 mb-6">
@@ -93,26 +115,33 @@ export const ParticipantsTimeline: React.FC<ParticipantsTimelineProps> = ({
         <h2 className="text-2xl font-bold text-gray-800">📅 Timeline des Participants</h2>
       </div>
 
-      <div className="relative">
+      <div 
+        ref={timelineContainerRef}
+        className="relative" 
+        data-timeline-container 
+        style={{ minHeight: '200px' }}
+      >
         {/* Vertical timeline line */}
         <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gray-300"></div>
 
         {/* Timeline entries */}
-        <div className="space-y-6">
+        <div className="space-y-6" style={{ position: 'relative', zIndex: 1 }}>
           {Object.entries(grouped).map(([date, pList]) => {
             const isFounders = date === deedDate;
+            const shouldInsertRenovationCardAfter = getRenovationCardInsertPosition === date;
 
             return (
-              <div key={date} className="relative pl-20">
-                {/* Timeline dot */}
-                <div className={`absolute left-6 w-5 h-5 rounded-full border-4 ${
-                  isFounders
-                    ? 'bg-green-500 border-green-200'
-                    : 'bg-blue-500 border-blue-200'
-                }`}></div>
+              <React.Fragment key={date}>
+                <div className="relative pl-20">
+                  {/* Timeline dot */}
+                  <div className={`absolute left-6 w-5 h-5 rounded-full border-4 ${
+                    isFounders
+                      ? 'bg-green-500 border-green-200'
+                      : 'bg-blue-500 border-blue-200'
+                  }`}></div>
 
-                {/* Date label */}
-                <div className="mb-2">
+                  {/* Date label */}
+                  <div className="mb-2" data-timeline-date={date}>
                   {isFounders ? (
                     <div className="space-y-3">
                       <div>
@@ -129,31 +158,6 @@ export const ParticipantsTimeline: React.FC<ParticipantsTimelineProps> = ({
                           ℹ️ Changer cette date ajustera automatiquement toutes les dates d'entrée des participants
                         </div>
                       </div>
-                      {onRenovationStartDateChange && (
-                        <div>
-                          <input
-                            type="date"
-                            value={renovationStartDate || deedDate}
-                            onChange={(e) => onRenovationStartDateChange(e.target.value)}
-                            min={deedDate}
-                            disabled={!canEditRenovationStartDate}
-                            className={`text-sm font-semibold px-2 py-1 border-2 rounded-lg focus:outline-none mb-1 ${
-                              isRenovationStartDateLocked
-                                ? 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'
-                                : 'border-orange-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 bg-white text-gray-700'
-                            }`}
-                            title={isRenovationStartDateLocked ? renovationStartDateLockReason || undefined : undefined}
-                          />
-                          <div className="text-xs text-orange-600 font-medium">
-                            Début des rénovations
-                          </div>
-                          <div className="text-xs text-gray-500 italic mt-1">
-                            {isRenovationStartDateLocked 
-                              ? '🔒 ' + (renovationStartDateLockReason || 'Champ verrouillé - déverrouillez pour modifier')
-                              : 'ℹ️ Date de début des travaux de rénovation (liée à la date de l\'acte)'}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   ) : (
                     <div className="text-sm font-semibold text-gray-700">
@@ -162,8 +166,8 @@ export const ParticipantsTimeline: React.FC<ParticipantsTimelineProps> = ({
                   )}
                 </div>
 
-                {/* Participant cards */}
-                <div className="flex flex-wrap gap-2">
+                  {/* Participant cards */}
+                  <div className="flex flex-wrap gap-2">
                   {pList.map((p, pIdx) => {
                     const isExpanded = expandedParticipant === p.name;
                     // Find the actual index in the full participants array
@@ -265,10 +269,61 @@ export const ParticipantsTimeline: React.FC<ParticipantsTimelineProps> = ({
                       </div>
                     );
                   })}
+                  </div>
                 </div>
-              </div>
+
+                {/* Insert renovation date card after this date group if needed */}
+                {shouldInsertRenovationCardAfter && onRenovationStartDateChange && (
+                  <div className="relative pl-20 mt-4">
+                    {/* Timeline dot for renovation date */}
+                    <div
+                      className="absolute left-6 w-5 h-5 rounded-full border-4 bg-orange-500 border-orange-200 z-30 shadow-md"
+                      style={{
+                        transform: 'translateY(-50%)',
+                      }}
+                      title={`Début des rénovations: ${renovationStartDate ? new Date(renovationStartDate).toLocaleDateString('fr-BE') : ''}`}
+                    ></div>
+                    
+                    {/* Draggable renovation date card */}
+                    <DraggableRenovationDateCard
+                      renovationStartDate={renovationStartDate || deedDate}
+                      deedDate={deedDate}
+                      participants={participants}
+                      onDateChange={onRenovationStartDateChange}
+                      canEdit={canEditRenovationStartDate}
+                      isLocked={isRenovationStartDateLocked}
+                      lockReason={renovationStartDateLockReason}
+                    />
+                  </div>
+                )}
+              </React.Fragment>
             );
           })}
+          
+          {/* Insert renovation card before first entry if needed */}
+          {getRenovationCardInsertPosition === null && onRenovationStartDateChange && (
+            <div className="relative pl-20">
+              {/* Timeline dot for renovation date */}
+              <div
+                className="absolute left-6 w-5 h-5 rounded-full border-4 bg-orange-500 border-orange-200 z-30 shadow-md"
+                style={{
+                  transform: 'translateY(-50%)',
+                }}
+                title={`Début des rénovations: ${renovationStartDate ? new Date(renovationStartDate).toLocaleDateString('fr-BE') : ''}`}
+              ></div>
+              
+              {/* Draggable renovation date card */}
+              <DraggableRenovationDateCard
+                renovationStartDate={renovationStartDate || deedDate}
+                deedDate={deedDate}
+                participants={participants}
+                onDateChange={onRenovationStartDateChange}
+                canEdit={canEditRenovationStartDate}
+                isLocked={isRenovationStartDateLocked}
+                lockReason={renovationStartDateLockReason}
+              />
+            </div>
+          )}
         </div>
       </div>
 

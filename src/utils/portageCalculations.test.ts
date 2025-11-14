@@ -1059,6 +1059,168 @@ describe('calculateCoproSalePrice', () => {
 
     expect(result.indexation).toBe(0);
   });
+
+  describe('renovationStartDate logic', () => {
+    it('should exclude renovation costs (CASCO + parachèvements) from base price when sale happens before renovationStartDate', () => {
+      // Project: 500,000€ total cost (400,000€ purchase+notary+travaux communs, 100,000€ renovation)
+      // Building: 500m², Buyer purchases: 50m² (10%)
+      // Sale date: 2024-01-01, Renovation start: 2024-06-01
+      // Expected: base price should exclude renovation costs (10% of 100,000€ = 10,000€)
+      // Base without renovation: 40,000€ (10% of 400,000€)
+      // Base with renovation: 50,000€ (10% of 500,000€)
+      
+      const totalProjectCost = 500000; // Includes renovation
+      const totalRenovationCosts = 100000; // CASCO + parachèvements
+      const totalBuildingSurface = 500;
+      const surfacePurchased = 50; // 10% of building
+      const yearsHeld = 0;
+      const totalCarryingCosts = 0;
+      
+      const renovationStartDate = new Date('2024-06-01');
+      const saleDate = new Date('2024-01-01'); // Before renovation start
+
+      const result = calculateCoproSalePrice(
+        surfacePurchased,
+        totalProjectCost,
+        totalBuildingSurface,
+        yearsHeld,
+        formulaParams,
+        totalCarryingCosts,
+        renovationStartDate,
+        saleDate,
+        totalRenovationCosts
+      );
+
+      // Base price should exclude renovation: 400,000€ / 500m² × 50m² = 40,000€
+      const expectedBaseWithoutRenovation = 400000 / 500 * 50;
+      expect(result.basePrice).toBeCloseTo(expectedBaseWithoutRenovation, 0);
+      expect(result.basePrice).not.toBeCloseTo(50000, 0); // Should not include renovation
+    });
+
+    it('should include renovation costs in base price when sale happens after renovationStartDate', () => {
+      // Same scenario but sale date after renovation start
+      const totalProjectCost = 500000;
+      const totalRenovationCosts = 100000;
+      const totalBuildingSurface = 500;
+      const surfacePurchased = 50;
+      const yearsHeld = 0;
+      const totalCarryingCosts = 0;
+      
+      const renovationStartDate = new Date('2024-06-01');
+      const saleDate = new Date('2024-07-01'); // After renovation start
+
+      const result = calculateCoproSalePrice(
+        surfacePurchased,
+        totalProjectCost,
+        totalBuildingSurface,
+        yearsHeld,
+        formulaParams,
+        totalCarryingCosts,
+        renovationStartDate,
+        saleDate,
+        totalRenovationCosts
+      );
+
+      // Base price should include renovation: 500,000€ / 500m² × 50m² = 50,000€
+      const expectedBaseWithRenovation = 500000 / 500 * 50;
+      expect(result.basePrice).toBeCloseTo(expectedBaseWithRenovation, 0);
+    });
+
+    it('should include renovation costs when renovationStartDate is not provided', () => {
+      // When renovationStartDate is undefined, should behave as before (include renovation)
+      const totalProjectCost = 500000;
+      const totalRenovationCosts = 100000;
+      const totalBuildingSurface = 500;
+      const surfacePurchased = 50;
+      const yearsHeld = 0;
+      const totalCarryingCosts = 0;
+
+      const result = calculateCoproSalePrice(
+        surfacePurchased,
+        totalProjectCost,
+        totalBuildingSurface,
+        yearsHeld,
+        formulaParams,
+        totalCarryingCosts,
+        undefined, // No renovationStartDate
+        undefined, // No saleDate
+        totalRenovationCosts
+      );
+
+      // Should include renovation by default
+      const expectedBaseWithRenovation = 500000 / 500 * 50;
+      expect(result.basePrice).toBeCloseTo(expectedBaseWithRenovation, 0);
+    });
+
+    it('should still apply portage formula (indexation + carrying costs) even when excluding renovation', () => {
+      // Portage formula should still work: base + indexation + carrying
+      const totalProjectCost = 500000;
+      const totalRenovationCosts = 100000;
+      const totalBuildingSurface = 500;
+      const surfacePurchased = 50;
+      const yearsHeld = 2; // 2 years
+      const totalCarryingCosts = 10000;
+      
+      const renovationStartDate = new Date('2024-06-01');
+      const saleDate = new Date('2024-01-01'); // Before renovation
+
+      const result = calculateCoproSalePrice(
+        surfacePurchased,
+        totalProjectCost,
+        totalBuildingSurface,
+        yearsHeld,
+        formulaParams,
+        totalCarryingCosts,
+        renovationStartDate,
+        saleDate,
+        totalRenovationCosts
+      );
+
+      // Base without renovation: 40,000€
+      const expectedBase = 400000 / 500 * 50;
+      expect(result.basePrice).toBeCloseTo(expectedBase, 0);
+      
+      // Indexation should still apply to the base (without renovation)
+      expect(result.indexation).toBeGreaterThan(0);
+      
+      // Carrying cost recovery should still apply
+      const expectedCarrying = 10000 * (50 / 500) * 1.0; // 100% recovery
+      expect(result.carryingCostRecovery).toBeCloseTo(expectedCarrying, 0);
+      
+      // Total should be base (without renovation) + indexation + carrying
+      const expectedTotal = expectedBase + result.indexation + expectedCarrying;
+      expect(result.totalPrice).toBeCloseTo(expectedTotal, 0);
+    });
+
+    it('should handle sale date exactly on renovationStartDate (should include renovation)', () => {
+      // Sale on the exact renovation start date should include renovation
+      const totalProjectCost = 500000;
+      const totalRenovationCosts = 100000;
+      const totalBuildingSurface = 500;
+      const surfacePurchased = 50;
+      const yearsHeld = 0;
+      const totalCarryingCosts = 0;
+      
+      const renovationStartDate = new Date('2024-06-01');
+      const saleDate = new Date('2024-06-01'); // Exactly on renovation start
+
+      const result = calculateCoproSalePrice(
+        surfacePurchased,
+        totalProjectCost,
+        totalBuildingSurface,
+        yearsHeld,
+        formulaParams,
+        totalCarryingCosts,
+        renovationStartDate,
+        saleDate,
+        totalRenovationCosts
+      );
+
+      // Should include renovation (>= renovationStartDate)
+      const expectedBaseWithRenovation = 500000 / 500 * 50;
+      expect(result.basePrice).toBeCloseTo(expectedBaseWithRenovation, 0);
+    });
+  });
 });
 
 // ============================================

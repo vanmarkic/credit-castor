@@ -409,6 +409,9 @@ export default function ParticipantDetailModal({
           allParticipants={allParticipants}
           deedDate={deedDate}
           coproReservesShare={formulaParams.coproReservesShare}
+          projectParams={projectParams}
+          calculations={calculations}
+          formulaParams={formulaParams}
         />
 
         {/* Entry Date Section */}

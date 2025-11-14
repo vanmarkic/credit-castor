@@ -34,8 +34,20 @@ describe('ExpenseCategoriesManager - TRAVAUX COMMUNS Display', () => {
     travauxCommuns: {
       enabled: true,
       items: [
-        { label: 'Rénovation complète', amount: 270000 },
-        { label: 'Travaux additionnels', amount: 50000 }
+        { 
+          label: 'Rénovation complète', 
+          sqm: 100, 
+          cascoPricePerSqm: 2000, 
+          parachevementPricePerSqm: 700 
+          // amount = (100 * 2000) + (100 * 700) = 270000
+        },
+        { 
+          label: 'Travaux additionnels', 
+          sqm: 50, 
+          cascoPricePerSqm: 800, 
+          parachevementPricePerSqm: 200 
+          // amount = (50 * 800) + (50 * 200) = 50000
+        }
       ]
     }
   };
@@ -77,7 +89,9 @@ describe('ExpenseCategoriesManager - TRAVAUX COMMUNS Display', () => {
       />
     );
 
-    // Calculate expected total: base (43700 + 269200 + 56000) + custom enabled (270000 + 50000)
+    // Calculate expected total: base (43700 + 269200 + 56000) + custom enabled (calculated from sqm and prices)
+    // Item 1: (100 * 2000) + (100 * 700) = 270000
+    // Item 2: (50 * 800) + (50 * 200) = 50000
     const expectedTotal = 43700 + 269200 + 56000 + 270000 + 50000;
     const formattedTotal = formatCurrency(expectedTotal);
 
@@ -104,6 +118,11 @@ describe('ExpenseCategoriesManager - TRAVAUX COMMUNS Display', () => {
     // Check if custom items are displayed
     expect(screen.getByDisplayValue('Rénovation complète')).toBeDefined();
     expect(screen.getByDisplayValue('Travaux additionnels')).toBeDefined();
+    
+    // Check if sqm, casco price, and parachevement price fields are displayed
+    expect(screen.getAllByLabelText('m²').length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText('CASCO €/m²').length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText('Parach. €/m²').length).toBeGreaterThan(0);
 
     // Check if the total summary is displayed
     expect(container.textContent).toContain('TOTAL Travaux Communs');
@@ -118,7 +137,13 @@ describe('ExpenseCategoriesManager - TRAVAUX COMMUNS Display', () => {
       ...defaultProjectParams,
       travauxCommuns: {
         enabled: false,
-        items: [{ label: 'Rénovation complète', amount: 270000 }]
+        items: [{ 
+          label: 'Rénovation complète', 
+          sqm: 0, 
+          cascoPricePerSqm: 0, 
+          parachevementPricePerSqm: 0,
+          amount: 270000 // Backward compatibility
+        }]
       }
     };
 
@@ -154,25 +179,28 @@ describe('ExpenseCategoriesManager - TRAVAUX COMMUNS Display', () => {
     const button = screen.getByText('TRAVAUX COMMUNS');
     fireEvent.click(button);
 
-    // Find and change the first custom item's amount
-    const amountInputs = screen.getAllByRole('spinbutton') as HTMLInputElement[];
-    const renovationInput = amountInputs.find(input => input.value === '270000');
+    // Find and change the first custom item's sqm
+    const sqmInputs = screen.getAllByLabelText('m²') as HTMLInputElement[];
+    const renovationSqmInput = sqmInputs[0];
 
-    if (renovationInput) {
-      fireEvent.change(renovationInput, { target: { value: '300000' } });
+    expect(renovationSqmInput).toBeDefined();
+    fireEvent.change(renovationSqmInput, { target: { value: '120' } });
 
-      // Verify the update function was called with the new value
-      expect(mockOnUpdateProjectParams).toHaveBeenCalledWith(
-        expect.objectContaining({
-          travauxCommuns: {
-            enabled: true,
-            items: [
-              { label: 'Rénovation complète', amount: 300000 },
-              { label: 'Travaux additionnels', amount: 50000 }
-            ]
-          }
-        })
-      );
-    }
+    // Verify the update function was called with the new sqm value
+    expect(mockOnUpdateProjectParams).toHaveBeenCalledWith(
+      expect.objectContaining({
+        travauxCommuns: {
+          enabled: true,
+          items: expect.arrayContaining([
+            expect.objectContaining({
+              label: 'Rénovation complète',
+              sqm: 120,
+              cascoPricePerSqm: 2000,
+              parachevementPricePerSqm: 700
+            })
+          ])
+        }
+      })
+    );
   });
 });

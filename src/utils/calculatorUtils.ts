@@ -65,9 +65,18 @@ export interface ExpenseCategories {
   premierTravaux: ExpenseLineItem[];
 }
 
+export interface TravauxCommunsItem {
+  label: string;
+  sqm: number; // Surface area in square meters
+  cascoPricePerSqm: number; // CASCO price per square meter
+  parachevementPricePerSqm: number; // Parachèvement price per square meter
+  // amount is calculated: (sqm * cascoPricePerSqm) + (sqm * parachevementPricePerSqm)
+  amount?: number; // Optional: stored value for backward compatibility, will be calculated if not provided
+}
+
 export interface TravauxCommuns {
   enabled: boolean; // Toggle for entire section
-  items: ExpenseLineItem[]; // Customizable line items
+  items: TravauxCommunsItem[]; // Customizable line items with sqm and price per sqm
 }
 
 export interface ProjectParams {
@@ -236,7 +245,34 @@ export function calculateSharedCosts(
 }
 
 /**
+ * Calculate the amount for a travaux communs item from sqm and prices
+ * Formula: (sqm * cascoPricePerSqm) + (sqm * parachevementPricePerSqm)
+ */
+export function calculateTravauxCommunsItemAmount(item: TravauxCommunsItem): number {
+  // If amount is explicitly provided (backward compatibility), use it
+  // Otherwise, calculate from sqm and prices
+  if (item.amount !== undefined && (item.sqm === undefined || item.sqm === 0)) {
+    return item.amount;
+  }
+  
+  const sqm = item.sqm || 0;
+  const cascoAmount = sqm * (item.cascoPricePerSqm || 0);
+  const parachevementAmount = sqm * (item.parachevementPricePerSqm || 0);
+  return cascoAmount + parachevementAmount;
+}
+
+/**
+ * Calculate CASCO-only amount for a travaux communs item (for honoraires calculation)
+ * Formula: sqm * cascoPricePerSqm
+ */
+export function calculateTravauxCommunsItemCascoAmount(item: TravauxCommunsItem): number {
+  const sqm = item.sqm || 0;
+  return sqm * (item.cascoPricePerSqm || 0);
+}
+
+/**
  * Calculate travaux communs (common works) total
+ * Total includes both CASCO and parachevements: (sqm * cascoPricePerSqm) + (sqm * parachevementPricePerSqm)
  */
 export function calculateTotalTravauxCommuns(
   projectParams: ProjectParams
@@ -250,10 +286,37 @@ export function calculateTotalTravauxCommuns(
 
   // Add customizable travaux communs if enabled
   const customTotal = projectParams.travauxCommuns?.enabled
-    ? projectParams.travauxCommuns.items.reduce((sum, item) => sum + item.amount, 0)
+    ? projectParams.travauxCommuns.items.reduce((sum, item) => {
+        return sum + calculateTravauxCommunsItemAmount(item);
+      }, 0)
     : 0;
 
   return baseTotal + customTotal;
+}
+
+/**
+ * Calculate CASCO-only amount from travaux communs (for honoraires calculation)
+ * Only includes CASCO portion: sqm * cascoPricePerSqm
+ */
+export function calculateTravauxCommunsCascoAmount(
+  projectParams: ProjectParams
+): number {
+  // Base travaux communs are included in total (they don't have separate CASCO/parachevement breakdown)
+  // So we include them in the CASCO calculation for honoraires
+  const baseTotal = (
+    projectParams.batimentFondationConservatoire +
+    projectParams.batimentFondationComplete +
+    projectParams.batimentCoproConservatoire
+  );
+
+  // Add only CASCO portion from customizable travaux communs if enabled
+  const customCascoTotal = projectParams.travauxCommuns?.enabled
+    ? projectParams.travauxCommuns.items.reduce((sum, item) => {
+        return sum + calculateTravauxCommunsItemCascoAmount(item);
+      }, 0)
+    : 0;
+
+  return baseTotal + customCascoTotal;
 }
 
 /**
@@ -313,8 +376,9 @@ export function getFraisGenerauxBreakdown(
     totalCascoHorsTva += cascoHorsTva * participant.quantity;
   }
 
-  // Add common building works CASCO (without TVA)
-  totalCascoHorsTva += calculateTotalTravauxCommuns(projectParams);
+  // Add common building works CASCO (without TVA) - only CASCO portion, not parachevements
+  // When travaux communs is enabled, include only the CASCO amount (sqm * cascoPricePerSqm)
+  totalCascoHorsTva += calculateTravauxCommunsCascoAmount(projectParams);
 
   // Calculate Honoraires (professional fees) = Total CASCO HORS TVA × 15% × 30%
   // This represents architects, stability experts, study offices, PEB, etc.

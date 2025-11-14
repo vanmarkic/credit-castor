@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatting';
 import type { Participant, ParticipantCalculation, ProjectParams } from '../../utils/calculatorUtils';
 import { getFraisGenerauxBreakdown, calculateExpenseCategoriesTotal, calculateTotalTravauxCommuns, type UnitDetails } from '../../utils/calculatorUtils';
@@ -15,6 +17,8 @@ interface CostBreakdownGridProps {
  * Shows purchase share, CASCO, commun costs, droit d'enregistrements, frais de notaire, and parachèvements
  */
 export function CostBreakdownGrid({ participant, participantCalc: p, projectParams, allParticipants, unitDetails }: CostBreakdownGridProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   // Calculate frais généraux breakdown if data is available
   const fraisGenerauxBreakdown = projectParams && allParticipants && unitDetails
     ? getFraisGenerauxBreakdown(allParticipants, projectParams, unitDetails)
@@ -32,10 +36,26 @@ export function CostBreakdownGrid({ participant, participantCalc: p, projectPara
 
   return (
     <div className="mb-6">
-      <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">
-        Décomposition des Coûts
-      </p>
-      <div className="grid grid-cols-3 gap-3">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="flex items-center justify-between w-full mb-2 hover:bg-gray-50 rounded p-1 -ml-1 transition-colors"
+      >
+        <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold">
+          Décomposition des Coûts
+        </p>
+        <div className="flex items-center gap-2">
+          {!isExpanded && (
+            <span className="text-sm font-bold text-gray-900">{formatCurrency(p.totalCost)}</span>
+          )}
+          {isExpanded ? (
+            <ChevronUp className="w-4 h-4 text-gray-500" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-gray-500" />
+          )}
+        </div>
+      </button>
+      {isExpanded && (
+        <div className="grid grid-cols-3 gap-3">
         {/* Purchase Share */}
         <div className="bg-white rounded-lg p-3 border border-gray-200">
           <p className="text-xs text-gray-500 mb-1">Part d'achat</p>
@@ -111,6 +131,7 @@ export function CostBreakdownGrid({ participant, participantCalc: p, projectPara
           </p>
         </div>
       </div>
+      )}
     </div>
   );
 }

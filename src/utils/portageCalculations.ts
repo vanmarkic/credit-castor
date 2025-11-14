@@ -510,12 +510,18 @@ export function calculateCoproEstimatedPrice(
  * Distribution: Configurable split between copro reserves and participants
  * (default: 30% to reserves, 70% to participants)
  *
+ * When sale happens before renovationStartDate, renovation costs (CASCO + parachèvements)
+ * are excluded from the base price for redistribution, but portage formula still applies.
+ *
  * @param surfacePurchased - Surface buyer is purchasing (m²)
  * @param totalProjectCost - Sum of all initial costs (purchase + notary + construction)
  * @param totalBuildingSurface - Total building surface (denominator)
  * @param yearsHeld - Years copropriété held the lot
  * @param formulaParams - Global formula parameters (includes coproReservesShare)
  * @param totalCarryingCosts - Total carrying costs accumulated by copro
+ * @param renovationStartDate - Optional date when renovations start (ISO string or Date)
+ * @param saleDate - Optional date of the sale (ISO string or Date)
+ * @param totalRenovationCosts - Optional total renovation costs (CASCO + parachèvements) to exclude
  * @returns Price breakdown with configurable distribution split
  */
 export function calculateCoproSalePrice(
@@ -524,7 +530,10 @@ export function calculateCoproSalePrice(
   totalBuildingSurface: number,
   yearsHeld: number,
   formulaParams: PortageFormulaParams,
-  totalCarryingCosts: number
+  totalCarryingCosts: number,
+  renovationStartDate?: Date | string,
+  saleDate?: Date | string,
+  totalRenovationCosts?: number
 ): CoproSalePrice {
   // Validate inputs
   if (totalBuildingSurface <= 0) {
@@ -534,8 +543,31 @@ export function calculateCoproSalePrice(
     throw new Error('Invalid surface purchased');
   }
 
-  // Base price = proportional share of total project costs
-  const basePrice = (totalProjectCost / totalBuildingSurface) * surfacePurchased;
+  // Determine if renovation costs should be excluded from base price
+  let baseProjectCost = totalProjectCost;
+  const shouldExcludeRenovation = 
+    renovationStartDate !== undefined &&
+    saleDate !== undefined &&
+    totalRenovationCosts !== undefined &&
+    totalRenovationCosts > 0;
+
+  if (shouldExcludeRenovation) {
+    // Normalize dates to Date objects for comparison
+    const renovationDate = renovationStartDate instanceof Date 
+      ? renovationStartDate 
+      : new Date(renovationStartDate);
+    const normalizedSaleDate = saleDate instanceof Date 
+      ? saleDate 
+      : new Date(saleDate);
+
+    // If sale happens before renovation start, exclude renovation costs from base
+    if (normalizedSaleDate < renovationDate) {
+      baseProjectCost = totalProjectCost - totalRenovationCosts;
+    }
+  }
+
+  // Base price = proportional share of project costs (excluding renovation if before renovationStartDate)
+  const basePrice = (baseProjectCost / totalBuildingSurface) * surfacePurchased;
 
   // Indexation on base price (compound growth)
   const indexation = calculateIndexation(basePrice, formulaParams.indexationRate, yearsHeld);

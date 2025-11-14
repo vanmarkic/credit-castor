@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import { calculateCoproRedistributionForParticipant, type CoproSale } from '../utils/coproRedistribution';
-import type { Participant } from '../utils/calculatorUtils';
+import { calculateCoproSalePrice, calculateYearsHeld } from '../utils/portageCalculations';
+import type { Participant, ProjectParams, CalculationResults, PortageFormulaParams } from '../utils/calculatorUtils';
+import { DEFAULT_PORTAGE_FORMULA } from '../utils/calculatorUtils';
 
 export interface Payback {
   date: Date;
@@ -13,12 +15,18 @@ export interface Payback {
 /**
  * Hook to calculate expected paybacks for a participant
  * Includes both portage lot sales and copropriété redistributions
+ * 
+ * For copro sales, recalculates the redistribution amount with renovation costs excluded
+ * when the sale happens before renovationStartDate.
  */
 export function useExpectedPaybacks(
   participant: Participant,
   allParticipants: Participant[],
   deedDate: string,
-  coproReservesShare: number = 30
+  coproReservesShare: number = 30,
+  projectParams?: ProjectParams,
+  calculations?: CalculationResults,
+  formulaParams?: PortageFormulaParams
 ): { paybacks: Payback[]; totalRecovered: number } {
   return useMemo(() => {
     // 1. Find all participants buying portage lots from this participant
@@ -33,16 +41,72 @@ export function useExpectedPaybacks(
       }));
 
     // 2. Calculate copropriété redistributions for this participant
-    // Apply split: only the portion that goes to participants (not copro reserves)
+    // Recalculate with renovation cost exclusion logic when needed
+    const effectiveFormulaParams = formulaParams || DEFAULT_PORTAGE_FORMULA;
     const participantsShare = 1 - (coproReservesShare / 100);
+    
+    // Prepare data for recalculation (if available)
+    // totalProjectCost = purchase + notary fees + construction costs
+    // (excludes shared costs which are ongoing operational expenses)
+    const totalProjectCost = calculations?.totals
+      ? (calculations.totals.purchase || 0) +
+        (calculations.totals.totalDroitEnregistrements || 0) +
+        (calculations.totals.construction || 0)
+      : 0;
+    const totalBuildingSurface = calculations?.totalSurface || 0;
+    const renovationStartDate = projectParams?.renovationStartDate;
+    
+    // Calculate total renovation costs (CASCO + parachèvements) from all participants
+    const totalRenovationCosts = calculations?.participantBreakdown
+      ? calculations.participantBreakdown.reduce(
+          (sum, p) => sum + (p.personalRenovationCost || 0),
+          0
+        )
+      : 0;
+    
+    const deedDateObj = new Date(deedDate);
+    
     const coproSales: CoproSale[] = allParticipants
       .filter((buyer) => buyer.purchaseDetails?.buyingFrom === 'Copropriété')
       .map((buyer) => {
-        const totalPrice = buyer.purchaseDetails?.purchasePrice || 0;
-        const amountToParticipants = totalPrice * participantsShare;
+        const saleDate = buyer.entryDate || deedDateObj;
+        const surfacePurchased = buyer.surface || 0;
+        const yearsHeld = calculateYearsHeld(deedDateObj, saleDate);
+        
+        // Try to recalculate with renovation cost exclusion if we have the necessary data
+        let amountToParticipants: number;
+        
+        if (
+          totalProjectCost > 0 &&
+          totalBuildingSurface > 0 &&
+          surfacePurchased > 0 &&
+          renovationStartDate &&
+          totalRenovationCosts > 0
+        ) {
+          // Recalculate copro sale price with renovation cost exclusion logic
+          const coproSalePricing = calculateCoproSalePrice(
+            surfacePurchased,
+            totalProjectCost,
+            totalBuildingSurface,
+            yearsHeld,
+            effectiveFormulaParams,
+            0, // Carrying costs - simplified (could be calculated from projectFinancials if available)
+            renovationStartDate,
+            saleDate,
+            totalRenovationCosts
+          );
+          
+          // Use the recalculated toParticipants amount
+          amountToParticipants = coproSalePricing.distribution.toParticipants;
+        } else {
+          // Fallback to stored purchasePrice if we don't have enough data to recalculate
+          const totalPrice = buyer.purchaseDetails?.purchasePrice || 0;
+          amountToParticipants = totalPrice * participantsShare;
+        }
+        
         return {
           buyer: buyer.name,
-          entryDate: buyer.entryDate || new Date(deedDate),
+          entryDate: saleDate,
           amount: amountToParticipants
         };
       });
@@ -51,7 +115,7 @@ export function useExpectedPaybacks(
       participant,
       coproSales,
       allParticipants,
-      new Date(deedDate)
+      deedDateObj
     );
 
     // 3. Combine and sort all paybacks by date
@@ -65,5 +129,18 @@ export function useExpectedPaybacks(
       paybacks: allPaybacks,
       totalRecovered
     };
-  }, [participant, allParticipants, deedDate, coproReservesShare]);
+  }, [
+    participant,
+    allParticipants,
+    deedDate,
+    coproReservesShare,
+    projectParams?.renovationStartDate, // Explicit dependency on renovationStartDate - triggers recalculation when changed
+    projectParams, // Also include parent object for broader changes
+    calculations?.totals?.purchase, // Explicit dependencies on the values we use
+    calculations?.totals?.totalDroitEnregistrements,
+    calculations?.totals?.construction,
+    calculations?.totalSurface,
+    calculations?.participantBreakdown, // Array reference - changes when participants change
+    formulaParams
+  ]);
 }

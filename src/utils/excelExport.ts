@@ -55,12 +55,14 @@ export function buildExportSheetData(
   addCell(15, 'B', projectParams.fraisGeneraux3ans);
   addCell(16, 'A', 'Prix CASCO/m2 Global');
   addCell(16, 'B', projectParams.globalCascoPerM2);
+  addCell(17, 'A', 'Date début rénovations');
+  addCell(17, 'B', projectParams.renovationStartDate || '');
 
   // Expense categories detail (if present)
-  let expenseCategoryEndRow = 17;
+  let expenseCategoryEndRow = 18;
   if (projectParams.expenseCategories) {
-    addCell(18, 'A', 'DETAIL DEPENSES COMMUNES');
-    let currentRow = 19;
+    addCell(19, 'A', 'DETAIL DEPENSES COMMUNES');
+    let currentRow = 20;
 
     // Conservatoire
     addCell(currentRow, 'A', 'CONSERVATOIRE');
@@ -89,7 +91,7 @@ export function buildExportSheetData(
       currentRow++;
     });
 
-    expenseCategoryEndRow = currentRow;
+      expenseCategoryEndRow = currentRow;
   }
 
   addCell(expenseCategoryEndRow, 'A', 'Total commun');

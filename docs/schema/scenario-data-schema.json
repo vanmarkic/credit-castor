@@ -326,6 +326,66 @@
               "items": { "$ref": "#/definitions/ExpenseLineItem" }
             }
           }
+        },
+        "cascoTvaRate": {
+          "type": "number",
+          "description": "TVA percentage for CASCO costs (e.g., 6 or 21)",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "travauxCommuns": {
+          "type": "object",
+          "description": "Customizable common works with equal cost distribution (optional)",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Toggle for entire section"
+            },
+            "items": {
+              "type": "array",
+              "description": "Customizable line items with sqm and price per sqm",
+              "items": {
+                "type": "object",
+                "required": ["label", "sqm", "cascoPricePerSqm", "parachementPricePerSqm"],
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "description": "Expense description"
+                  },
+                  "sqm": {
+                    "type": "number",
+                    "description": "Surface area in square meters",
+                    "minimum": 0
+                  },
+                  "cascoPricePerSqm": {
+                    "type": "number",
+                    "description": "CASCO price per square meter (€/m²)",
+                    "minimum": 0
+                  },
+                  "parachementPricePerSqm": {
+                    "type": "number",
+                    "description": "Parachèvement price per square meter (€/m²)",
+                    "minimum": 0
+                  },
+                  "amount": {
+                    "type": "number",
+                    "description": "Optional: stored value for backward compatibility, will be calculated if not provided",
+                    "minimum": 0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "maxTotalLots": {
+          "type": "number",
+          "description": "Maximum total number of lots (founder + copropriété). Default: 10",
+          "minimum": 1
+        },
+        "renovationStartDate": {
+          "type": "string",
+          "format": "date",
+          "description": "ISO date string for \"début des rénovations\" - linked to deedDate (YYYY-MM-DD)"
         }
       }
     },
