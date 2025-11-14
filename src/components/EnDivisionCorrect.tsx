@@ -7,6 +7,7 @@ import { ProjectHeader } from './calculator/ProjectHeader';
 import { VerticalToolbar } from './calculator/VerticalToolbar';
 import ParticipantDetailModal from './calculator/ParticipantDetailModal';
 import CoproDetailModal from './calculator/CoproDetailModal';
+import AllFoundersPrintView from './calculator/AllFoundersPrintView';
 import { FormulaTooltip } from './FormulaTooltip';
 import { formatCurrency } from '../utils/formatting';
 import { ExpenseCategoriesManager } from './shared/ExpenseCategoriesManager';
@@ -44,6 +45,7 @@ interface CoproSnapshot {
 
 export default function EnDivisionCorrect() {
   const [isCostBreakdownExpanded, setIsCostBreakdownExpanded] = useState(false);
+  const [showAllFoundersPrint, setShowAllFoundersPrint] = useState(false);
   
   // Get state and actions from context
   const { state, actions } = useCalculator();
@@ -171,6 +173,17 @@ export default function EnDivisionCorrect() {
 
   // Reorder participant breakdown to show pinned participant first
   const orderedParticipantBreakdown = useOrderedParticipantBreakdown(calculations, pinnedParticipant);
+
+  // Handler for printing all founders
+  const handlePrintAllFounders = () => {
+    setShowAllFoundersPrint(true);
+    // Use setTimeout to ensure the component is rendered before printing
+    setTimeout(() => {
+      window.print();
+      // Hide after print dialog closes (user might cancel)
+      setTimeout(() => setShowAllFoundersPrint(false), 1000);
+    }, 100);
+  };
 
   // Participant detail operations (wrappers for provider actions)
   const updateCapital = (index: number, value: number) => {
@@ -391,6 +404,7 @@ export default function EnDivisionCorrect() {
           onDownloadScenario={downloadScenario}
           onLoadScenario={loadScenario}
           onExportToExcel={exportToExcel}
+          onPrintAllFounders={handlePrintAllFounders}
         />
 
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
@@ -635,6 +649,32 @@ export default function EnDivisionCorrect() {
             deedDate={deedDate}
           />
         )}
+
+        {/* All Founders Print View */}
+        {showAllFoundersPrint && (() => {
+          const founders = participants.filter(p => p.isFounder);
+          const founderCalculations = founders.map(founder => {
+            const calc = orderedParticipantBreakdown.find(pb => pb.name === founder.name);
+            return calc || calculations.participantBreakdown.find(pb => pb.name === founder.name);
+          }).filter((calc): calc is NonNullable<typeof calc> => calc !== undefined);
+
+          if (founders.length === 0 || founderCalculations.length === 0) {
+            return null;
+          }
+
+          return (
+            <AllFoundersPrintView
+              founders={founders}
+              founderCalculations={founderCalculations}
+              deedDate={deedDate}
+              allParticipants={participants}
+              calculations={calculations}
+              projectParams={projectParams}
+              unitDetails={unitDetails}
+              formulaParams={portageFormula}
+            />
+          );
+        })()}
 
         <ParticipantsTimeline
           participants={participants}

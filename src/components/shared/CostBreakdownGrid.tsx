@@ -92,9 +92,23 @@ export function CostBreakdownGrid({ participant, participantCalc: p, projectPara
   if (isNewcomer && participant.purchaseDetails?.buyingFrom === 'Copropriété' && 
       allParticipants && projectParams && deedDate && participant.entryDate) {
     try {
+      // Calculate quotité based on existing participants BEFORE this buyer (exclude the buyer)
+      // This treats earlier newcomers like founders when calculating the buyer's quotité
+      const existingParticipants = allParticipants.filter(existing => {
+        // Exclude the current participant (the buyer themselves)
+        if (existing.name === participant.name) return false;
+        
+        // Include all participants who entered before this buyer
+        const existingEntryDate = existing.entryDate || (existing.isFounder ? new Date(deedDate) : null);
+        if (!existingEntryDate) return false;
+        
+        const buyerEntryDate = participant.entryDate instanceof Date ? participant.entryDate : new Date(participant.entryDate);
+        return existingEntryDate < buyerEntryDate; // Strictly before, not equal
+      });
+      
       newcomerPriceCalculation = calculateNewcomerPurchasePrice(
         participant.surface || 0,
-        allParticipants,
+        existingParticipants, // Only existing participants, excluding the buyer
         projectParams.totalPurchase,
         deedDate,
         participant.entryDate,
@@ -304,23 +318,23 @@ export function CostBreakdownGrid({ participant, participantCalc: p, projectPara
                   <span className="font-medium">{formatCurrency(travauxCommunsPerParticipantForParticipant || 0)}</span>
                 </div>
               )}
-              {honorairesPerParticipant > 0 && (
-                <div className="flex justify-between">
-                  <span>Honoraires</span>
-                  <span className="font-medium">{formatCurrency(honorairesPerParticipant || 0)}</span>
-                </div>
-              )}
-              {frais3ansPerParticipant > 0 && (
-                <div className="flex justify-between">
-                  <span>Frais 3 ans</span>
-                  <span className="font-medium">{formatCurrency(frais3ansPerParticipant || 0)}</span>
-                </div>
-              )}
-              {ponctuelsPerParticipant > 0 && (
-                <div className="flex justify-between">
-                  <span>Ponctuels</span>
-                  <span className="font-medium">{formatCurrency(ponctuelsPerParticipant || 0)}</span>
-                </div>
+                  {honorairesPerParticipant > 0 && (
+                    <div className="flex justify-between">
+                      <span>Honoraires</span>
+                      <span className="font-medium">{formatCurrency(honorairesPerParticipant || 0)}</span>
+                    </div>
+                  )}
+                  {frais3ansPerParticipant > 0 && (
+                    <div className="flex justify-between">
+                      <span>Frais 3 ans</span>
+                      <span className="font-medium">{formatCurrency(frais3ansPerParticipant || 0)}</span>
+                    </div>
+                  )}
+                  {ponctuelsPerParticipant > 0 && (
+                    <div className="flex justify-between">
+                      <span>Ponctuels</span>
+                      <span className="font-medium">{formatCurrency(ponctuelsPerParticipant || 0)}</span>
+                    </div>
               )}
             </div>
           )}

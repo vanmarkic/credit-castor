@@ -349,11 +349,11 @@ describe('UI-to-Export Parity', () => {
 
     const sheetData = buildExportSheetData(calculations, projectParams);
 
-    // Should have 46 column widths (columns 0-45 = A-AT)
-    expect(sheetData.columnWidths?.length).toBe(46);
+    // Should have 47 column widths (columns 0-46 = A-AU)
+    expect(sheetData.columnWidths?.length).toBe(47);
 
-    // Last column should be at index 45 (column AT in 0-based indexing)
+    // Last column should be at index 46 (column AU in 0-based indexing)
     const lastColumnIndex = Math.max(...(sheetData.columnWidths ?? []).map(cw => cw.col));
-    expect(lastColumnIndex).toBe(45); // Column AT (0-based: 45, Excel: AT)
+    expect(lastColumnIndex).toBe(46); // Column AU (0-based: 46, Excel: AU)
   });
 });

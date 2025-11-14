@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { X, Star } from 'lucide-react';
+import { X, Star, Printer } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatting';
 import { formatDateForInput } from '../../utils/dateValidation';
 import AvailableLotsView from '../AvailableLotsView';
@@ -93,10 +93,18 @@ export default function ParticipantDetailModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-white z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-white z-50 overflow-y-auto print-visible">
       {/* Header */}
       <div className="sticky top-0 bg-white border-b border-gray-200 z-10 shadow-sm">
         <div className="max-w-7xl mx-auto p-6">
+          {/* Print-only header */}
+          <div className="print-header hidden mb-4">
+            <h1 className="text-2xl font-bold">Détails du Participant</h1>
+            <p className="text-sm text-gray-600 mt-2">
+              {p.name} - Généré le {new Date().toLocaleDateString('fr-BE', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
             {/* Left Column: Name and Info (2 rows) */}
             <div className="flex flex-col gap-2">
@@ -154,13 +162,22 @@ export default function ParticipantDetailModal({
             </div>
           </div>
 
-          {/* Close button - repositioned to top right */}
-          <button
-            onClick={onClose}
-            className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="w-8 h-8" />
-          </button>
+          {/* Action buttons - repositioned to top right */}
+          <div className="absolute top-6 right-6 flex items-center gap-3 no-print">
+            <button
+              onClick={() => window.print()}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+              title="Imprimer / PDF"
+            >
+              <Printer className="w-8 h-8" />
+            </button>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              <X className="w-8 h-8" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -175,7 +192,7 @@ export default function ParticipantDetailModal({
               onPin();
             }
           }}
-          className="absolute top-6 right-16 text-gray-400 hover:text-yellow-500 transition-colors"
+          className="absolute top-6 right-16 text-gray-400 hover:text-yellow-500 transition-colors no-print"
           title={isPinned ? "Désépingler" : "Épingler en haut"}
         >
           <Star

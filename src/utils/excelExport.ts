@@ -4,8 +4,56 @@
  */
 
 import type { CalculationResults, ProjectParams, UnitDetails, Participant } from './calculatorUtils';
+import { 
+  getFraisGenerauxBreakdown, 
+  calculateTotalTravauxCommuns,
+  calculateTravauxCommunsItemAmount 
+} from './calculatorUtils';
 import type { ExportWriter, SheetCell, SheetData } from './exportWriter';
 import type { TimelineSnapshot } from './timelineCalculations';
+
+/**
+ * Calculate quotité for a founder as (founder's surface at T0) / (total surface of all founders at T0)
+ * Returns the quotité formatted as "integer/1000" (e.g., "450/1000")
+ */
+function calculateQuotiteForFounder(
+  founder: Participant,
+  allParticipants: Participant[]
+): string | null {
+  if (!founder.isFounder) {
+    return null;
+  }
+
+  const founderSurface = founder.surface || 0;
+  if (founderSurface === 0) {
+    return null;
+  }
+
+  // Calculate total surface of all founders at T0
+  const totalFounderSurface = allParticipants
+    .filter(p => p.isFounder === true)
+    .reduce((sum, p) => sum + (p.surface || 0), 0);
+
+  if (totalFounderSurface === 0) {
+    return null;
+  }
+
+  // Calculate quotité as a fraction
+  const quotite = founderSurface / totalFounderSurface;
+  
+  // Convert to "integer/1000" format
+  // Multiply by 1000 and round to nearest integer
+  const numerator = Math.round(quotite * 1000);
+  const denominator = 1000;
+
+  // Simplify the fraction if possible (find GCD)
+  const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
+  const divisor = gcd(numerator, denominator);
+  const simplifiedNumerator = numerator / divisor;
+  const simplifiedDenominator = denominator / divisor;
+
+  return `${simplifiedNumerator}/${simplifiedDenominator}`;
+}
 
 /**
  * Build export sheet data from calculation results
@@ -103,22 +151,119 @@ export function buildExportSheetData(
   addCell(expenseCategoryEndRow + 1, 'A', 'Commun par personne');
   addCell(expenseCategoryEndRow + 1, 'B', null, `B${expenseCategoryEndRow}/${participants.length}`);
 
-  // Travaux communs
+  // Travaux communs with detailed breakdown
   const travauxRow = expenseCategoryEndRow + 3;
   addCell(travauxRow, 'A', 'TRAVAUX COMMUNS');
-  addCell(travauxRow + 1, 'A', 'Batiment fondation (conservatoire)');
-  addCell(travauxRow + 1, 'B', projectParams.batimentFondationConservatoire);
-  addCell(travauxRow + 2, 'A', 'Batiment fondation (complete)');
-  addCell(travauxRow + 2, 'B', projectParams.batimentFondationComplete);
-  addCell(travauxRow + 3, 'A', 'Batiment copro (conservatoire)');
-  addCell(travauxRow + 3, 'B', projectParams.batimentCoproConservatoire);
-  addCell(travauxRow + 4, 'A', 'Total travaux communs');
-  addCell(travauxRow + 4, 'B', null, `B${travauxRow + 1}+B${travauxRow + 2}+B${travauxRow + 3}`);
-  addCell(travauxRow + 5, 'A', 'Par unite');
-  addCell(travauxRow + 5, 'B', null, `B${travauxRow + 4}/${participants.length}`);
+  
+  // Calculate full travaux communs total
+  const fullTravauxCommunsTotal = calculateTotalTravauxCommuns(projectParams);
+  
+  let travauxCurrentRow = travauxRow + 1;
+  
+  // New customizable travaux communs items (if enabled)
+  if (projectParams.travauxCommuns?.enabled && projectParams.travauxCommuns.items.length > 0) {
+    addCell(travauxCurrentRow, 'A', 'Travaux additionnels (personnalisables)');
+    travauxCurrentRow++;
+    
+    projectParams.travauxCommuns.items.forEach(item => {
+      const itemAmount = calculateTravauxCommunsItemAmount(item);
+      addCell(travauxCurrentRow, 'A', `  ${item.label}`);
+      addCell(travauxCurrentRow, 'B', itemAmount);
+      addCell(travauxCurrentRow, 'C', `${item.sqm}m² × (${item.cascoPricePerSqm} CASCO + ${item.parachevementPricePerSqm} Parach.)`);
+      travauxCurrentRow++;
+    });
+  }
+  
+  // Legacy fields for backward compatibility
+  addCell(travauxCurrentRow, 'A', 'Batiment fondation (conservatoire)');
+  addCell(travauxCurrentRow, 'B', projectParams.batimentFondationConservatoire);
+  travauxCurrentRow++;
+  addCell(travauxCurrentRow, 'A', 'Batiment fondation (complete)');
+  addCell(travauxCurrentRow, 'B', projectParams.batimentFondationComplete);
+  travauxCurrentRow++;
+  addCell(travauxCurrentRow, 'A', 'Batiment copro (conservatoire)');
+  addCell(travauxCurrentRow, 'B', projectParams.batimentCoproConservatoire);
+  travauxCurrentRow++;
+  
+  addCell(travauxCurrentRow, 'A', 'Total travaux communs');
+  addCell(travauxCurrentRow, 'B', fullTravauxCommunsTotal);
+  travauxCurrentRow++;
+  addCell(travauxCurrentRow, 'A', 'Par personne');
+  addCell(travauxCurrentRow, 'B', participants.length > 0 ? fullTravauxCommunsTotal / participants.length : 0);
+  
+  // Frais Généraux detailed breakdown
+  const fraisGenerauxRow = travauxCurrentRow + 2;
+  const fraisBreakdown = getFraisGenerauxBreakdown(participants, projectParams, unitDetails || {});
+  
+  addCell(fraisGenerauxRow, 'A', 'FRAIS GENERAUX (3 ANS) - DETAIL');
+  let fraisCurrentRow = fraisGenerauxRow + 1;
+  
+  // Honoraires section
+  addCell(fraisCurrentRow, 'A', 'HONORAIRES (15% × 30% CASCO hors TVA sur 3 ans)');
+  fraisCurrentRow++;
+  addCell(fraisCurrentRow, 'A', '  Base CASCO hors TVA');
+  addCell(fraisCurrentRow, 'B', fraisBreakdown.totalCasco);
+  fraisCurrentRow++;
+  addCell(fraisCurrentRow, 'A', '  Honoraires par an');
+  addCell(fraisCurrentRow, 'B', fraisBreakdown.honorairesYearly);
+  fraisCurrentRow++;
+  addCell(fraisCurrentRow, 'A', '  Honoraires total 3 ans');
+  addCell(fraisCurrentRow, 'B', fraisBreakdown.honorairesTotal3Years);
+  fraisCurrentRow++;
+  
+  // Recurring costs section
+  addCell(fraisCurrentRow, 'A', 'FRAIS RECURRENTS (3 ans)');
+  fraisCurrentRow++;
+  addCell(fraisCurrentRow, 'A', '  Précompte immobilier');
+  addCell(fraisCurrentRow, 'B', fraisBreakdown.recurringYearly.precompteImmobilier);
+  addCell(fraisCurrentRow, 'C', `${fraisBreakdown.recurringYearly.precompteImmobilier}/an × 3 ans`);
+  fraisCurrentRow++;
+  addCell(fraisCurrentRow, 'A', '  Comptable');
+  addCell(fraisCurrentRow, 'B', fraisBreakdown.recurringYearly.comptable);
+  addCell(fraisCurrentRow, 'C', `${fraisBreakdown.recurringYearly.comptable}/an × 3 ans`);
+  fraisCurrentRow++;
+  addCell(fraisCurrentRow, 'A', '  Podio abonnement');
+  addCell(fraisCurrentRow, 'B', fraisBreakdown.recurringYearly.podioAbonnement);
+  addCell(fraisCurrentRow, 'C', `${fraisBreakdown.recurringYearly.podioAbonnement}/an × 3 ans`);
+  fraisCurrentRow++;
+  addCell(fraisCurrentRow, 'A', '  Assurance bâtiment');
+  addCell(fraisCurrentRow, 'B', fraisBreakdown.recurringYearly.assuranceBatiment);
+  addCell(fraisCurrentRow, 'C', `${fraisBreakdown.recurringYearly.assuranceBatiment}/an × 3 ans`);
+  fraisCurrentRow++;
+  addCell(fraisCurrentRow, 'A', '  Frais réservation');
+  addCell(fraisCurrentRow, 'B', fraisBreakdown.recurringYearly.fraisReservation);
+  addCell(fraisCurrentRow, 'C', `${fraisBreakdown.recurringYearly.fraisReservation}/an × 3 ans`);
+  fraisCurrentRow++;
+  addCell(fraisCurrentRow, 'A', '  Imprévus');
+  addCell(fraisCurrentRow, 'B', fraisBreakdown.recurringYearly.imprevus);
+  addCell(fraisCurrentRow, 'C', `${fraisBreakdown.recurringYearly.imprevus}/an × 3 ans`);
+  fraisCurrentRow++;
+  addCell(fraisCurrentRow, 'A', '  Total récurrents 3 ans');
+  addCell(fraisCurrentRow, 'B', fraisBreakdown.recurringTotal3Years);
+  fraisCurrentRow++;
+  
+  // One-time costs section
+  addCell(fraisCurrentRow, 'A', 'FRAIS PONCTUELS');
+  fraisCurrentRow++;
+  addCell(fraisCurrentRow, 'A', '  Frais dossier crédit');
+  addCell(fraisCurrentRow, 'B', fraisBreakdown.oneTimeCosts.fraisDossierCredit);
+  fraisCurrentRow++;
+  addCell(fraisCurrentRow, 'A', '  Frais gestion crédit');
+  addCell(fraisCurrentRow, 'B', fraisBreakdown.oneTimeCosts.fraisGestionCredit);
+  fraisCurrentRow++;
+  addCell(fraisCurrentRow, 'A', '  Frais notaire base partagée');
+  addCell(fraisCurrentRow, 'B', fraisBreakdown.oneTimeCosts.fraisNotaireBasePartagee);
+  fraisCurrentRow++;
+  addCell(fraisCurrentRow, 'A', '  Total ponctuels');
+  addCell(fraisCurrentRow, 'B', fraisBreakdown.oneTimeCosts.total);
+  fraisCurrentRow++;
+  
+  // Total Frais Généraux
+  addCell(fraisCurrentRow, 'A', 'TOTAL FRAIS GENERAUX');
+  addCell(fraisCurrentRow, 'B', fraisBreakdown.total);
 
   // Unit details (if provided)
-  let unitDetailsEndRow = travauxRow + 6;
+  let unitDetailsEndRow = fraisCurrentRow + 2;
   if (unitDetails) {
     addCell(unitDetailsEndRow + 1, 'A', 'DETAILS PAR TYPE D UNITE');
     let currentRow = unitDetailsEndRow + 2;
@@ -152,11 +297,11 @@ export function buildExportSheetData(
                    'Part achat', 'Droit enreg.', 'Frais notaire', 'CASCO', 'Parachevements', 'Travaux communs',
                    'Construction', 'Commun', 'TOTAL', 'Emprunt', 'Mensualite', 'Total rembourse',
                    'Reno perso', 'CASCO m2', 'Parachev m2', 'CASCO sqm', 'Parachev sqm',
-                   'Fondateur', 'Date entree', 'Lots detenus', 'Date vente lot', 'Achete de', 'Lot ID achete', 'Prix achat lot',
+                   'Fondateur', 'Quotité', 'Date entree', 'Lots detenus', 'Date vente lot', 'Achete de', 'Lot ID achete', 'Prix achat lot',
                    '2 prets', 'Pret1 montant', 'Pret1 mens', 'Pret1 interets', 'Pret2 montant', 'Pret2 mens', 'Pret2 interets', 'Pret2 duree', 'Pret2 delai',
                    'Reno pret2', 'Capital pret1', 'Capital pret2',
                    'Porteur paie CASCO', 'Porteur paie Parachev'];
-  const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH', 'AI', 'AJ', 'AK', 'AL', 'AM', 'AN', 'AO', 'AP', 'AQ', 'AR', 'AS', 'AT'];
+  const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH', 'AI', 'AJ', 'AK', 'AL', 'AM', 'AN', 'AO', 'AP', 'AQ', 'AR', 'AS', 'AT', 'AU'];
 
   headers.forEach((header, idx) => {
     addCell(headerRow, cols[idx], header);
@@ -194,48 +339,52 @@ export function buildExportSheetData(
 
     // Timeline fields
     addCell(r, 'Z', p.isFounder ? 'Oui' : 'Non');
-    addCell(r, 'AA', p.entryDate ? new Date(p.entryDate).toLocaleDateString('fr-BE') : '');
+    
+    // Quotité (only for founders)
+    const quotite = calculateQuotiteForFounder(p, participants);
+    addCell(r, 'AA', quotite || '');
+    
+    addCell(r, 'AB', p.entryDate ? new Date(p.entryDate).toLocaleDateString('fr-BE') : '');
 
     // Portage lots details
     if (p.lotsOwned && p.lotsOwned.length > 0) {
       const lotDetails = p.lotsOwned
         .map(lot => `Lot ${lot.lotId}${lot.isPortage ? ' (portage)' : ''}: ${lot.surface}m²`)
         .join('; ');
-      addCell(r, 'AB', lotDetails);
+      addCell(r, 'AC', lotDetails);
 
       // Show sold date for portage lots
       const soldDates = p.lotsOwned
         .filter(lot => lot.soldDate)
         .map(lot => `Lot ${lot.lotId}: ${new Date(lot.soldDate!).toLocaleDateString('fr-BE')}`)
         .join('; ');
-      addCell(r, 'AC', soldDates || '');
+      addCell(r, 'AD', soldDates || '');
     } else {
-      addCell(r, 'AB', '');
       addCell(r, 'AC', '');
+      addCell(r, 'AD', '');
     }
 
     // Purchase details (for newcomers)
-    addCell(r, 'AD', p.purchaseDetails?.buyingFrom || '');
-    addCell(r, 'AE', p.purchaseDetails?.lotId || '');
-    addCell(r, 'AF', p.purchaseDetails?.purchasePrice || '');
+    addCell(r, 'AE', p.purchaseDetails?.buyingFrom || '');
+    addCell(r, 'AF', p.purchaseDetails?.lotId || '');
+    addCell(r, 'AG', p.purchaseDetails?.purchasePrice || '');
 
     // Two-loan financing details
     if (p.useTwoLoans) {
-      addCell(r, 'AG', 'Oui');
-      addCell(r, 'AH', p.loan1Amount);
-      addCell(r, 'AI', p.loan1MonthlyPayment);
-      addCell(r, 'AJ', p.loan1Interest);
-      addCell(r, 'AK', p.loan2Amount);
-      addCell(r, 'AL', p.loan2MonthlyPayment);
-      addCell(r, 'AM', p.loan2Interest);
-      addCell(r, 'AN', p.loan2DurationYears ? `${p.loan2DurationYears} ans` : '');
-      addCell(r, 'AO', p.loan2DelayYears || 2);
-      addCell(r, 'AP', p.loan2RenovationAmount);
-      addCell(r, 'AQ', p.capitalForLoan1);
-      addCell(r, 'AR', p.capitalForLoan2);
+      addCell(r, 'AH', 'Oui');
+      addCell(r, 'AI', p.loan1Amount);
+      addCell(r, 'AJ', p.loan1MonthlyPayment);
+      addCell(r, 'AK', p.loan1Interest);
+      addCell(r, 'AL', p.loan2Amount);
+      addCell(r, 'AM', p.loan2MonthlyPayment);
+      addCell(r, 'AN', p.loan2Interest);
+      addCell(r, 'AO', p.loan2DurationYears ? `${p.loan2DurationYears} ans` : '');
+      addCell(r, 'AP', p.loan2DelayYears || 2);
+      addCell(r, 'AQ', p.loan2RenovationAmount);
+      addCell(r, 'AR', p.capitalForLoan1);
+      addCell(r, 'AS', p.capitalForLoan2);
     } else {
-      addCell(r, 'AG', 'Non');
-      addCell(r, 'AH', '');
+      addCell(r, 'AH', 'Non');
       addCell(r, 'AI', '');
       addCell(r, 'AJ', '');
       addCell(r, 'AK', '');
@@ -246,6 +395,7 @@ export function buildExportSheetData(
       addCell(r, 'AP', '');
       addCell(r, 'AQ', '');
       addCell(r, 'AR', '');
+      addCell(r, 'AS', '');
     }
 
     // Construction payment details (for portage buyers)
@@ -256,15 +406,15 @@ export function buildExportSheetData(
         .find(lot => lot.lotId === p.purchaseDetails!.lotId && lot.isPortage);
 
       if (portageLot) {
-        addCell(r, 'AS', portageLot.founderPaysCasco ? 'Oui' : 'Non');
-        addCell(r, 'AT', portageLot.founderPaysParachèvement ? 'Oui' : 'Non');
+        addCell(r, 'AT', portageLot.founderPaysCasco ? 'Oui' : 'Non');
+        addCell(r, 'AU', portageLot.founderPaysParachèvement ? 'Oui' : 'Non');
       } else {
-        addCell(r, 'AS', '');
         addCell(r, 'AT', '');
+        addCell(r, 'AU', '');
       }
     } else {
-      addCell(r, 'AS', '');
       addCell(r, 'AT', '');
+      addCell(r, 'AU', '');
     }
   });
 
@@ -299,7 +449,7 @@ export function buildExportSheetData(
   addCell(totalRow, 'X', '');
   addCell(totalRow, 'Y', '');
   addCell(totalRow, 'Z', '');
-  addCell(totalRow, 'AA', '');
+  addCell(totalRow, 'AA', ''); // Quotité - no sum
   addCell(totalRow, 'AB', '');
   addCell(totalRow, 'AC', '');
   addCell(totalRow, 'AD', '');
@@ -319,6 +469,7 @@ export function buildExportSheetData(
   addCell(totalRow, 'AR', '');
   addCell(totalRow, 'AS', '');
   addCell(totalRow, 'AT', '');
+  addCell(totalRow, 'AU', '');
 
   // Summary section
   const synthRow = totalRow + 2;
@@ -336,7 +487,8 @@ export function buildExportSheetData(
   addCell(synthRow + 7, 'A', 'Emprunt maximum');
   addCell(synthRow + 7, 'B', null, `MAX(Q${startRow}:Q${endRow})`);
 
-  // Column widths (expanded to 46 columns for complete dual loan tracking and construction payment tracking)
+  // Column widths (expanded to 47 columns: A-AU)
+  // Added quotité column (AA) and shifted all subsequent columns
   const columnWidths = [
     { col: 0, width: 25 }, { col: 1, width: 8 }, { col: 2, width: 10 }, { col: 3, width: 8 },
     { col: 4, width: 15 }, { col: 5, width: 14 }, { col: 6, width: 12 }, { col: 7, width: 12 },
@@ -344,12 +496,27 @@ export function buildExportSheetData(
     { col: 12, width: 15 }, { col: 13, width: 15 }, { col: 14, width: 15 }, { col: 15, width: 15 },
     { col: 16, width: 15 }, { col: 17, width: 15 }, { col: 18, width: 15 }, { col: 19, width: 15 },
     { col: 20, width: 12 }, { col: 21, width: 12 }, { col: 22, width: 12 }, { col: 23, width: 12 },
-    { col: 24, width: 10 }, { col: 25, width: 12 }, { col: 26, width: 30 }, { col: 27, width: 20 },
-    { col: 28, width: 20 }, { col: 29, width: 12 }, { col: 30, width: 15 },
-    { col: 31, width: 10 }, { col: 32, width: 15 }, { col: 33, width: 15 }, { col: 34, width: 15 },
-    { col: 35, width: 15 }, { col: 36, width: 15 }, { col: 37, width: 15 }, { col: 38, width: 15 },
-    { col: 39, width: 12 }, { col: 40, width: 15 }, { col: 41, width: 15 }, { col: 42, width: 15 },
-    { col: 43, width: 18 }, { col: 44, width: 20 }, { col: 45, width: 20 }
+    { col: 24, width: 10 }, { col: 25, width: 12 }, { col: 26, width: 12 }, // Quotité
+    { col: 27, width: 20 }, // Date entree
+    { col: 28, width: 30 }, // Lots detenus
+    { col: 29, width: 20 }, // Date vente lot
+    { col: 30, width: 12 }, // Achete de
+    { col: 31, width: 15 }, // Lot ID achete
+    { col: 32, width: 15 }, // Prix achat lot
+    { col: 33, width: 10 }, // 2 prets
+    { col: 34, width: 15 }, // Pret1 montant
+    { col: 35, width: 15 }, // Pret1 mens
+    { col: 36, width: 15 }, // Pret1 interets
+    { col: 37, width: 15 }, // Pret2 montant
+    { col: 38, width: 15 }, // Pret2 mens
+    { col: 39, width: 15 }, // Pret2 interets
+    { col: 40, width: 15 }, // Pret2 duree
+    { col: 41, width: 12 }, // Pret2 delai
+    { col: 42, width: 15 }, // Reno pret2
+    { col: 43, width: 15 }, // Capital pret1
+    { col: 44, width: 15 }, // Capital pret2
+    { col: 45, width: 18 }, // Porteur paie CASCO
+    { col: 46, width: 20 }  // Porteur paie Parachev
   ];
 
   return {

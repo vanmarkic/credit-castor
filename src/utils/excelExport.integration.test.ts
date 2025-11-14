@@ -251,8 +251,8 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
 
     const p1Row = sheetData.cells.find(c => c.data.value === 'Test Participant 1')!.row;
 
-    // Verify lots details are exported
-    const lotsCell = sheetData.cells.find(c => c.row === p1Row && c.col === 'AB');
+    // Verify lots details are exported (shifted to AC due to Quotité column at AA)
+    const lotsCell = sheetData.cells.find(c => c.row === p1Row && c.col === 'AC');
     expect(lotsCell).toBeDefined();
     expect(lotsCell?.data.value).toContain('Lot 1');
     expect(lotsCell?.data.value).toContain('Lot 2 (portage)');
@@ -269,9 +269,13 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
     // Verify founder status
     const founderCell = sheetData.cells.find(c => c.row === p1Row && c.col === 'Z');
     expect(founderCell?.data.value).toBe('Oui');
+    
+    // Verify quotité (new column at AA)
+    const quotiteCell = sheetData.cells.find(c => c.row === p1Row && c.col === 'AA');
+    expect(quotiteCell?.data.value).toBeDefined();
 
-    // Verify entry date
-    const entryDateCell = sheetData.cells.find(c => c.row === p1Row && c.col === 'AA');
+    // Verify entry date (shifted to AB)
+    const entryDateCell = sheetData.cells.find(c => c.row === p1Row && c.col === 'AB');
     expect(entryDateCell?.data.value).toBe('15/01/2024');
   });
 
@@ -294,8 +298,8 @@ describe('Excel Export Integration - UI Data Accuracy', () => {
 
     const p2Row = sheetData.cells.find(c => c.data.value === 'Test Participant 2')!.row;
 
-    // Verify purchase details
-    const acheteDeCell = sheetData.cells.find(c => c.row === p2Row && c.col === 'AD');
+    // Verify purchase details (shifted to AE due to Quotité column)
+    const acheteDeCell = sheetData.cells.find(c => c.row === p2Row && c.col === 'AE');
     expect(acheteDeCell?.data.value).toBe('Test Participant 1');
 
     // Verify founder status

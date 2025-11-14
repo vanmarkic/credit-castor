@@ -27,7 +27,7 @@
 
   /* Hide interactive elements */
   .no-print,
-  .fixed,
+  .fixed:not(.print-visible),
   button:not(.print-show),
   input[type="text"],
   input[type="number"],
@@ -36,8 +36,22 @@
   select,
   textarea,
   [role="tooltip"],
-  [role="dialog"] {
+  [role="dialog"]:not(.print-visible) {
     display: none !important;
+  }
+
+  /* Allow modal to be visible when printing */
+  .print-visible {
+    display: block !important;
+    position: relative !important;
+    inset: auto !important;
+    z-index: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Make sticky headers static when printing */
+  .print-visible .sticky {
+    position: static !important;
   }
 
   /* Reset page styles for printing */
@@ -156,6 +170,16 @@
     padding-bottom: 1rem;
   }
 
+  /* Ensure print-visible containers show their content */
+  .print-visible .print-header {
+    display: block !important;
+  }
+
+  /* Show print-visible elements when printing */
+  .print-visible.hidden {
+    display: block !important;
+  }
+
   /* Timeline specific styles */
   .overflow-x-auto,
   .overflow-x-scroll {
@@ -176,6 +200,34 @@
   /* Show read-only values but hide interactive controls */
   input[readonly],
   input[disabled] {
+    display: inline-block !important;
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+
+  /* Show input values as text when printing */
+  .print-visible input[type="text"],
+  .print-visible input[type="number"],
+  .print-visible input[type="date"] {
+    display: inline-block !important;
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: textfield !important;
+  }
+
+  /* Show checkbox states when printing */
+  .print-visible input[type="checkbox"] {
+    display: inline-block !important;
+    width: auto !important;
+    height: auto !important;
+    margin-right: 0.5rem !important;
+  }
+
+  /* Show select values when printing */
+  .print-visible select {
     display: inline-block !important;
     border: none !important;
     background: transparent !important;

@@ -69,7 +69,10 @@ export function useExpectedPaybacks(
     const coproSales: CoproSale[] = allParticipants
       .filter((buyer) => buyer.purchaseDetails?.buyingFrom === 'Copropriété')
       .map((buyer) => {
-        const saleDate = buyer.entryDate || deedDateObj;
+        // Ensure saleDate is a Date object
+        const saleDate = buyer.entryDate 
+          ? (buyer.entryDate instanceof Date ? buyer.entryDate : new Date(buyer.entryDate))
+          : deedDateObj;
         const surfacePurchased = buyer.surface || 0;
         const yearsHeld = calculateYearsHeld(deedDateObj, saleDate);
         

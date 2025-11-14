@@ -5,17 +5,19 @@ interface VerticalToolbarProps {
   onDownloadScenario: () => void;
   onLoadScenario: () => void;
   onExportToExcel: () => void;
+  onPrintAllFounders?: () => void;
 }
 
 export function VerticalToolbar({
   onDownloadScenario,
   onLoadScenario,
   onExportToExcel,
+  onPrintAllFounders,
 }: VerticalToolbarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="fixed right-0 top-1/2 -translate-y-1/2 z-10 no-print">
+    <div className="fixed right-0 top-1/2 -translate-y-1/2 z-[9999] no-print">
       {/* Drawer content */}
       <div
         className={`bg-white shadow-2xl border-l border-gray-200 transition-transform duration-300 ease-in-out ${
@@ -70,6 +72,17 @@ export function VerticalToolbar({
             <Printer className="w-5 h-5" />
             <span className="text-[10px]">PDF</span>
           </button>
+
+          {onPrintAllFounders && (
+            <button
+              onClick={onPrintAllFounders}
+              className="bg-purple-600 hover:bg-purple-700 text-white font-medium p-2.5 rounded-lg transition-colors flex flex-col items-center justify-center gap-1 border border-purple-600"
+              title="Imprimer tous les fondateurs"
+            >
+              <Printer className="w-5 h-5" />
+              <span className="text-[10px]">Fondateurs</span>
+            </button>
+          )}
         </div>
 
           <p className="text-[10px] text-gray-500 mt-3 pt-3 text-center border-t border-gray-200">
