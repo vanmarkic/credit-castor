@@ -38,6 +38,7 @@ describe('UI-to-Export Parity', () => {
     isFounder: 'Fondateur',
     entryDate: 'Date entree',
     lotsOwned: 'Lots detenus',
+    soldDate: 'Date vente lot',
 
     // Purchase details (for newcomers)
     'purchaseDetails.buyingFrom': 'Achete de',
@@ -48,6 +49,11 @@ describe('UI-to-Export Parity', () => {
     parachevementsPerM2: 'Parachev m2',
     cascoSqm: 'CASCO sqm',
     parachevementsSqm: 'Parachev sqm',
+    globalCascoPerM2: 'CASCO m2',
+
+    // Portage construction payment (for buyers)
+    founderPaysCasco: 'Porteur paie CASCO',
+    founderPaysParachèvement: 'Porteur paie Parachev',
   } as const;
 
   const criticalCalculationFields = {
@@ -57,6 +63,7 @@ describe('UI-to-Export Parity', () => {
     fraisNotaireFixe: 'Frais notaire',
     casco: 'CASCO',
     parachevements: 'Parachevements',
+    travauxCommuns: 'Travaux communs',
     personalRenovationCost: 'Reno perso',
     constructionCost: 'Construction',
     sharedCosts: 'Commun',
@@ -118,12 +125,10 @@ describe('UI-to-Export Parity', () => {
     const sheetData = buildExportSheetData(calculations, projectParams);
 
     // Extract header row (should be in cells)
-    const headerCells = sheetData.cells.filter(cell =>
-      // Headers are in the row before participant data starts
-      // Based on the code, headers start after project params and cost breakdown
-      cell.data.value && typeof cell.data.value === 'string' &&
-      typeof cell.data.value === 'string' && Object.values(criticalParticipantFields).includes(cell.data.value)
-    );
+    const headerCells = sheetData.cells.filter(cell => {
+      const value = cell.data.value;
+      return typeof value === 'string' && Object.values(criticalParticipantFields).includes(value as typeof criticalParticipantFields[keyof typeof criticalParticipantFields]);
+    });
 
     // Check that all critical fields are present
     const missingFields: string[] = [];
@@ -344,11 +349,11 @@ describe('UI-to-Export Parity', () => {
 
     const sheetData = buildExportSheetData(calculations, projectParams);
 
-    // Should have 45 column widths (columns 0-44 = A-AS, but AT is 44 in 0-based indexing)
-    expect(sheetData.columnWidths?.length).toBeGreaterThanOrEqual(45);
+    // Should have 46 column widths (columns 0-45 = A-AT)
+    expect(sheetData.columnWidths?.length).toBe(46);
 
-    // Last column should be at index 44 (column AT in 0-based)
+    // Last column should be at index 45 (column AT in 0-based indexing)
     const lastColumnIndex = Math.max(...(sheetData.columnWidths ?? []).map(cw => cw.col));
-    expect(lastColumnIndex).toBe(44); // Column AT (0-based: 44, Excel: AT)
+    expect(lastColumnIndex).toBe(45); // Column AT (0-based: 45, Excel: AT)
   });
 });

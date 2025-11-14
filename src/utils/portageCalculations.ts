@@ -349,14 +349,11 @@ export function calculateYearsHeld(founderEntryDate: Date, buyerEntryDate: Date)
 
   // If buyer date is before founder date, return 0 (no negative time)
   if (isBefore(normalizedBuyerDate, normalizedFounderDate)) {
-    console.log('Buyer entry date is before founder entry date, returning 0');
     return 0;
   }
 
   const diffMs = differenceInMilliseconds(normalizedBuyerDate, normalizedFounderDate);
-  console.log(`Date difference in ms: ${diffMs}`);
   const diffYears = diffMs / (1000 * 60 * 60 * 24 * DAYS_PER_YEAR);
-  console.log(`Calculated years held: ${diffYears} years`);
   return diffYears;
 }
 

@@ -349,7 +349,7 @@ export function buildExportSheetData(
     { col: 31, width: 10 }, { col: 32, width: 15 }, { col: 33, width: 15 }, { col: 34, width: 15 },
     { col: 35, width: 15 }, { col: 36, width: 15 }, { col: 37, width: 15 }, { col: 38, width: 15 },
     { col: 39, width: 12 }, { col: 40, width: 15 }, { col: 41, width: 15 }, { col: 42, width: 15 },
-    { col: 43, width: 18 }, { col: 44, width: 20 }
+    { col: 43, width: 18 }, { col: 44, width: 20 }, { col: 45, width: 20 }
   ];
 
   return {

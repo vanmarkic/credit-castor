@@ -155,27 +155,107 @@ export async function saveScenarioToFirestore(
       };
     }
 
+    // Ensure userEmail is a non-empty string (required by Firestore rules)
+    const effectiveUserEmail = userEmail && userEmail.trim().length > 0 
+      ? userEmail.trim() 
+      : 'anonymous-user';
+
     const projectRef = doc(db, 'projects', PROJECT_DOC_ID);
 
-    // Create document with metadata
-    const dataToSave: FirestoreScenarioData = {
-      ...data,
-      lastModifiedBy: userEmail,
+    // Check if document exists and if it uses subcollections
+    const docSnapshot = await getDoc(projectRef);
+    const usesSubcollections = docSnapshot.exists() && 
+      (docSnapshot.data() as any)?.participantsInSubcollection === true;
+
+    // SAFETY: Validate required data before saving
+    if (!data.projectParams || !data.deedDate || !data.portageFormula) {
+      return {
+        success: false,
+        error: 'Données incomplètes: projectParams, deedDate ou portageFormula manquants.',
+      };
+    }
+
+    // SAFETY: If using subcollections, don't save participants array to main document
+    // This prevents accidentally clearing/overwriting the array when participants are in subcollections
+    // Also remove any undefined values to avoid Firestore issues
+    const dataToSave: any = {
+      projectParams: data.projectParams,
+      deedDate: data.deedDate,
+      portageFormula: data.portageFormula,
+      lastModifiedBy: effectiveUserEmail,
       lastModifiedAt: new Date().toISOString(),
       serverTimestamp: serverTimestamp(),
+      version: data.version || 1,
     };
 
-    await setDoc(projectRef, dataToSave);
+    // Remove undefined values (Firestore doesn't like them)
+    Object.keys(dataToSave).forEach(key => {
+      if (dataToSave[key] === undefined) {
+        delete dataToSave[key];
+      }
+    });
+
+    // Only include participants array if NOT using subcollections
+    // This prevents data loss when participants are stored in subcollections
+    if (!usesSubcollections) {
+      dataToSave.participants = data.participants;
+    } else {
+      // Keep the flag but don't touch participants array
+      dataToSave.participantsInSubcollection = true;
+    }
+
+    // Include fieldVersions if present
+    if (data.fieldVersions) {
+      dataToSave.fieldVersions = data.fieldVersions;
+    }
+
+    // Log what we're about to save (for debugging)
+    console.log('📤 Saving to Firestore:', {
+      documentExists: docSnapshot.exists(),
+      usesSubcollections,
+      lastModifiedBy: dataToSave.lastModifiedBy,
+      hasProjectParams: !!dataToSave.projectParams,
+      hasParticipants: !!dataToSave.participants,
+      version: dataToSave.version,
+    });
+
+    // Use updateDoc if document exists (better for rules validation)
+    // Use setDoc if document doesn't exist (create new)
+    if (docSnapshot.exists()) {
+      // Document exists - use updateDoc (only updates specified fields)
+      // This is safer and works better with Firestore rules
+      await updateDoc(projectRef, dataToSave);
+    } else {
+      // Document doesn't exist - use setDoc to create
+      await setDoc(projectRef, dataToSave);
+    }
 
     return {
       success: true,
       savedData: dataToSave,
     };
-  } catch (error) {
+  } catch (error: any) {
+    const effectiveUserEmail = userEmail && userEmail.trim().length > 0 
+      ? userEmail.trim() 
+      : 'anonymous-user';
+    
+    // Build a safe data object for logging (in case dataToSave wasn't created)
+    const logData = {
+      userEmail: effectiveUserEmail,
+      hasData: !!data,
+      hasProjectParams: !!data?.projectParams,
+      maxTotalLots: data?.projectParams?.maxTotalLots,
+    };
+    
     console.error('Error saving to Firestore:', error);
+    console.error('Error code:', error?.code);
+    console.error('Error message:', error?.message);
+    console.error('User email (original):', userEmail);
+    console.error('User email (effective):', effectiveUserEmail);
+    console.error('Data being saved:', logData);
     return {
       success: false,
-      error: 'Erreur lors de la sauvegarde sur Firestore.',
+      error: error?.message || 'Erreur lors de la sauvegarde sur Firestore.',
     };
   }
 }
