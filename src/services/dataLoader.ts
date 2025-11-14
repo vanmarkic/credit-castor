@@ -21,6 +21,7 @@ import { getDb } from './firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { loadFromLocalStorage } from '../utils/storage';
 import type { Participant, ProjectParams, PortageFormulaParams } from '../utils/calculatorUtils';
+import { migrateProjectParams } from '../utils/projectParamsMigration';
 
 export interface LoadedData {
   participants: Participant[];
@@ -172,11 +173,14 @@ export async function loadApplicationData(options?: {
         if (validateSchema(combinedData)) {
           console.log('✅ Loaded valid data from Firestore (subcollection)');
 
+          // Apply migrations to ensure projectParams has current schema
+          const migratedProjectParams = migrateProjectParams(combinedData.projectParams);
+
           return {
             success: true,
             data: {
               participants: combinedData.participants,
-              projectParams: combinedData.projectParams,
+              projectParams: migratedProjectParams,
               deedDate: combinedData.deedDate,
               portageFormula: combinedData.portageFormula,
               source: 'firestore',
@@ -194,6 +198,9 @@ export async function loadApplicationData(options?: {
         if (validateSchema(firestoreResult.data)) {
           console.log('✅ Loaded valid data from Firestore (legacy array)');
 
+          // Apply migrations to ensure projectParams has current schema
+          const migratedProjectParams = migrateProjectParams(firestoreResult.data.projectParams);
+
           // Check if we also have localStorage data (potential migration scenario)
           const localData = loadFromLocalStorage();
           const hasLocalData = localData && localData.isCompatible && validateSchema(localData);
@@ -202,7 +209,7 @@ export async function loadApplicationData(options?: {
             success: true,
             data: {
               participants: firestoreResult.data.participants,
-              projectParams: firestoreResult.data.projectParams,
+              projectParams: migratedProjectParams,
               deedDate: firestoreResult.data.deedDate,
               portageFormula: firestoreResult.data.portageFormula,
               source: 'firestore',
@@ -260,11 +267,14 @@ export async function loadApplicationData(options?: {
     if (validateSchema(localData)) {
       console.log('✅ Loaded valid data from localStorage');
 
+      // Apply migrations to ensure projectParams has current schema
+      const migratedProjectParams = migrateProjectParams(localData.projectParams);
+
       return {
         success: true,
         data: {
           participants: localData.participants,
-          projectParams: localData.projectParams,
+          projectParams: migratedProjectParams,
           deedDate: localData.deedDate,
           portageFormula: localData.portageFormula,
           source: 'localStorage',

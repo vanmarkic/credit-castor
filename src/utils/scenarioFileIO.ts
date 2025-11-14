@@ -14,6 +14,7 @@ import { DEFAULT_PORTAGE_FORMULA as PORTAGE_DEFAULTS } from './calculatorUtils';
 import type { UnitDetails } from './calculatorUtils';
 import type { TimelineSnapshot } from './timelineCalculations';
 import { syncSoldDatesFromPurchaseDetails } from './participantSync';
+import { migrateProjectParams } from './projectParamsMigration';
 
 export interface ScenarioData {
   version: number;
@@ -208,11 +209,14 @@ export function deserializeScenario(jsonString: string): LoadScenarioResult {
       ? { ...PORTAGE_DEFAULTS, ...data.portageFormula }
       : PORTAGE_DEFAULTS;
 
+    // Apply migrations to ensure projectParams has current schema
+    const migratedProjectParams = migrateProjectParams(data.projectParams);
+
     return {
       success: true,
       data: {
         participants: syncedParticipants,
-        projectParams: data.projectParams,
+        projectParams: migratedProjectParams,
         // scenario removed - old files may have it but we ignore it
         deedDate: data.deedDate || '',
         portageFormula

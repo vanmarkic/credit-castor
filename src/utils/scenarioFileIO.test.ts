@@ -231,7 +231,8 @@ describe('scenarioFileIO', () => {
       // Dates get serialized as ISO strings, so compare fields individually
       expect(result.data?.participants[0].name).toBe(mockParticipants[0].name);
       expect(result.data?.participants[0].capitalApporte).toBe(mockParticipants[0].capitalApporte);
-      expect(result.data?.projectParams).toEqual(mockProjectParams);
+      // Migration adds maxTotalLots if missing
+      expect(result.data?.projectParams).toEqual({ ...mockProjectParams, maxTotalLots: 10 });
       expect(result.data?.deedDate).toBe('2023-02-01');
     });
 
@@ -357,7 +358,8 @@ describe('scenarioFileIO', () => {
       // Dates are serialized as strings in JSON, so we compare fields individually
       expect(successCallArg.participants[0].name).toBe(mockParticipants[0].name);
       expect(successCallArg.participants[0].capitalApporte).toBe(mockParticipants[0].capitalApporte);
-      expect(successCallArg.projectParams).toEqual(mockProjectParams);
+      // Migration adds maxTotalLots if missing
+      expect(successCallArg.projectParams).toEqual({ ...mockProjectParams, maxTotalLots: 10 });
       expect(successCallArg.deedDate).toBe('2023-02-01');
       expect(onError).not.toHaveBeenCalled();
       expect(mockEvent.target.value).toBe('');
