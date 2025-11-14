@@ -130,6 +130,7 @@ State machines provide:
 - `shared/` - Reusable components
   - `FinancingResultCard.tsx`, `ExpectedPaybacksCard.tsx`
   - `CostBreakdownGrid.tsx`, `ExpenseCategoriesManager.tsx`
+  - **CostBreakdownGrid**: Displays cost breakdown cards including purchase share, CASCO, commun costs, etc. For founders, also displays quotité (ownership share) calculated as (founder's surface at T0) / (total surface of all founders at T0), expressed as "integer/1000" format (e.g., "450/1000")
 
 ### Unit Details Pattern
 The `unitDetails` object maps `unitId → { casco, parachevements }` for predefined unit types. Participants can:
