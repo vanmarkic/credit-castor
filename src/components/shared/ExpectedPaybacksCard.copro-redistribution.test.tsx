@@ -107,7 +107,7 @@ describe('ExpectedPaybacksCard - Copro Redistribution with Renovation Costs', ()
       purchaseDetails: {
         buyingFrom: 'Copropriété',
         purchasePrice: coproSalePricing.totalPrice,
-        lotId: undefined
+        lotId: 1
       },
       lotsOwned: []
     };
@@ -132,12 +132,7 @@ describe('ExpectedPaybacksCard - Copro Redistribution with Renovation Costs', ()
     expect(screen.getByText('Newcomer Bob')).toBeInTheDocument();
 
     // Calculate expected formatted amount (French locale format)
-    const _formattedAmount = new Intl.NumberFormat('fr-BE', {
-      style: 'currency',
-      currency: 'EUR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(expectedRedistribution);
+    // Note: Formatted amount calculation removed as it's not used in assertions
 
     // Check that the displayed amount matches expected redistribution (excluding renovation)
     // The amount should be visible in the component
@@ -226,7 +221,7 @@ describe('ExpectedPaybacksCard - Copro Redistribution with Renovation Costs', ()
       purchaseDetails: {
         buyingFrom: 'Copropriété',
         purchasePrice: coproSalePricing.totalPrice,
-        lotId: undefined
+        lotId: 1
       },
       lotsOwned: []
     };
@@ -333,7 +328,7 @@ describe('ExpectedPaybacksCard - Copro Redistribution with Renovation Costs', ()
       purchaseDetails: {
         buyingFrom: 'Copropriété',
         purchasePrice: coproSalePricing1.totalPrice,
-        lotId: undefined
+        lotId: 1
       },
       lotsOwned: []
     };
@@ -351,7 +346,7 @@ describe('ExpectedPaybacksCard - Copro Redistribution with Renovation Costs', ()
       purchaseDetails: {
         buyingFrom: 'Copropriété',
         purchasePrice: coproSalePricing2.totalPrice,
-        lotId: undefined
+        lotId: 1
       },
       lotsOwned: []
     };

@@ -26,13 +26,13 @@ export const DraggableRenovationDateCard: React.FC<DraggableRenovationDateCardPr
   const [dragStartY, setDragStartY] = useState<number | null>(null);
   const [dragStartCardY, setDragStartCardY] = useState<number | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
-  const timelineContainerRef = useRef<HTMLDivElement>(null);
+  const timelineContainerRef = useRef<HTMLElement>(null);
 
   // Find timeline container
   useEffect(() => {
     const findContainer = () => {
       if (cardRef.current) {
-        const container = cardRef.current.closest('[data-timeline-container]') as HTMLElement;
+        const container = cardRef.current.closest('[data-timeline-container]') as HTMLElement | null;
         if (container) {
           timelineContainerRef.current = container;
         }

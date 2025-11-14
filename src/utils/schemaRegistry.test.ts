@@ -264,7 +264,7 @@ describe('Schema Registry - Central Schema Validation', () => {
 
       // All breaking formats must include the same core types
       breakingFormats.forEach(format => {
-        const schema = EXPORT_SCHEMAS[format];
+        const schema = EXPORT_SCHEMAS[format as keyof typeof EXPORT_SCHEMAS];
 
         expect(schema.requiredTopLevelFields).toContain('participants');
         expect(schema.requiredTopLevelFields).toContain('projectParams');

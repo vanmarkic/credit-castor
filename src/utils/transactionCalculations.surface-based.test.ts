@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { calculateCooproTransaction } from './transactionCalculations';
 import type { Participant } from './calculatorUtils';
-import type { TimelineSnapshot } from '../types/timeline';
+import type { TimelineSnapshot } from './timelineCalculations';
 
 describe('Copro redistribution - Surface-based distribution', () => {
   it('should distribute copro proceeds based on surface quotité, not time', () => {

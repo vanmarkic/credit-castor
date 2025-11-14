@@ -150,7 +150,7 @@ describe('Copro Redistribution Display - Main View and Detail Modal', () => {
       purchaseDetails: {
         buyingFrom: 'Copropriété',
         purchasePrice: coproSalePricing.totalPrice,
-        lotId: undefined
+        lotId: 1
       },
       lotsOwned: []
     };
@@ -287,7 +287,7 @@ describe('Copro Redistribution Display - Main View and Detail Modal', () => {
       purchaseDetails: {
         buyingFrom: 'Copropriété',
         purchasePrice: coproSalePricing.totalPrice,
-        lotId: undefined
+        lotId: 1
       },
       lotsOwned: []
     };
@@ -445,7 +445,7 @@ describe('Copro Redistribution Display - Main View and Detail Modal', () => {
       purchaseDetails: {
         buyingFrom: 'Copropriété',
         purchasePrice: coproSalePricingBefore.totalPrice,
-        lotId: undefined
+        lotId: 1
       },
       lotsOwned: []
     };
@@ -464,7 +464,7 @@ describe('Copro Redistribution Display - Main View and Detail Modal', () => {
       purchaseDetails: {
         buyingFrom: 'Copropriété',
         purchasePrice: coproSalePricingAfter.totalPrice,
-        lotId: undefined
+        lotId: 1
       },
       lotsOwned: []
     };

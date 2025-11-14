@@ -627,7 +627,7 @@ describe('Calculator Utils', () => {
         travauxCommuns: {
           enabled: false,
           items: [
-            { label: 'Rénovation complète', amount: 270000 }
+            { label: 'Rénovation complète', sqm: 100, cascoPricePerSqm: 2000, parachevementPricePerSqm: 700, amount: 270000 }
           ]
         }
       };

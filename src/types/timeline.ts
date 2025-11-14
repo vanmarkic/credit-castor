@@ -6,7 +6,7 @@
  * Projections = computed views derived from events
  */
 
-import type { Participant, ProjectParams, CalculationResults } from '../utils/calculatorUtils';
+import type { Participant, ProjectParams } from '../utils/calculatorUtils';
 
 // ============================================
 // Lot Type
@@ -268,31 +268,8 @@ export type DomainEvent =
   | NewcomerFraisGenerauxReimbursementEvent;
 
 // ============================================
-// Projections (Computed Views)
+// Timeline (Event Collection)
 // ============================================
-
-export interface PhaseProjection {
-  phaseNumber: number;
-  startDate: Date;
-  endDate?: Date;
-  durationMonths?: number;
-
-  // Current state at this phase
-  participants: Participant[];
-  copropropriete: CoproEntity;
-  projectParams: ProjectParams;
-  // scenario removed - no longer using percentage-based adjustments
-
-  // Snapshot calculations (reuse existing calculateAll)
-  snapshot: CalculationResults;
-
-  // Cash flow perspective
-  participantCashFlows: Map<string, ParticipantCashFlow>;
-  coproproprieteCashFlow: CoproCashFlow;
-
-  // Metadata
-  triggeringEvent?: DomainEvent;
-}
 
 export interface Timeline {
   // Source of truth
@@ -302,84 +279,6 @@ export interface Timeline {
   createdAt: Date;
   lastModifiedAt: Date;
   version: number;
-
-  // Computed (lazy, not stored)
-  phases?: PhaseProjection[];
-}
-
-// ============================================
-// Cash Flow Types
-// ============================================
-
-export interface ParticipantCashFlow {
-  participantName: string;
-  phaseNumber: number;
-
-  // Recurring costs during phase
-  monthlyRecurring: {
-    ownLotExpenses: {
-      loanPayment: number;
-      propertyTax: number;
-      insurance: number;
-      commonCharges: number;
-    };
-    carriedLotExpenses?: {
-      loanInterestOnly: number;
-      emptyPropertyTax: number;
-      insurance: number;
-    };
-    totalMonthly: number;
-  };
-
-  // One-time events at phase boundaries
-  phaseTransitionEvents: TransitionEvent[];
-
-  // Summary for this phase
-  phaseSummary: {
-    durationMonths: number;
-    totalRecurring: number;
-    transitionNet: number;
-    phaseNetCashImpact: number;
-  };
-
-  // Cumulative since T0
-  cumulativePosition: {
-    totalInvested: number;
-    totalReceived: number;
-    netPosition: number;
-  };
-}
-
-export interface TransitionEvent {
-  type: 'SALE' | 'PURCHASE' | 'REDISTRIBUTION_RECEIVED';
-  amount: number;
-  date: Date;
-  description: string;
-  breakdown?: Record<string, number>;
-}
-
-export interface CoproCashFlow {
-  monthlyRecurring: {
-    loanPayments: number;
-    commonAreaMaintenance: number;
-    insurance: number;
-    accountingFees: number;
-    totalMonthly: number;
-  };
-
-  phaseSummary: {
-    durationMonths: number;
-    totalRecurring: number;
-    transitionNet: number;
-    phaseNetCashImpact: number;
-  };
-
-  balanceSheet: {
-    cashReserve: number;
-    lotsOwnedValue: number;
-    outstandingLoans: number;
-    netWorth: number;
-  };
 }
 
 // ============================================

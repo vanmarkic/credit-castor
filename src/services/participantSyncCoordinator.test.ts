@@ -9,14 +9,12 @@ describe('participantSyncCoordinator', () => {
         {
           name: 'Alice',
           surface: 100,
-          purchaseShare: 50,
           isFounder: true,
           entryDate: new Date('2024-01-01'),
         },
         {
           name: 'Bob',
           surface: 100,
-          purchaseShare: 50,
           isFounder: true,
           entryDate: new Date('2024-01-01'),
         },
@@ -32,14 +30,12 @@ describe('participantSyncCoordinator', () => {
         {
           name: 'Alice',
           surface: 100,
-          purchaseShare: 50,
           isFounder: true,
           entryDate: new Date('2024-01-01'),
         },
         {
           name: 'Bob',
           surface: 100,
-          purchaseShare: 50,
           isFounder: true,
           entryDate: new Date('2024-01-01'),
         },
@@ -49,14 +45,12 @@ describe('participantSyncCoordinator', () => {
         {
           name: 'Alice',
           surface: 120, // Changed
-          purchaseShare: 50,
           isFounder: true,
           entryDate: new Date('2024-01-01'),
         },
         {
           name: 'Bob',
           surface: 100,
-          purchaseShare: 50,
           isFounder: true,
           entryDate: new Date('2024-01-01'),
         },
@@ -72,7 +66,6 @@ describe('participantSyncCoordinator', () => {
         {
           name: 'Alice',
           surface: 100,
-          purchaseShare: 50,
           isFounder: true,
           entryDate: new Date('2024-01-01'),
           purchaseDetails: undefined,
@@ -80,7 +73,6 @@ describe('participantSyncCoordinator', () => {
         {
           name: 'Bob',
           surface: 100,
-          purchaseShare: 50,
           isFounder: true,
           entryDate: new Date('2024-01-01'),
           purchaseDetails: undefined,
@@ -88,7 +80,6 @@ describe('participantSyncCoordinator', () => {
         {
           name: 'Charlie',
           surface: 0,
-          purchaseShare: 0,
           isFounder: false,
           entryDate: new Date('2024-06-01'),
           purchaseDetails: undefined,
@@ -99,7 +90,6 @@ describe('participantSyncCoordinator', () => {
         {
           name: 'Alice',
           surface: 100,
-          purchaseShare: 50,
           isFounder: true,
           entryDate: new Date('2024-01-01'),
           purchaseDetails: undefined,
@@ -107,7 +97,6 @@ describe('participantSyncCoordinator', () => {
         {
           name: 'Bob',
           surface: 100,
-          purchaseShare: 50,
           isFounder: true,
           entryDate: new Date('2024-01-01'),
           purchaseDetails: undefined,
@@ -115,12 +104,12 @@ describe('participantSyncCoordinator', () => {
         {
           name: 'Charlie',
           surface: 0,
-          purchaseShare: 0,
           isFounder: false,
           entryDate: new Date('2024-06-01'),
           // Charlie now buying from copro - triggers cascade
           purchaseDetails: {
             buyingFrom: 'Copropriété',
+            lotId: 1,
             purchasePrice: 100000,
           },
         },
@@ -139,14 +128,12 @@ describe('participantSyncCoordinator', () => {
         {
           name: 'Alice',
           surface: 100,
-          purchaseShare: 50,
           isFounder: true,
           entryDate: new Date('2024-01-01'),
         },
         {
           name: 'Bob',
           surface: 100,
-          purchaseShare: 50,
           isFounder: true,
           entryDate: new Date('2024-01-01'),
         },
@@ -156,14 +143,12 @@ describe('participantSyncCoordinator', () => {
         {
           name: 'Alice',
           surface: 120, // Changed
-          purchaseShare: 50,
           isFounder: true,
           entryDate: new Date('2024-01-01'),
         },
         {
           name: 'Bob',
           surface: 100,
-          purchaseShare: 50,
           isFounder: true,
           entryDate: new Date('2024-02-01'), // Changed
         },
@@ -179,7 +164,6 @@ describe('participantSyncCoordinator', () => {
         {
           name: 'Alice',
           surface: 100,
-          purchaseShare: 50,
           isFounder: true,
           entryDate: new Date('2024-01-01'),
         },
@@ -189,7 +173,6 @@ describe('participantSyncCoordinator', () => {
         {
           name: 'Alice',
           surface: 100,
-          purchaseShare: 50,
           isFounder: true,
           entryDate: new Date('2024-01-02'), // Different date
         },
@@ -205,7 +188,6 @@ describe('participantSyncCoordinator', () => {
         {
           name: 'Alice',
           surface: 100,
-          purchaseShare: 100,
           isFounder: true,
         },
       ];
@@ -214,13 +196,11 @@ describe('participantSyncCoordinator', () => {
         {
           name: 'Alice',
           surface: 100,
-          purchaseShare: 50,
           isFounder: true,
         },
         {
           name: 'Bob',
           surface: 100,
-          purchaseShare: 50,
           isFounder: true,
         },
       ];
@@ -236,11 +216,10 @@ describe('participantSyncCoordinator', () => {
         {
           name: 'Alice',
           surface: 100,
-          purchaseShare: 100,
           isFounder: true,
           lotsOwned: [
             {
-              lotId: 'lot1',
+              lotId: 1,
               surface: 50,
               isPortage: false,
               acquiredDate: new Date('2024-01-01'),
@@ -253,11 +232,10 @@ describe('participantSyncCoordinator', () => {
         {
           name: 'Alice',
           surface: 100,
-          purchaseShare: 100,
           isFounder: true,
           lotsOwned: [
             {
-              lotId: 'lot1',
+              lotId: 1,
               surface: 50,
               isPortage: false,
               acquiredDate: new Date('2024-01-01'),
@@ -310,15 +288,15 @@ describe('participantSyncCoordinator', () => {
       //       they won't be synced to Firestore (calculated on-demand)
 
       const oldParticipants: Participant[] = [
-        { name: 'Alice', surface: 100, purchaseShare: 50, isFounder: true },
-        { name: 'Bob', surface: 100, purchaseShare: 50, isFounder: true },
-        { name: 'Charlie', surface: 0, purchaseShare: 0, isFounder: false },
+        { name: 'Alice', surface: 100, isFounder: true },
+        { name: 'Bob', surface: 100, isFounder: true },
+        { name: 'Charlie', surface: 0, isFounder: false },
       ];
 
       const newParticipants: Participant[] = [
-        { name: 'Alice', surface: 100, purchaseShare: 50, isFounder: true },
-        { name: 'Bob', surface: 100, purchaseShare: 50, isFounder: true },
-        { name: 'Charlie', surface: 0, purchaseShare: 0, isFounder: false, entryDate: new Date('2024-06-01') },
+        { name: 'Alice', surface: 100, isFounder: true },
+        { name: 'Bob', surface: 100, isFounder: true },
+        { name: 'Charlie', surface: 0, isFounder: false, entryDate: new Date('2024-06-01') },
       ];
 
       const changed = detectChangedParticipants(oldParticipants, newParticipants);
@@ -337,19 +315,17 @@ describe('participantSyncCoordinator', () => {
         {
           name: 'Alice',
           surface: 100,
-          purchaseShare: 100,
           isFounder: true,
-          lotsOwned: [{ lotId: 'lot1', surface: 100, isPortage: true, acquiredDate: new Date('2024-01-01') }],
+          lotsOwned: [{ lotId: 1, surface: 100, isPortage: true, acquiredDate: new Date('2024-01-01') }],
         },
         {
           name: 'Bob',
           surface: 0,
-          purchaseShare: 0,
           isFounder: false,
           entryDate: new Date('2024-06-01'),
           purchaseDetails: {
             buyingFrom: 'Alice',
-            lotId: 'lot1',
+            lotId: 1,
             purchasePrice: 100000,
           },
         },
@@ -359,19 +335,17 @@ describe('participantSyncCoordinator', () => {
         {
           name: 'Alice',
           surface: 100,
-          purchaseShare: 100,
           isFounder: true,
-          lotsOwned: [{ lotId: 'lot1', surface: 100, isPortage: true, acquiredDate: new Date('2024-01-01') }],
+          lotsOwned: [{ lotId: 1, surface: 100, isPortage: true, acquiredDate: new Date('2024-01-01') }],
         },
         {
           name: 'Bob',
           surface: 0,
-          purchaseShare: 0,
           isFounder: false,
           entryDate: new Date('2024-12-01'), // Changed (later entry = higher price)
           purchaseDetails: {
             buyingFrom: 'Alice',
-            lotId: 'lot1',
+            lotId: 1,
             purchasePrice: 110000, // Recalculated (holding costs increased)
           },
         },

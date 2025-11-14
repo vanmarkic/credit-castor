@@ -199,6 +199,7 @@ describe('HorizontalSwimLaneTimeline', () => {
         onOpenParticipantDetails={mockOnOpenParticipantDetails}
         onOpenCoproDetails={mockOnOpenCoproDetails}
         onAddParticipant={mockOnAddParticipant}
+        onUpdateParticipant={vi.fn()}
         unitDetails={mockUnitDetails}
       />
     );
@@ -220,6 +221,7 @@ describe('HorizontalSwimLaneTimeline', () => {
         onOpenParticipantDetails={mockOnOpenParticipantDetails}
         onOpenCoproDetails={mockOnOpenCoproDetails}
         onAddParticipant={mockOnAddParticipant}
+        onUpdateParticipant={vi.fn()}
         unitDetails={mockUnitDetails}
       />
     );
@@ -239,6 +241,7 @@ describe('HorizontalSwimLaneTimeline', () => {
         onOpenParticipantDetails={mockOnOpenParticipantDetails}
         onOpenCoproDetails={mockOnOpenCoproDetails}
         onAddParticipant={mockOnAddParticipant}
+        onUpdateParticipant={vi.fn()}
         unitDetails={mockUnitDetails}
       />
     );
@@ -270,6 +273,7 @@ describe('HorizontalSwimLaneTimeline', () => {
         onOpenParticipantDetails={mockOnOpenParticipantDetails}
         onOpenCoproDetails={mockOnOpenCoproDetails}
         onAddParticipant={mockOnAddParticipant}
+        onUpdateParticipant={vi.fn()}
         unitDetails={mockUnitDetails}
         coproReservesShare={30}
       />
@@ -296,6 +300,7 @@ describe('HorizontalSwimLaneTimeline', () => {
         onOpenParticipantDetails={mockOnOpenParticipantDetails}
         onOpenCoproDetails={mockOnOpenCoproDetails}
         onAddParticipant={mockOnAddParticipant}
+        onUpdateParticipant={vi.fn()}
         unitDetails={mockUnitDetails}
         coproReservesShare={60}
       />

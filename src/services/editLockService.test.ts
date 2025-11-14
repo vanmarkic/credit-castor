@@ -31,7 +31,7 @@ vi.mock('firebase/firestore', async (importOriginal) => {
 
   return {
     ...actual,
-    doc: vi.fn((db, collection, docId) => ({ collection, docId })),
+    doc: vi.fn((_db, collection, docId) => ({ collection, docId })),
     getDoc: vi.fn(async (ref) => {
       const data = mockLockStore.get(ref.docId);
       return {
@@ -45,7 +45,7 @@ vi.mock('firebase/firestore', async (importOriginal) => {
     deleteDoc: vi.fn(async (ref) => {
       mockLockStore.delete(ref.docId);
     }),
-    runTransaction: vi.fn(async (db, updateFunction) => {
+    runTransaction: vi.fn(async (_db, updateFunction) => {
       // Serialize transactions to prevent race conditions
       const currentLock = transactionLock;
       let resolveLock: () => void;

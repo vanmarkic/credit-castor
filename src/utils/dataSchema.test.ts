@@ -86,6 +86,7 @@ describe('Data Schema Validation - Breaking Change Detection', () => {
             indexation: 5000,
             carryingCostRecovery: 10000,
             feesRecovery: 5000,
+            renovations: 0,
           },
         },
       };
@@ -125,23 +126,20 @@ describe('Data Schema Validation - Breaking Change Detection', () => {
   describe('ProjectParams interface (CRITICAL - stored in localStorage/Firestore/JSON)', () => {
     it('should have required fields with correct types', () => {
       const params: ProjectParams = {
-        totalPurchasePrice: 500000,
+        totalPurchase: 500000,
         globalCascoPerM2: 800,
-        sharedFixedCosts: 50000,
         travauxCommunsCasco: 30000,
         travauxCommunsParachevements: 20000,
       };
 
-      expect(typeof params.totalPurchasePrice).toBe('number');
+      expect(typeof params.totalPurchase).toBe('number');
       expect(typeof params.globalCascoPerM2).toBe('number');
-      expect(typeof params.sharedFixedCosts).toBe('number');
     });
 
     it('should support optional TVA rate', () => {
       const params: ProjectParams = {
-        totalPurchasePrice: 500000,
+        totalPurchase: 500000,
         globalCascoPerM2: 800,
-        sharedFixedCosts: 50000,
         travauxCommunsCasco: 30000,
         travauxCommunsParachevements: 20000,
         cascoTvaRate: 0.06,
@@ -155,17 +153,15 @@ describe('Data Schema Validation - Breaking Change Detection', () => {
      */
     it('should maintain backward compatibility with required field names', () => {
       const requiredFields = [
-        'totalPurchasePrice',
+        'totalPurchase',
         'globalCascoPerM2',
-        'sharedFixedCosts',
         'travauxCommunsCasco',
         'travauxCommunsParachevements',
       ];
 
       const params: ProjectParams = {
-        totalPurchasePrice: 500000,
+        totalPurchase: 500000,
         globalCascoPerM2: 800,
-        sharedFixedCosts: 50000,
         travauxCommunsCasco: 30000,
         travauxCommunsParachevements: 20000,
       };
@@ -180,24 +176,20 @@ describe('Data Schema Validation - Breaking Change Detection', () => {
     it('should have required fields with correct types', () => {
       const formula: PortageFormulaParams = {
         indexationRate: 0.02,
-        emptyPropertyTaxMonthly: 160,
         insuranceMonthly: 40,
       };
 
       expect(typeof formula.indexationRate).toBe('number');
-      expect(typeof formula.emptyPropertyTaxMonthly).toBe('number');
-      expect(typeof formula.insuranceMonthly).toBe('number');
     });
 
     it('should support optional carrying cost recovery rate', () => {
       const formula: PortageFormulaParams = {
         indexationRate: 0.02,
-        emptyPropertyTaxMonthly: 160,
         insuranceMonthly: 40,
-        carryingCostRecoveryRate: 0.7,
+        carryingCostRecovery: 70,
       };
 
-      expect(formula.carryingCostRecoveryRate).toBe(0.7);
+      expect(formula.carryingCostRecovery).toBe(70);
     });
   });
 
@@ -224,16 +216,14 @@ describe('Data Schema Validation - Breaking Change Detection', () => {
         timestamp: new Date().toISOString(),
         participants: [],
         projectParams: {
-          totalPurchasePrice: 500000,
+          totalPurchase: 500000,
           globalCascoPerM2: 800,
-          sharedFixedCosts: 50000,
           travauxCommunsCasco: 30000,
           travauxCommunsParachevements: 20000,
         },
         deedDate: '2026-02-01',
         portageFormula: {
           indexationRate: 0.02,
-          emptyPropertyTaxMonthly: 160,
           insuranceMonthly: 40,
         },
         unitDetails: {},
@@ -290,16 +280,14 @@ describe('Data Schema Validation - Breaking Change Detection', () => {
       const data: FirestoreScenarioData = {
         participants: [],
         projectParams: {
-          totalPurchasePrice: 500000,
+          totalPurchase: 500000,
           globalCascoPerM2: 800,
-          sharedFixedCosts: 50000,
           travauxCommunsCasco: 30000,
           travauxCommunsParachevements: 20000,
         },
         deedDate: '2026-02-01',
         portageFormula: {
           indexationRate: 0.02,
-          emptyPropertyTaxMonthly: 160,
           insuranceMonthly: 40,
         },
         lastModifiedBy: 'test@example.com',

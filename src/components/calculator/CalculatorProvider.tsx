@@ -34,7 +34,7 @@ import { MigrationModal, type MigrationData } from '../MigrationModal';
 import { ParticipantMigrationDialog } from '../ParticipantMigrationDialog';
 import { SimpleNotificationToast } from '../shared/NotificationToast';
 import toast from 'react-hot-toast';
-import type { Participant } from '../../utils/calculatorUtils';
+import type { Participant, ProjectParams } from '../../utils/calculatorUtils';
 
 interface CalculatorProviderProps {
   children: ReactNode;
@@ -500,10 +500,13 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
           deedDateObj.setFullYear(deedDateObj.getFullYear() + 1);
           return deedDateObj.toISOString().split('T')[0];
         })();
-        setProjectParams(prev => ({
-          ...prev,
-          renovationStartDate: defaultRenovationDate
-        }));
+        setProjectParams(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            renovationStartDate: defaultRenovationDate
+          };
+        });
       }
       return;
     }
@@ -531,31 +534,37 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
       });
 
       // Update renovationStartDate by the same delta if it exists
-      let updatedProjectParams = projectParams;
-      if (projectParams?.renovationStartDate) {
-        const oldRenovationDate = new Date(projectParams.renovationStartDate);
-        const newRenovationDate = new Date(oldRenovationDate.getTime() + delta);
-        updatedProjectParams = {
-          ...projectParams,
-          renovationStartDate: newRenovationDate.toISOString().split('T')[0]
-        };
-      } else {
-        // Initialize renovationStartDate to new deedDate + 1 year if not set
-        const defaultRenovationDate = (() => {
-          const deedDateObj = new Date(newDeedDate);
-          deedDateObj.setFullYear(deedDateObj.getFullYear() + 1);
-          return deedDateObj.toISOString().split('T')[0];
-        })();
-        updatedProjectParams = {
-          ...projectParams,
-          renovationStartDate: defaultRenovationDate
-        };
-      }
+      if (projectParams) {
+        let updatedProjectParams: ProjectParams;
+        if (projectParams.renovationStartDate) {
+          const oldRenovationDate = new Date(projectParams.renovationStartDate);
+          const newRenovationDate = new Date(oldRenovationDate.getTime() + delta);
+          updatedProjectParams = {
+            ...projectParams,
+            renovationStartDate: newRenovationDate.toISOString().split('T')[0]
+          };
+        } else {
+          // Initialize renovationStartDate to new deedDate + 1 year if not set
+          const defaultRenovationDate = (() => {
+            const deedDateObj = new Date(newDeedDate);
+            deedDateObj.setFullYear(deedDateObj.getFullYear() + 1);
+            return deedDateObj.toISOString().split('T')[0];
+          })();
+          updatedProjectParams = {
+            ...projectParams,
+            renovationStartDate: defaultRenovationDate
+          };
+        }
 
-      // Update deed date, participants, and project params
-      setDeedDate(newDeedDate);
-      setParticipants(updatedParticipants);
-      setProjectParams(updatedProjectParams);
+        // Update deed date, participants, and project params
+        setDeedDate(newDeedDate);
+        setParticipants(updatedParticipants);
+        setProjectParams(updatedProjectParams);
+      } else {
+        // If projectParams is null, just update deed date and participants
+        setDeedDate(newDeedDate);
+        setParticipants(updatedParticipants);
+      }
 
     } catch (error) {
       console.error('Error updating deed date:', error);

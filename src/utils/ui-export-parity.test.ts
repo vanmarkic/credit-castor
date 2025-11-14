@@ -122,7 +122,7 @@ describe('UI-to-Export Parity', () => {
       // Headers are in the row before participant data starts
       // Based on the code, headers start after project params and cost breakdown
       cell.data.value && typeof cell.data.value === 'string' &&
-      Object.values(criticalParticipantFields).includes(cell.data.value as string)
+      typeof cell.data.value === 'string' && Object.values(criticalParticipantFields).includes(cell.data.value)
     );
 
     // Check that all critical fields are present
@@ -345,10 +345,10 @@ describe('UI-to-Export Parity', () => {
     const sheetData = buildExportSheetData(calculations, projectParams);
 
     // Should have 45 column widths (columns 0-44 = A-AS, but AT is 44 in 0-based indexing)
-    expect(sheetData.columnWidths.length).toBeGreaterThanOrEqual(45);
+    expect(sheetData.columnWidths?.length).toBeGreaterThanOrEqual(45);
 
     // Last column should be at index 44 (column AT in 0-based)
-    const lastColumnIndex = Math.max(...sheetData.columnWidths.map(cw => cw.col));
+    const lastColumnIndex = Math.max(...(sheetData.columnWidths ?? []).map(cw => cw.col));
     expect(lastColumnIndex).toBe(44); // Column AT (0-based: 44, Excel: AT)
   });
 });

@@ -16,6 +16,7 @@ function isEqual(a: any, b: any): boolean {
 /**
  * Helper to format participant names for display
  */
+ 
 function _formatParticipantList(participants: any[]): string {
   if (participants.length === 0) return 'Aucun';
   if (participants.length <= 3) {

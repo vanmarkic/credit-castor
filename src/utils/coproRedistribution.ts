@@ -37,6 +37,8 @@ export interface CoproSale {
 export interface ParticipantWithEntry {
   name: string;
   entryDate?: Date;
+  isFounder?: boolean;
+  surface?: number;
 }
 
 /**

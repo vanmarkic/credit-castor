@@ -56,7 +56,6 @@ function participantEquals(a: Participant, b: Participant): boolean {
   // Compare primitives
   if (a.name !== b.name) return false;
   if (a.surface !== b.surface) return false;
-  if (a.purchaseShare !== b.purchaseShare) return false;
   if (a.isFounder !== b.isFounder) return false;
 
   // Compare dates (convert to timestamps)
@@ -70,7 +69,6 @@ function participantEquals(a: Participant, b: Participant): boolean {
 
   // Compare unit details
   if (a.unitId !== b.unitId) return false;
-  if (a.cascoPerM2 !== b.cascoPerM2) return false;
   if (a.parachevementsPerM2 !== b.parachevementsPerM2) return false;
   if (a.cascoSqm !== b.cascoSqm) return false;
   if (a.parachevementsSqm !== b.parachevementsSqm) return false;

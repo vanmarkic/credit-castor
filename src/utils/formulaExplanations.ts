@@ -42,7 +42,7 @@ export function getRegistrationFeesFormula(p: ParticipantCalculation): string[] 
 export function getFraisNotaireFixeFormula(p: ParticipantCalculation): string[] {
   return [
     "Frais de notaire fixes",
-    `${p.quantity} lot${p.quantity > 1 ? 's' : ''} × €1,000 = €${p.fraisNotaireFixe.toLocaleString()}`
+    `${p.quantity ?? 1} lot${(p.quantity ?? 1) > 1 ? 's' : ''} × €1,000 = €${p.fraisNotaireFixe.toLocaleString()}`
   ];
 }
 
@@ -135,7 +135,7 @@ export function getTotalLoansFormula(): string[] {
  * Get formula explanation for CASCO (structural work) cost
  */
 export function getCascoFormula(p: ParticipantCalculation, cascoSqm: number | undefined, globalCascoPerM2: number, cascoTvaRate?: number): string[] {
-  const sqm = cascoSqm ?? p.surface;
+  const sqm = cascoSqm ?? p.surface ?? 0;
   const baseCost = sqm * globalCascoPerM2;
   const tvaRate = cascoTvaRate ?? 0;
 
