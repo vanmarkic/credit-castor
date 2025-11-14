@@ -547,8 +547,10 @@ export default function EnDivisionCorrect() {
                 // Update buyer participant
                 newParticipants[idx] = updated;
 
-                // Check if entry date changed
-                const entryDateChanged = oldParticipant.entryDate?.getTime() !== updated.entryDate?.getTime();
+                // Check if entry date changed (handle both Date objects and ISO strings)
+                const oldEntryTime = oldParticipant.entryDate ? new Date(oldParticipant.entryDate).getTime() : null;
+                const newEntryTime = updated.entryDate ? new Date(updated.entryDate).getTime() : null;
+                const entryDateChanged = oldEntryTime !== newEntryTime;
 
                 // Handle seller's lot soldDate updates
                 const oldPurchase = oldParticipant.purchaseDetails;
