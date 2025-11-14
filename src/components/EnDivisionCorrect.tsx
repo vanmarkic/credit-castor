@@ -70,6 +70,7 @@ export default function EnDivisionCorrect() {
     handlePinParticipant,
     handleUnpinParticipant,
     addParticipant,
+    updateParticipant,
     updateParticipantName,
     updateParticipantSurface,
     removeParticipant,
@@ -475,6 +476,7 @@ export default function EnDivisionCorrect() {
           onOpenParticipantDetails={setFullscreenParticipantIndex}
           onOpenCoproDetails={setCoproSnapshot}
           onAddParticipant={addParticipant}
+          onUpdateParticipant={updateParticipant}
           coproReservesShare={portageFormula.coproReservesShare}
         />
 
@@ -608,6 +610,7 @@ export default function EnDivisionCorrect() {
           participants={participants}
           deedDate={deedDate}
           onDeedDateChange={handleDeedDateChange}
+          onUpdateParticipant={updateParticipant}
         />
 
         {/* Global Portage Formula Configuration */}

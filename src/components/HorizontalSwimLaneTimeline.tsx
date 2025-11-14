@@ -35,6 +35,7 @@ interface HorizontalSwimLaneTimelineProps {
   onOpenParticipantDetails: (index: number) => void;
   onOpenCoproDetails: (snapshot: CoproSnapshot) => void;
   onAddParticipant: () => void;
+  onUpdateParticipant: (index: number, updated: Participant) => void;
   coproReservesShare?: number;
   unitDetails?: UnitDetails;
 }
@@ -47,6 +48,7 @@ export default function HorizontalSwimLaneTimeline({
   onOpenParticipantDetails,
   onOpenCoproDetails,
   onAddParticipant,
+  onUpdateParticipant,
   coproReservesShare = DEFAULT_PORTAGE_FORMULA.coproReservesShare,
   unitDetails = {}
 }: HorizontalSwimLaneTimelineProps) {
@@ -97,7 +99,7 @@ export default function HorizontalSwimLaneTimeline({
         <TimelineHeader onAddParticipant={onAddParticipant} />
 
         <div className="flex overflow-x-auto">
-          <TimelineNameColumn participants={participants} />
+          <TimelineNameColumn participants={participants} onUpdateParticipant={onUpdateParticipant} />
           <TimelineCardsArea
             allDates={allDates}
             coproSnapshots={coproSnapshots}

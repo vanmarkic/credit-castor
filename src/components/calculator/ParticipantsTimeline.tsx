@@ -41,12 +41,14 @@ interface ParticipantsTimelineProps {
   participants: Participant[];
   deedDate: string;
   onDeedDateChange: (date: string) => void;
+  onUpdateParticipant: (index: number, updated: Participant) => void;
 }
 
 export const ParticipantsTimeline: React.FC<ParticipantsTimelineProps> = ({
   participants,
   deedDate,
-  onDeedDateChange
+  onDeedDateChange,
+  onUpdateParticipant
 }) => {
   const [expandedParticipant, setExpandedParticipant] = useState<string | null>(null);
 
@@ -131,28 +133,49 @@ export const ParticipantsTimeline: React.FC<ParticipantsTimelineProps> = ({
                 <div className="flex flex-wrap gap-2">
                   {pList.map((p, pIdx) => {
                     const isExpanded = expandedParticipant === p.name;
+                    // Find the actual index in the full participants array
+                    const actualIndex = participants.findIndex(participant => participant.name === p.name);
 
                     return (
                       <div
                         key={pIdx}
                         className={`px-4 py-2 rounded-lg border-2 cursor-pointer transition-all hover:shadow-md ${
-                          p.isFounder
+                          p.enabled === false
+                            ? 'opacity-50 bg-gray-100 border-gray-300 text-gray-600'
+                            : p.isFounder
                             ? 'bg-green-50 border-green-300 text-green-800 hover:bg-green-100'
                             : 'bg-blue-50 border-blue-300 text-blue-800 hover:bg-blue-100'
                         }`}
                         onClick={() => toggleExpand(p.name)}
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <div>
-                            <div className="font-semibold">{p.name}</div>
-                            <div className="text-xs opacity-75">
-                              Unité {p.unitId} • {p.surface}m²
-                            </div>
-                            {p.purchaseDetails?.buyingFrom && (
-                              <div className="text-xs mt-1 font-medium">
-                                💼 Achète de {p.purchaseDetails.buyingFrom}
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={p.enabled !== false}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                if (actualIndex !== -1) {
+                                  onUpdateParticipant(actualIndex, {
+                                    ...p,
+                                    enabled: e.target.checked
+                                  });
+                                }
+                              }}
+                              className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                              title={p.enabled === false ? "Activer ce participant" : "Désactiver ce participant"}
+                            />
+                            <div>
+                              <div className="font-semibold">{p.name}</div>
+                              <div className="text-xs opacity-75">
+                                Unité {p.unitId} • {p.surface}m²
                               </div>
-                            )}
+                              {p.purchaseDetails?.buyingFrom && (
+                                <div className="text-xs mt-1 font-medium">
+                                  💼 Achète de {p.purchaseDetails.buyingFrom}
+                                </div>
+                              )}
+                            </div>
                           </div>
                           {isExpanded ? (
                             <ChevronUp className="w-4 h-4 flex-shrink-0" />

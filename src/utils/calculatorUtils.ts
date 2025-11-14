@@ -49,6 +49,9 @@ export interface Participant {
   parachevementsPerM2?: number;
   cascoSqm?: number;
   parachevementsSqm?: number;
+
+  // Enable/disable participant (excludes from calculations)
+  enabled?: boolean; // Defaults to true for backward compatibility
 }
 
 export interface ExpenseLineItem {
@@ -616,12 +619,15 @@ export function calculateAll(
   projectParams: ProjectParams,
   unitDetails: UnitDetails
 ): CalculationResults {
-  const totalSurface = calculateTotalSurface(participants);
+  // Filter enabled participants for calculations (enabled defaults to true for backward compatibility)
+  const enabledParticipants = participants.filter(p => p.enabled !== false);
+  
+  const totalSurface = calculateTotalSurface(enabledParticipants);
   const pricePerM2 = calculatePricePerM2(projectParams.totalPurchase, totalSurface);
 
-  // Calculate fraisGeneraux3ans dynamically based on construction costs
+  // Calculate fraisGeneraux3ans dynamically based on construction costs (only enabled participants)
   const dynamicFraisGeneraux3ans = calculateFraisGeneraux3ans(
-    participants,
+    enabledParticipants,
     projectParams,
     unitDetails
   );
@@ -633,14 +639,40 @@ export function calculateAll(
   };
 
   const sharedCosts = calculateSharedCosts(updatedProjectParams);
-  const sharedPerPerson = sharedCosts / participants.length;
+  const enabledCount = enabledParticipants.length || 1; // Avoid division by zero
+  const sharedPerPerson = sharedCosts / enabledCount;
 
   const travauxCommunsPerUnit = calculateTravauxCommunsPerUnit(
     projectParams,
-    participants.length
+    enabledCount
   );
 
+  // Calculate breakdown for all participants, but use enabled participants for shared calculations
   const participantBreakdown: ParticipantCalculation[] = participants.map(p => {
+    // If participant is disabled, return zero values
+    if (p.enabled === false) {
+      return {
+        ...p,
+        quantity: p.quantity || 1,
+        pricePerM2,
+        purchaseShare: 0,
+        droitEnregistrements: 0,
+        fraisNotaireFixe: 0,
+        casco: 0,
+        parachevements: 0,
+        personalRenovationCost: 0,
+        constructionCost: 0,
+        constructionCostPerUnit: 0,
+        travauxCommunsPerUnit: 0,
+        sharedCosts: 0,
+        totalCost: 0,
+        loanNeeded: 0,
+        financingRatio: 0,
+        monthlyPayment: 0,
+        totalRepayment: 0,
+        totalInterest: 0,
+      };
+    }
     // For backward compatibility, require legacy fields
     const unitId = p.unitId || 0;
     const surface = p.surface || 0;
@@ -777,10 +809,10 @@ export function calculateAll(
            participantBreakdown.reduce((sum, p) => sum + p.droitEnregistrements, 0) +
            participantBreakdown.reduce((sum, p) => sum + p.constructionCost, 0) +
            sharedCosts,
-    capitalTotal: participants.reduce((sum, p) => sum + p.capitalApporte, 0),
+    capitalTotal: enabledParticipants.reduce((sum, p) => sum + p.capitalApporte, 0),
     totalLoansNeeded: participantBreakdown.reduce((sum, p) => sum + p.loanNeeded, 0),
-    averageLoan: participantBreakdown.reduce((sum, p) => sum + p.loanNeeded, 0) / participants.length,
-    averageCapital: participants.reduce((sum, p) => sum + p.capitalApporte, 0) / participants.length,
+    averageLoan: enabledCount > 0 ? participantBreakdown.reduce((sum, p) => sum + p.loanNeeded, 0) / enabledCount : 0,
+    averageCapital: enabledCount > 0 ? enabledParticipants.reduce((sum, p) => sum + p.capitalApporte, 0) / enabledCount : 0,
   };
 
   return {
