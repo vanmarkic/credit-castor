@@ -146,13 +146,16 @@ export function getUniqueSortedDates(
  * @param participants - Array of all participants
  * @param calculations - Calculation results for all participants
  * @param deedDate - Initial deed date (ISO string)
+ * @param coproReservesShare - Percentage of copro sale proceeds going to reserves
+ * @param projectParams - Optional project parameters (for maxTotalLots)
  * @returns Array of copro snapshots
  */
 export function generateCoproSnapshots(
   participants: Participant[],
   calculations: CalculationResults,
   deedDate: string,
-  coproReservesShare: number = 30
+  coproReservesShare: number = 30,
+  projectParams?: ProjectParams
 ): CoproSnapshot[] {
   const snapshots: CoproSnapshot[] = []
 
@@ -168,8 +171,14 @@ export function generateCoproSnapshots(
     )
   ].sort()
 
-  let previousLots = 0
-  let previousSurface = 0
+  // Calculate initial available lots
+  // Prefer maxTotalLots from projectParams if available, otherwise use participants.length
+  // This ensures we use the explicitly configured total lots rather than relying on participant count
+  const initialAvailableLots = projectParams?.maxTotalLots ?? participants.length
+  const initialAvailableSurface = calculations.totalSurface
+
+  let previousLots: number | null = null
+  let previousSurface: number | null = null
 
   dates.forEach((dateStr, idx) => {
     const date = new Date(dateStr)
@@ -189,31 +198,33 @@ export function generateCoproSnapshots(
       return sum + purchasePrice * (coproReservesShare / 100)
     }, 0)
 
-    // Calculate remaining lots/surface AFTER sales on this date
-    // Use date-only comparison to ensure sales on the same date are included
-    // dateStr is already available from the forEach loop parameter
-    const soldLots = participants.filter(p => {
-      const fallback = p.isFounder ? deedDate : fallbackNonFounder
-      const pEntryDateStr = safeToISODateString(p.entryDate, fallback)
-      return (
-        compareDatesOnly(pEntryDateStr, dateStr) &&
-        p.purchaseDetails?.buyingFrom === 'Copropriété'
-      )
-    }).length
+    // Calculate lots/surface sold on THIS date only
+    const soldLots = joinedFromCopro.length
+    const soldSurface = joinedFromCopro.reduce((sum, p) => sum + (p.surface || 0), 0)
 
-    const soldSurface = participants
-      .filter(p => {
-        const fallback = p.isFounder ? deedDate : fallbackNonFounder
-        const pEntryDateStr = safeToISODateString(p.entryDate, fallback)
-        return (
-          compareDatesOnly(pEntryDateStr, dateStr) &&
-          p.purchaseDetails?.buyingFrom === 'Copropriété'
-        )
-      })
-      .reduce((sum, p) => sum + (p.surface || 0), 0)
-
-    const availableLots = Math.max(0, participants.length - soldLots)
-    const totalSurface = calculations.totalSurface - soldSurface
+    // Calculate available lots/surface AFTER subtracting sales on this date
+    // For T0: start with initial and subtract sold on T0
+    // For subsequent dates: subtract sold from previous available
+    let availableLots: number
+    let totalSurface: number
+    
+    if (idx === 0) {
+      // T0: Calculate available lots AFTER subtracting sales on this date
+      // Start with initial available, subtract sold on T0
+      availableLots = Math.max(0, initialAvailableLots - soldLots)
+      totalSurface = Math.max(0, initialAvailableSurface - soldSurface)
+    } else {
+      // Subsequent dates: subtract sold from previous available
+      if (previousLots === null || previousSurface === null) {
+        // Fallback: shouldn't happen, but handle gracefully
+        availableLots = Math.max(0, initialAvailableLots - soldLots)
+        totalSurface = Math.max(0, initialAvailableSurface - soldSurface)
+      } else {
+        // Subtract lots sold on this date from previous available
+        availableLots = Math.max(0, previousLots - soldLots)
+        totalSurface = Math.max(0, previousSurface - soldSurface)
+      }
+    }
 
     // Only add snapshot if copro inventory changed or it's T0
     if (

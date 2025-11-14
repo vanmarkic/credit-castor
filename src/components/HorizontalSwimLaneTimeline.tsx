@@ -57,8 +57,8 @@ export default function HorizontalSwimLaneTimeline({
 
   // Generate copropriété snapshots - ONLY show cards when copro inventory changes
   const coproSnapshots = useMemo(() => {
-    return generateCoproSnapshots(participants, calculations, deedDate, coproReservesShare);
-  }, [participants, calculations, deedDate, coproReservesShare]);
+    return generateCoproSnapshots(participants, calculations, deedDate, coproReservesShare, projectParams);
+  }, [participants, calculations, deedDate, coproReservesShare, projectParams]);
 
   // Generate frais généraux events
   const fraisGenerauxEvents = useMemo(() => {
