@@ -17,6 +17,7 @@ import {
 import { getDb } from './firebase';
 import type { Participant, ProjectParams, PortageFormulaParams } from '../utils/calculatorUtils';
 import { DEFAULT_MAX_TOTAL_LOTS } from '../utils/lotValidation';
+import { migrateProjectParams } from '../utils/projectParamsMigration';
 
 /**
  * Default values for new/optional projectParams fields
@@ -243,6 +244,11 @@ export async function saveScenarioToFirestore(
         error: 'Données incomplètes: projectParams, deedDate ou portageFormula manquants.',
       };
     }
+
+    // IMPORTANT: Apply migrations to ensure projectParams has current schema before saving
+    // This ensures that old data formats are automatically upgraded when saving
+    const migratedProjectParams = migrateProjectParams(data.projectParams);
+    data = { ...data, projectParams: migratedProjectParams };
 
     // SAFETY: When using setDoc with merge: true, nested objects are REPLACED, not merged
     // So we need to preserve existing projectParams fields that we're not updating
@@ -480,16 +486,33 @@ export async function saveScenarioToFirestore(
       });
       
       // Log the actual updateData structure to see what's being sent
-      console.log('📋 Full updateData structure:', JSON.stringify({
-        ...updateData,
-        projectParams: updateData.projectParams ? {
-          ...updateData.projectParams,
-          // Don't log the entire projectParams, just the keys
-          _keys: Object.keys(updateData.projectParams),
-        } : null,
-        participants: updateData.participants ? `[${updateData.participants.length} participants]` : null,
-      }, null, 2));
-      
+      // Note: We log projectParams keys separately to avoid adding _keys to the actual object
+      if (updateData.projectParams) {
+        console.log('📋 projectParams keys:', Object.keys(updateData.projectParams));
+        console.log('📋 maxTotalLots in projectParams?', 'maxTotalLots' in updateData.projectParams);
+        console.log('📋 maxTotalLots value:', updateData.projectParams.maxTotalLots);
+        console.log('📋 maxTotalLots type:', typeof updateData.projectParams.maxTotalLots);
+
+        // Check travauxCommuns structure
+        if (updateData.projectParams.travauxCommuns) {
+          const tc = updateData.projectParams.travauxCommuns;
+          console.log('📋 travauxCommuns.enabled:', tc.enabled, 'type:', typeof tc.enabled);
+          console.log('📋 travauxCommuns.items:', Array.isArray(tc.items) ? 'is array' : 'NOT ARRAY');
+          console.log('📋 travauxCommuns.items count:', tc.items?.length);
+          if (tc.items && tc.items.length > 0) {
+            console.log('📋 First item:', JSON.stringify(tc.items[0]));
+          }
+        }
+      }
+      console.log('📋 Full updateData (summary):', {
+        hasProjectParams: !!updateData.projectParams,
+        hasDeedDate: !!updateData.deedDate,
+        hasPortageFormula: !!updateData.portageFormula,
+        hasParticipants: !!updateData.participants,
+        participantCount: updateData.participants?.length,
+        version: updateData.version,
+      });
+
       await updateDoc(projectRef, updateData);
     } else {
       // Document doesn't exist - use setDoc to create it
