@@ -22,14 +22,14 @@ service cloud.firestore {
       // Helper function to validate TravauxCommuns structure
       function isValidTravauxCommuns(travauxCommuns) {
         // enabled must be boolean if present
-        let enabledValid = !exists(travauxCommuns.enabled) || travauxCommuns.enabled is bool;
-        
+        let enabledValid = !('enabled' in travauxCommuns) || travauxCommuns.enabled is bool;
+
         // If items exist, they must be a list
         // Note: Detailed item structure validation (label, sqm, cascoPricePerSqm, parachevementPricePerSqm, amount)
         // happens in the application layer. Firestore Security Rules don't support iterating through lists
         // to validate individual items, so we only validate that items is a list if present.
-        let itemsValid = !exists(travauxCommuns.items) || travauxCommuns.items is list;
-        
+        let itemsValid = !('items' in travauxCommuns) || travauxCommuns.items is list;
+
         return enabledValid && itemsValid;
       }
 
@@ -67,10 +67,10 @@ service cloud.firestore {
         // Helper function to validate Participant structure
         function isValidParticipant() {
           // lotsOwned must be an array if present
-          let lotsOwnedValid = !exists(request.resource.data.lotsOwned) || 
+          let lotsOwnedValid = !('lotsOwned' in request.resource.data) ||
                                request.resource.data.lotsOwned is list;
           // enabled must be boolean if present
-          let enabledValid = !exists(request.resource.data.enabled) || 
+          let enabledValid = !('enabled' in request.resource.data) ||
                             request.resource.data.enabled is bool;
           return lotsOwnedValid && enabledValid;
         }

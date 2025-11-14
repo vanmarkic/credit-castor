@@ -17,7 +17,7 @@ import {
 import { getDb } from '../services/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { saveToLocalStorage, loadFromLocalStorage } from '../utils/storage';
-import { detectChangedParticipants } from '../services/participantSyncCoordinator';
+import { detectChangedParticipants, syncChangedParticipants } from '../services/participantSyncCoordinator';
 import type { Participant, ProjectParams, PortageFormulaParams } from '../utils/calculatorUtils';
 
 /**
@@ -213,71 +213,85 @@ export function useFirestoreSync(
 
         // If Firestore sync is enabled and user is authenticated
         if (syncMode === 'firestore' && userEmail) {
+          // Re-check subcollection status before each save (in case it changed)
+          let currentUseSubcollection = useSubcollection;
+          const db = getDb();
+          if (db) {
+            try {
+              const projectRef = doc(db, 'projects', 'shared-project');
+              const projectDoc = await getDoc(projectRef);
+              if (projectDoc.exists()) {
+                const data = projectDoc.data() as any;
+                const usesSubcoll = data.participantsInSubcollection === true;
+                currentUseSubcollection = usesSubcoll;
+                if (usesSubcoll !== useSubcollection) {
+                  console.log('🔄 Updating subcollection mode:', usesSubcoll);
+                  setUseSubcollection(usesSubcoll);
+                }
+              }
+            } catch (err) {
+              console.error('Error checking subcollection status:', err);
+            }
+          }
+
           // Determine if we can use field-level update
           const participantsChanged = !dirtyFields || dirtyFields.includes('participants');
 
           // Try granular participant update if:
           // 1. Participants changed
           // 2. Subcollection mode is enabled
-          // 3. Only one participant changed
-          // 
+          // 3. At least one participant changed (batched sync handles multiple changes efficiently)
+          //
           // IMPORTANT: When using subcollections, each participant is a separate document.
-          // - The edited participant is updated via updateParticipantFields (granular update)
-          // - All other participants remain in their subcollection documents (already saved, untouched)
+          // - Changed participants are updated via syncChangedParticipants (batched granular update)
+          // - Unchanged participants remain untouched in their subcollection documents
+          // - Atomic batch write ensures all-or-nothing consistency
           // This follows Firestore best practices: only update what changed, leave others untouched
-          if (participantsChanged && useSubcollection && prevParticipantsRef.current.length > 0) {
+          console.log('🔍 Granular sync check:', {
+            participantsChanged,
+            useSubcollection: currentUseSubcollection,
+            prevParticipantsLength: prevParticipantsRef.current.length,
+            canUseGranular: participantsChanged && currentUseSubcollection && prevParticipantsRef.current.length > 0
+          });
+
+          if (participantsChanged && currentUseSubcollection && prevParticipantsRef.current.length > 0) {
             const changedIndices = detectChangedParticipants(prevParticipantsRef.current, participants);
-            
-            if (changedIndices.length === 1) {
-              // Only one participant changed - use granular update
-              // This updates only the changed participant in its subcollection document
-              // All other participants remain untouched in their subcollection documents
-              const changedIndex = changedIndices[0];
-              const changedParticipant = participants[changedIndex];
-              
-              // Calculate which fields changed by comparing old vs new
-              const oldParticipant = prevParticipantsRef.current[changedIndex];
-              const fieldsToUpdate: Partial<Participant> = {};
-              
-              // Compare and collect changed fields
-              if (oldParticipant) {
-                Object.keys(changedParticipant).forEach(key => {
-                  const typedKey = key as keyof Participant;
-                  if (JSON.stringify(changedParticipant[typedKey]) !== JSON.stringify(oldParticipant[typedKey])) {
-                    (fieldsToUpdate as any)[typedKey] = changedParticipant[typedKey];
-                  }
-                });
-              } else {
-                // New participant - update all fields
-                Object.assign(fieldsToUpdate, changedParticipant);
-              }
+            console.log('🔍 Changed participants detected:', changedIndices);
 
-              if (Object.keys(fieldsToUpdate).length > 0) {
-                // Use participant's name as userEmail if no email is set
-                const effectiveUserEmail = userEmail || changedParticipant.name || 'participant-edit';
-                
-                const result = await updateParticipantFields(
-                  changedIndex.toString(),
-                  'shared-project',
-                  fieldsToUpdate,
-                  effectiveUserEmail
-                );
+            if (changedIndices.length > 0) {
+              // Use batched sync for granular participant updates
+              // This handles 1+ changed participants efficiently with atomic batch writes
+              const effectiveUserEmail = userEmail || 'participant-edit';
 
-                if (result.success) {
-                  prevParticipantsRef.current = [...participants];
-                  setLastSyncedAt(new Date());
-                  console.log(`✅ Granular participant update: participant ${changedIndex} (${result.updatedFields?.join(', ') || 'all fields'})`);
+              const result = await syncChangedParticipants(
+                prevParticipantsRef.current,
+                participants,
+                'shared-project',
+                effectiveUserEmail
+              );
 
-                  // Trigger toast notification
-                  if (onSyncSuccess) {
-                    onSyncSuccess(`Participant ${changedParticipant.name || changedIndex}`, ['participants']);
-                  }
+              if (result.success) {
+                prevParticipantsRef.current = [...participants];
+                setLastSyncedAt(new Date());
 
-                  return { success: true };
-                } else {
-                  // Fallback to full save on error
-                  console.warn('⚠️ Granular participant update failed, falling back to full save:', result.error);
+                // Log which participants were synced
+                console.log(`✅ Batched participant sync: ${result.syncedCount}/${participants.length} participants updated`);
+                if (result.syncedParticipantIds.length > 0) {
+                  console.log(`   Updated participants: ${result.syncedParticipantIds.join(', ')}`);
                 }
+
+                // Trigger toast notification
+                if (onSyncSuccess) {
+                  const message = result.syncedCount === 1
+                    ? `Participant ${result.syncedParticipantIds[0]}`
+                    : `${result.syncedCount} participants`;
+                  onSyncSuccess(message, ['participants']);
+                }
+
+                return { success: true };
+              } else {
+                // Fallback to full save on error
+                console.warn('⚠️ Batched participant sync failed, falling back to full save:', result.error);
               }
             }
           }

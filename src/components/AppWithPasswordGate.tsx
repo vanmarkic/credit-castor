@@ -3,6 +3,7 @@ import EnDivisionCorrect from './EnDivisionCorrect';
 import PasswordGate from './PasswordGate';
 import { UnlockProvider } from '../contexts/UnlockContext';
 import { CalculatorProvider } from './calculator/CalculatorProvider';
+import '../utils/migrationHelpers'; // Expose migration utilities to window
 
 export default function AppWithPasswordGate() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
