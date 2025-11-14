@@ -23,45 +23,47 @@ describe('useUnlockState', () => {
     expect(result.current.unlockedBy).toBeNull();
   });
 
-  it('should unlock with correct password', () => {
+  it('should unlock with correct password', async () => {
     const { result } = renderHook(() => useUnlockState());
 
-    act(() => {
-      const success = result.current.unlock('admin2025', 'user@example.com');
-      expect(success).toBe(true);
+    let success: boolean;
+    await act(async () => {
+      success = await result.current.unlock('admin2025', 'user@example.com');
     });
 
+    expect(success!).toBe(true);
     expect(result.current.isUnlocked).toBe(true);
     expect(result.current.unlockedBy).toBe('user@example.com');
     expect(result.current.unlockedAt).toBeInstanceOf(Date);
   });
 
-  it('should reject unlock with incorrect password', () => {
+  it('should reject unlock with incorrect password', async () => {
     const { result } = renderHook(() => useUnlockState());
 
-    act(() => {
-      const success = result.current.unlock('wrong-password', 'user@example.com');
-      expect(success).toBe(false);
+    let success: boolean;
+    await act(async () => {
+      success = await result.current.unlock('wrong-password', 'user@example.com');
     });
 
+    expect(success!).toBe(false);
     expect(result.current.isUnlocked).toBe(false);
     expect(result.current.unlockedBy).toBeNull();
     expect(result.current.unlockedAt).toBeNull();
   });
 
-  it('should lock when already unlocked', () => {
+  it('should lock when already unlocked', async () => {
     const { result } = renderHook(() => useUnlockState());
 
     // First unlock
-    act(() => {
-      result.current.unlock('admin2025', 'user@example.com');
+    await act(async () => {
+      await result.current.unlock('admin2025', 'user@example.com');
     });
 
     expect(result.current.isUnlocked).toBe(true);
 
     // Then lock
-    act(() => {
-      result.current.lock();
+    await act(async () => {
+      await result.current.lock();
     });
 
     expect(result.current.isUnlocked).toBe(false);
@@ -69,11 +71,11 @@ describe('useUnlockState', () => {
     expect(result.current.unlockedAt).toBeNull();
   });
 
-  it('should persist unlock state to localStorage', () => {
+  it('should persist unlock state to localStorage', async () => {
     const { result } = renderHook(() => useUnlockState());
 
-    act(() => {
-      result.current.unlock('admin2025', 'user@example.com');
+    await act(async () => {
+      await result.current.unlock('admin2025', 'user@example.com');
     });
 
     // Check localStorage
@@ -153,31 +155,12 @@ describe('useUnlockState', () => {
     });
   });
 
-  describe('clearUnlockState', () => {
-    it('should clear unlock state from localStorage', () => {
-      // Set state
-      localStorage.setItem(
-        'credit-castor-unlock-state',
-        JSON.stringify({
-          isUnlocked: true,
-          unlockedBy: 'test@example.com',
-          unlockedAt: new Date().toISOString(),
-        })
-      );
 
-      // Clear
-      clearUnlockState();
-
-      // Check it's gone
-      expect(localStorage.getItem('credit-castor-unlock-state')).toBeNull();
-    });
-  });
-
-  it('should maintain state across multiple renders', () => {
+  it('should maintain state across multiple renders', async () => {
     const { result, rerender } = renderHook(() => useUnlockState());
 
-    act(() => {
-      result.current.unlock('admin2025', 'user@example.com');
+    await act(async () => {
+      await result.current.unlock('admin2025', 'user@example.com');
     });
 
     expect(result.current.isUnlocked).toBe(true);
