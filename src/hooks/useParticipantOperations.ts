@@ -3,7 +3,9 @@
  * Provides pure functions for participant manipulation
  */
 
-import type { Participant } from '../utils/calculatorUtils';
+import type { Participant, ProjectParams } from '../utils/calculatorUtils';
+import type { CoproLot } from '../types/timeline';
+import { validateAddPortageLot, DEFAULT_MAX_TOTAL_LOTS } from '../utils/lotValidation';
 
 export interface ParticipantOperations {
   addParticipant: (
@@ -84,8 +86,10 @@ export interface ParticipantOperations {
       purchaseShare: number;
       droitEnregistrements: number;
       casco: number;
-    }
-  ) => Participant[];
+    },
+    coproLots?: CoproLot[],
+    maxTotalLots?: number
+  ) => { success: boolean; participants?: Participant[]; error?: string };
 
   removePortageLot: (
     participants: Participant[],
@@ -291,6 +295,7 @@ export function updateParachevementsSqm(
 
 /**
  * Add a portage lot to a participant
+ * Validates against MAX_TOTAL_LOTS constraint before adding
  */
 export function addPortageLot(
   participants: Participant[],
@@ -300,8 +305,15 @@ export function addPortageLot(
     purchaseShare: number;
     droitEnregistrements: number;
     casco: number;
+  },
+  coproLots: CoproLot[] = [],
+  maxTotalLots: number = DEFAULT_MAX_TOTAL_LOTS
+): { success: boolean; participants?: Participant[]; error?: string } {
+  const validation = validateAddPortageLot(participants, coproLots, maxTotalLots);
+  if (!validation.isValid) {
+    return { success: false, error: validation.error };
   }
-): Participant[] {
+
   const newParticipants = [...participants];
   const participant = { ...newParticipants[participantIndex] };
 
@@ -332,7 +344,7 @@ export function addPortageLot(
   });
 
   newParticipants[participantIndex] = participant;
-  return newParticipants;
+  return { success: true, participants: newParticipants };
 }
 
 /**

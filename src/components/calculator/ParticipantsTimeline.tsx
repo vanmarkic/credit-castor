@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Clock, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import type { Participant } from '../../utils/calculatorUtils';
+import { useProjectParamPermissions } from '../../hooks/useFieldPermissions';
 
 /**
  * Convert Firestore Timestamp to Date if needed
@@ -40,17 +41,22 @@ function safeToISODateString(dateValue: string | Date | null | undefined | any, 
 interface ParticipantsTimelineProps {
   participants: Participant[];
   deedDate: string;
+  renovationStartDate?: string;
   onDeedDateChange: (date: string) => void;
+  onRenovationStartDateChange?: (date: string) => void;
   onUpdateParticipant: (index: number, updated: Participant) => void;
 }
 
 export const ParticipantsTimeline: React.FC<ParticipantsTimelineProps> = ({
   participants,
   deedDate,
+  renovationStartDate,
   onDeedDateChange,
+  onRenovationStartDateChange,
   onUpdateParticipant
 }) => {
   const [expandedParticipant, setExpandedParticipant] = useState<string | null>(null);
+  const { canEdit: canEditRenovationStartDate, isLocked: isRenovationStartDateLocked, lockReason: renovationStartDateLockReason } = useProjectParamPermissions('renovationStartDate');
 
   const toggleExpand = (name: string) => {
     setExpandedParticipant(prev => prev === name ? null : name);
@@ -108,19 +114,46 @@ export const ParticipantsTimeline: React.FC<ParticipantsTimelineProps> = ({
                 {/* Date label */}
                 <div className="mb-2">
                   {isFounders ? (
-                    <div>
-                      <input
-                        type="date"
-                        value={deedDate}
-                        onChange={(e) => onDeedDateChange(e.target.value)}
-                        className="text-sm font-semibold text-gray-700 px-2 py-1 border-2 border-green-300 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none bg-white mb-1"
-                      />
-                      <div className="text-xs text-green-600 font-medium">
-                        T0 - Date de l'acte (Fondateurs)
+                    <div className="space-y-3">
+                      <div>
+                        <input
+                          type="date"
+                          value={deedDate}
+                          onChange={(e) => onDeedDateChange(e.target.value)}
+                          className="text-sm font-semibold text-gray-700 px-2 py-1 border-2 border-green-300 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none bg-white mb-1"
+                        />
+                        <div className="text-xs text-green-600 font-medium">
+                          T0 - Date de l'acte (Fondateurs)
+                        </div>
+                        <div className="text-xs text-gray-500 italic mt-1">
+                          ℹ️ Changer cette date ajustera automatiquement toutes les dates d'entrée des participants
+                        </div>
                       </div>
-                      <div className="text-xs text-gray-500 italic mt-1">
-                        ℹ️ Changer cette date ajustera automatiquement toutes les dates d'entrée des participants
-                      </div>
+                      {onRenovationStartDateChange && (
+                        <div>
+                          <input
+                            type="date"
+                            value={renovationStartDate || deedDate}
+                            onChange={(e) => onRenovationStartDateChange(e.target.value)}
+                            min={deedDate}
+                            disabled={!canEditRenovationStartDate}
+                            className={`text-sm font-semibold px-2 py-1 border-2 rounded-lg focus:outline-none mb-1 ${
+                              isRenovationStartDateLocked
+                                ? 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'
+                                : 'border-orange-300 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 bg-white text-gray-700'
+                            }`}
+                            title={isRenovationStartDateLocked ? renovationStartDateLockReason || undefined : undefined}
+                          />
+                          <div className="text-xs text-orange-600 font-medium">
+                            Début des rénovations
+                          </div>
+                          <div className="text-xs text-gray-500 italic mt-1">
+                            {isRenovationStartDateLocked 
+                              ? '🔒 ' + (renovationStartDateLockReason || 'Champ verrouillé - déverrouillez pour modifier')
+                              : 'ℹ️ Date de début des travaux de rénovation (liée à la date de l\'acte)'}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="text-sm font-semibold text-gray-700">

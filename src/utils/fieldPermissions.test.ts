@@ -28,6 +28,10 @@ describe('fieldPermissions', () => {
       expect(isCollectiveField('deedDate')).toBe(true);
     });
 
+    it('should identify renovationStartDate as collective', () => {
+      expect(isCollectiveField('projectParams.renovationStartDate')).toBe(true);
+    });
+
     it('should identify participant financing terms as collective', () => {
       expect(isCollectiveField('participants.0.interestRate')).toBe(true);
       expect(isCollectiveField('participants.1.durationYears')).toBe(true);

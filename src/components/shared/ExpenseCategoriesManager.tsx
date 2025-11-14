@@ -50,6 +50,7 @@ export function ExpenseCategoriesManager({
   const { canEdit: canEditGlobalCasco } = useProjectParamPermissions('globalCascoPerM2');
   const { canEdit: canEditCascoTva } = useProjectParamPermissions('cascoTvaRate');
   const { canEdit: canEditExpenseCategories } = useProjectParamPermissions('expenseCategories');
+  const { canEdit: canEditMaxTotalLots } = useProjectParamPermissions('maxTotalLots');
 
   // Calculate detailed breakdown
   const fraisGenerauxBreakdown = getFraisGenerauxBreakdown(participants, projectParams, unitDetails);
@@ -354,6 +355,28 @@ export function ExpenseCategoriesManager({
               className={`w-24 px-2 py-1 text-sm font-semibold border border-blue-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${!canEditGlobalCasco ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''}`}
             />
             <span className="text-xs text-blue-600">€/m²</span>
+          </div>
+
+          {/* Max Total Lots input */}
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-600 whitespace-nowrap">
+              Nombre max. de lots:
+            </label>
+            <input
+              type="number"
+              step="1"
+              min="1"
+              value={projectParams.maxTotalLots ?? 10}
+              onChange={(e) =>
+                onUpdateProjectParams({
+                  ...projectParams,
+                  maxTotalLots: Math.max(1, parseInt(e.target.value) || 10)
+                })
+              }
+              disabled={!canEditMaxTotalLots}
+              className={`w-20 px-2 py-1 text-sm font-semibold border border-blue-300 rounded focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none ${!canEditMaxTotalLots ? 'opacity-60 cursor-not-allowed bg-gray-50' : ''}`}
+            />
+            <span className="text-xs text-blue-600">lots</span>
           </div>
 
           {/* TVA rate input */}

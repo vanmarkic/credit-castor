@@ -635,4 +635,319 @@ describe('calculateCoproRedistributionForParticipant', () => {
     // Alice's share of second sale should be larger (she has more surface)
     expect(aliceResult[1].amount).toBeGreaterThan(bobResult[0].amount);
   });
+
+  describe('Multiple newcomers buying at same date', () => {
+    it('should distribute proceeds from both sales when 2 newcomers buy at same date', () => {
+      // Setup: 2 founders with different surfaces
+      const alice = {
+        name: 'Alice',
+        isFounder: true,
+        surface: 100, // 100m²
+        entryDate: new Date('2024-01-01')
+      } as ParticipantWithEntry & { isFounder: boolean; surface: number };
+
+      const bob = {
+        name: 'Bob',
+        isFounder: true,
+        surface: 120, // 120m²
+        entryDate: new Date('2024-01-01')
+      } as ParticipantWithEntry & { isFounder: boolean; surface: number };
+
+      // 2 newcomers buy from copropriété at the same date
+      const sameDate = new Date('2024-06-01');
+      const coproSales: CoproSale[] = [
+        {
+          buyer: 'Dan',
+          entryDate: sameDate,
+          amount: 100000 // First sale: 100k
+        },
+        {
+          buyer: 'Eve',
+          entryDate: sameDate,
+          amount: 150000 // Second sale: 150k (same date)
+        }
+      ];
+
+      const allParticipants: ParticipantWithEntry[] = [alice, bob];
+
+      // Calculate redistributions for Alice
+      const aliceResult = calculateCoproRedistributionForParticipant(
+        alice,
+        coproSales,
+        allParticipants,
+        deedDate
+      );
+
+      // Calculate redistributions for Bob
+      const bobResult = calculateCoproRedistributionForParticipant(
+        bob,
+        coproSales,
+        allParticipants,
+        deedDate
+      );
+
+      // Both should receive redistributions from both sales
+      expect(aliceResult).toHaveLength(2);
+      expect(bobResult).toHaveLength(2);
+
+      // Calculate expected shares
+      // Total surface: 100 + 120 = 220m²
+      // Alice's share ratio: 100/220 = 0.4545...
+      // Bob's share ratio: 120/220 = 0.5454...
+
+      const aliceShareRatio = 100 / 220;
+      const bobShareRatio = 120 / 220;
+
+      // Alice's proceeds from first sale
+      const aliceFromSale1 = 100000 * aliceShareRatio;
+      // Alice's proceeds from second sale
+      const aliceFromSale2 = 150000 * aliceShareRatio;
+      // Alice's total (sum of both)
+      const aliceTotal = aliceFromSale1 + aliceFromSale2;
+
+      // Bob's proceeds from first sale
+      const bobFromSale1 = 100000 * bobShareRatio;
+      // Bob's proceeds from second sale
+      const bobFromSale2 = 150000 * bobShareRatio;
+      // Bob's total (sum of both)
+      const bobTotal = bobFromSale1 + bobFromSale2;
+
+      // Verify Alice's individual redistributions
+      expect(aliceResult[0].amount).toBeCloseTo(aliceFromSale1, 2);
+      expect(aliceResult[1].amount).toBeCloseTo(aliceFromSale2, 2);
+      expect(aliceResult[0].shareRatio).toBeCloseTo(aliceShareRatio, 3);
+      expect(aliceResult[1].shareRatio).toBeCloseTo(aliceShareRatio, 3);
+
+      // Verify Bob's individual redistributions
+      expect(bobResult[0].amount).toBeCloseTo(bobFromSale1, 2);
+      expect(bobResult[1].amount).toBeCloseTo(bobFromSale2, 2);
+      expect(bobResult[0].shareRatio).toBeCloseTo(bobShareRatio, 3);
+      expect(bobResult[1].shareRatio).toBeCloseTo(bobShareRatio, 3);
+
+      // Verify totals (sum of prorated proceeds from each sale)
+      const aliceTotalReceived = aliceResult.reduce((sum, r) => sum + r.amount, 0);
+      const bobTotalReceived = bobResult.reduce((sum, r) => sum + r.amount, 0);
+
+      expect(aliceTotalReceived).toBeCloseTo(aliceTotal, 2);
+      expect(bobTotalReceived).toBeCloseTo(bobTotal, 2);
+
+      // Verify that total distributed equals total sales (after applying coproReservesShare if applicable)
+      // Note: In this test, we're using the full amount (coproReservesShare is applied elsewhere)
+      const totalDistributed = aliceTotalReceived + bobTotalReceived;
+      const totalSales = 100000 + 150000;
+      expect(totalDistributed).toBeCloseTo(totalSales, 2);
+    });
+
+    it('should handle 2 newcomers at same date with 3 founders (unequal surfaces)', () => {
+      const alice = {
+        name: 'Alice',
+        isFounder: true,
+        surface: 100, // 100m²
+        entryDate: new Date('2024-01-01')
+      } as ParticipantWithEntry & { isFounder: boolean; surface: number };
+
+      const bob = {
+        name: 'Bob',
+        isFounder: true,
+        surface: 120, // 120m²
+        entryDate: new Date('2024-01-01')
+      } as ParticipantWithEntry & { isFounder: boolean; surface: number };
+
+      const charlie = {
+        name: 'Charlie',
+        isFounder: true,
+        surface: 80, // 80m²
+        entryDate: new Date('2024-01-01')
+      } as ParticipantWithEntry & { isFounder: boolean; surface: number };
+
+      const sameDate = new Date('2024-06-01');
+      const coproSales: CoproSale[] = [
+        {
+          buyer: 'Dan',
+          entryDate: sameDate,
+          amount: 200000
+        },
+        {
+          buyer: 'Eve',
+          entryDate: sameDate,
+          amount: 300000
+        }
+      ];
+
+      const allParticipants: ParticipantWithEntry[] = [alice, bob, charlie];
+
+      // Total surface: 100 + 120 + 80 = 300m²
+      const totalSurface = 300;
+      const aliceRatio = 100 / totalSurface; // 0.333...
+      const bobRatio = 120 / totalSurface;   // 0.4
+      const charlieRatio = 80 / totalSurface; // 0.266...
+
+      const aliceResult = calculateCoproRedistributionForParticipant(
+        alice,
+        coproSales,
+        allParticipants,
+        deedDate
+      );
+
+      const bobResult = calculateCoproRedistributionForParticipant(
+        bob,
+        coproSales,
+        allParticipants,
+        deedDate
+      );
+
+      const charlieResult = calculateCoproRedistributionForParticipant(
+        charlie,
+        coproSales,
+        allParticipants,
+        deedDate
+      );
+
+      // All should receive from both sales
+      expect(aliceResult).toHaveLength(2);
+      expect(bobResult).toHaveLength(2);
+      expect(charlieResult).toHaveLength(2);
+
+      // Calculate expected totals (sum of prorated proceeds from each sale)
+      const aliceTotal = (200000 * aliceRatio) + (300000 * aliceRatio);
+      const bobTotal = (200000 * bobRatio) + (300000 * bobRatio);
+      const charlieTotal = (200000 * charlieRatio) + (300000 * charlieRatio);
+
+      // Verify totals
+      const aliceReceived = aliceResult.reduce((sum, r) => sum + r.amount, 0);
+      const bobReceived = bobResult.reduce((sum, r) => sum + r.amount, 0);
+      const charlieReceived = charlieResult.reduce((sum, r) => sum + r.amount, 0);
+
+      expect(aliceReceived).toBeCloseTo(aliceTotal, 2);
+      expect(bobReceived).toBeCloseTo(bobTotal, 2);
+      expect(charlieReceived).toBeCloseTo(charlieTotal, 2);
+
+      // Verify Bob gets the most (largest surface), Charlie gets the least
+      expect(bobReceived).toBeGreaterThan(aliceReceived);
+      expect(aliceReceived).toBeGreaterThan(charlieReceived);
+
+      // Verify all redistributions sum to total sales
+      const totalDistributed = aliceReceived + bobReceived + charlieReceived;
+      expect(totalDistributed).toBeCloseTo(500000, 2); // 200k + 300k
+    });
+
+    it('should handle 2 newcomers at same date with equal surface founders', () => {
+      const alice = {
+        name: 'Alice',
+        isFounder: true,
+        surface: 100,
+        entryDate: new Date('2024-01-01')
+      } as ParticipantWithEntry & { isFounder: boolean; surface: number };
+
+      const bob = {
+        name: 'Bob',
+        isFounder: true,
+        surface: 100,
+        entryDate: new Date('2024-01-01')
+      } as ParticipantWithEntry & { isFounder: boolean; surface: number };
+
+      const sameDate = new Date('2024-06-01');
+      const coproSales: CoproSale[] = [
+        {
+          buyer: 'Dan',
+          entryDate: sameDate,
+          amount: 100000
+        },
+        {
+          buyer: 'Eve',
+          entryDate: sameDate,
+          amount: 200000
+        }
+      ];
+
+      const allParticipants: ParticipantWithEntry[] = [alice, bob];
+
+      const aliceResult = calculateCoproRedistributionForParticipant(
+        alice,
+        coproSales,
+        allParticipants,
+        deedDate
+      );
+
+      const bobResult = calculateCoproRedistributionForParticipant(
+        bob,
+        coproSales,
+        allParticipants,
+        deedDate
+      );
+
+      // Both should get equal shares (50/50)
+      expect(aliceResult).toHaveLength(2);
+      expect(bobResult).toHaveLength(2);
+
+      // Each should get 50% of each sale
+      expect(aliceResult[0].amount).toBeCloseTo(50000, 2); // 50% of 100k
+      expect(aliceResult[1].amount).toBeCloseTo(100000, 2); // 50% of 200k
+      expect(bobResult[0].amount).toBeCloseTo(50000, 2);
+      expect(bobResult[1].amount).toBeCloseTo(100000, 2);
+
+      // Totals should be equal
+      const aliceTotal = aliceResult.reduce((sum, r) => sum + r.amount, 0);
+      const bobTotal = bobResult.reduce((sum, r) => sum + r.amount, 0);
+      expect(aliceTotal).toBeCloseTo(bobTotal, 2);
+      expect(aliceTotal).toBeCloseTo(150000, 2); // 50k + 100k
+    });
+
+    it('should verify each sale is processed independently with same proration ratio', () => {
+      // When sales happen at the same date, the eligible participants are the same
+      // So each participant should get the same share ratio from both sales
+      const alice = {
+        name: 'Alice',
+        isFounder: true,
+        surface: 75,
+        entryDate: new Date('2024-01-01')
+      } as ParticipantWithEntry & { isFounder: boolean; surface: number };
+
+      const bob = {
+        name: 'Bob',
+        isFounder: true,
+        surface: 125,
+        entryDate: new Date('2024-01-01')
+      } as ParticipantWithEntry & { isFounder: boolean; surface: number };
+
+      const sameDate = new Date('2024-06-01');
+      const coproSales: CoproSale[] = [
+        {
+          buyer: 'Dan',
+          entryDate: sameDate,
+          amount: 50000 // Smaller sale
+        },
+        {
+          buyer: 'Eve',
+          entryDate: sameDate,
+          amount: 200000 // Larger sale
+        }
+      ];
+
+      const allParticipants: ParticipantWithEntry[] = [alice, bob];
+
+      const aliceResult = calculateCoproRedistributionForParticipant(
+        alice,
+        coproSales,
+        allParticipants,
+        deedDate
+      );
+
+      // Total surface: 75 + 125 = 200m²
+      // Alice's ratio: 75/200 = 0.375
+      const expectedRatio = 75 / 200;
+
+      // Both redistributions should have the same share ratio
+      expect(aliceResult[0].shareRatio).toBeCloseTo(expectedRatio, 3);
+      expect(aliceResult[1].shareRatio).toBeCloseTo(expectedRatio, 3);
+
+      // But different amounts (proportional to sale amounts)
+      expect(aliceResult[0].amount).toBeCloseTo(50000 * expectedRatio, 2);
+      expect(aliceResult[1].amount).toBeCloseTo(200000 * expectedRatio, 2);
+
+      // Total should be sum of both
+      const total = aliceResult.reduce((sum, r) => sum + r.amount, 0);
+      expect(total).toBeCloseTo((50000 + 200000) * expectedRatio, 2);
+    });
+  });
 });

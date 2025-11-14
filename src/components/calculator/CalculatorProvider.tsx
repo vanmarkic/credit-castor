@@ -124,9 +124,21 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
             }))
           ) : [];
 
+          // Initialize renovationStartDate if not present (default: deedDate + 1 year)
+          const defaultRenovationDate = result.data.projectParams.renovationStartDate || (() => {
+            const deedDateObj = new Date(result.data.deedDate);
+            deedDateObj.setFullYear(deedDateObj.getFullYear() + 1);
+            return deedDateObj.toISOString().split('T')[0];
+          })();
+          
+          const projectParamsWithRenovationDate = {
+            ...result.data.projectParams,
+            renovationStartDate: defaultRenovationDate
+          };
+
           // Set state
           setParticipants(processedParticipants);
-          setProjectParams(result.data.projectParams);
+          setProjectParams(projectParamsWithRenovationDate);
           setDeedDate(result.data.deedDate);
           setPortageFormula(result.data.portageFormula);
           setIsInitialized(true);
@@ -445,12 +457,54 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
   };
 
   /**
+   * Handle renovation start date changes
+   * Ensures it's not before deed date
+   */
+  const handleRenovationStartDateChange = (newRenovationStartDate: string) => {
+    if (!projectParams) return;
+    
+    // Ensure renovation start date is not before deed date
+    if (deedDate && new Date(newRenovationStartDate) < new Date(deedDate)) {
+      toast.custom(
+        (t) => (
+          <SimpleNotificationToast
+            title="Erreur"
+            message="La date de début des rénovations ne peut pas être avant la date de l'acte."
+            type="error"
+            onDismiss={() => toast.dismiss(t.id)}
+          />
+        ),
+        { duration: 5000 }
+      );
+      return;
+    }
+
+    setProjectParams({
+      ...projectParams,
+      renovationStartDate: newRenovationStartDate
+    });
+  };
+
+  /**
    * Handle deed date changes with cascading updates to all participant entry dates
    * When the deed date changes, all participant entry dates shift by the same delta
+   * Also updates renovationStartDate by the same delta
    */
   const handleDeedDateChange = (newDeedDate: string) => {
     if (!participants || !deedDate) {
       setDeedDate(newDeedDate);
+      // Initialize renovationStartDate to deedDate + 1 year if not set
+      if (!projectParams?.renovationStartDate) {
+        const defaultRenovationDate = (() => {
+          const deedDateObj = new Date(newDeedDate);
+          deedDateObj.setFullYear(deedDateObj.getFullYear() + 1);
+          return deedDateObj.toISOString().split('T')[0];
+        })();
+        setProjectParams(prev => ({
+          ...prev,
+          renovationStartDate: defaultRenovationDate
+        }));
+      }
       return;
     }
 
@@ -476,9 +530,32 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
         };
       });
 
-      // Update both deed date and participants
+      // Update renovationStartDate by the same delta if it exists
+      let updatedProjectParams = projectParams;
+      if (projectParams?.renovationStartDate) {
+        const oldRenovationDate = new Date(projectParams.renovationStartDate);
+        const newRenovationDate = new Date(oldRenovationDate.getTime() + delta);
+        updatedProjectParams = {
+          ...projectParams,
+          renovationStartDate: newRenovationDate.toISOString().split('T')[0]
+        };
+      } else {
+        // Initialize renovationStartDate to new deedDate + 1 year if not set
+        const defaultRenovationDate = (() => {
+          const deedDateObj = new Date(newDeedDate);
+          deedDateObj.setFullYear(deedDateObj.getFullYear() + 1);
+          return deedDateObj.toISOString().split('T')[0];
+        })();
+        updatedProjectParams = {
+          ...projectParams,
+          renovationStartDate: defaultRenovationDate
+        };
+      }
+
+      // Update deed date, participants, and project params
       setDeedDate(newDeedDate);
       setParticipants(updatedParticipants);
+      setProjectParams(updatedProjectParams);
 
     } catch (error) {
       console.error('Error updating deed date:', error);
@@ -651,6 +728,7 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
       setProjectParams,
       setDeedDate,
       handleDeedDateChange,
+      handleRenovationStartDateChange,
       setPortageFormula,
       setFullscreenParticipantIndex,
       setVersionMismatch,

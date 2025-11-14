@@ -85,6 +85,8 @@ export interface ProjectParams {
   cascoTvaRate?: number; // TVA percentage for CASCO costs (e.g., 6 or 21)
   expenseCategories?: ExpenseCategories;
   travauxCommuns?: TravauxCommuns; // Customizable common works with equal cost distribution
+  maxTotalLots?: number; // Maximum total number of lots (founder + copropriété). Default: 10
+  renovationStartDate?: string; // ISO date string for "début des rénovations" - linked to deedDate
 }
 
 // Scenario interface removed - no longer using percentage-based adjustments

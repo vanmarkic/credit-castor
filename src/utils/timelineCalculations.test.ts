@@ -684,5 +684,72 @@ describe('timelineCalculations', () => {
       // Two founders with equal surface, so each gets 20% of purchase price
       expect(redistributionSnapshotCustom!.transaction!.delta.totalCost).toBe(-20000)
     })
+
+    it('should aggregate multiple copro sales on same date into single transaction with total', () => {
+      const sameDate = new Date('2024-06-01')
+      const participants: Participant[] = [
+        createMockParticipant({
+          name: 'Founder 1',
+          surface: 100,
+          entryDate: undefined,
+          isFounder: true
+        }),
+        createMockParticipant({
+          name: 'Founder 2',
+          surface: 100,
+          entryDate: undefined,
+          isFounder: true
+        }),
+        createMockParticipant({
+          name: 'Copro Buyer 1',
+          surface: 50,
+          entryDate: sameDate,
+          purchaseDetails: {
+            buyingFrom: 'Copropriété',
+            purchasePrice: 100000, // First sale: 100k
+            lotId: 1
+          }
+        }),
+        createMockParticipant({
+          name: 'Copro Buyer 2',
+          surface: 50,
+          entryDate: sameDate, // Same date!
+          purchaseDetails: {
+            buyingFrom: 'Copropriété',
+            purchasePrice: 150000, // Second sale: 150k
+            lotId: 2
+          }
+        })
+      ]
+
+      const calculations = createMockCalculations(4, 300)
+      const snapshots = generateParticipantSnapshots(
+        participants,
+        calculations,
+        deedDate,
+        { ...DEFAULT_PORTAGE_FORMULA, coproReservesShare: 30 }
+      )
+
+      const founder1Snapshots = snapshots.get('Founder 1')!
+      expect(founder1Snapshots).toHaveLength(2) // T0 + aggregated redistribution
+
+      const redistributionSnapshot = founder1Snapshots.find(s => !s.isT0)
+      expect(redistributionSnapshot).toBeDefined()
+      expect(redistributionSnapshot!.transaction).toBeDefined()
+
+      // With 30% to reserves, 70% goes to participants
+      // Two founders with equal surface (100m² each), so each gets 50% of participants' share
+      // First sale: 100k * 0.7 * 0.5 = 35k per founder
+      // Second sale: 150k * 0.7 * 0.5 = 52.5k per founder
+      // Total: 35k + 52.5k = 87.5k per founder
+      const expectedTotal = (100000 * 0.7 * 0.5) + (150000 * 0.7 * 0.5)
+      expect(redistributionSnapshot!.transaction!.delta.totalCost).toBeCloseTo(-expectedTotal, 2)
+
+      // Reason should indicate multiple buyers or show total
+      const reason = redistributionSnapshot!.transaction!.delta.reason
+      expect(reason).toContain('copro sale')
+      // Should mention both buyers or indicate it's a total
+      expect(reason).toMatch(/Copro Buyer|total|multiple/i)
+    })
   })
 })

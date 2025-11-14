@@ -223,10 +223,12 @@ describe('useParticipantOperations', () => {
       const participants = [baseParticipant];
       const result = addPortageLot(participants, 0, '2023-02-01');
 
-      expect(result[0].lotsOwned).toHaveLength(1);
-      expect(result[0].lotsOwned![0].isPortage).toBe(true);
-      expect(result[0].lotsOwned![0].surface).toBe(0);
-      expect(result[0].quantity).toBe(2);
+      expect(result.success).toBe(true);
+      expect(result.participants).toBeDefined();
+      expect(result.participants![0].lotsOwned).toHaveLength(1);
+      expect(result.participants![0].lotsOwned![0].isPortage).toBe(true);
+      expect(result.participants![0].lotsOwned![0].surface).toBe(0);
+      expect(result.participants![0].quantity).toBe(2);
     });
 
     it('should assign unique lot IDs', () => {
@@ -247,7 +249,8 @@ describe('useParticipantOperations', () => {
       ];
       const result = addPortageLot(participants, 0, '2023-02-01');
 
-      expect(result[0].lotsOwned![1].lotId).toBe(2);
+      expect(result.success).toBe(true);
+      expect(result.participants![0].lotsOwned![1].lotId).toBe(2);
     });
 
     it('should populate cost fields from participant calculation', () => {
@@ -259,19 +262,44 @@ describe('useParticipantOperations', () => {
       };
       const result = addPortageLot(participants, 0, '2023-02-01', participantCalc);
 
-      expect(result[0].lotsOwned).toHaveLength(1);
-      expect(result[0].lotsOwned![0].originalPrice).toBe(150000);
-      expect(result[0].lotsOwned![0].originalNotaryFees).toBe(18750);
-      expect(result[0].lotsOwned![0].originalConstructionCost).toBe(30000);
+      expect(result.success).toBe(true);
+      expect(result.participants![0].lotsOwned).toHaveLength(1);
+      expect(result.participants![0].lotsOwned![0].originalPrice).toBe(150000);
+      expect(result.participants![0].lotsOwned![0].originalNotaryFees).toBe(18750);
+      expect(result.participants![0].lotsOwned![0].originalConstructionCost).toBe(30000);
     });
 
     it('should set cost fields to undefined when no calculation provided', () => {
       const participants = [baseParticipant];
       const result = addPortageLot(participants, 0, '2023-02-01');
 
-      expect(result[0].lotsOwned![0].originalPrice).toBeUndefined();
-      expect(result[0].lotsOwned![0].originalNotaryFees).toBeUndefined();
-      expect(result[0].lotsOwned![0].originalConstructionCost).toBeUndefined();
+      expect(result.success).toBe(true);
+      expect(result.participants![0].lotsOwned![0].originalPrice).toBeUndefined();
+      expect(result.participants![0].lotsOwned![0].originalNotaryFees).toBeUndefined();
+      expect(result.participants![0].lotsOwned![0].originalConstructionCost).toBeUndefined();
+    });
+
+    it('should reject adding lot when at maximum total lots', () => {
+      // Create 10 participants with 1 lot each
+      const participants = Array.from({ length: 10 }, (_, i) => ({
+        ...baseParticipant,
+        name: `Founder ${i + 1}`,
+        lotsOwned: [
+          {
+            lotId: i + 1,
+            surface: 100,
+            unitId: i + 1,
+            isPortage: false,
+            acquiredDate: new Date('2023-02-01')
+          }
+        ]
+      }));
+
+      const result = addPortageLot(participants, 0, '2023-02-01');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+      expect(result.error).toContain('Maximum of 10 total lots reached');
     });
   });
 

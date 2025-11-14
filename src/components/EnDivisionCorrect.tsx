@@ -12,6 +12,8 @@ import { ExpenseCategoriesManager } from './shared/ExpenseCategoriesManager';
 import PortageFormulaConfig from './PortageFormulaConfig';
 import AvailableLotsView from './AvailableLotsView';
 import { getAvailableLotsForNewcomer } from '../utils/availableLots';
+import { validateAddPortageLot } from '../utils/lotValidation';
+import type { CoproLot } from '../types/timeline';
 import {
   getPricePerM2Formula,
   getTotalProjectCostFormula
@@ -64,6 +66,7 @@ export default function EnDivisionCorrect() {
     setParticipants,
     setProjectParams,
     handleDeedDateChange,
+    handleRenovationStartDateChange,
     setPortageFormula,
     setFullscreenParticipantIndex,
     setVersionMismatch,
@@ -219,7 +222,15 @@ export default function EnDivisionCorrect() {
   };
 
   // Portage lot operations
-  const addPortageLot = (participantIndex: number) => {
+  const addPortageLot = (participantIndex: number, coproLots: CoproLot[] = []) => {
+    // Validate against maxTotalLots constraint from projectParams
+    const maxTotalLots = projectParams.maxTotalLots ?? 10;
+    const validation = validateAddPortageLot(participants, coproLots, maxTotalLots);
+    if (!validation.isValid) {
+      toast.error(validation.error || 'Cannot add lot: Maximum total lots reached');
+      return;
+    }
+
     const participantCalc = calculations.participantBreakdown[participantIndex];
     const newParticipants = [...participants];
     const currentLots = newParticipants[participantIndex].lotsOwned || [];
@@ -609,7 +620,9 @@ export default function EnDivisionCorrect() {
         <ParticipantsTimeline
           participants={participants}
           deedDate={deedDate}
+          renovationStartDate={projectParams.renovationStartDate}
           onDeedDateChange={handleDeedDateChange}
+          onRenovationStartDateChange={handleRenovationStartDateChange}
           onUpdateParticipant={updateParticipant}
         />
 

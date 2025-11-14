@@ -62,6 +62,7 @@ export interface CalculatorActions {
   setProjectParams: (params: ProjectParams) => void;
   setDeedDate: (date: string) => void;
   handleDeedDateChange: (date: string) => void;
+  handleRenovationStartDateChange: (date: string) => void;
   setPortageFormula: (formula: PortageFormulaParams) => void;
 
   // UI mutations

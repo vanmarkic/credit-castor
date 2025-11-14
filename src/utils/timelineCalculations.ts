@@ -354,7 +354,8 @@ export function generateParticipantSnapshots(
         p.purchaseDetails?.buyingFrom === 'Copropriété'
 
       // Check if affected by copro sale (but not the buyer)
-      const coproSale = joiningParticipants.find(
+      // Find ALL copro sales on this date (multiple newcomers can buy same day)
+      const coproSales = joiningParticipants.filter(
         np => np.purchaseDetails?.buyingFrom === 'Copropriété'
       )
 
@@ -414,7 +415,7 @@ export function generateParticipantSnapshots(
             )
           }
         }
-      } else if (coproSale && !isCoproBuyer) {
+      } else if (coproSales.length > 0 && !isCoproBuyer) {
         const prevSnapshot = previousSnapshots.get(p.name)
         if (prevSnapshot) {
           // Only include participants who have joined by this date
@@ -425,13 +426,42 @@ export function generateParticipantSnapshots(
             return participantEntryDate <= date
           })
 
-          transaction = calculateCooproTransaction(
-            p,
-            coproSale,
-            prevSnapshot,
-            activeParticipants,
-            formulaParams.coproReservesShare
+          // Calculate transaction for each copro sale and aggregate
+          const transactions = coproSales.map(coproSale =>
+            calculateCooproTransaction(
+              p,
+              coproSale,
+              prevSnapshot,
+              activeParticipants,
+              formulaParams.coproReservesShare
+            )
           )
+
+          // Aggregate: sum the deltas and combine reasons
+          const totalDelta = transactions.reduce(
+            (sum, t) => sum + t.delta.totalCost,
+            0
+          )
+          const totalLoanDelta = transactions.reduce(
+            (sum, t) => sum + t.delta.loanNeeded,
+            0
+          )
+
+          // Create combined reason text
+          const buyerNames = coproSales.map(cs => cs.name).join(', ')
+          const reason =
+            coproSales.length === 1
+              ? transactions[0].delta.reason
+              : `${buyerNames} joined (copro sale, total)`
+
+          transaction = {
+            type: 'copro_sale',
+            delta: {
+              totalCost: totalDelta,
+              loanNeeded: totalLoanDelta,
+              reason
+            }
+          }
         }
       }
 

@@ -106,6 +106,7 @@ export const DEFAULT_PROJECT_PARAMS = {
   batimentCoproConservatoire: 0,
   globalCascoPerM2: 1590,
   cascoTvaRate: 6, // 6% TVA for renovation of buildings >10 years (Belgium)
+  maxTotalLots: 10, // Maximum total number of lots (founder + copropriété)
   expenseCategories: {
     conservatoire: [
       { label: 'Traitement Mérule', amount: 40000 },

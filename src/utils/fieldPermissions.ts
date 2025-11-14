@@ -18,6 +18,7 @@ const COLLECTIVE_FIELD_PATTERNS = [
 
   // Global project dates
   'deedDate',
+  'projectParams.renovationStartDate', // Explicitly protected (also covered by projectParams.*)
 
   // Participant financing terms (collective decision)
   'participants.*.interestRate',
