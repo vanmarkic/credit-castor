@@ -74,10 +74,8 @@ function saveUnlockState(state: UnlockState): void {
  * @param onNotification - Optional callback (unused, kept for backwards compatibility)
  */
 export function useUnlockState(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  projectId: string = 'default',
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  onNotification?: unknown
+  _projectId: string = 'default',
+  _onNotification?: unknown
 ) {
   const [state, setState] = useState<UnlockState>(loadUnlockState);
 

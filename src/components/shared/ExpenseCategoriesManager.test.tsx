@@ -58,20 +58,18 @@ describe('ExpenseCategoriesManager - TRAVAUX COMMUNS Display', () => {
       quantity: 100,
       capitalApporte: 50000,
       registrationFeesRate: 15,
-      tauxInteret: 4.5,
-      dureeEmprunt: 20,
+      interestRate: 4.5,
+      durationYears: 20,
       parachevementsPerM2: 100,
-      cascoPerM2: 1590
     },
     {
       name: 'Bob',
       quantity: 150,
       capitalApporte: 75000,
       registrationFeesRate: 15,
-      tauxInteret: 4.5,
-      dureeEmprunt: 20,
+      interestRate: 4.5,
+      durationYears: 20,
       parachevementsPerM2: 100,
-      cascoPerM2: 1590
     }
   ];
 

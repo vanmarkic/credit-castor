@@ -163,7 +163,7 @@ export function isRequiredField<T extends keyof typeof CORE_SCHEMAS>(
   fieldName: string
 ): boolean {
   const schema = CORE_SCHEMAS[schemaName];
-  return schema.requiredFields.includes(fieldName as any);
+  return schema.requiredFields.includes(fieldName as never);
 }
 
 /**

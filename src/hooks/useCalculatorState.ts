@@ -6,7 +6,7 @@
  * This hook only manages the state after initialization
  */
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, type Dispatch, type SetStateAction } from 'react';
 import {
   loadPinnedParticipant,
   savePinnedParticipant,
@@ -27,7 +27,7 @@ export interface CalculatorState {
 
   // State setters
   setParticipants: (participants: Participant[]) => void;
-  setProjectParams: (params: ProjectParams) => void;
+  setProjectParams: Dispatch<SetStateAction<ProjectParams | null>>;
   setDeedDate: (date: string) => void;
   setPortageFormula: (formula: PortageFormulaParams) => void;
   setPinnedParticipant: (name: string | null) => void;

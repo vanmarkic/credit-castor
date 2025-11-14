@@ -11,12 +11,20 @@ describe('participantSyncCoordinator', () => {
           surface: 100,
           isFounder: true,
           entryDate: new Date('2024-01-01'),
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
         {
           name: 'Bob',
           surface: 100,
           isFounder: true,
           entryDate: new Date('2024-01-01'),
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
       ];
 
@@ -32,12 +40,20 @@ describe('participantSyncCoordinator', () => {
           surface: 100,
           isFounder: true,
           entryDate: new Date('2024-01-01'),
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
         {
           name: 'Bob',
           surface: 100,
           isFounder: true,
           entryDate: new Date('2024-01-01'),
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
       ];
 
@@ -47,12 +63,20 @@ describe('participantSyncCoordinator', () => {
           surface: 120, // Changed
           isFounder: true,
           entryDate: new Date('2024-01-01'),
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
         {
           name: 'Bob',
           surface: 100,
           isFounder: true,
           entryDate: new Date('2024-01-01'),
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
       ];
 
@@ -69,6 +93,10 @@ describe('participantSyncCoordinator', () => {
           isFounder: true,
           entryDate: new Date('2024-01-01'),
           purchaseDetails: undefined,
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
         {
           name: 'Bob',
@@ -76,6 +104,10 @@ describe('participantSyncCoordinator', () => {
           isFounder: true,
           entryDate: new Date('2024-01-01'),
           purchaseDetails: undefined,
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
         {
           name: 'Charlie',
@@ -83,6 +115,10 @@ describe('participantSyncCoordinator', () => {
           isFounder: false,
           entryDate: new Date('2024-06-01'),
           purchaseDetails: undefined,
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
       ];
 
@@ -93,6 +129,10 @@ describe('participantSyncCoordinator', () => {
           isFounder: true,
           entryDate: new Date('2024-01-01'),
           purchaseDetails: undefined,
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
         {
           name: 'Bob',
@@ -100,6 +140,10 @@ describe('participantSyncCoordinator', () => {
           isFounder: true,
           entryDate: new Date('2024-01-01'),
           purchaseDetails: undefined,
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
         {
           name: 'Charlie',
@@ -112,6 +156,10 @@ describe('participantSyncCoordinator', () => {
             lotId: 1,
             purchasePrice: 100000,
           },
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
       ];
 
@@ -130,12 +178,20 @@ describe('participantSyncCoordinator', () => {
           surface: 100,
           isFounder: true,
           entryDate: new Date('2024-01-01'),
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
         {
           name: 'Bob',
           surface: 100,
           isFounder: true,
           entryDate: new Date('2024-01-01'),
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
       ];
 
@@ -145,12 +201,20 @@ describe('participantSyncCoordinator', () => {
           surface: 120, // Changed
           isFounder: true,
           entryDate: new Date('2024-01-01'),
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
         {
           name: 'Bob',
           surface: 100,
           isFounder: true,
           entryDate: new Date('2024-02-01'), // Changed
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
       ];
 
@@ -166,6 +230,10 @@ describe('participantSyncCoordinator', () => {
           surface: 100,
           isFounder: true,
           entryDate: new Date('2024-01-01'),
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
       ];
 
@@ -175,6 +243,10 @@ describe('participantSyncCoordinator', () => {
           surface: 100,
           isFounder: true,
           entryDate: new Date('2024-01-02'), // Different date
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
       ];
 
@@ -189,6 +261,10 @@ describe('participantSyncCoordinator', () => {
           name: 'Alice',
           surface: 100,
           isFounder: true,
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
       ];
 
@@ -197,11 +273,19 @@ describe('participantSyncCoordinator', () => {
           name: 'Alice',
           surface: 100,
           isFounder: true,
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
         {
           name: 'Bob',
           surface: 100,
           isFounder: true,
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
       ];
 
@@ -221,10 +305,15 @@ describe('participantSyncCoordinator', () => {
             {
               lotId: 1,
               surface: 50,
+              unitId: 1,
               isPortage: false,
               acquiredDate: new Date('2024-01-01'),
             },
           ],
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
       ];
 
@@ -237,11 +326,16 @@ describe('participantSyncCoordinator', () => {
             {
               lotId: 1,
               surface: 50,
+              unitId: 1,
               isPortage: false,
               acquiredDate: new Date('2024-01-01'),
               soldDate: new Date('2024-06-01'), // Lot sold
             },
           ],
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
       ];
 
@@ -288,15 +382,15 @@ describe('participantSyncCoordinator', () => {
       //       they won't be synced to Firestore (calculated on-demand)
 
       const oldParticipants: Participant[] = [
-        { name: 'Alice', surface: 100, isFounder: true },
-        { name: 'Bob', surface: 100, isFounder: true },
-        { name: 'Charlie', surface: 0, isFounder: false },
+        { name: 'Alice', surface: 100, isFounder: true, capitalApporte: 50000, registrationFeesRate: 15, interestRate: 4.5, durationYears: 20 },
+        { name: 'Bob', surface: 100, isFounder: true, capitalApporte: 50000, registrationFeesRate: 15, interestRate: 4.5, durationYears: 20 },
+        { name: 'Charlie', surface: 0, isFounder: false, capitalApporte: 50000, registrationFeesRate: 15, interestRate: 4.5, durationYears: 20 },
       ];
 
       const newParticipants: Participant[] = [
-        { name: 'Alice', surface: 100, isFounder: true },
-        { name: 'Bob', surface: 100, isFounder: true },
-        { name: 'Charlie', surface: 0, isFounder: false, entryDate: new Date('2024-06-01') },
+        { name: 'Alice', surface: 100, isFounder: true, capitalApporte: 50000, registrationFeesRate: 15, interestRate: 4.5, durationYears: 20 },
+        { name: 'Bob', surface: 100, isFounder: true, capitalApporte: 50000, registrationFeesRate: 15, interestRate: 4.5, durationYears: 20 },
+        { name: 'Charlie', surface: 0, isFounder: false, entryDate: new Date('2024-06-01'), capitalApporte: 50000, registrationFeesRate: 15, interestRate: 4.5, durationYears: 20 },
       ];
 
       const changed = detectChangedParticipants(oldParticipants, newParticipants);
@@ -316,7 +410,11 @@ describe('participantSyncCoordinator', () => {
           name: 'Alice',
           surface: 100,
           isFounder: true,
-          lotsOwned: [{ lotId: 1, surface: 100, isPortage: true, acquiredDate: new Date('2024-01-01') }],
+          lotsOwned: [{ lotId: 1, surface: 100, unitId: 1, isPortage: true, acquiredDate: new Date('2024-01-01') }],
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
         {
           name: 'Bob',
@@ -328,6 +426,10 @@ describe('participantSyncCoordinator', () => {
             lotId: 1,
             purchasePrice: 100000,
           },
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
       ];
 
@@ -336,7 +438,11 @@ describe('participantSyncCoordinator', () => {
           name: 'Alice',
           surface: 100,
           isFounder: true,
-          lotsOwned: [{ lotId: 1, surface: 100, isPortage: true, acquiredDate: new Date('2024-01-01') }],
+          lotsOwned: [{ lotId: 1, surface: 100, unitId: 1, isPortage: true, acquiredDate: new Date('2024-01-01') }],
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
         {
           name: 'Bob',
@@ -348,6 +454,10 @@ describe('participantSyncCoordinator', () => {
             lotId: 1,
             purchasePrice: 110000, // Recalculated (holding costs increased)
           },
+          capitalApporte: 50000,
+          registrationFeesRate: 15,
+          interestRate: 4.5,
+          durationYears: 20,
         },
       ];
 

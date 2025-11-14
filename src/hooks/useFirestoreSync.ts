@@ -246,11 +246,14 @@ export function useFirestoreSync(
               }
 
               if (Object.keys(fieldsToUpdate).length > 0) {
+                // Use participant's name as userEmail if no email is set
+                const effectiveUserEmail = userEmail || changedParticipant.name || 'participant-edit';
+                
                 const result = await updateParticipantFields(
                   changedIndex.toString(),
                   'shared-project',
                   fieldsToUpdate,
-                  userEmail
+                  effectiveUserEmail
                 );
 
                 if (result.success) {
@@ -287,9 +290,14 @@ export function useFirestoreSync(
               fieldsToUpdate.portageFormula = portageFormula;
             }
 
+            // Use first participant's name as fallback if no email is set
+            const effectiveUserEmail = userEmail || 
+              (participants && participants.length > 0 && participants[0].name) || 
+              'participant-edit';
+
             const result = await updateScenarioFields(
               fieldsToUpdate,
-              userEmail,
+              effectiveUserEmail,
               localVersionRef.current
             );
 
@@ -318,6 +326,11 @@ export function useFirestoreSync(
           prevParticipantsRef.current = [...participants];
           localVersionRef.current += 1;
 
+          // Use first participant's name as fallback if no email is set
+          const effectiveUserEmail = userEmail || 
+            (participants && participants.length > 0 && participants[0].name) || 
+            'participant-edit';
+
           const result = await saveScenarioToFirestore(
             {
               participants,
@@ -326,7 +339,7 @@ export function useFirestoreSync(
               portageFormula,
               version: localVersionRef.current,
             },
-            userEmail
+            effectiveUserEmail
           );
 
           if (result.success) {

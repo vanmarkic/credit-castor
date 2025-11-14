@@ -315,7 +315,10 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
 
   // Use fallback userEmail for participant edits when admin hasn't unlocked
   // This allows participant details to sync to Firestore without admin password
-  const effectiveUserEmail = unlockedBy || 'participant-edit';
+  // Use first participant's name if available, otherwise fallback to 'participant-edit'
+  const effectiveUserEmail = unlockedBy || 
+    (participants && participants.length > 0 && participants[0].name) || 
+    'participant-edit';
 
   const {
     syncMode,

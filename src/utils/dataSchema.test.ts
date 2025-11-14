@@ -127,9 +127,16 @@ describe('Data Schema Validation - Breaking Change Detection', () => {
     it('should have required fields with correct types', () => {
       const params: ProjectParams = {
         totalPurchase: 500000,
+        mesuresConservatoires: 0,
+        demolition: 0,
+        infrastructures: 0,
+        etudesPreparatoires: 0,
+        fraisEtudesPreparatoires: 0,
+        fraisGeneraux3ans: 0,
+        batimentFondationConservatoire: 0,
+        batimentFondationComplete: 0,
+        batimentCoproConservatoire: 0,
         globalCascoPerM2: 800,
-        travauxCommunsCasco: 30000,
-        travauxCommunsParachevements: 20000,
       };
 
       expect(typeof params.totalPurchase).toBe('number');
@@ -139,9 +146,16 @@ describe('Data Schema Validation - Breaking Change Detection', () => {
     it('should support optional TVA rate', () => {
       const params: ProjectParams = {
         totalPurchase: 500000,
+        mesuresConservatoires: 0,
+        demolition: 0,
+        infrastructures: 0,
+        etudesPreparatoires: 0,
+        fraisEtudesPreparatoires: 0,
+        fraisGeneraux3ans: 0,
+        batimentFondationConservatoire: 0,
+        batimentFondationComplete: 0,
+        batimentCoproConservatoire: 0,
         globalCascoPerM2: 800,
-        travauxCommunsCasco: 30000,
-        travauxCommunsParachevements: 20000,
         cascoTvaRate: 0.06,
       };
 
@@ -155,15 +169,20 @@ describe('Data Schema Validation - Breaking Change Detection', () => {
       const requiredFields = [
         'totalPurchase',
         'globalCascoPerM2',
-        'travauxCommunsCasco',
-        'travauxCommunsParachevements',
       ];
 
       const params: ProjectParams = {
         totalPurchase: 500000,
+        mesuresConservatoires: 0,
+        demolition: 0,
+        infrastructures: 0,
+        etudesPreparatoires: 0,
+        fraisEtudesPreparatoires: 0,
+        fraisGeneraux3ans: 0,
+        batimentFondationConservatoire: 0,
+        batimentFondationComplete: 0,
+        batimentCoproConservatoire: 0,
         globalCascoPerM2: 800,
-        travauxCommunsCasco: 30000,
-        travauxCommunsParachevements: 20000,
       };
 
       requiredFields.forEach((field) => {
@@ -176,7 +195,9 @@ describe('Data Schema Validation - Breaking Change Detection', () => {
     it('should have required fields with correct types', () => {
       const formula: PortageFormulaParams = {
         indexationRate: 0.02,
-        insuranceMonthly: 40,
+        carryingCostRecovery: 100,
+        averageInterestRate: 4.5,
+        coproReservesShare: 30,
       };
 
       expect(typeof formula.indexationRate).toBe('number');
@@ -185,8 +206,9 @@ describe('Data Schema Validation - Breaking Change Detection', () => {
     it('should support optional carrying cost recovery rate', () => {
       const formula: PortageFormulaParams = {
         indexationRate: 0.02,
-        insuranceMonthly: 40,
         carryingCostRecovery: 70,
+        averageInterestRate: 4.5,
+        coproReservesShare: 30,
       };
 
       expect(formula.carryingCostRecovery).toBe(70);
@@ -217,14 +239,23 @@ describe('Data Schema Validation - Breaking Change Detection', () => {
         participants: [],
         projectParams: {
           totalPurchase: 500000,
+          mesuresConservatoires: 0,
+          demolition: 0,
+          infrastructures: 0,
+          etudesPreparatoires: 0,
+          fraisEtudesPreparatoires: 0,
+          fraisGeneraux3ans: 0,
+          batimentFondationConservatoire: 0,
+          batimentFondationComplete: 0,
+          batimentCoproConservatoire: 0,
           globalCascoPerM2: 800,
-          travauxCommunsCasco: 30000,
-          travauxCommunsParachevements: 20000,
         },
         deedDate: '2026-02-01',
         portageFormula: {
           indexationRate: 0.02,
-          insuranceMonthly: 40,
+          carryingCostRecovery: 100,
+          averageInterestRate: 4.5,
+          coproReservesShare: 30,
         },
         unitDetails: {},
       };
@@ -281,14 +312,23 @@ describe('Data Schema Validation - Breaking Change Detection', () => {
         participants: [],
         projectParams: {
           totalPurchase: 500000,
+          mesuresConservatoires: 0,
+          demolition: 0,
+          infrastructures: 0,
+          etudesPreparatoires: 0,
+          fraisEtudesPreparatoires: 0,
+          fraisGeneraux3ans: 0,
+          batimentFondationConservatoire: 0,
+          batimentFondationComplete: 0,
+          batimentCoproConservatoire: 0,
           globalCascoPerM2: 800,
-          travauxCommunsCasco: 30000,
-          travauxCommunsParachevements: 20000,
         },
         deedDate: '2026-02-01',
         portageFormula: {
           indexationRate: 0.02,
-          insuranceMonthly: 40,
+          carryingCostRecovery: 100,
+          averageInterestRate: 4.5,
+          coproReservesShare: 30,
         },
         lastModifiedBy: 'test@example.com',
         lastModifiedAt: new Date().toISOString(),

@@ -50,11 +50,6 @@ describe('Timeline Export/Import', () => {
       batimentCoproConservatoire: 0,
       globalCascoPerM2: 1590,
     },
-    scenario: {
-      constructionCostChange: 0,
-      infrastructureReduction: 0,
-      purchasePriceReduction: 0,
-    },
     copropropriete: {
       name: 'Les Acacias',
       hiddenLots: [10, 11],

@@ -175,11 +175,31 @@ export async function saveScenarioToFirestore(
       };
     }
 
+    // SAFETY: When using setDoc with merge: true, nested objects are REPLACED, not merged
+    // So we need to preserve existing projectParams fields that we're not updating
+    let projectParamsToSave: any = {};
+    if (docSnapshot.exists()) {
+      const existingData = docSnapshot.data() as any;
+      if (existingData.projectParams) {
+        // Start with existing projectParams to preserve all fields
+        projectParamsToSave = { ...existingData.projectParams };
+      }
+    }
+    
+    // Override with new projectParams values, but only include defined values
+    Object.keys(data.projectParams).forEach(key => {
+      const value = (data.projectParams as any)[key];
+      if (value !== undefined) {
+        projectParamsToSave[key] = value;
+      }
+      // If value is undefined, keep existing value (don't overwrite)
+    });
+
     // SAFETY: If using subcollections, don't save participants array to main document
     // This prevents accidentally clearing/overwriting the array when participants are in subcollections
     // Also remove any undefined values to avoid Firestore issues
     const dataToSave: any = {
-      projectParams: data.projectParams,
+      projectParams: projectParamsToSave,
       deedDate: data.deedDate,
       portageFormula: data.portageFormula,
       lastModifiedBy: effectiveUserEmail,
@@ -188,12 +208,26 @@ export async function saveScenarioToFirestore(
       version: data.version || 1,
     };
 
-    // Remove undefined values (Firestore doesn't like them)
+    // Remove undefined values from top level (Firestore doesn't like them)
     Object.keys(dataToSave).forEach(key => {
       if (dataToSave[key] === undefined) {
         delete dataToSave[key];
       }
     });
+
+    // Clean nested objects (projectParams) - remove undefined and null values
+    // Firestore rules fail if maxTotalLots is null (must be either missing or a valid int > 0)
+    if (dataToSave.projectParams && typeof dataToSave.projectParams === 'object') {
+      const cleanedProjectParams: any = {};
+      Object.keys(dataToSave.projectParams).forEach(key => {
+        const value = dataToSave.projectParams[key];
+        // Only include defined, non-null values
+        if (value !== undefined && value !== null) {
+          cleanedProjectParams[key] = value;
+        }
+      });
+      dataToSave.projectParams = cleanedProjectParams;
+    }
 
     // Only include participants array if NOT using subcollections
     // This prevents data loss when participants are stored in subcollections
@@ -217,18 +251,15 @@ export async function saveScenarioToFirestore(
       hasProjectParams: !!dataToSave.projectParams,
       hasParticipants: !!dataToSave.participants,
       version: dataToSave.version,
+      maxTotalLots: dataToSave.projectParams?.maxTotalLots,
+      projectParamsKeys: dataToSave.projectParams ? Object.keys(dataToSave.projectParams) : [],
+      existingMaxTotalLots: docSnapshot.exists() ? (docSnapshot.data() as any)?.projectParams?.maxTotalLots : undefined,
     });
 
-    // Use updateDoc if document exists (better for rules validation)
-    // Use setDoc if document doesn't exist (create new)
-    if (docSnapshot.exists()) {
-      // Document exists - use updateDoc (only updates specified fields)
-      // This is safer and works better with Firestore rules
-      await updateDoc(projectRef, dataToSave);
-    } else {
-      // Document doesn't exist - use setDoc to create
-      await setDoc(projectRef, dataToSave);
-    }
+    // Always use setDoc with merge: true
+    // This works better with Firestore rules validation
+    // merge: true ensures existing fields are preserved and rules validate correctly
+    await setDoc(projectRef, dataToSave, { merge: true });
 
     return {
       success: true,
@@ -1005,3 +1036,4 @@ export function subscribeToAllParticipants(
     return null;
   }
 }
+

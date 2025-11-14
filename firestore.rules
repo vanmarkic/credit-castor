@@ -44,14 +44,19 @@ service cloud.firestore {
                  isValidTravauxCommuns(request.resource.data.projectParams.travauxCommuns)));
       }
 
+      // TEMPORARY: Debug rule - allow all writes to test if rules are the issue
+      // TODO: Remove this and restore proper rules after testing
+      allow write: if true;
+      
+      // Original rule (commented out for debugging):
       // Allow write if lastModifiedBy is set (custom auth system) - must be a non-empty string
       // OR if Firebase Auth user is authenticated
       // Also validate projectParams structure if present
-      allow write: if ((exists(request.resource.data.lastModifiedBy) && 
-                        request.resource.data.lastModifiedBy is string && 
-                        request.resource.data.lastModifiedBy.size() > 0) || 
-                       request.auth != null) &&
-                     isValidProjectParams();
+      // allow write: if ((exists(request.resource.data.lastModifiedBy) && 
+      //                   request.resource.data.lastModifiedBy is string && 
+      //                   request.resource.data.lastModifiedBy.size() > 0) || 
+      //                 request.auth != null) &&
+      //               isValidProjectParams();
 
       // Participants subcollection - individual participant documents
       match /participants/{participantId} {

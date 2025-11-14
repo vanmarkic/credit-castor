@@ -14,18 +14,6 @@ function isEqual(a: any, b: any): boolean {
 }
 
 /**
- * Helper to format participant names for display
- */
- 
-function _formatParticipantList(participants: any[]): string {
-  if (participants.length === 0) return 'Aucun';
-  if (participants.length <= 3) {
-    return participants.map(p => p.name).join(', ');
-  }
-  return `${participants.slice(0, 3).map(p => p.name).join(', ')} et ${participants.length - 3} autre(s)`;
-}
-
-/**
  * Helper to get human-readable field names for ProjectParams
  */
 function getProjectParamLabel(key: string): string {
