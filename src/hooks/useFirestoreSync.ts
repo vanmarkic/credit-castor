@@ -220,11 +220,18 @@ export function useFirestoreSync(
           // 1. Participants changed
           // 2. Subcollection mode is enabled
           // 3. Only one participant changed
+          // 
+          // IMPORTANT: When using subcollections, each participant is a separate document.
+          // - The edited participant is updated via updateParticipantFields (granular update)
+          // - All other participants remain in their subcollection documents (already saved, untouched)
+          // This follows Firestore best practices: only update what changed, leave others untouched
           if (participantsChanged && useSubcollection && prevParticipantsRef.current.length > 0) {
             const changedIndices = detectChangedParticipants(prevParticipantsRef.current, participants);
             
             if (changedIndices.length === 1) {
               // Only one participant changed - use granular update
+              // This updates only the changed participant in its subcollection document
+              // All other participants remain untouched in their subcollection documents
               const changedIndex = changedIndices[0];
               const changedParticipant = participants[changedIndex];
               
@@ -278,11 +285,11 @@ export function useFirestoreSync(
           // If only simple fields changed (not participants), use granular update
           if (!participantsChanged && dirtyFields && dirtyFields.length > 0) {
             // Use granular update (only changed fields)
-            const fieldsToUpdate: any = {};
+            // IMPORTANT: Always include complete projectParams to ensure all fields are saved
+            const fieldsToUpdate: any = {
+              projectParams: projectParams, // Always save complete projectParams
+            };
 
-            if (dirtyFields.includes('projectParams')) {
-              fieldsToUpdate.projectParams = projectParams;
-            }
             if (dirtyFields.includes('deedDate')) {
               fieldsToUpdate.deedDate = deedDate;
             }

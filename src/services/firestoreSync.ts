@@ -270,13 +270,26 @@ export async function saveScenarioToFirestore(
       }
     }
     
+    // CRITICAL: Always include ALL fields from data.projectParams to ensure untouched fields are saved
     // Override with new projectParams values, but only include defined values
+    // This ensures that even if a field wasn't explicitly changed, it's still saved
     Object.keys(data.projectParams).forEach(key => {
       const value = (data.projectParams as any)[key];
       if (value !== undefined) {
         projectParamsToSave[key] = value;
       }
       // If value is undefined, keep existing value (don't overwrite)
+    });
+    
+    // IMPORTANT: Also include any fields from data.projectParams that might not be in existing data
+    // This ensures new fields are always saved even if they weren't in the existing document
+    Object.keys(data.projectParams).forEach(key => {
+      if (!(key in projectParamsToSave)) {
+        const value = (data.projectParams as any)[key];
+        if (value !== undefined && value !== null) {
+          projectParamsToSave[key] = value;
+        }
+      }
     });
 
     // SAFETY: If using subcollections, don't save participants array to main document

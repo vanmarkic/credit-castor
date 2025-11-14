@@ -61,6 +61,9 @@ export default [
       'coverage/**',
       '*.config.js',
       '*.config.ts',
+      // Utility/test scripts
+      'check-firestore.js',
+      'test-firestore-save.js',
     ],
   },
 ];
