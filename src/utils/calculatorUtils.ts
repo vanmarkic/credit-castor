@@ -793,7 +793,9 @@ export function calculateAll(
         const existingEntryDate = existing.entryDate || (existing.isFounder ? new Date(deedDate) : null);
         if (!existingEntryDate) return false;
         
-        const buyerEntryDate = p.entryDate instanceof Date ? p.entryDate : new Date(p.entryDate);
+        const buyerEntryDate = p.entryDate 
+          ? (p.entryDate instanceof Date ? p.entryDate : new Date(p.entryDate))
+          : new Date(deedDate);
         return existingEntryDate <= buyerEntryDate;
       });
       

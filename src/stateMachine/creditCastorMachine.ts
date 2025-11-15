@@ -240,14 +240,36 @@ export const creditCastorMachine = setup({
             pricing
           };
         } else if (currentSale.saleType === 'copro') {
-          // NEW: Calculate copro sale pricing with distribution
+          /**
+           * Copropriété Redistribution Mechanism
+           * 
+           * When a newcomer buys from copropriété, their payment is automatically redistributed
+           * to ALL existing participants (founders + earlier newcomers) based on quotité.
+           * 
+           * Process:
+           * 1. Calculate newcomer's price using quotité: (their surface) / (total surface including them)
+           * 2. Split payment: 30% → copro reserves, 70% → existing participants
+           * 3. Distribute 70% proportionally: each participant gets (their quotité) × 70%
+           * 4. Quotité = (participant's surface) / (total surface at sale date, including buyer)
+           * 
+           * Recursive: When Gen 2 joins, Gen 1 newcomers also receive redistribution alongside founders.
+           * Quotités dilute as more participants join, but each sale benefits all existing co-owners.
+           */
 
           // Get total project cost from context
           const totalProjectCost = context.projectFinancials.totalPurchasePrice;
 
-          // Calculate total building surface from all participants (founders)
+          // Calculate total building surface from ALL existing participants (founders + earlier newcomers)
+          // This includes all participants who entered on or before the sale date (including the buyer)
           const totalBuildingSurface = context.participants
-            .filter(p => p.isFounder)
+            .filter(p => {
+              // Include all participants who existed before or on the sale date
+              const pEntryDate = p.entryDate || (p.isFounder && context.deedDate ? context.deedDate : null);
+              if (!pEntryDate) return false;
+              const saleDateObj = currentSale.saleDate instanceof Date ? currentSale.saleDate : new Date(currentSale.saleDate);
+              const pEntryDateObj = pEntryDate instanceof Date ? pEntryDate : new Date(pEntryDate);
+              return pEntryDateObj <= saleDateObj;
+            })
             .reduce((sum, p) => sum + p.lotsOwned.reduce((lotSum, lot) => lotSum + lot.surface, 0), 0);
 
           // Calculate years held from acte transcription date (T0)
@@ -282,9 +304,18 @@ export const creditCastorMachine = setup({
             totalCarryingCosts
           );
 
-          // Distribute 70% to founders based on T0 quotité
-          const founders: ParticipantSurface[] = context.participants
-            .filter(p => p.isFounder)
+          // Distribute 70% to ALL existing participants (founders + earlier newcomers) based on quotité
+          // Quotité = (participant's surface) / (total surface including the buyer)
+          const existingParticipants: ParticipantSurface[] = context.participants
+            .filter(p => {
+              // Include all participants who existed before or on the sale date (excluding the buyer)
+              const pEntryDate = p.entryDate || (p.isFounder && context.deedDate ? context.deedDate : null);
+              if (!pEntryDate) return false;
+              const saleDateObj = currentSale.saleDate instanceof Date ? currentSale.saleDate : new Date(currentSale.saleDate);
+              const pEntryDateObj = pEntryDate instanceof Date ? pEntryDate : new Date(pEntryDate);
+              // Exclude the buyer themselves from receiving redistribution
+              return pEntryDateObj <= saleDateObj && p.id !== currentSale.buyerId;
+            })
             .map(p => ({
               name: p.name,
               surface: p.lotsOwned.reduce((sum, lot) => sum + lot.surface, 0)
@@ -292,7 +323,7 @@ export const creditCastorMachine = setup({
 
           const participantDistribution = distributeCoproProceeds(
             coproSalePricing.distribution.toParticipants,
-            founders,
+            existingParticipants,
             totalBuildingSurface
           );
 

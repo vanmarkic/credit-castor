@@ -7,7 +7,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { buildParticipantCashFlow } from './cashFlowProjection';
-import type { DomainEvent, InitialPurchaseEvent, Lot } from '../types/timeline';
+import type { InitialPurchaseEvent, Lot } from '../types/timeline';
 import type { Participant } from './calculatorUtils';
 
 // ============================================

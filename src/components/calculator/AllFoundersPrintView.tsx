@@ -48,7 +48,7 @@ export default function AllFoundersPrintView({
         <div className="grid grid-cols-3 gap-4">
           <div>
             <p className="text-sm text-gray-600 mb-1">Coût Total du Projet</p>
-            <p className="text-2xl font-bold">{formatCurrency(calculations.totals.totalCost || 0)}</p>
+            <p className="text-2xl font-bold">{formatCurrency(calculations.totals.total || 0)}</p>
           </div>
           <div>
             <p className="text-sm text-gray-600 mb-1">Nombre de Fondateurs</p>
@@ -217,12 +217,12 @@ export default function AllFoundersPrintView({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
             <div>
               <p className="text-xs text-gray-600 mb-1">Total Frais Communs</p>
-              <p className="text-lg font-bold">{formatCurrency(calculations.totals.commun || 0)}</p>
+              <p className="text-lg font-bold">{formatCurrency(calculations.totals.shared || 0)}</p>
             </div>
             <div>
               <p className="text-xs text-gray-600 mb-1">Par Participant</p>
               <p className="text-lg font-bold">
-                {formatCurrency((calculations.totals.commun || 0) / (founders.length || 1))}
+                {formatCurrency((calculations.totals.shared || 0) / (founders.length || 1))}
               </p>
             </div>
             <div>
@@ -233,7 +233,7 @@ export default function AllFoundersPrintView({
             </div>
             <div>
               <p className="text-xs text-gray-600 mb-1">Travaux Communs</p>
-              <p className="text-lg font-medium">{formatCurrency(projectParams.travauxCommuns || 0)}</p>
+              <p className="text-lg font-medium">{formatCurrency(typeof projectParams.travauxCommuns === 'number' ? projectParams.travauxCommuns : 0)}</p>
             </div>
           </div>
           

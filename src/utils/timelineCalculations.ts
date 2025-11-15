@@ -73,11 +73,7 @@ function safeToISODateString(dateValue: string | Date | null | undefined | any, 
  * @param date2 - Second date (Date object or ISO string)
  * @returns true if date1 <= date2 (date-only)
  */
-function compareDatesOnly(date1: Date | string, date2: Date | string): boolean {
-  const d1Str = typeof date1 === 'string' ? date1 : date1.toISOString().split('T')[0]
-  const d2Str = typeof date2 === 'string' ? date2 : date2.toISOString().split('T')[0]
-  return d1Str <= d2Str
-}
+// Removed unused function _compareDatesOnly
 
 /**
  * Represents a copropriété inventory snapshot at a specific date.

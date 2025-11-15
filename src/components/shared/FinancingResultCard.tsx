@@ -1,6 +1,6 @@
 import { formatCurrency } from '../../utils/formatting';
 import type { Participant, ParticipantCalculation, ProjectParams } from '../../utils/calculatorUtils';
-import { getFraisGenerauxBreakdown, calculateExpenseCategoriesTotal, calculateTotalTravauxCommuns, type UnitDetails } from '../../utils/calculatorUtils';
+import { getFraisGenerauxBreakdown, calculateExpenseCategoriesTotal, type UnitDetails } from '../../utils/calculatorUtils';
 
 interface FinancingResultCardProps {
   participantCalc: ParticipantCalculation;
@@ -15,7 +15,7 @@ interface FinancingResultCardProps {
  * Shows total cost, capital, loan needed, interest, total repayment, and monthly payment
  * When useTwoLoans is enabled, displays two separate loan sections
  */
-export function FinancingResultCard({ participantCalc: p, projectParams, allParticipants, unitDetails, deedDate }: FinancingResultCardProps) {
+export function FinancingResultCard({ participantCalc: p, projectParams, allParticipants, unitDetails }: FinancingResultCardProps) {
   const hasTwoLoans = p.useTwoLoans && p.loan1Amount && p.loan2Amount;
 
   // Calculate enabled participants count - p.sharedCosts is calculated as sharedCosts / enabledCount
@@ -36,12 +36,8 @@ export function FinancingResultCard({ participantCalc: p, projectParams, allPart
     : 0;
   const expenseCategoriesTotal = (expenseCategoriesTotalBeforeDivision || 0) / enabledCount;
 
-  // Calculate travaux communs totals (before and after division)
   // Note: travaux communs are NOT included in p.sharedCosts, they're in constructionCost
   // So we don't include them in the Commun breakdown here
-  const travauxCommunsTotalBeforeDivision = projectParams
-    ? (calculateTotalTravauxCommuns(projectParams) || 0)
-    : 0;
 
   // Calculate per-participant amounts for each frais généraux component
   // Divide by enabledCount to match how p.sharedCosts is calculated

@@ -347,12 +347,12 @@ export function TwoLoanFinancingSection({
                   <p className="text-sm font-bold text-gray-900 mb-0.5">
                     {loan1Amount !== undefined ? `€${loan1Amount.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}` : '—'}
                   </p>
-                  {loan1MonthlyPayment !== undefined && loan1Amount > 0 && (
+                  {loan1MonthlyPayment !== undefined && loan1Amount !== undefined && loan1Amount > 0 && (
                     <p className="text-xs text-gray-500">
                       Mensualité: €{loan1MonthlyPayment.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}
                     </p>
                   )}
-                  {loan1Amount === 0 && (
+                  {loan1Amount !== undefined && loan1Amount === 0 && (
                     <p className="text-xs text-green-600 font-medium">Entièrement couvert par le capital</p>
                   )}
                 </div>
@@ -368,7 +368,7 @@ export function TwoLoanFinancingSection({
                   <p className="text-sm font-bold text-gray-900 mb-0.5">
                     {loan2Amount !== undefined ? `€${loan2Amount.toLocaleString('fr-FR', { maximumFractionDigits: 0 })}` : '—'}
                   </p>
-                  {loan2MonthlyPayment !== undefined && loan2Amount > 0 && (
+                  {loan2MonthlyPayment !== undefined && loan2Amount !== undefined && loan2Amount > 0 && (
                     <p className="text-xs text-gray-500">
                       Mensualité: €{loan2MonthlyPayment.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} 
                       <span className="text-gray-400"> ({loan2DurationYears} ans)</span>

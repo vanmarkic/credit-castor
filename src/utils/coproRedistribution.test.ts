@@ -8,8 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import { 
   calculateCoproRedistribution, 
-  type ParticipantForRedistribution,
-  type RedistributionShare
+  type ParticipantForRedistribution
 } from './coproRedistribution';
 
 describe('Copropriété Redistribution', () => {
@@ -272,25 +271,22 @@ describe('Copropriété Redistribution', () => {
       // Scenario: Track quotité changes for Founder A
       
       // T0: A (100m²), B (100m²) → Total 200m²
-      let founderA = { name: 'A', surface: 100, isFounder: true, entryDate: T0 };
-      let founderB = { name: 'B', surface: 100, isFounder: true, entryDate: T0 };
-      let participants = [founderA, founderB];
+      const founderA = { name: 'A', surface: 100, isFounder: true, entryDate: T0 };
+      // const founderB = { name: 'B', surface: 100, isFounder: true, entryDate: T0 }; // For documentation
       
       // A's quotité at T0
       let quotiteA = founderA.surface / 200;
       expect(quotiteA).toBe(0.5); // 500/1000
       
       // T1: C joins with 200m² → Total 400m²
-      let newcomerC = { name: 'C', surface: 200, isFounder: false, entryDate: T1 };
-      participants = [founderA, founderB, newcomerC];
+      // const newcomerC = { name: 'C', surface: 200, isFounder: false, entryDate: T1 }; // For documentation
       
       // A's quotité at T1 (diluted)
       quotiteA = founderA.surface / 400;
       expect(quotiteA).toBe(0.25); // 250/1000
       
       // T2: D joins with 100m² → Total 500m²
-      let newcomerD = { name: 'D', surface: 100, isFounder: false, entryDate: T2 };
-      participants = [founderA, founderB, newcomerC, newcomerD];
+      // const newcomerD = { name: 'D', surface: 100, isFounder: false, entryDate: T2 }; // For documentation
       
       // A's quotité at T2 (further diluted)
       quotiteA = founderA.surface / 500;

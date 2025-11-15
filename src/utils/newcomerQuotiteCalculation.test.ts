@@ -69,7 +69,7 @@ describe('Newcomer Quotité Calculation', () => {
     const foundersOnly = [founderA, founderB];
     
     // At T0: Total surface = 200m²
-    const totalSurfaceT0 = 200;
+    // const totalSurfaceT0 = 200; // Unused, kept for documentation
     
     // Calculate founder quotités at T0
     const quotiteA_T0 = calculateQuotite(founderA, foundersOnly);
@@ -95,7 +95,7 @@ describe('Newcomer Quotité Calculation', () => {
     const allParticipants = [founderA, founderB, newcomerC];
     
     // After C arrives: Total surface = 400m² (100 + 100 + 200)
-    const totalSurfaceAfterC = 400;
+    // const totalSurfaceAfterC = 400; // Unused, kept for documentation
     
     // Calculate new quotités
     const quotiteA_afterC = calculateQuotite(founderA, allParticipants);

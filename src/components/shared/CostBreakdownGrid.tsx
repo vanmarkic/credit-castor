@@ -99,7 +99,9 @@ export function CostBreakdownGrid({ participant, participantCalc: p, projectPara
         const existingEntryDate = existing.entryDate || (existing.isFounder ? new Date(deedDate) : null);
         if (!existingEntryDate) return false;
         
-        const buyerEntryDate = participant.entryDate instanceof Date ? participant.entryDate : new Date(participant.entryDate);
+        const buyerEntryDate = participant.entryDate 
+          ? (participant.entryDate instanceof Date ? participant.entryDate : new Date(participant.entryDate))
+          : new Date(deedDate);
         return existingEntryDate <= buyerEntryDate;
       });
       

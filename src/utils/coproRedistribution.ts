@@ -102,7 +102,7 @@ export function calculateSequentialRedistributions(
   initialParticipants: ParticipantForRedistribution[]
 ): RedistributionShare[][] {
   const redistributions: RedistributionShare[][] = [];
-  let currentParticipants = [...initialParticipants];
+  const currentParticipants = [...initialParticipants];
   
   for (const purchase of newcomerPurchases) {
     // Calculate redistribution to existing participants
@@ -264,5 +264,18 @@ export function calculateQuotiteFromAmount(
     return 0;
   }
   return (amount / totalToParticipants) * 100;
+}
+
+/**
+ * Calculate months between two dates
+ * 
+ * @param startDate - Start date
+ * @param endDate - End date
+ * @returns Number of months (can be fractional)
+ */
+export function calculateMonthsBetween(startDate: Date, endDate: Date): number {
+  const diffMs = endDate.getTime() - startDate.getTime();
+  const diffMonths = diffMs / (1000 * 60 * 60 * 24 * 30.44); // Average days per month
+  return diffMonths;
 }
 

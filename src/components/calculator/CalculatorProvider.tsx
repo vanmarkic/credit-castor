@@ -400,7 +400,7 @@ export function CalculatorProvider({ children }: CalculatorProviderProps) {
         }
       };
     }
-    return calculateAll(participants, projectParams, unitDetails, deedDate || undefined, portageFormula);
+    return calculateAll(participants, projectParams, unitDetails, deedDate || undefined, portageFormula || undefined);
   }, [participants, projectParams, deedDate, portageFormula, isInitialized]);
 
   // Actions
