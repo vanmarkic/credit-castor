@@ -1,6 +1,6 @@
 # Guide Complet - Mécanismes et Règles de Credit Castor
 
-> **Version actuelle** : 1.36.0
+> **Version actuelle** : 1.37.0
 > **Dernière mise à jour** : 2025-11-15
 > **Statut** : ✅ Complet et à jour
 
