@@ -9,6 +9,7 @@ import PurchasePriceSection from './sections/PurchasePriceSection';
 import PortageSection from './sections/PortageSection';
 import PortageFormulaSection from './sections/PortageFormulaSection';
 import RedistributionSection from './sections/RedistributionSection';
+import RedistributionFlowTransition from './sections/RedistributionFlowTransition';
 import RedistributionFormulaSection from './sections/RedistributionFormulaSection';
 import SharedSpacesSection from './sections/SharedSpacesSection';
 import QuotaFormulaSection from './sections/QuotaFormulaSection';
@@ -75,6 +76,7 @@ export default function ScrollyStory() {
       <PortageSection />
       <PortageFormulaSection />
       <RedistributionSection />
+      <RedistributionFlowTransition />
       <RedistributionFormulaSection />
       <SharedSpacesSection />
       <QuotaFormulaSection />
