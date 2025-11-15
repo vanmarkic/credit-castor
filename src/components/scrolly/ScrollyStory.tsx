@@ -4,9 +4,13 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import IntroSection from './sections/IntroSection';
 import FoundersSection from './sections/FoundersSection';
 import QuotiteSection from './sections/QuotiteSection';
+import PurchasePriceSection from './sections/PurchasePriceSection';
 import PortageSection from './sections/PortageSection';
+import PortageFormulaSection from './sections/PortageFormulaSection';
 import RedistributionSection from './sections/RedistributionSection';
+import RedistributionFormulaSection from './sections/RedistributionFormulaSection';
 import SharedSpacesSection from './sections/SharedSpacesSection';
+import QuotaFormulaSection from './sections/QuotaFormulaSection';
 import FinaleSection from './sections/FinaleSection';
 
 export default function ScrollyStory() {
@@ -65,9 +69,13 @@ export default function ScrollyStory() {
       <IntroSection />
       <FoundersSection />
       <QuotiteSection />
+      <PurchasePriceSection />
       <PortageSection />
+      <PortageFormulaSection />
       <RedistributionSection />
+      <RedistributionFormulaSection />
       <SharedSpacesSection />
+      <QuotaFormulaSection />
       <FinaleSection />
     </div>
   );
