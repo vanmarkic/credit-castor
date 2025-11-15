@@ -3,6 +3,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import IntroSection from './sections/IntroSection';
 import FoundersSection from './sections/FoundersSection';
+import FoundersToQuotiteTransition from './sections/FoundersToQuotiteTransition';
 import QuotiteSection from './sections/QuotiteSection';
 import PurchasePriceSection from './sections/PurchasePriceSection';
 import PortageSection from './sections/PortageSection';
@@ -68,6 +69,7 @@ export default function ScrollyStory() {
       {/* Story sections */}
       <IntroSection />
       <FoundersSection />
+      <FoundersToQuotiteTransition />
       <QuotiteSection />
       <PurchasePriceSection />
       <PortageSection />
