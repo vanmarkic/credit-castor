@@ -1,5 +1,12 @@
 # Guide Complet - Mécanismes et Règles de Credit Castor
 
+> **Version actuelle** : 1.36.0
+> **Dernière mise à jour** : 2025-11-15
+> **Statut** : ✅ Complet et à jour
+
+> **📚 Navigation Documentation**
+> Ce document fait partie d'un ensemble de 3 guides complémentaires. Voir [`README-REGLES-METIERS.md`](./README-REGLES-METIERS.md) pour la navigation complète.
+
 ## Table des Matières
 
 1. [Vue d'ensemble](#vue-densemble)
@@ -27,10 +34,18 @@ Credit Castor est une application de calcul pour projets de division immobilièr
 - **Ventes copropriété** avec redistribution proportionnelle aux participants existants
 - **Calculs financiers** complets (achat, construction, frais, financement)
 - **Financement flexible** (prêt unique ou double prêt)
+- **Gestion des espaces partagés** avec trois modèles de gouvernance (solidaire, commercial, quota)
+
+> **📚 Documentation Complémentaire**
+> - **Diagrammes visuels** : [`docs/regles-metiers-diagrammes-pedagogiques.md`](./regles-metiers-diagrammes-pedagogiques.md)
+> - **Cas d'usage** : [`docs/cas-usage-flux-decision.md`](./cas-usage-flux-decision.md)
+> - **Guide navigation** : [`docs/README-REGLES-METIERS.md`](./README-REGLES-METIERS.md)
 
 ---
 
 ## Mécanisme de Redistribution Copropriété
+
+> **📊 Visualisation** : Voir [`regles-metiers-diagrammes-pedagogiques.md` - Section 3](./regles-metiers-diagrammes-pedagogiques.md#3-mécanisme-de-redistribution-copropriété) pour les diagrammes visuels
 
 ### Principe
 
@@ -105,6 +120,8 @@ Quand un nouveau venu Gen 2 arrive :
 ---
 
 ## Calculs Portage
+
+> **📊 Visualisation** : Voir [`regles-metiers-diagrammes-pedagogiques.md` - Section 4](./regles-metiers-diagrammes-pedagogiques.md#4-calculs-de-portage) pour les diagrammes visuels
 
 ### Principe
 
@@ -271,6 +288,8 @@ Les détails d'acquisition d'un lot incluent :
 ---
 
 ## Financement à Deux Prêts
+
+> **📊 Visualisation** : Voir [`regles-metiers-diagrammes-pedagogiques.md` - Section 6](./regles-metiers-diagrammes-pedagogiques.md#6-financement-simple-vs-double-prêt) pour les diagrammes comparatifs
 
 ### Principe
 
@@ -883,6 +902,8 @@ Le système génère des alertes pour :
 
 ## Machine d'État
 
+> **📊 Visualisation** : Voir [`regles-metiers-diagrammes-pedagogiques.md` - Section 2](./regles-metiers-diagrammes-pedagogiques.md#2-cycle-de-vie-du-projet-state-machine) pour le diagramme d'états complet
+
 ### Cycle de Vie du Projet
 
 La machine d'état modélise les phases légales du projet :
@@ -924,6 +945,8 @@ Les événements suivants sont disponibles dans **tous les états** :
 - `UPDATE_LOT_ACQUISITION` : Mettre à jour détails acquisition lot
 
 #### Gestion Espaces Partagés (disponible à partir de `copro_established`)
+
+**Gestion des Espaces** :
 - `PROPOSE_SHARED_SPACE` : Proposer nouvel espace partagé
 - `APPROVE_SHARED_SPACE` : Approuver espace partagé
 - `REJECT_SHARED_SPACE` : Rejeter proposition espace
@@ -931,6 +954,8 @@ Les événements suivants sont disponibles dans **tous les états** :
 - `SUSPEND_SHARED_SPACE` : Suspendre espace
 - `REOPEN_SHARED_SPACE` : Réouvrir espace suspendu
 - `CLOSE_SHARED_SPACE` : Fermer espace définitivement
+
+**Accords d'Usage** :
 - `PROPOSE_USAGE_AGREEMENT` : Proposer accord d'usage
 - `VOTE_ON_USAGE_AGREEMENT` : Voter sur accord d'usage
 - `APPROVE_USAGE_AGREEMENT` : Approuver accord d'usage
@@ -939,19 +964,29 @@ Les événements suivants sont disponibles dans **tous les états** :
 - `RESUME_USAGE_AGREEMENT` : Reprendre accord suspendu
 - `END_USAGE_AGREEMENT` : Terminer accord
 - `RENEW_USAGE_AGREEMENT` : Renouveler accord
+
+**Suivi Usage et Paiements** :
 - `RECORD_SPACE_USAGE` : Enregistrer utilisation espace
 - `CANCEL_SPACE_USAGE` : Annuler réservation
 - `RECORD_SPACE_PAYMENT` : Enregistrer paiement
 - `DISTRIBUTE_SPACE_REVENUE` : Distribuer revenus
-- `RESET_ANNUAL_QUOTA` : Réinitialiser quotas annuels
+
+**Gestion Quotas** :
+- `RESET_ANNUAL_QUOTA` : Réinitialiser quotas annuels (1er janvier)
 - `QUOTA_ALERT` : Alerte dépassement quota
+
+**Transitions Modèles** :
 - `TRANSITION_SPACE_TO_COMMERCIAL` : Transition vers modèle commercial
 - `TRANSITION_SPACE_TO_SOLIDAIRE` : Transition vers modèle solidaire
 - `TRANSITION_SPACE_TO_QUOTA` : Transition vers modèle quota
-- `RAISE_SPACE_ALERT` : Lever alerte espace
+
+**Alertes et Conformité** :
+- `RAISE_SPACE_ALERT` : Lever alerte espace (5 types: quota_exceeded, insurance_issue, tax_compliance, conflict_of_interest, over_usage)
 - `RESOLVE_SPACE_ALERT` : Résoudre alerte
 - `REQUIRE_INSURANCE_UPDATE` : Exiger mise à jour assurance
 - `REQUIRE_TAX_DECLARATION` : Exiger déclaration fiscale
+
+> **💡 Référence** : Voir `src/stateMachine/events.ts:173-214` pour les définitions TypeScript complètes
 
 ### Types de Ventes
 
@@ -1051,41 +1086,107 @@ Ce guide couvre tous les mécanismes et règles de calcul de Credit Castor. Pour
 
 ### Code Source
 
-**Calculs** :
-- `src/utils/calculatorUtils.ts` : Calculs financiers participants
+**Calculs Financiers** :
+- `src/utils/calculatorUtils.ts` : Calculs financiers participants (fonction principale `calculateAll()`)
 - `src/utils/portageCalculations.ts` : Calculs portage et copropriété
-- `src/utils/cashFlowProjection.ts` : Projections flux de trésorerie
+- `src/utils/cashFlowProjection.ts` : Projections flux de trésorerie multi-années
+- `src/utils/timelineCalculations.ts` : Calculs chronologie et événements
+- `src/utils/coproRedistribution.ts` : Redistribution co-ownership shares
+- `src/utils/newcomerCalculations.ts` : Calculs nouveaux arrivants
 
 **State Machines** :
-- `src/stateMachine/creditCastorMachine.ts` : Machine d'état principale
-- `src/stateMachine/rentToOwnMachine.ts` : Machine location-vente
-- `src/stateMachine/sharedSpaceMachine.ts` : Machine espaces partagés
+- `src/stateMachine/creditCastorMachine.ts` : Machine d'état principale (cycle de vie projet)
+- `src/stateMachine/rentToOwnMachine.ts` : Machine location-vente (rent-to-own)
+- `src/stateMachine/sharedSpaceMachine.ts` : Machine espaces partagés (v1.36.0+)
+- `src/stateMachine/calculations.ts` : Fonctions de calcul appelées depuis la state machine
+- `src/stateMachine/queries.ts` : Sélecteurs d'état dérivés
 
-**Types** :
-- `src/stateMachine/types.ts` : Tous les types TypeScript
-- `src/stateMachine/events.ts` : Définitions des événements
+**Types et Événements** :
+- `src/stateMachine/types.ts` : Tous les types TypeScript (contexte, états, espaces partagés)
+- `src/stateMachine/events.ts` : Définitions des événements (11 catégories, 100+ événements)
+- `src/types/cashFlow.ts` : Types projections cash flow
+- `src/types/timeline.ts` : Types événements timeline
+- `src/types/portage-config.ts` : Configuration système portage
 
 **Tests** :
-- `src/stateMachine/sharedSpace.test.ts` : Tests espaces partagés (16 tests)
+- `src/stateMachine/sharedSpace.test.ts` : Tests espaces partagés (16/16 tests)
+- `src/stateMachine/creditCastorMachine.test.ts` : Tests machine principale
+- `src/stateMachine/rentToOwnMachine.test.ts` : Tests rent-to-own
+- `src/integration/portage-workflow.test.ts` : Tests end-to-end portage
 
 ### Documentation
 
-- `docs/development/` : Guides développement
-- `docs/guide-complet-mecanismes-regles.md` : Ce document
+**Guides Métiers** :
+- `docs/guide-complet-mecanismes-regles.md` : **Ce document** - référence textuelle complète
+- `docs/regles-metiers-diagrammes-pedagogiques.md` : Diagrammes visuels Mermaid (50+ diagrammes)
+- `docs/cas-usage-flux-decision.md` : Cas d'usage, parcours utilisateurs, arbres de décision
+- `docs/README-REGLES-METIERS.md` : Guide de navigation entre les docs
+
+**Guides Développement** :
+- `docs/development/firebase-setup-guide.md` : Configuration Firebase/Firestore
+- `docs/development/breaking-changes-guide.md` : Gestion breaking changes
+- `docs/development/pre-commit-checklist.md` : Checklist avant commit
+- `docs/development/schema-registry-guide.md` : Registre des schémas de données
+- `docs/development/copro-redistribution-mechanism.md` : Mécanisme redistribution copro
+- `docs/development/state-machine-calculator-integration.md` : Intégration state machine ↔ calculateur
+
+**Architecture et Design** :
+- `CLAUDE.md` : Instructions projet pour Claude Code
+- `docs/design/design-brief.md` : Brief design et architecture
 
 ### Nouvelles Fonctionnalités (v1.36.0+)
 
 **Gestion des Espaces Partagés** :
 - 3 modèles de gouvernance (Solidaire, Commercial, Quota)
 - Tarification progressive avec dépassement quota
-- Redistribution revenus selon quotité
+- Redistribution revenus selon quotité (30% participants, 70% ACP pour modèle quota)
 - Alertes automatiques (quota, assurance, fiscalité)
-- Transitions entre modèles
-- State machine dédiée avec 16 tests
+- Transitions entre modèles de gouvernance
+- State machine dédiée (`sharedSpaceMachine.ts`) avec 16 tests
+- Intégration complète avec la machine d'état principale à partir de `copro_established`
+- 29 événements spécifiques pour la gestion complète du cycle de vie
+
+**Documentation Associée** :
+- **Diagrammes visuels** : Voir `docs/regles-metiers-diagrammes-pedagogiques.md` (à venir)
+- **Guide navigation** : Voir `docs/README-REGLES-METIERS.md`
+- **Tests** : `src/stateMachine/sharedSpace.test.ts` (16/16 tests passants)
 
 **À venir** :
 - Interface utilisateur gestion espaces partagés
-- Calendrier partagé pour réservations
-- Dashboard usage et statistiques
+- Calendrier partagé pour réservations (système de booking)
+- Dashboard usage et statistiques par espace
 - Export rapport fiscal espaces partagés
+- Diagrammes Mermaid pour visualiser les workflows
+
+---
+
+## Historique des Mises à Jour
+
+### 2025-11-15 (v1.36.0)
+**Ajout de la gestion des espaces partagés** :
+- Documentation complète des 3 modèles de gouvernance (solidaire, commercial, quota)
+- 29 événements de state machine documentés
+- Exemples concrets pour chaque modèle
+- Formules de tarification et redistribution
+- Système d'alertes et conformité
+
+**Améliorations documentation** :
+- Ajout de références croisées avec `regles-metiers-diagrammes-pedagogiques.md`
+- Amélioration de la section Vue d'ensemble avec liens documentation complémentaire
+- Organisation hiérarchique des événements espaces partagés
+- Mise à jour des références code source avec nouveaux fichiers
+- Ajout d'une section Documentation complète avec catégorisation
+
+**Références mises à jour** :
+- `src/stateMachine/events.ts:173-214` : Événements espaces partagés
+- `src/stateMachine/sharedSpaceMachine.ts` : Machine d'état dédiée
+- `src/stateMachine/sharedSpace.test.ts` : 16 tests complets
+
+### Versions antérieures
+- **v1.35.0** : Mécanisme redistribution copropriété
+- **v1.34.0** : Intégration projectParams dans calculs
+- **v1.33.0** : Migration subcollections participants
+- **v1.32.0-1.31.0** : Migrations schéma et travaux communs
+- **v1.30.0** : Améliorations Firestore sync
+- **v1.16.0** : Versioning sémantique et compatibilité
 

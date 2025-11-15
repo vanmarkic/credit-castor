@@ -219,7 +219,7 @@ export const sharedSpaceMachine = setup({
 
         // Calculate fee based on governance model and quota
         let feeCharged = 0;
-        let quotaConsumed = durationDays;
+        const quotaConsumed = durationDays;
         let beyondQuota = false;
 
         if (context.sharedSpace.governanceModel === 'quota' && context.sharedSpace.quotaConfig) {
