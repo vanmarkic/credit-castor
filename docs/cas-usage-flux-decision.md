@@ -1,8 +1,17 @@
 # Cas d'Usage et Flux de Décision
 
+> **Version actuelle** : 1.37.0
+> **Dernière mise à jour** : 2025-11-15
+> **Statut** : ✅ Complet et à jour
+
 > Guide pratique des scénarios réels et arbres de décision pour Credit Castor
 >
 > **Objectif**: Comprendre comment les règles métiers s'appliquent dans des situations concrètes
+
+> **📚 Navigation Documentation**
+> - **Guide textuel complet** : [`guide-complet-mecanismes-regles.md`](./guide-complet-mecanismes-regles.md)
+> - **Diagrammes visuels** : [`regles-metiers-diagrammes-pedagogiques.md`](./regles-metiers-diagrammes-pedagogiques.md)
+> - **Guide de navigation** : [`README-REGLES-METIERS.md`](./README-REGLES-METIERS.md)
 
 ## Table des Matières
 
@@ -776,10 +785,20 @@ mensualité_période2 = PMT(prêt1) + PMT(prêt2)
 
 ---
 
+## Note sur les Espaces Partagés (v1.36.0+)
+
+Ce document se concentre sur les parcours fondateurs et nouveaux venus pour l'acquisition et la gestion des lots.
+
+Pour les **espaces partagés** (ateliers, salles communes, jardins, etc.) avec leurs trois modèles de gouvernance (solidaire, commercial, quota), consulter :
+- **Diagrammes complets** : [`regles-metiers-diagrammes-pedagogiques.md` - Section 10](./regles-metiers-diagrammes-pedagogiques.md#10-gestion-des-espaces-partagés)
+- **Guide textuel** : [`guide-complet-mecanismes-regles.md` - Section 11](./guide-complet-mecanismes-regles.md#gestion-des-espaces-partagés)
+
+---
+
 **Note**: Ces diagrammes sont des guides pédagogiques. Pour l'implémentation exacte, consulter le code source dans:
-- `src/stateMachine/creditCastorMachine.ts`
-- `src/utils/portageCalculations.ts`
-- `src/utils/calculatorUtils.ts`
+- **State Machines** : `src/stateMachine/creditCastorMachine.ts`, `rentToOwnMachine.ts`, `sharedSpaceMachine.ts`
+- **Calculs** : `src/utils/portageCalculations.ts`, `calculatorUtils.ts`
+- **Types & Événements** : `src/stateMachine/types.ts`, `events.ts`
 
 **Dernière mise à jour**: 2025-11-15
-**Version**: 1.36.0
+**Version**: 1.37.0

@@ -1,8 +1,17 @@
 # Règles Métiers - Diagrammes Pédagogiques
 
+> **Version actuelle** : 1.37.0
+> **Dernière mise à jour** : 2025-11-15
+> **Statut** : ✅ Complet et à jour
+
 > Documentation visuelle complète des règles métiers de Credit Castor
 >
 > **Objectif**: Fournir une compréhension claire et visuelle des mécanismes complexes du système pour tous les membres du projet.
+
+> **📚 Navigation Documentation**
+> - **Guide textuel complet** : [`guide-complet-mecanismes-regles.md`](./guide-complet-mecanismes-regles.md)
+> - **Cas d'usage et flux** : [`cas-usage-flux-decision.md`](./cas-usage-flux-decision.md)
+> - **Guide de navigation** : [`README-REGLES-METIERS.md`](./README-REGLES-METIERS.md)
 
 ## Table des Matières
 
@@ -15,6 +24,7 @@
 7. [Frais Généraux Dynamiques](#7-frais-généraux-dynamiques)
 8. [Rent-to-Own](#8-rent-to-own)
 9. [Structures de Données](#9-structures-de-données)
+10. [Gestion des Espaces Partagés](#10-gestion-des-espaces-partagés)
 
 ---
 
@@ -1028,15 +1038,420 @@ Par participant = Total 3 ans / N participants
 
 ---
 
+---
+
+## 10. Gestion des Espaces Partagés
+
+> **📖 Guide textuel** : Voir [`guide-complet-mecanismes-regles.md` - Section 11](./guide-complet-mecanismes-regles.md#gestion-des-espaces-partagés) pour descriptions détaillées
+
+### Vue d'Ensemble des Trois Modèles
+
+```mermaid
+graph TB
+    subgraph "Choix du Modèle de Gouvernance"
+        Usage{Intensité d'Usage<br/>& Nature Activité}
+
+        Usage -->|Usage occasionnel<br/>Personnel/Collectif| Quota[MODÈLE QUOTA<br/>━━━━━━━━━━━━<br/>✓ 40j perso + 30j pro/an<br/>✓ Auto-approbation<br/>✓ Tarif progressif<br/>✓ 70% ACP, 30% redistrib]
+
+        Usage -->|Usage intensif<br/>Activité commerciale| Commercial[MODÈLE COMMERCIAL<br/>━━━━━━━━━━━━<br/>✓ Location formelle<br/>✓ Loyer mensuel fixe<br/>✓ Assurance obligatoire<br/>✓ 100% ACP<br/>✓ Vote requis]
+
+        Usage -->|Activité collective<br/>Service communauté| Solidaire[MODÈLE SOLIDAIRE<br/>━━━━━━━━━━━━<br/>✓ Propriété collective<br/>✓ Opérateur rémunéré<br/>✓ Accès gratuit/coûtant<br/>✓ 100% réserves ACP<br/>✓ Vote requis]
+    end
+
+    subgraph "Transitions Possibles"
+        Quota -.->|Dépassement<br/>répété| Commercial
+        Commercial -.->|Collectivisation| Solidaire
+        Solidaire -.->|Plus de<br/>flexibilité| Quota
+    end
+
+    style Quota fill:#e3f2fd
+    style Commercial fill:#fff9c4
+    style Solidaire fill:#c8e6c9
+```
+
+### Modèle QUOTA - Cycle de Vie
+
+```mermaid
+stateDiagram-v2
+    [*] --> proposed: Participant propose usage
+
+    proposed --> active: Auto-approbation<br/>(usage personnel)
+    proposed --> voting: Vote requis<br/>(usage professionnel)
+
+    voting --> active: Approuvé
+    voting --> rejected: Rejeté
+
+    state active {
+        [*] --> within_quota: Utilisation normale
+
+        within_quota --> within_quota: Réservations<br/>dans quota
+        within_quota --> quota_exceeded: Dépassement
+
+        quota_exceeded --> alert_raised: Alerte générée
+        alert_raised --> within_quota: Paiement hors quota<br/>OU attente reset annuel
+        alert_raised --> transition_vote: Proposition transition<br/>vers commercial
+
+        state "Reset Annuel" as reset
+        within_quota --> reset: 1er janvier
+        quota_exceeded --> reset: 1er janvier
+        reset --> within_quota: Quotas réinitialisés
+    }
+
+    active --> suspended: Problème conformité<br/>ou non-paiement
+    suspended --> active: Problème résolu
+
+    active --> ended: Fin d'accord
+    transition_vote --> ended: Transition approuvée
+
+    rejected --> [*]
+    ended --> [*]
+
+    note right of quota_exceeded
+        Types d'alertes:
+        - quota_exceeded
+        - over_usage
+        - insurance_issue
+        - tax_compliance
+    end note
+```
+
+### Modèle COMMERCIAL - Structure de Location
+
+```mermaid
+flowchart TB
+    Start([Proposition Location Commerciale])
+
+    Start --> Vote{Vote Communautaire}
+
+    Vote -->|Rejeté| Rejected([Fin])
+    Vote -->|Approuvé| Contract[Établir Contrat Location]
+
+    Contract --> Terms[Définir Termes]
+
+    subgraph "Termes du Contrat"
+        Rent[Loyer Mensuel]
+        Charges[Charges Mensuelles]
+        Deposit[Dépôt de Garantie]
+        Duration[Durée Contrat]
+        Insurance[Assurance Professionnelle]
+    end
+
+    Terms --> Breakdown[Décomposition Transparente]
+
+    subgraph "Coûts Détaillés"
+        Base[Coût Base<br/>part proportionnelle]
+        Ops[Coûts Opérationnels<br/>électricité, chauffage]
+        Ins[Assurance RC Pro]
+        Margin[Marge ACP]
+        Total[Total Mensuel]
+    end
+
+    Breakdown --> Active[Accord Actif]
+
+    Active --> Monthly[Paiement Mensuel]
+    Monthly --> ACP[100% → Compte ACP]
+
+    Active --> Compliance{Conformité}
+    Compliance -->|OK| Active
+    Compliance -->|Problème| Alert[Alerte Fiscale/Assurance]
+
+    Alert --> Suspended[Suspension]
+    Suspended -->|Résolu| Active
+
+    Active --> End([Fin de Contrat])
+
+    style Contract fill:#e3f2fd
+    style Active fill:#c8e6c9
+    style ACP fill:#fff9c4
+    style Alert fill:#ffebee
+```
+
+### Modèle SOLIDAIRE - Revenus et Opérateur
+
+```mermaid
+flowchart LR
+    subgraph "Structure Collective"
+        ACP[ACP<br/>Propriétaire de l'Espace]
+        Operator[Opérateur<br/>Résident Gestionnaire]
+        Residents[Résidents<br/>Utilisateurs]
+        External[Usagers Externes]
+    end
+
+    subgraph "Rémunération Opérateur"
+        Option1[Rémunéré<br/>Salaire mensuel fixe]
+        Option2[Valorisé<br/>Points bénévolat]
+        Option3[Bénévole<br/>Aucune rémunération]
+    end
+
+    subgraph "Revenus de l'Espace"
+        ResRev[Résidents<br/>Gratuit / Prix coûtant / Subventionné]
+        ExtRev[Externes<br/>Prix marché]
+        TotalRev[Total Revenus]
+    end
+
+    subgraph "Distribution"
+        Reserves[100% → Réserves ACP]
+    end
+
+    ACP -.->|Nomme| Operator
+    ACP -.->|Rémunère| Option1
+
+    Operator -->|Gère| ResRev
+    Operator -->|Anime| ExtRev
+
+    Residents -->|Paient| ResRev
+    External -->|Paient| ExtRev
+
+    ResRev --> TotalRev
+    ExtRev --> TotalRev
+
+    TotalRev --> Reserves
+
+    style ACP fill:#e8f5e9
+    style Operator fill:#e3f2fd
+    style Reserves fill:#c8e6c9
+```
+
+### Système de Quotas - Calcul Tarifaire
+
+```mermaid
+flowchart TB
+    Request([Demande Réservation<br/>X jours])
+
+    Request --> Check{Jours dans quota?}
+
+    Check -->|Oui| WithinQuota[Tarif Dans Quota]
+    Check -->|Non| Mixed[Tarif Mixte]
+
+    subgraph "Tarification Dans Quota"
+        Personal[Usage Personnel<br/>10€/jour]
+        Professional[Usage Professionnel<br/>20€/jour]
+    end
+
+    WithinQuota --> CalcNormal[Coût = Jours × Tarif]
+
+    subgraph "Tarification Mixte"
+        direction TB
+        JoursQuota[Jours dans quota<br/>× Tarif quota]
+        JoursHors[Jours hors quota<br/>× 50€/jour]
+        Somme[Total = Quota + Hors]
+    end
+
+    Mixed --> CalcMixed[Calcul Décomposé]
+    CalcMixed --> JoursQuota
+    CalcMixed --> JoursHors
+    JoursQuota --> Somme
+    JoursHors --> Somme
+
+    CalcNormal --> Payment[Paiement]
+    Somme --> Payment
+
+    Payment --> Distribution[Distribution 70/30]
+
+    Distribution --> ToACP[70% → Compte ACP]
+    Distribution --> ToParticipants[30% → Redistribution<br/>selon quotité]
+
+    style Personal fill:#e3f2fd
+    style Professional fill:#fff9c4
+    style JoursHors fill:#ffebee
+    style ToACP fill:#c8e6c9
+    style ToParticipants fill:#ffccbc
+```
+
+### Alertes et Conformité
+
+```mermaid
+graph TB
+    subgraph "5 Types d'Alertes"
+        A1[quota_exceeded<br/>Warning]
+        A2[insurance_issue<br/>Critical]
+        A3[tax_compliance<br/>Critical]
+        A4[conflict_of_interest<br/>Warning]
+        A5[over_usage<br/>Info]
+    end
+
+    subgraph "Détection Automatique"
+        D1[Suivi Usage<br/>temps réel]
+        D2[Vérification Assurance<br/>modèle commercial]
+        D3[Contrôle Fiscal<br/>revenus déclarés]
+        D4[Monitoring Équité<br/>accès partagé]
+    end
+
+    D1 --> A1
+    D1 --> A5
+    D2 --> A2
+    D3 --> A3
+    D4 --> A4
+
+    A1 --> Actions1[Actions:<br/>- Payer hors quota<br/>- Attendre reset<br/>- Proposer transition]
+
+    A2 --> Actions2[Actions:<br/>- Souscrire assurance<br/>- Suspendre activité]
+
+    A3 --> Actions3[Actions:<br/>- Déclaration fiscale<br/>- Régularisation]
+
+    A4 --> Actions4[Actions:<br/>- Vote communauté<br/>- Médiation]
+
+    A5 --> Actions5[Actions:<br/>- Discussion équité<br/>- Ajustement règles]
+
+    subgraph "Résolution"
+        Actions1 --> Resolve[Alerte Résolue]
+        Actions2 --> Resolve
+        Actions3 --> Resolve
+        Actions4 --> Resolve
+        Actions5 --> Resolve
+    end
+
+    style A2 fill:#ffebee
+    style A3 fill:#ffebee
+    style A1 fill:#fff9c4
+    style A4 fill:#fff9c4
+    style A5 fill:#e3f2fd
+    style Resolve fill:#c8e6c9
+```
+
+### Transitions entre Modèles
+
+```mermaid
+stateDiagram-v2
+    [*] --> ChooseModel: Nouvel espace proposé
+
+    state ChooseModel {
+        [*] --> Quota: Usage modéré
+        [*] --> Commercial: Usage intensif
+        [*] --> Solidaire: Activité collective
+    }
+
+    state Quota {
+        state "Usage Normal" as normal_q
+        state "Dépassement Répété" as exceeded
+
+        normal_q --> exceeded: Alerte récurrente
+    }
+
+    state Commercial {
+        state "Location Active" as active_c
+        state "Volonté Collectivisation" as collectivize
+
+        active_c --> collectivize: Proposition opérateur
+    }
+
+    state Solidaire {
+        state "Activité Collective" as active_s
+        state "Besoin Flexibilité" as need_flex
+
+        active_s --> need_flex: Demande participants
+    }
+
+    exceeded --> TransitionVote1: Proposer commercial
+    collectivize --> TransitionVote2: Proposer solidaire
+    need_flex --> TransitionVote3: Proposer quota
+
+    state "Vote Communautaire" as vote
+
+    TransitionVote1 --> vote
+    TransitionVote2 --> vote
+    TransitionVote3 --> vote
+
+    vote --> Commercial: Approuvé → Commercial
+    vote --> Solidaire: Approuvé → Solidaire
+    vote --> Quota: Approuvé → Quota
+    vote --> Quota: Rejeté (quota reste)
+    vote --> Commercial: Rejeté (commercial reste)
+    vote --> Solidaire: Rejeté (solidaire reste)
+
+    Commercial --> [*]: Fin espace
+    Solidaire --> [*]: Fin espace
+    Quota --> [*]: Fin espace
+
+    note right of vote
+        Vote requis:
+        - Quorum: 50%
+        - Majorité: 50%
+        - Méthode: hybride
+          (démo + quotité)
+    end note
+```
+
+### Événements State Machine
+
+```mermaid
+graph TB
+    subgraph "Gestion Espaces (7 événements)"
+        E1[PROPOSE_SHARED_SPACE]
+        E2[APPROVE_SHARED_SPACE]
+        E3[REJECT_SHARED_SPACE]
+        E4[UPDATE_SHARED_SPACE]
+        E5[SUSPEND_SHARED_SPACE]
+        E6[REOPEN_SHARED_SPACE]
+        E7[CLOSE_SHARED_SPACE]
+    end
+
+    subgraph "Accords Usage (8 événements)"
+        A1[PROPOSE_USAGE_AGREEMENT]
+        A2[VOTE_ON_USAGE_AGREEMENT]
+        A3[APPROVE_USAGE_AGREEMENT]
+        A4[REJECT_USAGE_AGREEMENT]
+        A5[SUSPEND_USAGE_AGREEMENT]
+        A6[RESUME_USAGE_AGREEMENT]
+        A7[END_USAGE_AGREEMENT]
+        A8[RENEW_USAGE_AGREEMENT]
+    end
+
+    subgraph "Suivi Usage (4 événements)"
+        U1[RECORD_SPACE_USAGE]
+        U2[CANCEL_SPACE_USAGE]
+        U3[RECORD_SPACE_PAYMENT]
+        U4[DISTRIBUTE_SPACE_REVENUE]
+    end
+
+    subgraph "Quotas (2 événements)"
+        Q1[RESET_ANNUAL_QUOTA]
+        Q2[QUOTA_ALERT]
+    end
+
+    subgraph "Transitions (3 événements)"
+        T1[TRANSITION_SPACE_TO_COMMERCIAL]
+        T2[TRANSITION_SPACE_TO_SOLIDAIRE]
+        T3[TRANSITION_SPACE_TO_QUOTA]
+    end
+
+    subgraph "Alertes (4 événements)"
+        L1[RAISE_SPACE_ALERT]
+        L2[RESOLVE_SPACE_ALERT]
+        L3[REQUIRE_INSURANCE_UPDATE]
+        L4[REQUIRE_TAX_DECLARATION]
+    end
+
+    style E1 fill:#e3f2fd
+    style A1 fill:#fff9c4
+    style U1 fill:#c8e6c9
+    style Q1 fill:#ffccbc
+    style T1 fill:#e8f5e9
+    style L1 fill:#ffebee
+```
+
+---
+
 ## Références Code
 
-- **State Machine**: `src/stateMachine/creditCastorMachine.ts`
-- **Redistribution**: `src/stateMachine/creditCastorMachine.ts:243-397`
-- **Portage**: `src/utils/portageCalculations.ts`
-- **Calculateur**: `src/utils/calculatorUtils.ts`
-- **Rent-to-Own**: `src/stateMachine/rentToOwnMachine.ts`
+**State Machines** :
+- **Machine principale** : `src/stateMachine/creditCastorMachine.ts`
+- **Rent-to-Own** : `src/stateMachine/rentToOwnMachine.ts`
+- **Espaces Partagés** : `src/stateMachine/sharedSpaceMachine.ts` *(v1.36.0+)*
+
+**Calculs** :
+- **Redistribution** : `src/stateMachine/creditCastorMachine.ts:243-397`
+- **Portage** : `src/utils/portageCalculations.ts`
+- **Calculateur Principal** : `src/utils/calculatorUtils.ts`
+
+**Types et Événements** :
+- **Types** : `src/stateMachine/types.ts`
+- **Événements** : `src/stateMachine/events.ts:173-214` (espaces partagés)
+
+**Tests** :
+- **Espaces Partagés** : `src/stateMachine/sharedSpace.test.ts` (16/16 tests)
 
 ---
 
 **Dernière mise à jour**: 2025-11-15
-**Version**: 1.36.0
+**Version**: 1.37.0
