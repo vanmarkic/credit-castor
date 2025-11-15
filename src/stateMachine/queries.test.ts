@@ -53,6 +53,10 @@ describe('Participant Queries', () => {
       bankDeadline: null,
       acpLoans: new Map(),
       rentToOwnAgreements: new Map(),
+      sharedSpaces: new Map(),
+      usageAgreements: new Map(),
+      usageRecords: [],
+      sharedSpaceAlerts: [],
       acpBankAccount: 0,
       projectFinancials: {
         totalPurchasePrice: 0,

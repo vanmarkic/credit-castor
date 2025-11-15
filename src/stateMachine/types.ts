@@ -191,6 +191,12 @@ export interface ProjectContext {
   // Rent-to-own agreements (spawned actors)
   rentToOwnAgreements: Map<string, RentToOwnAgreement>;
 
+  // Shared spaces (spawned actors for usage agreements)
+  sharedSpaces: Map<string, SharedSpace>;
+  usageAgreements: Map<string, UsageAgreement>;
+  usageRecords: UsageRecord[];
+  sharedSpaceAlerts: SharedSpaceAlert[];
+
   // Project financials
   projectFinancials: ProjectFinancials;
 }
@@ -576,4 +582,271 @@ export interface RentToOwnAgreement {
   // Status
   status: 'active' | 'ending_soon' | 'decision_pending' | 'completed' | 'cancelled';
   extensionRequests: ExtensionRequest[];
+}
+
+// ============================================
+// SHARED SPACE MANAGEMENT TYPES
+// ============================================
+
+/**
+ * Type of shared space in the building
+ */
+export type SharedSpaceType =
+  | 'atelier_bois'      // Woodworking workshop
+  | 'atelier_general'   // General workshop
+  | 'salle_commune'     // Common room
+  | 'buanderie'         // Laundry room
+  | 'jardin_partage'    // Shared garden
+  | 'atelier_artiste'   // Artist studio
+  | 'cuisine_collective' // Collective kitchen
+  | 'autre';            // Other
+
+/**
+ * Governance model for shared space usage
+ *
+ * Three models based on real habitat groupé practices:
+ *
+ * 1. SOLIDAIRE: Collective ownership model (L'Arbre qui Pousse style)
+ *    - Space owned by ACP/collective
+ *    - Revenues go to collective reserves
+ *    - Operator is paid or rewarded by collective
+ *    - All risks shared by collective
+ *
+ * 2. COMMERCIAL: Commercial rental model
+ *    - ACP rents space to resident as commercial tenant
+ *    - Full commercial pricing (real costs + margin)
+ *    - Separate contract from residential lease
+ *    - Operator pays taxes/TVA normally
+ *
+ * 3. QUOTA: Fair quota system (balanced approach)
+ *    - Each resident has yearly quota (30-40 days) for professional use
+ *    - Beyond quota → commercial pricing
+ *    - Transparent shared calendar
+ *    - Simple tracking, minimal admin overhead
+ */
+export type GovernanceModel = 'solidaire' | 'commercial' | 'quota';
+
+/**
+ * Usage type: personal vs professional/commercial
+ */
+export type UsageType =
+  | 'personal'      // Personal use (resident hobby)
+  | 'professional'  // Professional/commercial use (generates revenue)
+  | 'collective';   // Collective activity (collective revenue)
+
+/**
+ * Shared space definition
+ */
+export interface SharedSpace {
+  id: string;
+  name: string;
+  type: SharedSpaceType;
+  description: string;
+
+  // Governance configuration
+  governanceModel: GovernanceModel;
+
+  // Physical characteristics
+  surface: number;  // m²
+  capacity?: number; // Max occupancy
+
+  // Equipment and resources
+  equipment?: string[];
+
+  // Operating costs (monthly)
+  operatingCosts: {
+    electricity: number;
+    heating: number;
+    maintenance: number;
+    insurance: number;
+    other: number;
+  };
+
+  // Configuration per governance model
+  solidaireConfig?: SolidaireConfig;
+  commercialConfig?: CommercialConfig;
+  quotaConfig?: QuotaConfig;
+
+  // Status
+  status: 'proposed' | 'approved' | 'active' | 'suspended' | 'closed';
+  createdDate: Date;
+  approvalDate?: Date;
+}
+
+/**
+ * Configuration for Solidaire (collective) model
+ */
+export interface SolidaireConfig {
+  operatorParticipantId: string;  // Who manages the space
+  operatorCompensation: {
+    type: 'paid' | 'volunteer_valorized' | 'none';
+    monthlyAmount?: number;  // If paid
+    valorisationPoints?: number;  // If valorized
+  };
+
+  // Revenue distribution
+  revenueToCollective: number;  // Percentage (0-100)
+  revenueToOperator?: number;   // Percentage (0-100)
+
+  // Access rules
+  accessRules: {
+    residentsAccess: 'free' | 'cost_price' | 'subsidized';
+    externalsAllowed: boolean;
+    externalsPricing?: 'market_rate' | 'cost_price_plus_margin';
+  };
+
+  // Voting rules for major decisions
+  votingRules: VotingRules;
+}
+
+/**
+ * Configuration for Commercial rental model
+ */
+export interface CommercialConfig {
+  tenantParticipantId: string;  // Resident renting the space
+
+  // Rental terms
+  rentalContract: {
+    monthlyRent: number;
+    charges: number;  // Monthly charges
+    deposit: number;
+    startDate: Date;
+    endDate?: Date;
+    renewalTerms: string;
+  };
+
+  // Cost breakdown (transparency)
+  costBreakdown: {
+    baseCost: number;           // Proportional building costs
+    operatingCosts: number;     // Electricity, heating, etc.
+    insurance: number;          // Professional insurance
+    margin: number;             // ACP margin
+    totalMonthly: number;
+  };
+
+  // Legal and tax implications
+  taxImplications: {
+    tenantMustDeclareRevenue: boolean;
+    tenantMustPayTVA: boolean;
+    separateInsuranceRequired: boolean;
+  };
+}
+
+/**
+ * Configuration for Quota (fair usage) model
+ */
+export interface QuotaConfig {
+  // Annual quotas
+  personalUsageQuota: number;        // Days per year (e.g., 30-40)
+  professionalUsageQuota: number;    // Days per year (e.g., 30-40)
+
+  // Pricing
+  personalUsageFee: number;          // Per day (often free or cost-price)
+  professionalUsageFee: number;      // Per day (often cost-price)
+  beyondQuotaFee: number;           // Per day (commercial rate)
+
+  // Booking rules
+  maxConsecutiveDays: number;        // Max consecutive booking
+  advanceBookingDays: number;        // How far in advance can book
+  cancellationPolicy: string;
+
+  // Conflict resolution
+  priorityRules: {
+    collectiveActivitiesPriority: boolean;
+    firstComeFirstServed: boolean;
+    rotationSystem: boolean;
+  };
+}
+
+/**
+ * Usage agreement between participant and shared space
+ */
+export interface UsageAgreement {
+  id: string;
+  sharedSpaceId: string;
+  participantId: string;
+
+  // Usage details
+  usageType: UsageType;
+  startDate: Date;
+  endDate?: Date;  // null for ongoing agreements
+
+  // Financial tracking
+  daysUsedThisYear: number;
+  quotaUsed: number;          // For quota model
+  quotaRemaining: number;     // For quota model
+  totalFeesGenerated: number;
+
+  // Revenue distribution (calculated)
+  revenueToACP: number;
+  revenueToParticipants?: Map<string, number>;  // If redistribution
+
+  // Approval and voting
+  requiresApproval: boolean;
+  approvalVotes?: Map<string, ParticipantVote>;
+  approvalStatus: 'pending' | 'approved' | 'rejected';
+  votingResults?: VotingResults;
+
+  // Status
+  status: 'proposed' | 'active' | 'suspended' | 'ended' | 'rejected';
+
+  // Transition tracking (for model changes)
+  previousModel?: GovernanceModel;
+  transitionDate?: Date;
+  transitionReason?: string;
+}
+
+/**
+ * Usage record - individual booking/usage event
+ */
+export interface UsageRecord {
+  id: string;
+  agreementId: string;
+  participantId: string;
+  sharedSpaceId: string;
+
+  // Timing
+  startDate: Date;
+  endDate: Date;
+  durationDays: number;
+
+  // Classification
+  usageType: UsageType;
+  purpose?: string;  // Description
+
+  // Financial impact
+  feeCharged: number;
+  quotaConsumed: number;
+  beyondQuota: boolean;
+
+  // Tracking
+  createdDate: Date;
+  confirmedDate?: Date;
+}
+
+/**
+ * Conflict/alert for shared space usage
+ */
+export interface SharedSpaceAlert {
+  id: string;
+  type: 'quota_exceeded' | 'insurance_issue' | 'tax_compliance' | 'conflict_of_interest' | 'over_usage' | 'other';
+  severity: 'info' | 'warning' | 'critical';
+
+  sharedSpaceId: string;
+  participantId?: string;
+  agreementId?: string;
+
+  title: string;
+  description: string;
+
+  // Resolution tracking
+  status: 'open' | 'acknowledged' | 'resolved' | 'escalated';
+  createdDate: Date;
+  resolvedDate?: Date;
+  resolutionNotes?: string;
+
+  // Required action
+  requiresVote: boolean;
+  requiresInsuranceUpdate: boolean;
+  requiresTaxDeclaration: boolean;
 }

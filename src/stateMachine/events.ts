@@ -139,6 +139,81 @@ export type LotManagementEvents =
   | { type: 'UPDATE_LOT_ACQUISITION'; lotId: string; acquisition: any };
 
 // ============================================
+// SHARED SPACE MANAGEMENT EVENTS
+// ============================================
+
+export interface SharedSpaceDefinition {
+  name: string;
+  type: 'atelier_bois' | 'atelier_general' | 'salle_commune' | 'buanderie' | 'jardin_partage' | 'atelier_artiste' | 'cuisine_collective' | 'autre';
+  description: string;
+  governanceModel: 'solidaire' | 'commercial' | 'quota';
+  surface: number;
+  capacity?: number;
+  equipment?: string[];
+  operatingCosts: {
+    electricity: number;
+    heating: number;
+    maintenance: number;
+    insurance: number;
+    other: number;
+  };
+  solidaireConfig?: any;
+  commercialConfig?: any;
+  quotaConfig?: any;
+}
+
+export interface UsageAgreementProposal {
+  sharedSpaceId: string;
+  participantId: string;
+  usageType: 'personal' | 'professional' | 'collective';
+  startDate: Date;
+  endDate?: Date;
+}
+
+export type SharedSpaceManagementEvents =
+  // Space creation and management
+  | { type: 'PROPOSE_SHARED_SPACE'; spaceDefinition: SharedSpaceDefinition }
+  | { type: 'APPROVE_SHARED_SPACE'; spaceId: string }
+  | { type: 'REJECT_SHARED_SPACE'; spaceId: string; reason: string }
+  | { type: 'UPDATE_SHARED_SPACE'; spaceId: string; updates: Partial<SharedSpaceDefinition> }
+  | { type: 'SUSPEND_SHARED_SPACE'; spaceId: string; reason: string }
+  | { type: 'REOPEN_SHARED_SPACE'; spaceId: string }
+  | { type: 'CLOSE_SHARED_SPACE'; spaceId: string; reason: string }
+
+  // Usage agreement management
+  | { type: 'PROPOSE_USAGE_AGREEMENT'; proposal: UsageAgreementProposal }
+  | { type: 'VOTE_ON_USAGE_AGREEMENT'; agreementId: string; participantId: string; vote: 'for' | 'against' | 'abstain' }
+  | { type: 'APPROVE_USAGE_AGREEMENT'; agreementId: string }
+  | { type: 'REJECT_USAGE_AGREEMENT'; agreementId: string; reason: string }
+  | { type: 'SUSPEND_USAGE_AGREEMENT'; agreementId: string; reason: string }
+  | { type: 'RESUME_USAGE_AGREEMENT'; agreementId: string }
+  | { type: 'END_USAGE_AGREEMENT'; agreementId: string; reason: string }
+  | { type: 'RENEW_USAGE_AGREEMENT'; agreementId: string; newEndDate?: Date }
+
+  // Usage tracking
+  | { type: 'RECORD_SPACE_USAGE'; agreementId: string; startDate: Date; endDate: Date; usageType: 'personal' | 'professional' | 'collective'; purpose?: string }
+  | { type: 'CANCEL_SPACE_USAGE'; usageRecordId: string; reason: string }
+
+  // Financial tracking
+  | { type: 'RECORD_SPACE_PAYMENT'; agreementId: string; amount: number; period: string }
+  | { type: 'DISTRIBUTE_SPACE_REVENUE'; agreementId: string; amount: number }
+
+  // Quota management (quota model)
+  | { type: 'RESET_ANNUAL_QUOTA'; agreementId: string }
+  | { type: 'QUOTA_ALERT'; agreementId: string; daysOver: number }
+
+  // Governance model transitions
+  | { type: 'TRANSITION_SPACE_TO_COMMERCIAL'; spaceId: string; commercialConfig: any }
+  | { type: 'TRANSITION_SPACE_TO_SOLIDAIRE'; spaceId: string; solidaireConfig: any }
+  | { type: 'TRANSITION_SPACE_TO_QUOTA'; spaceId: string; quotaConfig: any }
+
+  // Alerts and compliance
+  | { type: 'RAISE_SPACE_ALERT'; agreementId: string; alertType: 'quota_exceeded' | 'insurance_issue' | 'tax_compliance' | 'conflict_of_interest' | 'over_usage' | 'other'; severity: 'info' | 'warning' | 'critical'; description: string }
+  | { type: 'RESOLVE_SPACE_ALERT'; alertId: string; resolutionNotes: string }
+  | { type: 'REQUIRE_INSURANCE_UPDATE'; agreementId: string }
+  | { type: 'REQUIRE_TAX_DECLARATION'; agreementId: string };
+
+// ============================================
 // ALL EVENTS
 // ============================================
 
@@ -152,4 +227,5 @@ export type ProjectEvents =
   | RentToOwnEvents
   | CalculatorEvents
   | ParticipantManagementEvents
-  | LotManagementEvents;
+  | LotManagementEvents
+  | SharedSpaceManagementEvents;

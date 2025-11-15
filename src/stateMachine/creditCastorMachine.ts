@@ -1,10 +1,11 @@
 import { setup, assign, spawnChild, stopChild } from 'xstate';
-import type { ProjectContext, PortagePricing, CoproPricing, CarryingCosts, LoanApplication, ACPLoan, ACPContribution, VotingRules, RentToOwnAgreement } from './types';
+import type { ProjectContext, PortagePricing, CoproPricing, CarryingCosts, LoanApplication, ACPLoan, ACPContribution, VotingRules, RentToOwnAgreement, SharedSpace, UsageAgreement, SharedSpaceAlert, UsageRecord } from './types';
 import { DEFAULT_RENT_TO_OWN_FORMULA } from './types';
 import type { ProjectEvents } from './events';
 import { queries } from './queries';
 import { calculateQuotite, calculateVotingResults } from './calculations';
 import { rentToOwnMachine } from './rentToOwnMachine';
+import { sharedSpaceMachine } from './sharedSpaceMachine';
 import { calculateCoproSalePrice, distributeCoproProceeds, calculateYearsHeld } from '../utils/portageCalculations';
 import type { ParticipantSurface } from '../utils/portageCalculations';
 
@@ -39,7 +40,8 @@ export const creditCastorMachine = setup({
   },
 
   actors: {
-    rentToOwn: rentToOwnMachine
+    rentToOwn: rentToOwnMachine,
+    sharedSpace: sharedSpaceMachine
   },
 
   guards: {
@@ -1022,12 +1024,176 @@ export const creditCastorMachine = setup({
       lots: ({ context, event }) => {
         // This action is only called for UPDATE_LOT_ACQUISITION events
         const updateEvent = event as unknown as { type: 'UPDATE_LOT_ACQUISITION'; lotId: string; acquisition: any };
-        
-        return context.lots.map(lot => 
+
+        return context.lots.map(lot =>
           lot.id === updateEvent.lotId
             ? { ...lot, acquisition: updateEvent.acquisition }
             : lot
         );
+      }
+    }),
+
+    // Shared space management actions
+    proposeSharedSpace: assign({
+      sharedSpaces: ({ context, event }) => {
+        if (event.type !== 'PROPOSE_SHARED_SPACE') return context.sharedSpaces;
+
+        const spaceId = `space-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const newSpace: SharedSpace = {
+          id: spaceId,
+          ...event.spaceDefinition,
+          status: 'proposed',
+          createdDate: new Date()
+        };
+
+        const newMap = new Map(context.sharedSpaces);
+        newMap.set(spaceId, newSpace);
+        return newMap;
+      }
+    }),
+
+    approveSharedSpace: assign({
+      sharedSpaces: ({ context, event }) => {
+        if (event.type !== 'APPROVE_SHARED_SPACE') return context.sharedSpaces;
+
+        const newMap = new Map(context.sharedSpaces);
+        const space = newMap.get(event.spaceId);
+
+        if (space) {
+          newMap.set(event.spaceId, {
+            ...space,
+            status: 'active',
+            approvalDate: new Date()
+          });
+        }
+
+        return newMap;
+      }
+    }),
+
+    proposeUsageAgreement: assign(({ context, event }) => {
+      if (event.type !== 'PROPOSE_USAGE_AGREEMENT') return {};
+
+      const agreementId = `agreement-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const sharedSpace = context.sharedSpaces.get(event.proposal.sharedSpaceId);
+
+      if (!sharedSpace) return {};
+
+      // Determine initial quota based on governance model
+      let quotaRemaining = 0;
+      if (sharedSpace.governanceModel === 'quota' && sharedSpace.quotaConfig) {
+        quotaRemaining = event.proposal.usageType === 'professional'
+          ? sharedSpace.quotaConfig.professionalUsageQuota
+          : sharedSpace.quotaConfig.personalUsageQuota;
+      }
+
+      const newAgreement: UsageAgreement = {
+        id: agreementId,
+        sharedSpaceId: event.proposal.sharedSpaceId,
+        participantId: event.proposal.participantId,
+        usageType: event.proposal.usageType,
+        startDate: event.proposal.startDate,
+        endDate: event.proposal.endDate,
+        daysUsedThisYear: 0,
+        quotaUsed: 0,
+        quotaRemaining,
+        totalFeesGenerated: 0,
+        revenueToACP: 0,
+        requiresApproval: sharedSpace.governanceModel !== 'quota',  // Quota auto-approves
+        approvalStatus: 'pending',
+        status: 'proposed'
+      };
+
+      const newMap = new Map(context.usageAgreements);
+      newMap.set(agreementId, newAgreement);
+
+      return {
+        usageAgreements: newMap
+      };
+    }),
+
+    spawnSharedSpaceActor: spawnChild('sharedSpace', {
+      id: ({ context, event }) => {
+        if (event.type !== 'PROPOSE_USAGE_AGREEMENT') return '';
+        // Find the most recently added agreement
+        const agreements = Array.from(context.usageAgreements.values());
+        return agreements[agreements.length - 1]?.id || '';
+      },
+      input: ({ context, event }) => {
+        if (event.type !== 'PROPOSE_USAGE_AGREEMENT') {
+          return { agreement: {} as UsageAgreement, sharedSpace: {} as SharedSpace };
+        }
+        // Get the most recently added agreement
+        const agreements = Array.from(context.usageAgreements.values());
+        const agreement = agreements[agreements.length - 1];
+        const sharedSpace = context.sharedSpaces.get(event.proposal.sharedSpaceId);
+
+        return {
+          agreement: agreement!,
+          sharedSpace: sharedSpace!
+        };
+      }
+    }),
+
+    recordSpaceUsage: assign({
+      usageRecords: ({ context, event }) => {
+        if (event.type !== 'RECORD_SPACE_USAGE') return context.usageRecords;
+
+        const durationDays = Math.ceil(
+          (event.endDate.getTime() - event.startDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+
+        const newRecord: UsageRecord = {
+          id: `usage-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          agreementId: event.agreementId,
+          participantId: '',  // Would be fetched from agreement
+          sharedSpaceId: '',  // Would be fetched from agreement
+          startDate: event.startDate,
+          endDate: event.endDate,
+          durationDays,
+          usageType: event.usageType,
+          purpose: event.purpose,
+          feeCharged: 0,  // Would be calculated based on governance model
+          quotaConsumed: durationDays,
+          beyondQuota: false,
+          createdDate: new Date(),
+          confirmedDate: new Date()
+        };
+
+        return [...context.usageRecords, newRecord];
+      }
+    }),
+
+    recordSpacePayment: assign({
+      acpBankAccount: ({ context, event }) => {
+        if (event.type !== 'RECORD_SPACE_PAYMENT') return context.acpBankAccount;
+        // For now, all payments go to ACP account
+        // In reality, distribution would depend on governance model
+        return context.acpBankAccount + event.amount;
+      }
+    }),
+
+    raiseSharedSpaceAlert: assign({
+      sharedSpaceAlerts: ({ context, event }) => {
+        if (event.type !== 'RAISE_SPACE_ALERT') return context.sharedSpaceAlerts;
+
+        const newAlert: SharedSpaceAlert = {
+          id: `alert-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          type: event.alertType,
+          severity: event.severity,
+          sharedSpaceId: '',  // Would be fetched from agreement
+          participantId: undefined,  // Would be fetched from agreement
+          agreementId: event.agreementId,
+          title: `Alerte ${event.alertType}`,
+          description: event.description,
+          status: 'open',
+          createdDate: new Date(),
+          requiresVote: event.alertType === 'conflict_of_interest',
+          requiresInsuranceUpdate: event.alertType === 'insurance_issue',
+          requiresTaxDeclaration: event.alertType === 'tax_compliance'
+        };
+
+        return [...context.sharedSpaceAlerts, newAlert];
       }
     })
   }
@@ -1068,6 +1234,12 @@ export const creditCastorMachine = setup({
 
     // Rent-to-own agreements
     rentToOwnAgreements: new Map(),
+
+    // Shared spaces and usage agreements
+    sharedSpaces: new Map(),
+    usageAgreements: new Map(),
+    usageRecords: [],
+    sharedSpaceAlerts: [],
 
     // Project financials
     projectFinancials: {
@@ -1371,6 +1543,25 @@ export const creditCastorMachine = setup({
         },
         DISBURSE_ACP_LOAN: {
           actions: ['disburseACPLoan']
+        },
+        // Shared space management events (available from copro_established onward)
+        PROPOSE_SHARED_SPACE: {
+          actions: ['proposeSharedSpace']
+        },
+        APPROVE_SHARED_SPACE: {
+          actions: ['approveSharedSpace']
+        },
+        PROPOSE_USAGE_AGREEMENT: {
+          actions: ['proposeUsageAgreement', 'spawnSharedSpaceActor']
+        },
+        RECORD_SPACE_USAGE: {
+          actions: ['recordSpaceUsage']
+        },
+        RECORD_SPACE_PAYMENT: {
+          actions: ['recordSpacePayment']
+        },
+        RAISE_SPACE_ALERT: {
+          actions: ['raiseSharedSpaceAlert']
         },
         // Calculator and management events (available in all states)
         UPDATE_PROJECT_PARAMS: { actions: ['updateProjectParams'] },

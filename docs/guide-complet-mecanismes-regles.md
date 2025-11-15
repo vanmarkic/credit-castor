@@ -12,8 +12,9 @@
 8. [Frais Généraux Dynamiques](#frais-généraux-dynamiques)
 9. [Travaux Communs](#travaux-communs)
 10. [Calculs Nouveaux Arrivants](#calculs-nouveaux-arrivants)
-11. [Machine d'État](#machine-détat)
-12. [Intégration Calculateur](#intégration-calculateur)
+11. [Gestion des Espaces Partagés](#gestion-des-espaces-partagés)
+12. [Machine d'État](#machine-détat)
+13. [Intégration Calculateur](#intégration-calculateur)
 
 ---
 
@@ -433,6 +434,453 @@ Pour chaque nouveau venu, les détails d'achat incluent :
 
 ---
 
+## Gestion des Espaces Partagés
+
+### Principe
+
+Les espaces partagés permettent aux habitants d'utiliser des infrastructures collectives (ateliers, salles communes, jardins partagés) selon différents modèles de gouvernance adaptés à l'intensité d'usage (personnel vs professionnel).
+
+### Types d'Espaces Partagés
+
+- **atelier_bois** : Atelier de menuiserie/ébénisterie
+- **atelier_general** : Atelier polyvalent
+- **salle_commune** : Salle de réunion/événements
+- **buanderie** : Buanderie collective
+- **jardin_partage** : Jardin potager/agrément
+- **atelier_artiste** : Studio artistique
+- **cuisine_collective** : Cuisine partagée
+- **autre** : Autre type d'espace
+
+### Trois Modèles de Gouvernance
+
+Le système propose **3 modèles de gouvernance** inspirés de pratiques réelles d'habitats groupés :
+
+#### 1. Modèle SOLIDAIRE (Collectif)
+
+**Principe** : L'espace appartient au collectif et est géré solidairement.
+
+**Caractéristiques** :
+- L'espace est porté par l'ACP/collectif (non par un individu)
+- Un opérateur (résident) gère l'espace au nom du collectif
+- Les revenus alimentent les réserves collectives
+- Les risques sont partagés par le collectif
+- Nécessite un **vote communautaire** pour approbation
+
+**Rémunération opérateur** :
+- Rémunéré (montant mensuel fixe)
+- Valorisé (points de valorisation bénévole)
+- Aucune (entièrement bénévole)
+
+**Revenus** :
+- 100% → Réserves copropriété (par défaut)
+- Option : Répartition partielle à l'opérateur
+
+**Accès résidents** :
+- Gratuit
+- Prix coûtant
+- Subventionné
+
+**Exemple** : Atelier bois collectif géré par un habitant menuisier, payé 500€/mois par le collectif. Les revenus externes (formations, location ponctuelle) vont à 100% dans les réserves de l'ACP.
+
+---
+
+#### 2. Modèle COMMERCIAL (Location)
+
+**Principe** : L'ACP loue l'espace à un résident comme locataire commercial.
+
+**Caractéristiques** :
+- Contrat de location commercial distinct du bail résidentiel
+- Tarification complète (coûts réels + marge)
+- Le locataire paie taxes/TVA normalement
+- Assurance professionnelle séparée obligatoire
+- Nécessite un **vote communautaire** pour approbation
+
+**Contrat de location** :
+- Loyer mensuel
+- Charges mensuelles
+- Dépôt de garantie
+- Durée du contrat
+- Conditions de renouvellement
+
+**Décomposition des coûts** (transparence) :
+- Coût de base (part proportionnelle du bâtiment)
+- Coûts opérationnels (électricité, chauffage, entretien)
+- Assurance professionnelle
+- Marge ACP
+- **Total mensuel**
+
+**Implications fiscales** :
+- Le locataire doit déclarer ses revenus
+- TVA applicable selon activité
+- Assurance RC professionnelle requise
+
+**Revenus** :
+- 100% → Compte ACP (loyer comme revenu locatif)
+
+**Exemple** : Menuisier habitant loue un atelier 60m² pour 800€/mois (dont 500€ coût base + 200€ charges + 50€ assurance + 50€ marge). Usage intensif (120 jours/an) pour activité commerciale.
+
+---
+
+#### 3. Modèle QUOTA (Usage Équitable)
+
+**Principe** : Chaque résident dispose d'un quota annuel d'usage, avec tarification progressive.
+
+**Caractéristiques** :
+- Usage personnel : Quota de 30-40 jours/an
+- Usage professionnel : Quota de 30-40 jours/an (séparé)
+- Au-delà du quota → Tarification commerciale
+- Calendrier partagé transparent
+- **Auto-approbation** pour usage personnel (pas de vote)
+- Vote possible pour usage professionnel intensif
+
+**Quotas annuels** :
+```
+Quota personnel : 40 jours/an
+Quota professionnel : 30 jours/an
+```
+
+**Tarification progressive** :
+```
+Usage personnel dans quota : 10€/jour (prix coûtant)
+Usage professionnel dans quota : 20€/jour (prix coûtant+)
+Au-delà quota : 50€/jour (tarif commercial)
+```
+
+**Règles de réservation** :
+- Maximum jours consécutifs : 7 jours
+- Réservation à l'avance : 30 jours
+- Politique d'annulation : 48h de préavis
+- Priorité activités collectives : Oui
+
+**Revenus** :
+- 70% → Compte ACP
+- 30% → Redistribution aux participants (selon quotité)
+
+**Exemple** : Habitant utilise l'atelier 35 jours dans l'année pour ses projets personnels. Coût : 35 jours × 10€ = 350€. S'il dépasse et utilise 45 jours, les 5 jours supplémentaires coûtent 50€/jour = 250€ additionnels.
+
+---
+
+### Calculs de Tarification
+
+#### Modèle Solidaire
+
+**Tarif résidents** :
+- Gratuit OU
+- Prix coûtant : `(Σ coûts opérationnels mensuels) / 30 jours`
+
+**Exemple** :
+```
+Coûts mensuels : 150€ électricité + 200€ chauffage + 100€ entretien + 80€ assurance + 70€ divers = 600€
+Prix coûtant/jour : 600€ / 30 = 20€/jour
+```
+
+#### Modèle Commercial
+
+**Tarif journalier** :
+```
+Tarif/jour = Loyer mensuel / 30 jours
+```
+
+**Exemple** :
+```
+Loyer : 800€/mois
+Usage 20 jours : (800€ / 30) × 20 = 533€
+```
+
+#### Modèle Quota
+
+**Calcul avec dépassement** :
+```
+Si usage ≤ quota :
+  Coût = jours × tarif_dans_quota
+
+Si usage > quota :
+  Jours_dans_quota = quota_restant
+  Jours_hors_quota = usage - quota_restant
+  Coût = (Jours_dans_quota × tarif_dans_quota) + (Jours_hors_quota × tarif_commercial)
+```
+
+**Exemple avec dépassement** :
+```
+Quota restant : 5 jours
+Usage demandé : 15 jours
+Tarif dans quota : 10€/jour
+Tarif hors quota : 50€/jour
+
+Coût = (5 × 10€) + (10 × 50€) = 50€ + 500€ = 550€
+```
+
+---
+
+### Redistribution des Revenus
+
+#### Modèle Solidaire
+```
+100% des revenus → Réserves copropriété (acpBankAccount)
+```
+
+#### Modèle Commercial
+```
+100% des revenus → Compte ACP (acpBankAccount)
+```
+
+#### Modèle Quota
+```
+70% → Compte ACP (acpBankAccount)
+30% → Redistribution aux participants selon quotité
+
+Montant participant = 30% × revenus × (surface_participant / surface_totale)
+```
+
+**Exemple redistribution quota** :
+```
+Revenus collectés : 1,000€
+70% ACP : 700€
+30% participants : 300€
+
+Participant Alice (200m² / 500m² total) : 300€ × 0.40 = 120€
+Participant Bob (150m² / 500m² total) : 300€ × 0.30 = 90€
+Participant Carol (150m² / 500m² total) : 300€ × 0.30 = 90€
+```
+
+---
+
+### Gestion des Quotas
+
+#### Reset Annuel
+Les quotas sont réinitialisés chaque année (1er janvier) :
+```
+quota_used = 0
+quota_remaining = quota_annuel (40j perso ou 30j pro)
+days_used_this_year = 0
+```
+
+#### Suivi en Temps Réel
+Chaque réservation met à jour :
+- `daysUsedThisYear` : Total jours utilisés cette année
+- `quotaUsed` : Jours consommés du quota
+- `quotaRemaining` : Jours restants dans le quota
+
+#### Alertes de Dépassement
+Quand `quotaUsed > quota_annuel` :
+- **Alerte automatique** générée
+- État machine → `quota_exceeded`
+- **Options** :
+  1. Payer le tarif commercial pour les jours hors quota
+  2. Proposer transition vers modèle commercial (nécessite vote)
+  3. Attendre le reset annuel
+
+---
+
+### Alertes et Conformité
+
+Le système génère des alertes pour :
+
+#### 1. Dépassement Quota
+- **Type** : `quota_exceeded`
+- **Sévérité** : Warning
+- **Action requise** : Paiement hors quota ou transition modèle
+
+#### 2. Problème Assurance
+- **Type** : `insurance_issue`
+- **Sévérité** : Critical
+- **Action requise** : Souscription assurance professionnelle (modèle commercial)
+
+#### 3. Conformité Fiscale
+- **Type** : `tax_compliance`
+- **Sévérité** : Critical
+- **Action requise** : Déclaration fiscale obligatoire
+
+#### 4. Conflit d'Intérêt
+- **Type** : `conflict_of_interest`
+- **Sévérité** : Warning
+- **Action requise** : Vote communautaire pour résolution
+
+#### 5. Sur-Utilisation
+- **Type** : `over_usage`
+- **Sévérité** : Info
+- **Action requise** : Discussion sur équité d'accès
+
+---
+
+### Transitions entre Modèles
+
+#### Quota → Commercial
+**Déclencheur** : Dépassement répété du quota
+
+**Processus** :
+1. Alerte de dépassement quota
+2. Participant propose transition vers commercial
+3. Vote communautaire requis
+4. Si approuvé : Passage au modèle commercial
+5. Nouvelle configuration : loyer, charges, assurance
+
+**Avantages** :
+- Clarté légale et fiscale
+- Usage illimité de l'espace
+- Revenus stables pour l'ACP
+
+**Inconvénients** :
+- Coût plus élevé pour l'utilisateur
+- Obligations fiscales et assurances
+- Moins d'intégration collective
+
+#### Commercial → Solidaire
+**Déclencheur** : Volonté de collectiviser l'activité
+
+**Processus** :
+1. Locataire propose de transformer en activité collective
+2. Élaboration nouveau modèle solidaire
+3. Vote communautaire requis
+4. Si approuvé : L'espace devient propriété collective
+
+#### Solidaire/Commercial → Quota
+**Déclencheur** : Besoin de plus de flexibilité
+
+**Processus** :
+1. Proposition de passage au système de quotas
+2. Définition des règles (quotas, tarifs, priorités)
+3. Vote communautaire requis
+4. Si approuvé : Mise en place calendrier partagé
+
+---
+
+### Cycle de Vie d'un Accord d'Usage
+
+```
+1. PROPOSITION
+   ↓
+2. APPROBATION (vote ou auto-approbation selon modèle)
+   ↓
+3. ACTIF
+   ├─ Suivi usage
+   ├─ Paiements
+   └─ Alertes si dépassement
+   ↓
+4. OPTIONS
+   ├─ Suspension temporaire
+   ├─ Renouvellement
+   ├─ Transition modèle
+   └─ Fin d'accord
+```
+
+**États possibles** :
+- `proposed` : En attente d'approbation
+- `active` : Accord actif et en cours
+- `suspended` : Temporairement suspendu (conflit, non-paiement)
+- `ended` : Accord terminé
+- `rejected` : Proposition refusée par vote
+
+---
+
+### Gestion des Conflits
+
+#### Cas du Menuisier en Usage Intensif
+
+**Problème** : Habitant menuisier utilise l'atelier 100-120 jours/an pour activité commerciale.
+
+**Enjeux** :
+- Fiscaux : Revenus non déclarés si pas de cadre commercial
+- Assurance : Police résidente ne couvre pas usage professionnel
+- Équité : Autres habitants exclus de l'accès
+- Gouvernance : Conflit d'intérêt pour décisions collectives
+
+**Solutions proposées** :
+
+**Option 1 - Solidaire** :
+- L'atelier devient activité collective
+- Menuisier = responsable opérationnel (rémunéré)
+- Revenus → Collectif
+- Autres habitants + externes peuvent accéder
+
+**Option 2 - Commercial** :
+- ACP loue l'espace au menuisier (800€/mois)
+- Contrat commercial distinct
+- Menuisier paie taxes/TVA normalement
+- Assurance professionnelle obligatoire
+
+**Option 3 - Quota avec Transition** :
+- Démarrage quota (30j pro/an)
+- Au-delà → Tarif commercial (50€/j)
+- Si dépassement répété → Proposition transition commercial
+- Vote collectif pour décision finale
+
+---
+
+### Exemples Concrets
+
+#### Exemple 1 : Atelier Bois Solidaire
+
+**Configuration** :
+- Type : `atelier_bois`
+- Modèle : `solidaire`
+- Surface : 50 m²
+- Opérateur : Habitant menuisier (rémunéré 500€/mois)
+- Accès résidents : Prix coûtant (20€/jour)
+- Accès externes : Prix marché (formations payantes)
+
+**Revenus année 1** :
+- Résidents : 30 jours × 20€ = 600€
+- Externes : 10 formations × 150€ = 1,500€
+- Total : 2,100€ → 100% réserves ACP
+
+**Coûts** :
+- Opérateur : 500€/mois × 12 = 6,000€
+- Charges : 600€/mois × 12 = 7,200€
+- Total : 13,200€
+
+**Bilan** : Déficit 11,100€ assumé par le collectif (investissement social).
+
+---
+
+#### Exemple 2 : Atelier Pro en Location Commerciale
+
+**Configuration** :
+- Type : `atelier_bois`
+- Modèle : `commercial`
+- Surface : 60 m²
+- Locataire : Habitant menuisier professionnel
+- Loyer : 800€/mois (dont 500€ base + 200€ charges + 100€ assurance/marge)
+
+**Année 1** :
+- Revenus ACP : 800€ × 12 = 9,600€
+- Coûts réels : 700€ × 12 = 8,400€
+- Marge ACP : 1,200€/an
+
+**Obligations locataire** :
+- Déclaration revenus professionnels
+- TVA sur prestations (si applicable)
+- Assurance RC professionnelle
+- Déclaration activité commerciale
+
+---
+
+#### Exemple 3 : Espace Partagé avec Quotas
+
+**Configuration** :
+- Type : `atelier_general`
+- Modèle : `quota`
+- Surface : 45 m²
+- Quota personnel : 40 jours/an
+- Quota professionnel : 30 jours/an
+- Tarifs : 10€/20€/50€ (perso/pro/hors-quota)
+
+**Habitant A (usage personnel)** :
+- Utilise 35 jours dans l'année
+- Coût : 35 × 10€ = 350€
+
+**Habitant B (usage professionnel)** :
+- Utilise 42 jours (30 dans quota + 12 hors quota)
+- Coût : (30 × 20€) + (12 × 50€) = 600€ + 600€ = 1,200€
+- **Alerte dépassement** générée
+- Option : Proposer transition commercial
+
+**Revenus totaux** : 350€ + 1,200€ = 1,550€
+- 70% ACP : 1,085€
+- 30% participants : 465€ (redistribué selon quotité)
+
+---
+
 ## Machine d'État
 
 ### Cycle de Vie du Projet
@@ -474,6 +922,36 @@ Les événements suivants sont disponibles dans **tous les états** :
 - `REMOVE_LOT` : Supprimer lot
 - `MARK_LOT_AS_PORTAGE` : Marquer lot comme portage
 - `UPDATE_LOT_ACQUISITION` : Mettre à jour détails acquisition lot
+
+#### Gestion Espaces Partagés (disponible à partir de `copro_established`)
+- `PROPOSE_SHARED_SPACE` : Proposer nouvel espace partagé
+- `APPROVE_SHARED_SPACE` : Approuver espace partagé
+- `REJECT_SHARED_SPACE` : Rejeter proposition espace
+- `UPDATE_SHARED_SPACE` : Mettre à jour configuration espace
+- `SUSPEND_SHARED_SPACE` : Suspendre espace
+- `REOPEN_SHARED_SPACE` : Réouvrir espace suspendu
+- `CLOSE_SHARED_SPACE` : Fermer espace définitivement
+- `PROPOSE_USAGE_AGREEMENT` : Proposer accord d'usage
+- `VOTE_ON_USAGE_AGREEMENT` : Voter sur accord d'usage
+- `APPROVE_USAGE_AGREEMENT` : Approuver accord d'usage
+- `REJECT_USAGE_AGREEMENT` : Rejeter accord d'usage
+- `SUSPEND_USAGE_AGREEMENT` : Suspendre accord
+- `RESUME_USAGE_AGREEMENT` : Reprendre accord suspendu
+- `END_USAGE_AGREEMENT` : Terminer accord
+- `RENEW_USAGE_AGREEMENT` : Renouveler accord
+- `RECORD_SPACE_USAGE` : Enregistrer utilisation espace
+- `CANCEL_SPACE_USAGE` : Annuler réservation
+- `RECORD_SPACE_PAYMENT` : Enregistrer paiement
+- `DISTRIBUTE_SPACE_REVENUE` : Distribuer revenus
+- `RESET_ANNUAL_QUOTA` : Réinitialiser quotas annuels
+- `QUOTA_ALERT` : Alerte dépassement quota
+- `TRANSITION_SPACE_TO_COMMERCIAL` : Transition vers modèle commercial
+- `TRANSITION_SPACE_TO_SOLIDAIRE` : Transition vers modèle solidaire
+- `TRANSITION_SPACE_TO_QUOTA` : Transition vers modèle quota
+- `RAISE_SPACE_ALERT` : Lever alerte espace
+- `RESOLVE_SPACE_ALERT` : Résoudre alerte
+- `REQUIRE_INSURANCE_UPDATE` : Exiger mise à jour assurance
+- `REQUIRE_TAX_DECLARATION` : Exiger déclaration fiscale
 
 ### Types de Ventes
 
@@ -528,6 +1006,7 @@ Quand les paramètres changent :
 - **Calculée à la date de vente** : Inclut tous les participants jusqu'à cette date (incluant l'acheteur pour le dénominateur)
 - **Dilution** : Les quotités se diluent quand de nouveaux participants arrivent
 - **Fondateurs** : Surface absolue constante, mais pourcentage diminue
+- **Usage espaces partagés** : Utilisée pour redistribution revenus (modèle quota)
 
 ### Frais Généraux
 
@@ -553,12 +1032,60 @@ Quand les paramètres changent :
 - **Ratio de financement** : Indique la proportion financée par prêt
 - **Capital flexible** : Peut être alloué entre prêt 1 et prêt 2
 
+### Espaces Partagés
+
+- **3 modèles** : Solidaire, Commercial, Quota (adaptés à l'intensité d'usage)
+- **Vote communautaire** : Requis pour solidaire et commercial, optionnel pour quota
+- **Quotas annuels** : Reset automatique chaque 1er janvier
+- **Tarification progressive** : Prix augmente si dépassement quota
+- **Transitions possibles** : Entre modèles selon évolution des besoins
+- **Alertes automatiques** : Dépassement quota, assurance, fiscalité
+- **Revenus ACP** : Alimentent les réserves copropriété (30%-100% selon modèle)
+- **Redistribution** : 30% aux participants (modèle quota uniquement)
+
 ---
 
 ## Conclusion
 
 Ce guide couvre tous les mécanismes et règles de calcul de Credit Castor. Pour toute question spécifique, consulter :
-- Code source : `src/utils/calculatorUtils.ts` (calculs)
-- Machine d'État : `src/stateMachine/creditCastorMachine.ts` (workflow)
-- Documentation développement : `docs/development/`
+
+### Code Source
+
+**Calculs** :
+- `src/utils/calculatorUtils.ts` : Calculs financiers participants
+- `src/utils/portageCalculations.ts` : Calculs portage et copropriété
+- `src/utils/cashFlowProjection.ts` : Projections flux de trésorerie
+
+**State Machines** :
+- `src/stateMachine/creditCastorMachine.ts` : Machine d'état principale
+- `src/stateMachine/rentToOwnMachine.ts` : Machine location-vente
+- `src/stateMachine/sharedSpaceMachine.ts` : Machine espaces partagés
+
+**Types** :
+- `src/stateMachine/types.ts` : Tous les types TypeScript
+- `src/stateMachine/events.ts` : Définitions des événements
+
+**Tests** :
+- `src/stateMachine/sharedSpace.test.ts` : Tests espaces partagés (16 tests)
+
+### Documentation
+
+- `docs/development/` : Guides développement
+- `docs/guide-complet-mecanismes-regles.md` : Ce document
+
+### Nouvelles Fonctionnalités (v1.36.0+)
+
+**Gestion des Espaces Partagés** :
+- 3 modèles de gouvernance (Solidaire, Commercial, Quota)
+- Tarification progressive avec dépassement quota
+- Redistribution revenus selon quotité
+- Alertes automatiques (quota, assurance, fiscalité)
+- Transitions entre modèles
+- State machine dédiée avec 16 tests
+
+**À venir** :
+- Interface utilisateur gestion espaces partagés
+- Calendrier partagé pour réservations
+- Dashboard usage et statistiques
+- Export rapport fiscal espaces partagés
 
