@@ -106,6 +106,39 @@ export type RentToOwnEvents =
   | { type: 'RENT_TO_OWN_CANCELLED'; agreementId: string };
 
 // ============================================
+// CALCULATOR INTEGRATION EVENTS
+// ============================================
+
+export type CalculatorEvents =
+  | { type: 'UPDATE_PROJECT_PARAMS'; params: any } // ProjectParams from calculator
+  | { type: 'UPDATE_UNIT_DETAILS'; unitDetails: any } // UnitDetails from calculator
+  | { type: 'CALCULATE_PARTICIPANT_FINANCIAL_STATE'; participantId: string }
+  | { type: 'UPDATE_PARTICIPANT_FINANCIAL_STATE'; participantId: string; financialState: any } // ParticipantFinancialState
+  | { type: 'RECALCULATE_ALL_PARTICIPANTS' };
+
+// ============================================
+// PARTICIPANT MANAGEMENT EVENTS
+// ============================================
+
+export type ParticipantManagementEvents =
+  | { type: 'ADD_PARTICIPANT'; participant: any } // Participant from calculator
+  | { type: 'UPDATE_PARTICIPANT'; participantId: string; updates: Partial<any> }
+  | { type: 'REMOVE_PARTICIPANT'; participantId: string }
+  | { type: 'ENABLE_PARTICIPANT'; participantId: string }
+  | { type: 'DISABLE_PARTICIPANT'; participantId: string };
+
+// ============================================
+// LOT MANAGEMENT EVENTS
+// ============================================
+
+export type LotManagementEvents =
+  | { type: 'ADD_LOT'; lot: any } // Lot from calculator
+  | { type: 'UPDATE_LOT'; lotId: string; updates: Partial<any> }
+  | { type: 'REMOVE_LOT'; lotId: string }
+  | { type: 'MARK_LOT_AS_PORTAGE'; lotId: string; heldForPortage: boolean }
+  | { type: 'UPDATE_LOT_ACQUISITION'; lotId: string; acquisition: any };
+
+// ============================================
 // ALL EVENTS
 // ============================================
 
@@ -116,4 +149,7 @@ export type ProjectEvents =
   | SalesEvents
   | FinancingEvents
   | ACPLoanEvents
-  | RentToOwnEvents;
+  | RentToOwnEvents
+  | CalculatorEvents
+  | ParticipantManagementEvents
+  | LotManagementEvents;

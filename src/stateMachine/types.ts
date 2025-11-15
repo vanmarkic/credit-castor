@@ -9,6 +9,38 @@ export interface Participant {
   entryDate: Date;
   lotsOwned: LotOwnership[];
   loans: FinancingDetails[]; // Array to support multiple loans (purchase + renovation)
+  
+  // Financial state (calculated from calculator)
+  financialState?: ParticipantFinancialState;
+  
+  // Two-loan financing support (from calculator)
+  useTwoLoans?: boolean;
+  loan2DelayYears?: number;
+  loan2RenovationAmount?: number;
+  capitalForLoan1?: number;
+  capitalForLoan2?: number;
+  
+  // Purchase details for newcomers (from calculator)
+  purchaseDetails?: {
+    buyingFrom: string; // Participant name or "Copropriété"
+    lotId: number;
+    purchasePrice: number;
+    breakdown?: {
+      basePrice: number;
+      indexation: number;
+      carryingCostRecovery: number;
+      feesRecovery: number;
+      renovations: number;
+    };
+  };
+  
+  // Construction cost overrides (from calculator)
+  parachevementsPerM2?: number;
+  cascoSqm?: number;
+  parachevementsSqm?: number;
+  
+  // Enable/disable participant
+  enabled?: boolean;
 }
 
 export interface LotOwnership {
@@ -33,6 +65,57 @@ export interface ParticipantCosts {
   travauxCommuns: number;         // Common areas costs
   casco: number;                  // Shell construction
   parachevements: number;         // Finishing work
+}
+
+/**
+ * Participant Financial State - calculated from calculator
+ * Tracks all financial calculations for a participant
+ */
+export interface ParticipantFinancialState {
+  // Purchase costs
+  purchaseShare: number;
+  pricePerM2: number;
+  quantity: number;
+  
+  // Fees
+  droitEnregistrements: number;
+  fraisNotaireFixe: number;
+  
+  // Construction costs
+  casco: number;
+  parachevements: number;
+  personalRenovationCost: number; // CASCO + parachèvements
+  constructionCost: number;
+  
+  // Shared costs
+  sharedCosts: number;
+  travauxCommunsPerUnit: number;
+  
+  // Total cost
+  totalCost: number;
+  capitalApporte: number;
+  
+  // Financing (single loan)
+  loanNeeded?: number;
+  monthlyPayment?: number;
+  totalRepayment?: number;
+  totalInterest?: number;
+  financingRatio?: number;
+  
+  // Two-loan financing
+  loan1Amount?: number;
+  loan1MonthlyPayment?: number;
+  loan1Interest?: number;
+  loan2Amount?: number;
+  loan2DurationYears?: number;
+  loan2MonthlyPayment?: number;
+  loan2Interest?: number;
+  
+  // Newcomer calculations
+  quotite?: number; // For newcomers buying from copropriété
+  newcomerBasePrice?: number;
+  newcomerIndexation?: number;
+  newcomerCarryingCostRecovery?: number;
 }
 
 // ============================================
@@ -317,6 +400,11 @@ export interface ProjectFinancials {
   };
   globalCascoPerM2: number;
   indexRates: IndexRate[];
+  
+  // Calculator integration - dynamic calculations
+  projectParams?: ProjectParams; // Full project parameters from calculator
+  dynamicFraisGeneraux3ans?: number; // Calculated dynamically based on CASCO costs
+  fraisGenerauxBreakdown?: FraisGenerauxBreakdown; // Detailed breakdown
 }
 
 export interface FraisGeneraux {
@@ -340,6 +428,78 @@ export interface RecurringCosts {
 export interface IndexRate {
   year: number;
   rate: number;
+}
+
+/**
+ * Project Parameters - from calculator
+ * Used for dynamic calculations in state machine
+ */
+export interface ProjectParams {
+  totalPurchase: number;
+  mesuresConservatoires: number;
+  demolition: number;
+  infrastructures: number;
+  etudesPreparatoires: number;
+  fraisEtudesPreparatoires: number;
+  fraisGeneraux3ans: number;
+  batimentFondationConservatoire: number;
+  batimentFondationComplete: number;
+  batimentCoproConservatoire: number;
+  globalCascoPerM2: number;
+  cascoTvaRate?: number;
+  renovationStartDate?: string;
+  travauxCommuns?: TravauxCommuns;
+}
+
+/**
+ * Travaux Communs - customizable common works
+ */
+export interface TravauxCommuns {
+  enabled: boolean;
+  items: TravauxCommunsItem[];
+}
+
+export interface TravauxCommunsItem {
+  label: string;
+  sqm: number;
+  cascoPricePerSqm: number;
+  parachevementPricePerSqm: number;
+  amount?: number;
+}
+
+/**
+ * Frais Généraux Breakdown - detailed breakdown from calculator
+ */
+export interface FraisGenerauxBreakdown {
+  honoraires: {
+    total3Years: number;
+    yearly: number;
+    description: string;
+  };
+  recurring: {
+    precompteImmobilier: number;
+    comptable: number;
+    podioAbonnement: number;
+    assuranceBatiment: number;
+    fraisReservation: number;
+    imprevus: number;
+    yearly: number;
+  };
+  total: {
+    yearly: number;
+    total3Years: number;
+  };
+}
+
+/**
+ * Unit Details - from calculator
+ * Used for CASCO and parachèvements calculations
+ */
+export interface UnitDetails {
+  [unitId: number]: {
+    casco: number;
+    parachevements: number;
+  };
 }
 
 // ============================================

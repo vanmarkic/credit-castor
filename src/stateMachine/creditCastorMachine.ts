@@ -888,6 +888,147 @@ export const creditCastorMachine = setup({
         return event.agreementId;
       }
       return '';
+    }),
+
+    // Calculator integration actions
+    updateProjectParams: assign({
+      projectFinancials: ({ context, event }) => {
+        // This action is only called for UPDATE_PROJECT_PARAMS events
+        const updateEvent = event as unknown as { type: 'UPDATE_PROJECT_PARAMS'; params: any };
+
+        return {
+          ...context.projectFinancials,
+          projectParams: updateEvent.params,
+          totalPurchasePrice: updateEvent.params.totalPurchase,
+          globalCascoPerM2: updateEvent.params.globalCascoPerM2,
+          travauxCommuns: updateEvent.params.travauxCommuns?.enabled
+            ? updateEvent.params.travauxCommuns.items.reduce((sum: number, item: any) => {
+                const casco = item.sqm * item.cascoPricePerSqm;
+                const parachevements = item.sqm * item.parachevementPricePerSqm;
+                return sum + casco + parachevements;
+              }, 0)
+            : 0
+        };
+      }
+    }),
+
+    updateParticipantFinancialState: assign({
+      participants: ({ context, event }) => {
+        if (event.type !== 'UPDATE_PARTICIPANT_FINANCIAL_STATE') return context.participants;
+        const updateEvent = event as { type: 'UPDATE_PARTICIPANT_FINANCIAL_STATE'; participantId: string; financialState: any };
+
+        return context.participants.map(p => 
+          p.id === updateEvent.participantId
+            ? { ...p, financialState: updateEvent.financialState }
+            : p
+        );
+      }
+    }),
+
+    // Participant management actions
+    addParticipant: assign({
+      participants: ({ context, event }) => {
+        if (event.type !== 'ADD_PARTICIPANT') return context.participants;
+        const addEvent = event as { type: 'ADD_PARTICIPANT'; participant: any };
+        return [...context.participants, addEvent.participant];
+      }
+    }),
+
+    updateParticipant: assign({
+      participants: ({ context, event }) => {
+        // This action is only called for UPDATE_PARTICIPANT events
+        const updateEvent = event as unknown as { type: 'UPDATE_PARTICIPANT'; participantId: string; updates: Partial<any> };
+        
+        return context.participants.map(p => 
+          p.id === updateEvent.participantId
+            ? { ...p, ...updateEvent.updates }
+            : p
+        );
+      }
+    }),
+
+    removeParticipant: assign({
+      participants: ({ context, event }) => {
+        // This action is only called for REMOVE_PARTICIPANT events
+        const removeEvent = event as unknown as { type: 'REMOVE_PARTICIPANT'; participantId: string };
+        return context.participants.filter(p => p.id !== removeEvent.participantId);
+      }
+    }),
+
+    enableParticipant: assign({
+      participants: ({ context, event }) => {
+        // This action is only called for ENABLE_PARTICIPANT events
+        const enableEvent = event as unknown as { type: 'ENABLE_PARTICIPANT'; participantId: string };
+        return context.participants.map(p => 
+          p.id === enableEvent.participantId ? { ...p, enabled: true } : p
+        );
+      }
+    }),
+
+    disableParticipant: assign({
+      participants: ({ context, event }) => {
+        // This action is only called for DISABLE_PARTICIPANT events
+        const disableEvent = event as unknown as { type: 'DISABLE_PARTICIPANT'; participantId: string };
+        return context.participants.map(p => 
+          p.id === disableEvent.participantId ? { ...p, enabled: false } : p
+        );
+      }
+    }),
+
+    // Lot management actions
+    addLot: assign({
+      lots: ({ context, event }) => {
+        // This action is only called for ADD_LOT events
+        const addEvent = event as unknown as { type: 'ADD_LOT'; lot: any };
+        return [...context.lots, addEvent.lot];
+      }
+    }),
+
+    updateLot: assign({
+      lots: ({ context, event }) => {
+        // This action is only called for UPDATE_LOT events
+        const updateEvent = event as unknown as { type: 'UPDATE_LOT'; lotId: string; updates: Partial<any> };
+        
+        return context.lots.map(lot => 
+          lot.id === updateEvent.lotId
+            ? { ...lot, ...updateEvent.updates }
+            : lot
+        );
+      }
+    }),
+
+    removeLot: assign({
+      lots: ({ context, event }) => {
+        // This action is only called for REMOVE_LOT events
+        const removeEvent = event as unknown as { type: 'REMOVE_LOT'; lotId: string };
+        return context.lots.filter(lot => lot.id !== removeEvent.lotId);
+      }
+    }),
+
+    markLotAsPortage: assign({
+      lots: ({ context, event }) => {
+        // This action is only called for MARK_LOT_AS_PORTAGE events
+        const markEvent = event as unknown as { type: 'MARK_LOT_AS_PORTAGE'; lotId: string; heldForPortage: boolean };
+        
+        return context.lots.map(lot => 
+          lot.id === markEvent.lotId
+            ? { ...lot, heldForPortage: markEvent.heldForPortage }
+            : lot
+        );
+      }
+    }),
+
+    updateLotAcquisition: assign({
+      lots: ({ context, event }) => {
+        // This action is only called for UPDATE_LOT_ACQUISITION events
+        const updateEvent = event as unknown as { type: 'UPDATE_LOT_ACQUISITION'; lotId: string; acquisition: any };
+        
+        return context.lots.map(lot => 
+          lot.id === updateEvent.lotId
+            ? { ...lot, acquisition: updateEvent.acquisition }
+            : lot
+        );
+      }
     })
   }
 
@@ -961,7 +1102,20 @@ export const creditCastorMachine = setup({
         COMPROMIS_SIGNED: {
           target: 'compromis_period',
           actions: ['setBankDeadline']
-        }
+        },
+        // Calculator and management events (available in all states)
+        UPDATE_PROJECT_PARAMS: { actions: ['updateProjectParams'] },
+        UPDATE_PARTICIPANT_FINANCIAL_STATE: { actions: ['updateParticipantFinancialState'] },
+        ADD_PARTICIPANT: { actions: ['addParticipant'] },
+        UPDATE_PARTICIPANT: { actions: ['updateParticipant'] },
+        REMOVE_PARTICIPANT: { actions: ['removeParticipant'] },
+        ENABLE_PARTICIPANT: { actions: ['enableParticipant'] },
+        DISABLE_PARTICIPANT: { actions: ['disableParticipant'] },
+        ADD_LOT: { actions: ['addLot'] },
+        UPDATE_LOT: { actions: ['updateLot'] },
+        REMOVE_LOT: { actions: ['removeLot'] },
+        MARK_LOT_AS_PORTAGE: { actions: ['markLotAsPortage'] },
+        UPDATE_LOT_ACQUISITION: { actions: ['updateLotAcquisition'] }
       }
     },
 
@@ -979,7 +1133,20 @@ export const creditCastorMachine = setup({
         ALL_CONDITIONS_MET: {
           target: 'ready_for_deed',
           guard: 'allFinancingApproved'
-        }
+        },
+        // Calculator and management events (available in all states)
+        UPDATE_PROJECT_PARAMS: { actions: ['updateProjectParams'] },
+        UPDATE_PARTICIPANT_FINANCIAL_STATE: { actions: ['updateParticipantFinancialState'] },
+        ADD_PARTICIPANT: { actions: ['addParticipant'] },
+        UPDATE_PARTICIPANT: { actions: ['updateParticipant'] },
+        REMOVE_PARTICIPANT: { actions: ['removeParticipant'] },
+        ENABLE_PARTICIPANT: { actions: ['enableParticipant'] },
+        DISABLE_PARTICIPANT: { actions: ['disableParticipant'] },
+        ADD_LOT: { actions: ['addLot'] },
+        UPDATE_LOT: { actions: ['updateLot'] },
+        REMOVE_LOT: { actions: ['removeLot'] },
+        MARK_LOT_AS_PORTAGE: { actions: ['markLotAsPortage'] },
+        UPDATE_LOT_ACQUISITION: { actions: ['updateLotAcquisition'] }
       }
     },
 
@@ -988,7 +1155,20 @@ export const creditCastorMachine = setup({
         DEED_SIGNED: {
           target: 'deed_registration_pending',
           actions: ['recordDeedDate']
-        }
+        },
+        // Calculator and management events (available in all states)
+        UPDATE_PROJECT_PARAMS: { actions: ['updateProjectParams'] },
+        UPDATE_PARTICIPANT_FINANCIAL_STATE: { actions: ['updateParticipantFinancialState'] },
+        ADD_PARTICIPANT: { actions: ['addParticipant'] },
+        UPDATE_PARTICIPANT: { actions: ['updateParticipant'] },
+        REMOVE_PARTICIPANT: { actions: ['removeParticipant'] },
+        ENABLE_PARTICIPANT: { actions: ['enableParticipant'] },
+        DISABLE_PARTICIPANT: { actions: ['disableParticipant'] },
+        ADD_LOT: { actions: ['addLot'] },
+        UPDATE_LOT: { actions: ['updateLot'] },
+        REMOVE_LOT: { actions: ['removeLot'] },
+        MARK_LOT_AS_PORTAGE: { actions: ['markLotAsPortage'] },
+        UPDATE_LOT_ACQUISITION: { actions: ['updateLotAcquisition'] }
       }
     },
 
@@ -997,13 +1177,39 @@ export const creditCastorMachine = setup({
         DEED_REGISTERED: {
           target: 'ownership_transferred',
           actions: ['recordRegistrationDate']
-        }
+        },
+        // Calculator and management events (available in all states)
+        UPDATE_PROJECT_PARAMS: { actions: ['updateProjectParams'] },
+        UPDATE_PARTICIPANT_FINANCIAL_STATE: { actions: ['updateParticipantFinancialState'] },
+        ADD_PARTICIPANT: { actions: ['addParticipant'] },
+        UPDATE_PARTICIPANT: { actions: ['updateParticipant'] },
+        REMOVE_PARTICIPANT: { actions: ['removeParticipant'] },
+        ENABLE_PARTICIPANT: { actions: ['enableParticipant'] },
+        DISABLE_PARTICIPANT: { actions: ['disableParticipant'] },
+        ADD_LOT: { actions: ['addLot'] },
+        UPDATE_LOT: { actions: ['updateLot'] },
+        REMOVE_LOT: { actions: ['removeLot'] },
+        MARK_LOT_AS_PORTAGE: { actions: ['markLotAsPortage'] },
+        UPDATE_LOT_ACQUISITION: { actions: ['updateLotAcquisition'] }
       }
     },
 
     ownership_transferred: {
       on: {
-        START_COPRO_CREATION: 'copro_creation'
+        START_COPRO_CREATION: 'copro_creation',
+        // Calculator and management events (available in all states)
+        UPDATE_PROJECT_PARAMS: { actions: ['updateProjectParams'] },
+        UPDATE_PARTICIPANT_FINANCIAL_STATE: { actions: ['updateParticipantFinancialState'] },
+        ADD_PARTICIPANT: { actions: ['addParticipant'] },
+        UPDATE_PARTICIPANT: { actions: ['updateParticipant'] },
+        REMOVE_PARTICIPANT: { actions: ['removeParticipant'] },
+        ENABLE_PARTICIPANT: { actions: ['enableParticipant'] },
+        DISABLE_PARTICIPANT: { actions: ['disableParticipant'] },
+        ADD_LOT: { actions: ['addLot'] },
+        UPDATE_LOT: { actions: ['updateLot'] },
+        REMOVE_LOT: { actions: ['removeLot'] },
+        MARK_LOT_AS_PORTAGE: { actions: ['markLotAsPortage'] },
+        UPDATE_LOT_ACQUISITION: { actions: ['updateLotAcquisition'] }
       }
     },
 
@@ -1012,7 +1218,20 @@ export const creditCastorMachine = setup({
       states: {
         awaiting_technical_report: {
           on: {
-            TECHNICAL_REPORT_READY: 'awaiting_precad'
+            TECHNICAL_REPORT_READY: 'awaiting_precad',
+            // Calculator and management events (available in all states)
+            UPDATE_PROJECT_PARAMS: { actions: ['updateProjectParams'] },
+            UPDATE_PARTICIPANT_FINANCIAL_STATE: { actions: ['updateParticipantFinancialState'] },
+            ADD_PARTICIPANT: { actions: ['addParticipant'] },
+            UPDATE_PARTICIPANT: { actions: ['updateParticipant'] },
+            REMOVE_PARTICIPANT: { actions: ['removeParticipant'] },
+            ENABLE_PARTICIPANT: { actions: ['enableParticipant'] },
+            DISABLE_PARTICIPANT: { actions: ['disableParticipant'] },
+            ADD_LOT: { actions: ['addLot'] },
+            UPDATE_LOT: { actions: ['updateLot'] },
+            REMOVE_LOT: { actions: ['removeLot'] },
+            MARK_LOT_AS_PORTAGE: { actions: ['markLotAsPortage'] },
+            UPDATE_LOT_ACQUISITION: { actions: ['updateLotAcquisition'] }
           }
         },
         awaiting_precad: {
@@ -1020,7 +1239,20 @@ export const creditCastorMachine = setup({
             PRECAD_REQUESTED: {
               target: 'precad_review',
               actions: ['recordPrecadRequest']
-            }
+            },
+            // Calculator and management events (available in all states)
+            UPDATE_PROJECT_PARAMS: { actions: ['updateProjectParams'] },
+            UPDATE_PARTICIPANT_FINANCIAL_STATE: { actions: ['updateParticipantFinancialState'] },
+            ADD_PARTICIPANT: { actions: ['addParticipant'] },
+            UPDATE_PARTICIPANT: { actions: ['updateParticipant'] },
+            REMOVE_PARTICIPANT: { actions: ['removeParticipant'] },
+            ENABLE_PARTICIPANT: { actions: ['enableParticipant'] },
+            DISABLE_PARTICIPANT: { actions: ['disableParticipant'] },
+            ADD_LOT: { actions: ['addLot'] },
+            UPDATE_LOT: { actions: ['updateLot'] },
+            REMOVE_LOT: { actions: ['removeLot'] },
+            MARK_LOT_AS_PORTAGE: { actions: ['markLotAsPortage'] },
+            UPDATE_LOT_ACQUISITION: { actions: ['updateLotAcquisition'] }
           }
         },
         precad_review: {
@@ -1028,12 +1260,38 @@ export const creditCastorMachine = setup({
             PRECAD_APPROVED: {
               target: 'drafting_acte',
               actions: ['recordPrecadApproval']
-            }
+            },
+            // Calculator and management events (available in all states)
+            UPDATE_PROJECT_PARAMS: { actions: ['updateProjectParams'] },
+            UPDATE_PARTICIPANT_FINANCIAL_STATE: { actions: ['updateParticipantFinancialState'] },
+            ADD_PARTICIPANT: { actions: ['addParticipant'] },
+            UPDATE_PARTICIPANT: { actions: ['updateParticipant'] },
+            REMOVE_PARTICIPANT: { actions: ['removeParticipant'] },
+            ENABLE_PARTICIPANT: { actions: ['enableParticipant'] },
+            DISABLE_PARTICIPANT: { actions: ['disableParticipant'] },
+            ADD_LOT: { actions: ['addLot'] },
+            UPDATE_LOT: { actions: ['updateLot'] },
+            REMOVE_LOT: { actions: ['removeLot'] },
+            MARK_LOT_AS_PORTAGE: { actions: ['markLotAsPortage'] },
+            UPDATE_LOT_ACQUISITION: { actions: ['updateLotAcquisition'] }
           }
         },
         drafting_acte: {
           on: {
-            ACTE_DRAFTED: 'awaiting_signatures'
+            ACTE_DRAFTED: 'awaiting_signatures',
+            // Calculator and management events (available in all states)
+            UPDATE_PROJECT_PARAMS: { actions: ['updateProjectParams'] },
+            UPDATE_PARTICIPANT_FINANCIAL_STATE: { actions: ['updateParticipantFinancialState'] },
+            ADD_PARTICIPANT: { actions: ['addParticipant'] },
+            UPDATE_PARTICIPANT: { actions: ['updateParticipant'] },
+            REMOVE_PARTICIPANT: { actions: ['removeParticipant'] },
+            ENABLE_PARTICIPANT: { actions: ['enableParticipant'] },
+            DISABLE_PARTICIPANT: { actions: ['disableParticipant'] },
+            ADD_LOT: { actions: ['addLot'] },
+            UPDATE_LOT: { actions: ['updateLot'] },
+            REMOVE_LOT: { actions: ['removeLot'] },
+            MARK_LOT_AS_PORTAGE: { actions: ['markLotAsPortage'] },
+            UPDATE_LOT_ACQUISITION: { actions: ['updateLotAcquisition'] }
           }
         },
         awaiting_signatures: {
@@ -1041,7 +1299,20 @@ export const creditCastorMachine = setup({
             ACTE_SIGNED: {
               target: 'awaiting_transcription',
               actions: ['recordActeSignature']
-            }
+            },
+            // Calculator and management events (available in all states)
+            UPDATE_PROJECT_PARAMS: { actions: ['updateProjectParams'] },
+            UPDATE_PARTICIPANT_FINANCIAL_STATE: { actions: ['updateParticipantFinancialState'] },
+            ADD_PARTICIPANT: { actions: ['addParticipant'] },
+            UPDATE_PARTICIPANT: { actions: ['updateParticipant'] },
+            REMOVE_PARTICIPANT: { actions: ['removeParticipant'] },
+            ENABLE_PARTICIPANT: { actions: ['enableParticipant'] },
+            DISABLE_PARTICIPANT: { actions: ['disableParticipant'] },
+            ADD_LOT: { actions: ['addLot'] },
+            UPDATE_LOT: { actions: ['updateLot'] },
+            REMOVE_LOT: { actions: ['removeLot'] },
+            MARK_LOT_AS_PORTAGE: { actions: ['markLotAsPortage'] },
+            UPDATE_LOT_ACQUISITION: { actions: ['updateLotAcquisition'] }
           }
         },
         awaiting_transcription: {
@@ -1049,7 +1320,20 @@ export const creditCastorMachine = setup({
             ACTE_TRANSCRIBED: {
               target: '#creditCastorProject.copro_established',
               actions: ['recordActeTranscription']
-            }
+            },
+            // Calculator and management events (available in all states)
+            UPDATE_PROJECT_PARAMS: { actions: ['updateProjectParams'] },
+            UPDATE_PARTICIPANT_FINANCIAL_STATE: { actions: ['updateParticipantFinancialState'] },
+            ADD_PARTICIPANT: { actions: ['addParticipant'] },
+            UPDATE_PARTICIPANT: { actions: ['updateParticipant'] },
+            REMOVE_PARTICIPANT: { actions: ['removeParticipant'] },
+            ENABLE_PARTICIPANT: { actions: ['enableParticipant'] },
+            DISABLE_PARTICIPANT: { actions: ['disableParticipant'] },
+            ADD_LOT: { actions: ['addLot'] },
+            UPDATE_LOT: { actions: ['updateLot'] },
+            REMOVE_LOT: { actions: ['removeLot'] },
+            MARK_LOT_AS_PORTAGE: { actions: ['markLotAsPortage'] },
+            UPDATE_LOT_ACQUISITION: { actions: ['updateLotAcquisition'] }
           }
         }
       }
@@ -1087,7 +1371,20 @@ export const creditCastorMachine = setup({
         },
         DISBURSE_ACP_LOAN: {
           actions: ['disburseACPLoan']
-        }
+        },
+        // Calculator and management events (available in all states)
+        UPDATE_PROJECT_PARAMS: { actions: ['updateProjectParams'] },
+        UPDATE_PARTICIPANT_FINANCIAL_STATE: { actions: ['updateParticipantFinancialState'] },
+        ADD_PARTICIPANT: { actions: ['addParticipant'] },
+        UPDATE_PARTICIPANT: { actions: ['updateParticipant'] },
+        REMOVE_PARTICIPANT: { actions: ['removeParticipant'] },
+        ENABLE_PARTICIPANT: { actions: ['enableParticipant'] },
+        DISABLE_PARTICIPANT: { actions: ['disableParticipant'] },
+        ADD_LOT: { actions: ['addLot'] },
+        UPDATE_LOT: { actions: ['updateLot'] },
+        REMOVE_LOT: { actions: ['removeLot'] },
+        MARK_LOT_AS_PORTAGE: { actions: ['markLotAsPortage'] },
+        UPDATE_LOT_ACQUISITION: { actions: ['updateLotAcquisition'] }
       }
     },
 
@@ -1102,7 +1399,20 @@ export const creditCastorMachine = setup({
             },
             PERMIT_REJECTED: {
               target: 'awaiting_request'
-            }
+            },
+            // Calculator and management events (available in all states)
+            UPDATE_PROJECT_PARAMS: { actions: ['updateProjectParams'] },
+            UPDATE_PARTICIPANT_FINANCIAL_STATE: { actions: ['updateParticipantFinancialState'] },
+            ADD_PARTICIPANT: { actions: ['addParticipant'] },
+            UPDATE_PARTICIPANT: { actions: ['updateParticipant'] },
+            REMOVE_PARTICIPANT: { actions: ['removeParticipant'] },
+            ENABLE_PARTICIPANT: { actions: ['enableParticipant'] },
+            DISABLE_PARTICIPANT: { actions: ['disableParticipant'] },
+            ADD_LOT: { actions: ['addLot'] },
+            UPDATE_LOT: { actions: ['updateLot'] },
+            REMOVE_LOT: { actions: ['removeLot'] },
+            MARK_LOT_AS_PORTAGE: { actions: ['markLotAsPortage'] },
+            UPDATE_LOT_ACQUISITION: { actions: ['updateLotAcquisition'] }
           }
         },
         awaiting_request: {
@@ -1110,7 +1420,20 @@ export const creditCastorMachine = setup({
             REQUEST_PERMIT: {
               target: 'permit_review',
               actions: ['recordPermitRequest']
-            }
+            },
+            // Calculator and management events (available in all states)
+            UPDATE_PROJECT_PARAMS: { actions: ['updateProjectParams'] },
+            UPDATE_PARTICIPANT_FINANCIAL_STATE: { actions: ['updateParticipantFinancialState'] },
+            ADD_PARTICIPANT: { actions: ['addParticipant'] },
+            UPDATE_PARTICIPANT: { actions: ['updateParticipant'] },
+            REMOVE_PARTICIPANT: { actions: ['removeParticipant'] },
+            ENABLE_PARTICIPANT: { actions: ['enableParticipant'] },
+            DISABLE_PARTICIPANT: { actions: ['disableParticipant'] },
+            ADD_LOT: { actions: ['addLot'] },
+            UPDATE_LOT: { actions: ['updateLot'] },
+            REMOVE_LOT: { actions: ['removeLot'] },
+            MARK_LOT_AS_PORTAGE: { actions: ['markLotAsPortage'] },
+            UPDATE_LOT_ACQUISITION: { actions: ['updateLotAcquisition'] }
           }
         },
         awaiting_enactment: {
@@ -1118,7 +1441,20 @@ export const creditCastorMachine = setup({
             PERMIT_ENACTED: {
               target: '#creditCastorProject.permit_active',
               actions: ['recordPermitEnactment']
-            }
+            },
+            // Calculator and management events (available in all states)
+            UPDATE_PROJECT_PARAMS: { actions: ['updateProjectParams'] },
+            UPDATE_PARTICIPANT_FINANCIAL_STATE: { actions: ['updateParticipantFinancialState'] },
+            ADD_PARTICIPANT: { actions: ['addParticipant'] },
+            UPDATE_PARTICIPANT: { actions: ['updateParticipant'] },
+            REMOVE_PARTICIPANT: { actions: ['removeParticipant'] },
+            ENABLE_PARTICIPANT: { actions: ['enableParticipant'] },
+            DISABLE_PARTICIPANT: { actions: ['disableParticipant'] },
+            ADD_LOT: { actions: ['addLot'] },
+            UPDATE_LOT: { actions: ['updateLot'] },
+            REMOVE_LOT: { actions: ['removeLot'] },
+            MARK_LOT_AS_PORTAGE: { actions: ['markLotAsPortage'] },
+            UPDATE_LOT_ACQUISITION: { actions: ['updateLotAcquisition'] }
           }
         }
       }
@@ -1126,7 +1462,20 @@ export const creditCastorMachine = setup({
 
     permit_active: {
       on: {
-        DECLARE_HIDDEN_LOTS: 'lots_declared'
+        DECLARE_HIDDEN_LOTS: 'lots_declared',
+        // Calculator and management events (available in all states)
+        UPDATE_PROJECT_PARAMS: { actions: ['updateProjectParams'] },
+        UPDATE_PARTICIPANT_FINANCIAL_STATE: { actions: ['updateParticipantFinancialState'] },
+        ADD_PARTICIPANT: { actions: ['addParticipant'] },
+        UPDATE_PARTICIPANT: { actions: ['updateParticipant'] },
+        REMOVE_PARTICIPANT: { actions: ['removeParticipant'] },
+        ENABLE_PARTICIPANT: { actions: ['enableParticipant'] },
+        DISABLE_PARTICIPANT: { actions: ['disableParticipant'] },
+        ADD_LOT: { actions: ['addLot'] },
+        UPDATE_LOT: { actions: ['updateLot'] },
+        REMOVE_LOT: { actions: ['removeLot'] },
+        MARK_LOT_AS_PORTAGE: { actions: ['markLotAsPortage'] },
+        UPDATE_LOT_ACQUISITION: { actions: ['updateLotAcquisition'] }
       }
     },
 
@@ -1135,7 +1484,20 @@ export const creditCastorMachine = setup({
         FIRST_SALE: {
           target: 'sales_active',
           actions: ['recordFirstSale']
-        }
+        },
+        // Calculator and management events (available in all states)
+        UPDATE_PROJECT_PARAMS: { actions: ['updateProjectParams'] },
+        UPDATE_PARTICIPANT_FINANCIAL_STATE: { actions: ['updateParticipantFinancialState'] },
+        ADD_PARTICIPANT: { actions: ['addParticipant'] },
+        UPDATE_PARTICIPANT: { actions: ['updateParticipant'] },
+        REMOVE_PARTICIPANT: { actions: ['removeParticipant'] },
+        ENABLE_PARTICIPANT: { actions: ['enableParticipant'] },
+        DISABLE_PARTICIPANT: { actions: ['disableParticipant'] },
+        ADD_LOT: { actions: ['addLot'] },
+        UPDATE_LOT: { actions: ['updateLot'] },
+        REMOVE_LOT: { actions: ['removeLot'] },
+        MARK_LOT_AS_PORTAGE: { actions: ['markLotAsPortage'] },
+        UPDATE_LOT_ACQUISITION: { actions: ['updateLotAcquisition'] }
       }
     },
 
@@ -1157,7 +1519,20 @@ export const creditCastorMachine = setup({
             ],
             ALL_LOTS_SOLD: {
               target: '#creditCastorProject.completed'
-            }
+            },
+            // Calculator and management events (available in all states)
+            UPDATE_PROJECT_PARAMS: { actions: ['updateProjectParams'] },
+            UPDATE_PARTICIPANT_FINANCIAL_STATE: { actions: ['updateParticipantFinancialState'] },
+            ADD_PARTICIPANT: { actions: ['addParticipant'] },
+            UPDATE_PARTICIPANT: { actions: ['updateParticipant'] },
+            REMOVE_PARTICIPANT: { actions: ['removeParticipant'] },
+            ENABLE_PARTICIPANT: { actions: ['enableParticipant'] },
+            DISABLE_PARTICIPANT: { actions: ['disableParticipant'] },
+            ADD_LOT: { actions: ['addLot'] },
+            UPDATE_LOT: { actions: ['updateLot'] },
+            REMOVE_LOT: { actions: ['removeLot'] },
+            MARK_LOT_AS_PORTAGE: { actions: ['markLotAsPortage'] },
+            UPDATE_LOT_ACQUISITION: { actions: ['updateLotAcquisition'] }
           }
         },
         processing_sale: {
@@ -1169,7 +1544,20 @@ export const creditCastorMachine = setup({
             INITIATE_RENT_TO_OWN: {
               target: 'awaiting_sale',
               actions: ['initiateRentToOwn', 'spawnRentToOwnActor']
-            }
+            },
+            // Calculator and management events (available in all states)
+            UPDATE_PROJECT_PARAMS: { actions: ['updateProjectParams'] },
+            UPDATE_PARTICIPANT_FINANCIAL_STATE: { actions: ['updateParticipantFinancialState'] },
+            ADD_PARTICIPANT: { actions: ['addParticipant'] },
+            UPDATE_PARTICIPANT: { actions: ['updateParticipant'] },
+            REMOVE_PARTICIPANT: { actions: ['removeParticipant'] },
+            ENABLE_PARTICIPANT: { actions: ['enableParticipant'] },
+            DISABLE_PARTICIPANT: { actions: ['disableParticipant'] },
+            ADD_LOT: { actions: ['addLot'] },
+            UPDATE_LOT: { actions: ['updateLot'] },
+            REMOVE_LOT: { actions: ['removeLot'] },
+            MARK_LOT_AS_PORTAGE: { actions: ['markLotAsPortage'] },
+            UPDATE_LOT_ACQUISITION: { actions: ['updateLotAcquisition'] }
           }
         },
         awaiting_buyer_approval: {
@@ -1181,7 +1569,20 @@ export const creditCastorMachine = setup({
             BUYER_REJECTED: {
               target: 'awaiting_sale',
               actions: ['handleBuyerRejection']
-            }
+            },
+            // Calculator and management events (available in all states)
+            UPDATE_PROJECT_PARAMS: { actions: ['updateProjectParams'] },
+            UPDATE_PARTICIPANT_FINANCIAL_STATE: { actions: ['updateParticipantFinancialState'] },
+            ADD_PARTICIPANT: { actions: ['addParticipant'] },
+            UPDATE_PARTICIPANT: { actions: ['updateParticipant'] },
+            REMOVE_PARTICIPANT: { actions: ['removeParticipant'] },
+            ENABLE_PARTICIPANT: { actions: ['enableParticipant'] },
+            DISABLE_PARTICIPANT: { actions: ['disableParticipant'] },
+            ADD_LOT: { actions: ['addLot'] },
+            UPDATE_LOT: { actions: ['updateLot'] },
+            REMOVE_LOT: { actions: ['removeLot'] },
+            MARK_LOT_AS_PORTAGE: { actions: ['markLotAsPortage'] },
+            UPDATE_LOT_ACQUISITION: { actions: ['updateLotAcquisition'] }
           }
         }
       },
@@ -1194,7 +1595,20 @@ export const creditCastorMachine = setup({
         },
         RENT_TO_OWN_CANCELLED: {
           actions: ['stopRentToOwnActor', 'cancelRentToOwn']
-        }
+        },
+        // Calculator and management events (available in all states)
+        UPDATE_PROJECT_PARAMS: { actions: ['updateProjectParams'] },
+        UPDATE_PARTICIPANT_FINANCIAL_STATE: { actions: ['updateParticipantFinancialState'] },
+        ADD_PARTICIPANT: { actions: ['addParticipant'] },
+        UPDATE_PARTICIPANT: { actions: ['updateParticipant'] },
+        REMOVE_PARTICIPANT: { actions: ['removeParticipant'] },
+        ENABLE_PARTICIPANT: { actions: ['enableParticipant'] },
+        DISABLE_PARTICIPANT: { actions: ['disableParticipant'] },
+        ADD_LOT: { actions: ['addLot'] },
+        UPDATE_LOT: { actions: ['updateLot'] },
+        REMOVE_LOT: { actions: ['removeLot'] },
+        MARK_LOT_AS_PORTAGE: { actions: ['markLotAsPortage'] },
+        UPDATE_LOT_ACQUISITION: { actions: ['updateLotAcquisition'] }
       }
     },
 
