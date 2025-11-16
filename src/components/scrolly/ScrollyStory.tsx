@@ -48,7 +48,7 @@ export default function ScrollyStory() {
     });
 
     return () => {
-      ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+      ScrollTrigger.getAll().forEach((trigger: ScrollTrigger) => trigger.kill());
     };
   }, []);
 

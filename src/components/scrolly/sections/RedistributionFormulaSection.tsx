@@ -62,7 +62,9 @@ export default function RedistributionFormulaSection() {
         <div className="space-y-8">
           {/* Step 1: Payment received */}
           <div
-            ref={el => formulaRefs.current[0] = el}
+            ref={el => {
+              formulaRefs.current[0] = el;
+            }}
             className="bg-gradient-to-br from-green-900/30 to-emerald-900/30 rounded-3xl p-8 border border-green-500/30"
           >
             <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
@@ -82,7 +84,9 @@ export default function RedistributionFormulaSection() {
 
           {/* Step 2: Reserve calculation */}
           <div
-            ref={el => formulaRefs.current[1] = el}
+            ref={el => {
+              formulaRefs.current[1] = el;
+            }}
             className="bg-gradient-to-br from-amber-900/30 to-yellow-900/30 rounded-3xl p-8 border border-amber-500/30"
           >
             <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
@@ -123,7 +127,9 @@ export default function RedistributionFormulaSection() {
 
           {/* Step 3: Amount to redistribute */}
           <div
-            ref={el => formulaRefs.current[2] = el}
+            ref={el => {
+              formulaRefs.current[2] = el;
+            }}
             className="bg-gradient-to-br from-blue-900/30 to-cyan-900/30 rounded-3xl p-8 border border-blue-500/30"
           >
             <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
@@ -164,7 +170,9 @@ export default function RedistributionFormulaSection() {
 
           {/* Step 4: Distribution per founder */}
           <div
-            ref={el => formulaRefs.current[3] = el}
+            ref={el => {
+              formulaRefs.current[3] = el;
+            }}
             className="bg-gradient-to-br from-purple-900/30 to-pink-900/30 rounded-3xl p-8 border border-purple-500/30"
           >
             <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
@@ -185,7 +193,7 @@ export default function RedistributionFormulaSection() {
                   </div>
                 </div>
 
-                {founders.map((founder, index) => {
+                {founders.map(founder => {
                   const share = redistributionAmount * founder.quotite;
                   return (
                     <div
@@ -238,7 +246,9 @@ export default function RedistributionFormulaSection() {
 
           {/* Visual summary */}
           <div
-            ref={el => formulaRefs.current[4] = el}
+            ref={el => {
+              formulaRefs.current[4] = el;
+            }}
             className="bg-gradient-to-r from-green-900/30 to-emerald-900/30 rounded-3xl p-8 border-2 border-green-500/50"
           >
             <h3 className="text-2xl font-bold text-white mb-6 text-center">

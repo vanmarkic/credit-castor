@@ -47,7 +47,7 @@ export default function QuotiteSection() {
   }, []);
 
   // Calculate pie slices
-  const createPieSlice = (percentage: number, startAngle: number, color: string) => {
+  const createPieSlice = (percentage: number, startAngle: number) => {
     const angle = (percentage / 100) * 360;
     const endAngle = startAngle + angle;
 
@@ -90,7 +90,7 @@ export default function QuotiteSection() {
               className="w-full max-w-md"
             >
               {founders.map((founder, index) => {
-                const slice = createPieSlice(animatedValues[index], currentAngle, founder.color);
+                const slice = createPieSlice(animatedValues[index], currentAngle);
                 currentAngle += (animatedValues[index] / 100) * 360;
 
                 return (

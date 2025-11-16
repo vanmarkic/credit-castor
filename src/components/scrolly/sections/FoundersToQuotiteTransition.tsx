@@ -50,7 +50,7 @@ export default function FoundersToQuotiteTransition() {
     const centerX = window.innerWidth / 2;
     const centerY = window.innerHeight / 2;
 
-    founderRefs.current.forEach((founder, index) => {
+    founderRefs.current.forEach(founder => {
       if (!founder) return;
 
       // All move towards the same center point
@@ -104,7 +104,7 @@ export default function FoundersToQuotiteTransition() {
     };
   }, []);
 
-  const createPieSlice = (percentage: number, startAngle: number, color: string) => {
+  const createPieSlice = (percentage: number, startAngle: number) => {
     const angle = (percentage / 100) * 360;
     const endAngle = startAngle + angle;
 
@@ -155,7 +155,7 @@ export default function FoundersToQuotiteTransition() {
         {/* Target pie chart */}
         <svg ref={svgRef} viewBox="0 0 200 200" className="w-full max-w-md opacity-0">
           {founders.map(founder => {
-            const slice = createPieSlice(founder.percentage, currentAngle, founder.color);
+            const slice = createPieSlice(founder.percentage, currentAngle);
             currentAngle += (founder.percentage / 100) * 360;
 
             return (

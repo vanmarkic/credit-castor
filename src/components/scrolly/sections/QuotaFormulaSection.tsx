@@ -50,7 +50,9 @@ export default function QuotaFormulaSection() {
         <div className="space-y-8">
           {/* Quota allocation */}
           <div
-            ref={el => formulaRefs.current[0] = el}
+            ref={el => {
+              formulaRefs.current[0] = el;
+            }}
             className="bg-gradient-to-br from-cyan-900/30 to-teal-900/30 rounded-3xl p-8 border border-cyan-500/30"
           >
             <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
@@ -85,7 +87,9 @@ export default function QuotaFormulaSection() {
 
           {/* Personal usage - FREE */}
           <div
-            ref={el => formulaRefs.current[1] = el}
+            ref={el => {
+              formulaRefs.current[1] = el;
+            }}
             className="bg-gradient-to-br from-blue-900/30 to-indigo-900/30 rounded-3xl p-8 border border-blue-500/30"
           >
             <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
@@ -137,7 +141,9 @@ export default function QuotaFormulaSection() {
 
           {/* Professional usage - PAID */}
           <div
-            ref={el => formulaRefs.current[2] = el}
+            ref={el => {
+              formulaRefs.current[2] = el;
+            }}
             className="bg-gradient-to-br from-emerald-900/30 to-green-900/30 rounded-3xl p-8 border border-emerald-500/30"
           >
             <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
@@ -217,7 +223,9 @@ export default function QuotaFormulaSection() {
 
           {/* Quota overflow */}
           <div
-            ref={el => formulaRefs.current[3] = el}
+            ref={el => {
+              formulaRefs.current[3] = el;
+            }}
             className="bg-gradient-to-br from-red-900/30 to-orange-900/30 rounded-3xl p-8 border border-red-500/30"
           >
             <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
@@ -288,7 +296,9 @@ export default function QuotaFormulaSection() {
 
           {/* Summary formula */}
           <div
-            ref={el => formulaRefs.current[4] = el}
+            ref={el => {
+              formulaRefs.current[4] = el;
+            }}
             className="bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-3xl p-8 border-2 border-cyan-500/50"
           >
             <h3 className="text-2xl font-bold text-white mb-6 text-center">

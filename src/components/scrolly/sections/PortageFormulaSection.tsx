@@ -50,7 +50,9 @@ export default function PortageFormulaSection() {
         <div className="space-y-8">
           {/* Step 1: Prix de base */}
           <div
-            ref={el => formulaRefs.current[0] = el}
+            ref={el => {
+              formulaRefs.current[0] = el;
+            }}
             className="bg-gradient-to-br from-blue-900/30 to-cyan-900/30 rounded-3xl p-8 border border-blue-500/30"
           >
             <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
@@ -77,7 +79,9 @@ export default function PortageFormulaSection() {
 
           {/* Step 2: Indexation */}
           <div
-            ref={el => formulaRefs.current[1] = el}
+            ref={el => {
+              formulaRefs.current[1] = el;
+            }}
             className="bg-gradient-to-br from-purple-900/30 to-pink-900/30 rounded-3xl p-8 border border-purple-500/30"
           >
             <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
@@ -120,7 +124,9 @@ export default function PortageFormulaSection() {
 
           {/* Step 3: Frais de portage */}
           <div
-            ref={el => formulaRefs.current[2] = el}
+            ref={el => {
+              formulaRefs.current[2] = el;
+            }}
             className="bg-gradient-to-br from-pink-900/30 to-orange-900/30 rounded-3xl p-8 border border-pink-500/30"
           >
             <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
@@ -184,7 +190,9 @@ export default function PortageFormulaSection() {
 
           {/* Step 4: Prix final */}
           <div
-            ref={el => formulaRefs.current[3] = el}
+            ref={el => {
+              formulaRefs.current[3] = el;
+            }}
             className="bg-gradient-to-br from-emerald-900/30 to-teal-900/30 rounded-3xl p-8 border-2 border-emerald-500/50 shadow-2xl"
           >
             <h3 className="text-3xl font-bold text-white mb-6 flex items-center gap-3">
@@ -229,7 +237,9 @@ export default function PortageFormulaSection() {
 
           {/* Key takeaway */}
           <div
-            ref={el => formulaRefs.current[4] = el}
+            ref={el => {
+              formulaRefs.current[4] = el;
+            }}
             className="bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl p-6 border border-slate-600"
           >
             <p className="text-lg text-slate-300 text-center">

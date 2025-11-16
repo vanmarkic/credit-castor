@@ -64,7 +64,9 @@ export default function RedistributionSection() {
             {/* Eva (buyer) */}
             <circle cx="100" cy="200" r="40" fill="#10b981" opacity="0.8" />
             <text x="100" y="205" textAnchor="middle" fill="white" fontSize="20" fontWeight="bold">Eva</text>
-            <text x="100" y="260" textAnchor="middle" fill="#10b981" fontSize="16">40,000€</text>
+            <text x="100" y="260" textAnchor="middle" fill="#10b981" fontSize="16">
+              {Math.round(animatedAmount).toLocaleString('fr-BE')}€
+            </text>
 
             {/* Distribution */}
             <text x="300" y="50" textAnchor="middle" fill="#fbbf24" fontSize="16" fontWeight="bold">

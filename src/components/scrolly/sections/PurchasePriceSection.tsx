@@ -13,7 +13,7 @@ export default function PurchasePriceSection() {
     if (!section) return;
 
     // Animate formulas one by one
-    formulaRefs.current.forEach((formula, index) => {
+    formulaRefs.current.forEach(formula => {
       if (!formula) return;
       gsap.from(formula, {
         opacity: 0,
@@ -54,7 +54,9 @@ export default function PurchasePriceSection() {
           <div className="space-y-6">
             {/* Step 1: Purchase price */}
             <div
-              ref={el => formulaRefs.current[0] = el}
+              ref={el => {
+                formulaRefs.current[0] = el;
+              }}
               className="bg-slate-800/50 rounded-2xl p-6"
             >
               <div className="flex items-center justify-between mb-3">
@@ -68,7 +70,9 @@ export default function PurchasePriceSection() {
 
             {/* Step 2: Notary fees formula */}
             <div
-              ref={el => formulaRefs.current[1] = el}
+              ref={el => {
+                formulaRefs.current[1] = el;
+              }}
               className="bg-slate-800/50 rounded-2xl p-6"
             >
               <div className="mb-4">
@@ -91,7 +95,9 @@ export default function PurchasePriceSection() {
 
             {/* Step 3: Total calculation */}
             <div
-              ref={el => formulaRefs.current[2] = el}
+              ref={el => {
+                formulaRefs.current[2] = el;
+              }}
               className="bg-gradient-to-r from-blue-600/20 to-cyan-600/20 rounded-2xl p-6 border-2 border-blue-500/50"
             >
               <div className="mb-4">
@@ -112,7 +118,9 @@ export default function PurchasePriceSection() {
 
             {/* Step 4: Price per m² */}
             <div
-              ref={el => formulaRefs.current[3] = el}
+              ref={el => {
+                formulaRefs.current[3] = el;
+              }}
               className="bg-slate-800/50 rounded-2xl p-6"
             >
               <div className="mb-4">
