@@ -96,7 +96,7 @@ export type ACPLoanEvents =
 // RENT-TO-OWN EVENTS
 // ============================================
 
-export type RentToOwnEvents =
+  export type RentToOwnEvents =
   | { type: 'INITIATE_RENT_TO_OWN'; saleId: string; trialMonths: number; monthlyPayment: number }
   | { type: 'RENT_TO_OWN_PAYMENT_RECORDED'; agreementId: string; amount: number; date: Date }
   | { type: 'RENT_TO_OWN_BUYER_REQUESTS_PURCHASE'; agreementId: string }
