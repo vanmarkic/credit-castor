@@ -1,0 +1,248 @@
+name: Auto Version Bump on Changes
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'src/**/*.ts'
+      - 'src/**/*.tsx'
+      - 'src/**/*.astro'
+      - 'package.json'
+      - '!src/**/*.test.ts'
+      - '!src/**/*.test.tsx'
+      - '!**/*.md'
+      - '!docs/**'
+
+permissions:
+  contents: write
+
+jobs:
+  auto-bump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout with full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check if version was already bumped in this push
+        id: check-skip
+        run: |
+          # Check if the last commit is a version bump
+          LAST_COMMIT_MSG=$(git log -1 --pretty=%B)
+          if [[ "$LAST_COMMIT_MSG" == *"chore: bump version"* ]] || [[ "$LAST_COMMIT_MSG" == *"[skip ci]"* ]]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "⏭️  Skipping auto-bump: last commit was a version bump"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get current version
+        if: steps.check-skip.outputs.skip == 'false'
+        id: current
+        run: |
+          # Get current version from src/utils/version.ts
+          CURRENT_VERSION=$(grep "RELEASE_VERSION = " src/utils/version.ts | sed "s/.*'\(.*\)'.*/\1/")
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $CURRENT_VERSION"
+
+      - name: Determine version bump type
+        if: steps.check-skip.outputs.skip == 'false'
+        id: version-bump
+        run: |
+          # Get commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          if [ -z "$LAST_TAG" ]; then
+            echo "No previous tag found, using minor bump"
+            echo "bump=minor" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          COMMITS=$(git log ${LAST_TAG}..HEAD --pretty=format:"%s")
+
+          # Check for breaking changes
+          if echo "$COMMITS" | grep -qE "^[^:]+!:|BREAKING CHANGE:"; then
+            echo "bump=major" >> $GITHUB_OUTPUT
+            echo "🚨 Detected BREAKING CHANGE - bumping MAJOR version"
+          # Check for features
+          elif echo "$COMMITS" | grep -qE "^feat(\([^)]*\))?:"; then
+            echo "bump=minor" >> $GITHUB_OUTPUT
+            echo "✨ Detected new features - bumping MINOR version"
+          # Default to patch
+          else
+            echo "bump=patch" >> $GITHUB_OUTPUT
+            echo "🐛 Detected fixes/chores - bumping PATCH version"
+          fi
+
+      - name: Calculate new version
+        if: steps.check-skip.outputs.skip == 'false'
+        id: bump
+        run: |
+          CURRENT="${{ steps.current.outputs.current_version }}"
+          BUMP_TYPE="${{ steps.version-bump.outputs.bump }}"
+
+          # Parse version
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+
+          # Bump version based on type
+          case "$BUMP_TYPE" in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
+
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
+          echo "📦 Version bumped from $CURRENT to $NEW_VERSION ($BUMP_TYPE)"
+
+      - name: Generate changelog
+        if: steps.check-skip.outputs.skip == 'false'
+        id: changelog
+        run: |
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)
+
+          echo "## What's Changed" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+
+          # Parse commits by type
+          git log $LAST_TAG..HEAD --pretty=format:"%s" | while read commit; do
+            # Skip the commit we're about to make
+            if [[ "$commit" == *"chore: bump version"* ]]; then
+              continue
+            fi
+
+            case "$commit" in
+              feat*|feature*)
+                echo "- ✨ ${commit#*: }" >> CHANGELOG.md
+                ;;
+              fix*)
+                echo "- 🐛 ${commit#*: }" >> CHANGELOG.md
+                ;;
+              docs*)
+                echo "- 📚 ${commit#*: }" >> CHANGELOG.md
+                ;;
+              perf*)
+                echo "- ⚡ ${commit#*: }" >> CHANGELOG.md
+                ;;
+              refactor*)
+                echo "- ♻️  ${commit#*: }" >> CHANGELOG.md
+                ;;
+              test*)
+                echo "- ✅ ${commit#*: }" >> CHANGELOG.md
+                ;;
+              chore*|ci*)
+                echo "- 🔧 ${commit#*: }" >> CHANGELOG.md
+                ;;
+              *)
+                echo "- 📝 $commit" >> CHANGELOG.md
+                ;;
+            esac
+          done
+
+          echo "" >> CHANGELOG.md
+          echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$LAST_TAG...v${{ steps.bump.outputs.new_version }}" >> CHANGELOG.md
+
+          echo "Generated changelog:"
+          cat CHANGELOG.md
+
+      - name: Configure git
+        if: steps.check-skip.outputs.skip == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update version.ts
+        if: steps.check-skip.outputs.skip == 'false'
+        run: |
+          NEW_VERSION="${{ steps.bump.outputs.new_version }}"
+
+          # Update RELEASE_VERSION in version.ts
+          sed -i "s/export const RELEASE_VERSION = '.*'/export const RELEASE_VERSION = '$NEW_VERSION'/" src/utils/version.ts
+
+          echo "✅ Updated src/utils/version.ts to $NEW_VERSION"
+
+      - name: Update package.json version
+        if: steps.check-skip.outputs.skip == 'false'
+        run: |
+          NEW_VERSION="${{ steps.bump.outputs.new_version }}"
+
+          # Update package.json
+          sed -i "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" package.json
+
+          echo "✅ Updated package.json to $NEW_VERSION"
+
+      - name: Commit version bump
+        if: steps.check-skip.outputs.skip == 'false'
+        run: |
+          NEW_VERSION="${{ steps.bump.outputs.new_version }}"
+          BUMP_TYPE="${{ steps.bump.outputs.bump_type }}"
+
+          git add src/utils/version.ts package.json
+
+          git commit -m "chore: bump version to $NEW_VERSION ($BUMP_TYPE) [skip ci]"
+
+      - name: Create and push tag
+        if: steps.check-skip.outputs.skip == 'false'
+        run: |
+          NEW_VERSION="v${{ steps.bump.outputs.new_version }}"
+
+          # Create annotated tag with changelog
+          git tag -a "$NEW_VERSION" -F CHANGELOG.md
+
+          # Push commit and tag
+          git push origin master
+          git push origin "$NEW_VERSION"
+
+          echo "✅ Created and pushed tag $NEW_VERSION"
+
+      - name: Create GitHub Release
+        if: steps.check-skip.outputs.skip == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const changelog = fs.readFileSync('CHANGELOG.md', 'utf8');
+
+            await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: 'v${{ steps.bump.outputs.new_version }}',
+              name: 'Release v${{ steps.bump.outputs.new_version }}',
+              body: changelog,
+              draft: false,
+              prerelease: false
+            });
+
+            console.log('✅ Created GitHub Release v${{ steps.bump.outputs.new_version }}');
+
+      - name: Summary
+        if: steps.check-skip.outputs.skip == 'false'
+        run: |
+          echo "## 🎉 Auto Version Bump Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Old Version:** ${{ steps.current.outputs.current_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**New Version:** ${{ steps.bump.outputs.new_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Bump Type:** ${{ steps.bump.outputs.bump_type }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f "CHANGELOG.md" ]; then
+            echo "### 📝 Changelog" >> $GITHUB_STEP_SUMMARY
+            cat CHANGELOG.md >> $GITHUB_STEP_SUMMARY
+          fi
