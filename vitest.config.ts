@@ -19,6 +19,10 @@ export default defineConfig({
       }
     },
     isolate: true,
+    coverage: {
+      enabled: false,
+      provider: 'none',
+    },
   },
   resolve: {
     alias: {

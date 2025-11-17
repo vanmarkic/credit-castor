@@ -351,7 +351,7 @@ describe('Data Schema Validation - Breaking Change Detection', () => {
    */
   describe('Version Bump Reminder', () => {
     it('should remind to bump major version when breaking changes are made', () => {
-      const currentMajorVersion = 1;
+      const currentMajorVersion = 2;
       const needsMajorVersionBump = false; // Set to true when making breaking changes
 
       if (needsMajorVersionBump) {
