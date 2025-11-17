@@ -1,0 +1,25 @@
+services:
+  # Node.js app
+  - type: web
+    name: credit-castor-web
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Secrets are added via dashboard (once, shared across projects)
+    
+  # Python app (if needed)
+  - type: web
+    name: credit-castor-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+
+databases:
+  - name: credit-castor-db
+    databaseName: credit-castor
+    plan: starter  # $7/month, or 'free' for 90-day trial
+
+# Optional: Background workers, cron jobs, etc.
