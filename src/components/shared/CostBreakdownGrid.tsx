@@ -90,6 +90,8 @@ export function CostBreakdownGrid({ participant, participantCalc: p, projectPara
   // Calculate newcomer price using quotité formula if applicable
   let newcomerPriceCalculation;
   let existingParticipantsTotal = 0; // Store the total surface used in calculation for display
+  let calculationError: string | undefined; // Store error message if calculation fails
+  
   if (isNewcomer && participant.purchaseDetails?.buyingFrom === 'Copropriété' && 
       allParticipants && projectParams && deedDate && participant.entryDate) {
     try {
@@ -97,13 +99,27 @@ export function CostBreakdownGrid({ participant, participantCalc: p, projectPara
       // This includes the buyer themselves in the total surface
       const existingParticipants = allParticipants.filter(existing => {
         // Include all participants who entered before or on the same day as this buyer (including the buyer)
-        const existingEntryDate = existing.entryDate || (existing.isFounder ? new Date(deedDate) : null);
+        // Normalize entryDate to Date object for proper comparison
+        let existingEntryDate: Date | null = null;
+        if (existing.entryDate) {
+          existingEntryDate = existing.entryDate instanceof Date 
+            ? existing.entryDate 
+            : new Date(existing.entryDate);
+        } else if (existing.isFounder) {
+          existingEntryDate = new Date(deedDate);
+        }
+        
         if (!existingEntryDate) return false;
         
+        // Normalize buyer entryDate to Date object for proper comparison
         const buyerEntryDate = participant.entryDate 
           ? (participant.entryDate instanceof Date ? participant.entryDate : new Date(participant.entryDate))
           : new Date(deedDate);
-        return existingEntryDate <= buyerEntryDate;
+        
+        // Compare dates (normalize to midnight for day-level comparison)
+        const existingDate = new Date(existingEntryDate.getFullYear(), existingEntryDate.getMonth(), existingEntryDate.getDate());
+        const buyerDate = new Date(buyerEntryDate.getFullYear(), buyerEntryDate.getMonth(), buyerEntryDate.getDate());
+        return existingDate <= buyerDate;
       });
       
       // Calculate total surface of filtered participants for display
@@ -111,11 +127,13 @@ export function CostBreakdownGrid({ participant, participantCalc: p, projectPara
       
       const participantSurface = participant.surface || 0;
       
-      // Defensive check: if participant surface is 0, we can't calculate quotité properly
+      // Validate inputs before calculation
       if (participantSurface <= 0) {
-        console.warn(`Participant ${participant.name} has surface ${participantSurface}, cannot calculate quotité-based price.`);
+        calculationError = `Impossible de calculer: la surface du participant est ${participantSurface}m² (doit être > 0)`;
       } else if (existingParticipantsTotal <= 0) {
-        console.warn(`Total surface is ${existingParticipantsTotal} for participant ${participant.name}, cannot calculate quotité.`);
+        calculationError = `Impossible de calculer: la surface totale est ${existingParticipantsTotal}m² (doit être > 0)`;
+      } else if (!projectParams.totalPurchase || projectParams.totalPurchase <= 0) {
+        calculationError = `Impossible de calculer: le coût total du projet est ${projectParams.totalPurchase}€ (doit être > 0)`;
       } else {
         newcomerPriceCalculation = calculateNewcomerPurchasePrice(
           participantSurface,
@@ -126,14 +144,15 @@ export function CostBreakdownGrid({ participant, participantCalc: p, projectPara
           formulaParams
         );
         
-        // If quotité is 0, the calculation is invalid - don't use it
+        // If quotité is 0, the calculation is invalid
         if (newcomerPriceCalculation.quotite <= 0) {
-          console.warn(`Quotité is ${newcomerPriceCalculation.quotite} for participant ${participant.name}, calculation may be invalid. Using fallback.`);
+          calculationError = `Impossible de calculer: la quotité est ${newcomerPriceCalculation.quotite} (doit être > 0). Surface: ${participantSurface}m², Total: ${existingParticipantsTotal}m²`;
           newcomerPriceCalculation = undefined;
         }
       }
     } catch (error) {
       console.error('Error calculating newcomer price:', error);
+      calculationError = `Erreur lors du calcul: ${error instanceof Error ? error.message : 'Erreur inconnue'}`;
       newcomerPriceCalculation = undefined;
     }
   }
@@ -242,35 +261,49 @@ export function CostBreakdownGrid({ participant, participantCalc: p, projectPara
             {/* Use calculated newcomer price if available and > 0, otherwise use stored value */}
             {newcomerPriceCalculation && newcomerPriceCalculation.totalPrice > 0 
               ? formatCurrency(newcomerPriceCalculation.totalPrice) 
-              : formatCurrency(p.purchaseShare ?? 0)}
+              : formatCurrency(participant.purchaseDetails?.purchasePrice ?? p.purchaseShare ?? 0)}
           </p>
           {(p.surface ?? 0) > 0 && (
             <p className="text-xs text-blue-600 mt-1" data-testid="purchase-share-surface">{p.surface}m²</p>
           )}
-          {isNewcomer && (newcomerPriceCalculation || participant.purchaseDetails?.purchasePrice) && (
+          {isNewcomer && (newcomerPriceCalculation || participant.purchaseDetails?.purchasePrice || calculationError) && (
             <div className="mt-1.5 pt-1.5 border-t border-gray-100" data-testid="newcomer-calculation-details">
               <p className="text-xs text-gray-500 italic mb-1">Calcul pour nouveau participant:</p>
-              {participant.purchaseDetails?.buyingFrom === 'Copropriété' && newcomerPriceCalculation ? (
-                <p className="text-xs text-gray-400 leading-relaxed" data-testid="newcomer-calculation-text">
-                  <span className="font-medium">1. Calcul quotité:</span>
-                  <br />
-                  Quotité = {participant.surface || 0}m² ÷ {existingParticipantsTotal > 0 ? existingParticipantsTotal : allParticipants?.reduce((s, p) => s + (p.surface || 0), 0)}m² total = {(newcomerPriceCalculation.quotite * 100).toFixed(1)}% ({Math.round(newcomerPriceCalculation.quotite * 1000)}/1000)
-                  <br />
-                  <br />
-                  <span className="font-medium">2. Prix de base = Quotité × Coût projet</span>
-                  <br />
-                  Prix de base = {(newcomerPriceCalculation.quotite * 100).toFixed(1)}% × {formatCurrency(projectParams?.totalPurchase || 0)} = {formatCurrency(newcomerPriceCalculation.basePrice)}
-                  <br />
-                  <br />
-                  <span className="font-medium">3. Formule portage copro ({newcomerPriceCalculation.yearsHeld.toFixed(1)} ans):</span>
-                  <br />
-                  Indexation ({formulaParams?.indexationRate ?? 2}%/an): {formatCurrency(newcomerPriceCalculation.basePrice)} × {((Math.pow(1 + (formulaParams?.indexationRate ?? 2) / 100, newcomerPriceCalculation.yearsHeld) - 1) * 100).toFixed(1)}% = {formatCurrency(newcomerPriceCalculation.indexation)}
-                  <br />
-                  Récup. frais portage: {formatCurrency(newcomerPriceCalculation.carryingCostRecovery)}
-                  <br />
-                  <br />
-                  <span className="font-semibold text-gray-700">Prix final = {formatCurrency(newcomerPriceCalculation.basePrice)} + {formatCurrency(newcomerPriceCalculation.indexation)} + {formatCurrency(newcomerPriceCalculation.carryingCostRecovery)} = {formatCurrency(newcomerPriceCalculation.totalPrice)}</span>
-                </p>
+              {participant.purchaseDetails?.buyingFrom === 'Copropriété' ? (
+                calculationError ? (
+                  <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded p-2 mt-1" data-testid="newcomer-calculation-error">
+                    <span className="font-semibold">❌ Erreur de calcul:</span>
+                    <br />
+                    {calculationError}
+                  </div>
+                ) : newcomerPriceCalculation ? (
+                  <p className="text-xs text-gray-400 leading-relaxed" data-testid="newcomer-calculation-text">
+                    <span className="font-medium">1. Calcul quotité:</span>
+                    <br />
+                    Quotité = {participant.surface || 0}m² ÷ {existingParticipantsTotal > 0 ? existingParticipantsTotal : allParticipants?.reduce((s, p) => s + (p.surface || 0), 0)}m² total = {(newcomerPriceCalculation.quotite * 100).toFixed(1)}% ({Math.round(newcomerPriceCalculation.quotite * 1000)}/1000)
+                    <br />
+                    <br />
+                    <span className="font-medium">2. Prix de base = Quotité × Coût projet</span>
+                    <br />
+                    Prix de base = {(newcomerPriceCalculation.quotite * 100).toFixed(1)}% × {formatCurrency(projectParams?.totalPurchase || 0)} = {formatCurrency(newcomerPriceCalculation.basePrice)}
+                    <br />
+                    <br />
+                    <span className="font-medium">3. Formule portage copro ({newcomerPriceCalculation.yearsHeld.toFixed(1)} ans):</span>
+                    <br />
+                    Indexation ({formulaParams?.indexationRate ?? 2}%/an): {formatCurrency(newcomerPriceCalculation.basePrice)} × {((Math.pow(1 + (formulaParams?.indexationRate ?? 2) / 100, newcomerPriceCalculation.yearsHeld) - 1) * 100).toFixed(1)}% = {formatCurrency(newcomerPriceCalculation.indexation)}
+                    <br />
+                    Récup. frais portage: {formatCurrency(newcomerPriceCalculation.carryingCostRecovery)}
+                    <br />
+                    <br />
+                    <span className="font-semibold text-gray-700">Prix final = {formatCurrency(newcomerPriceCalculation.basePrice)} + {formatCurrency(newcomerPriceCalculation.indexation)} + {formatCurrency(newcomerPriceCalculation.carryingCostRecovery)} = {formatCurrency(newcomerPriceCalculation.totalPrice)}</span>
+                  </p>
+                ) : (
+                  <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded p-2 mt-1" data-testid="newcomer-calculation-error">
+                    <span className="font-semibold">❌ Erreur de calcul:</span>
+                    <br />
+                    {calculationError || 'Impossible de calculer le prix. Données manquantes ou invalides.'}
+                  </div>
+                )
               ) : participant.purchaseDetails?.buyingFrom !== 'Copropriété' ? (
                 <p className="text-xs text-gray-400 leading-relaxed">
                   Formule portage depuis fondateur:
