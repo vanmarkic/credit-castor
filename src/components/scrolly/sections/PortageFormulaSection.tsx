@@ -6,6 +6,10 @@ export default function PortageFormulaSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const formulaRefs = useRef<(HTMLDivElement | null)[]>([]);
 
+  const setFormulaRef = (index: number) => (el: HTMLDivElement | null): void => {
+    formulaRefs.current[index] = el;
+  };
+
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
 
@@ -37,24 +41,25 @@ export default function PortageFormulaSection() {
       <div className="max-w-5xl mx-auto">
         <h2 className="text-4xl md:text-5xl font-bold text-center mb-8">
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-pink-400">
-            Calcul du Prix de Portage
+            Calcul du Prix de Portage Privé
           </span>
         </h2>
 
-        <p className="text-xl text-slate-300 text-center max-w-3xl mx-auto mb-16">
+        <p className="text-xl text-slate-300 text-center max-w-3xl mx-auto mb-4">
           Voici comment on calcule <strong className="text-white">étape par étape</strong> le prix final
-          <br />
-          quand un lot est en portage pendant <strong className="text-orange-400">2.5 ans</strong>.
+          quand un lot est en <strong className="text-pink-400">portage privé</strong> pendant{' '}
+          <strong className="text-orange-400">2.5 ans</strong>.
+        </p>
+        <p className="text-base text-slate-400 text-center max-w-3xl mx-auto mb-16">
+          Le lot reste au nom du fondateur, les frais de portage sont intégrés au prix et
+          <span className="text-pink-400 font-semibold"> reviennent entièrement au fondateur</span>.
+          Dans le <span className="text-emerald-400 font-semibold">portage en copropriété</span>, le calcul du prix
+          se fait via la quotité de la copro et le montant est redistribué à tous les fondateurs.
         </p>
 
         <div className="space-y-8">
           {/* Step 1: Prix de base */}
-          <div
-            ref={el => {
-              formulaRefs.current[0] = el;
-            }}
-            className="bg-gradient-to-br from-blue-900/30 to-cyan-900/30 rounded-3xl p-8 border border-blue-500/30"
-          >
+          <div ref={setFormulaRef(0)} className="bg-gradient-to-br from-blue-900/30 to-cyan-900/30 rounded-3xl p-8 border border-blue-500/30">
             <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
               <span className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-xl">1</span>
               Prix de Base
@@ -78,12 +83,7 @@ export default function PortageFormulaSection() {
           </div>
 
           {/* Step 2: Indexation */}
-          <div
-            ref={el => {
-              formulaRefs.current[1] = el;
-            }}
-            className="bg-gradient-to-br from-purple-900/30 to-pink-900/30 rounded-3xl p-8 border border-purple-500/30"
-          >
+          <div ref={setFormulaRef(1)} className="bg-gradient-to-br from-purple-900/30 to-pink-900/30 rounded-3xl p-8 border border-purple-500/30">
             <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
               <span className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-xl">2</span>
               Indexation (Inflation)
@@ -123,12 +123,7 @@ export default function PortageFormulaSection() {
           </div>
 
           {/* Step 3: Frais de portage */}
-          <div
-            ref={el => {
-              formulaRefs.current[2] = el;
-            }}
-            className="bg-gradient-to-br from-pink-900/30 to-orange-900/30 rounded-3xl p-8 border border-pink-500/30"
-          >
+          <div ref={setFormulaRef(2)} className="bg-gradient-to-br from-pink-900/30 to-orange-900/30 rounded-3xl p-8 border border-pink-500/30">
             <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
               <span className="w-10 h-10 rounded-full bg-pink-500 flex items-center justify-center text-xl">3</span>
               Frais de Portage
@@ -189,12 +184,7 @@ export default function PortageFormulaSection() {
           </div>
 
           {/* Step 4: Prix final */}
-          <div
-            ref={el => {
-              formulaRefs.current[3] = el;
-            }}
-            className="bg-gradient-to-br from-emerald-900/30 to-teal-900/30 rounded-3xl p-8 border-2 border-emerald-500/50 shadow-2xl"
-          >
+          <div ref={setFormulaRef(3)} className="bg-gradient-to-br from-emerald-900/30 to-teal-900/30 rounded-3xl p-8 border-2 border-emerald-500/50 shadow-2xl">
             <h3 className="text-3xl font-bold text-white mb-6 flex items-center gap-3">
               <span className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-teal-400 flex items-center justify-center text-2xl">✓</span>
               Prix Final de Vente
@@ -218,8 +208,8 @@ export default function PortageFormulaSection() {
                 <div className="border-t-2 border-slate-600 my-4"></div>
 
                 <div className="bg-gradient-to-r from-emerald-900/50 to-teal-900/50 rounded-xl p-6 border border-emerald-500/30">
-                  <div className="flex justify-between items-center">
-                    <span className="text-2xl font-bold text-white">Prix final</span>
+                  <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3 md:gap-0">
+                    <span className="text-2xl font-bold text-white">Prix final (portage privé)</span>
                     <span className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-400">
                       181,065€
                     </span>
@@ -229,19 +219,15 @@ export default function PortageFormulaSection() {
 
               <div className="mt-6 p-4 bg-teal-900/30 rounded-xl border border-teal-500/30">
                 <div className="text-sm text-teal-300 text-center">
-                  💡 <strong>Règle clé</strong> : Le prix augmente de ~18.7% après 2.5 ans de portage
+                  💡 <strong>Règle clé (portage privé)</strong> : le prix augmente de ~18.7% après 2.5 ans
+                  car l&apos;acheteur rembourse au fondateur le coût d&apos;achat, l&apos;indexation et les frais de portage.
                 </div>
               </div>
             </div>
           </div>
 
           {/* Key takeaway */}
-          <div
-            ref={el => {
-              formulaRefs.current[4] = el;
-            }}
-            className="bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl p-6 border border-slate-600"
-          >
+          <div ref={setFormulaRef(4)} className="bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl p-6 border border-slate-600">
             <p className="text-lg text-slate-300 text-center">
               <strong className="text-white">Pourquoi ces frais ?</strong>
               <br />

@@ -61,14 +61,24 @@ export default function PortageSection() {
       <div className="max-w-6xl mx-auto">
         <h2 className="text-5xl md:text-6xl font-bold text-center mb-8">
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-pink-400 to-orange-400">
-            Le Portage
+            Portage privé
           </span>
         </h2>
 
-        <p className="text-xl md:text-2xl text-slate-300 text-center max-w-3xl mx-auto mb-16">
-          Alice veut garder un 2ème lot pour le vendre plus tard.
+        <p className="text-xl md:text-2xl text-slate-300 text-center max-w-3xl mx-auto mb-10">
+          Ici, on parle de <strong className="text-pink-400">portage privé</strong> :
+          Alice garde un 2ème lot à son nom pour le vendre plus tard.
           <br />
-          En attendant, elle paie des <strong className="text-pink-400">frais de portage</strong>.
+          En attendant, elle paie chaque mois les <strong className="text-pink-400">frais réels</strong> (taxes, assurance, intérêts…),
+          qu&apos;elle récupère ensuite dans le prix de vente.
+        </p>
+
+        <p className="text-base md:text-lg text-slate-400 text-center max-w-3xl mx-auto mb-16">
+          Plus loin dans l&apos;histoire, on verra le <strong className="text-emerald-400">portage en copropriété</strong> :
+          c&apos;est la copro qui porte le lot, les frais sont intégrés au prix,
+          <br />
+          puis redistribués à <strong className="text-emerald-400">tous les fondateurs via leurs quotités</strong>
+          plutôt que 100% au fondateur seul.
         </p>
 
         {/* Timeline */}
@@ -106,7 +116,7 @@ export default function PortageSection() {
 
         {/* Cost breakdown */}
         <div className="space-y-6">
-          <h3 className="text-2xl font-bold text-center text-white mb-4">Décomposition du prix</h3>
+          <h3 className="text-2xl font-bold text-center text-white mb-4">Décomposition du prix en portage privé</h3>
           {costs.map((cost, index) => (
             <div key={cost.label}>
               <div className="flex justify-between mb-2">
@@ -122,12 +132,24 @@ export default function PortageSection() {
               </div>
             </div>
           ))}
-          <div className="pt-4 border-t border-slate-700">
+          <div className="pt-4 border-t border-slate-700 space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-2xl font-bold text-white">Total</span>
               <span className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-400 to-orange-400">
                 {total.toLocaleString('fr-BE')}€
               </span>
+            </div>
+
+            <div className="mt-2 rounded-2xl border border-slate-700/70 bg-slate-900/60 px-4 py-3 text-sm md:text-base text-slate-300">
+              <p className="mb-1">
+                <strong className="text-white">Portage privé</strong> = tout le prix (base + indexation + frais de portage)
+                est payé par l&apos;acheteur et revient <span className="text-pink-400 font-semibold">100% au fondateur</span>.
+              </p>
+              <p>
+                En <strong className="text-emerald-400">portage en copropriété</strong>, le lot appartient à la copro,
+                le prix est calculé via la quotité, et le montant est <span className="text-emerald-400 font-semibold">partagé entre réserves et redistributions</span>
+                pour tous les fondateurs.
+              </p>
             </div>
           </div>
         </div>
