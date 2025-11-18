@@ -22,6 +22,7 @@ export default function TimelineNameColumn({ participants, onUpdateParticipant }
       {participants.map((p, idx) => (
         <div
           key={idx}
+          data-testid={p.isFounder ? `participant-founder-${p.name}` : `participant-non-founder-${p.name}`}
           className={`h-40 flex items-center border-b border-gray-200 swimlane-row ${
             p.enabled === false ? 'opacity-50' : ''
           }`}

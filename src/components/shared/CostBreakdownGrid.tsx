@@ -89,6 +89,7 @@ export function CostBreakdownGrid({ participant, participantCalc: p, projectPara
 
   // Calculate newcomer price using quotité formula if applicable
   let newcomerPriceCalculation;
+  let existingParticipantsTotal = 0; // Store the total surface used in calculation for display
   if (isNewcomer && participant.purchaseDetails?.buyingFrom === 'Copropriété' && 
       allParticipants && projectParams && deedDate && participant.entryDate) {
     try {
@@ -104,6 +105,9 @@ export function CostBreakdownGrid({ participant, participantCalc: p, projectPara
           : new Date(deedDate);
         return existingEntryDate <= buyerEntryDate;
       });
+      
+      // Calculate total surface of filtered participants for display
+      existingParticipantsTotal = existingParticipants.reduce((sum, p) => sum + (p.surface || 0), 0);
       
       newcomerPriceCalculation = calculateNewcomerPurchasePrice(
         participant.surface || 0,
@@ -216,23 +220,23 @@ export function CostBreakdownGrid({ participant, participantCalc: p, projectPara
           - Founders: Continue using surface × pricePerM2 (standard calculation)
           - Newcomers: Use the calculated portage price from purchaseDetails.purchasePrice
         */}
-        <div className="bg-white rounded-lg p-3 border border-gray-200">
+        <div className="bg-white rounded-lg p-3 border border-gray-200" data-testid="purchase-share-card">
           <p className="text-xs text-gray-500 mb-1.5">Part d'achat</p>
-          <p className="text-lg font-bold text-gray-900">
+          <p className="text-lg font-bold text-gray-900" data-testid="purchase-share-amount">
             {/* Use calculated newcomer price if available, otherwise use stored value */}
             {newcomerPriceCalculation ? formatCurrency(newcomerPriceCalculation.totalPrice) : formatCurrency(p.purchaseShare ?? 0)}
           </p>
           {(p.surface ?? 0) > 0 && (
-            <p className="text-xs text-blue-600 mt-1">{p.surface}m²</p>
+            <p className="text-xs text-blue-600 mt-1" data-testid="purchase-share-surface">{p.surface}m²</p>
           )}
           {isNewcomer && (newcomerPriceCalculation || participant.purchaseDetails?.purchasePrice) && (
-            <div className="mt-1.5 pt-1.5 border-t border-gray-100">
+            <div className="mt-1.5 pt-1.5 border-t border-gray-100" data-testid="newcomer-calculation-details">
               <p className="text-xs text-gray-500 italic mb-1">Calcul pour nouveau participant:</p>
               {participant.purchaseDetails?.buyingFrom === 'Copropriété' && newcomerPriceCalculation ? (
-                <p className="text-xs text-gray-400 leading-relaxed">
+                <p className="text-xs text-gray-400 leading-relaxed" data-testid="newcomer-calculation-text">
                   <span className="font-medium">1. Calcul quotité:</span>
                   <br />
-                  Quotité = {participant.surface || 0}m² ÷ {allParticipants?.reduce((s, p) => s + (p.surface || 0), 0)}m² total = {(newcomerPriceCalculation.quotite * 100).toFixed(1)}% ({Math.round(newcomerPriceCalculation.quotite * 1000)}/1000)
+                  Quotité = {participant.surface || 0}m² ÷ {existingParticipantsTotal > 0 ? existingParticipantsTotal : allParticipants?.reduce((s, p) => s + (p.surface || 0), 0)}m² total = {(newcomerPriceCalculation.quotite * 100).toFixed(1)}% ({Math.round(newcomerPriceCalculation.quotite * 1000)}/1000)
                   <br />
                   <br />
                   <span className="font-medium">2. Prix de base = Quotité × Coût projet</span>
@@ -264,7 +268,7 @@ export function CostBreakdownGrid({ participant, participantCalc: p, projectPara
               ) : (
                 <p className="text-xs text-gray-400">Aucun détail disponible</p>
               )}
-              <p className="text-xs text-green-600 mt-1.5 pt-1 border-t border-green-100">
+              <p className="text-xs text-green-600 mt-1.5 pt-1 border-t border-green-100" data-testid="newcomer-calculation-method">
                 ✓ Utilise {newcomerPriceCalculation ? 'calcul quotité + formule portage' : 'purchaseDetails.purchasePrice (formule portage calculée)'}
               </p>
             </div>
@@ -280,12 +284,12 @@ export function CostBreakdownGrid({ participant, participantCalc: p, projectPara
         </div>
 
         {/* Droit d'enregistrements - Principle: Continuity (aligned with purchase share) */}
-        <div className="bg-white rounded-lg p-3 border border-gray-200">
+        <div className="bg-white rounded-lg p-3 border border-gray-200" data-testid="registration-fees-card">
           <p className="text-xs text-gray-500 mb-1.5">Droit d'enregistrements</p>
-          <p className="text-lg font-bold text-gray-900">{formatCurrency(p.droitEnregistrements ?? 0)}</p>
-          <p className="text-xs text-gray-400 mt-1">{(p.registrationFeesRate ?? 0)}%</p>
+          <p className="text-lg font-bold text-gray-900" data-testid="registration-fees-amount">{formatCurrency(p.droitEnregistrements ?? 0)}</p>
+          <p className="text-xs text-gray-400 mt-1" data-testid="registration-fees-rate">{(p.registrationFeesRate ?? 0)}%</p>
           {(p.purchaseShare != null && p.registrationFeesRate != null) && (
-            <p className="text-xs text-gray-400 mt-1.5 pt-1.5 border-t border-gray-100">
+            <p className="text-xs text-gray-400 mt-1.5 pt-1.5 border-t border-gray-100" data-testid="registration-fees-calculation">
               Part d'achat ({formatCurrency(p.purchaseShare)}) × {p.registrationFeesRate}% = {formatCurrency(p.droitEnregistrements ?? 0)}
             </p>
           )}

@@ -176,6 +176,7 @@ export const ParticipantsTimeline: React.FC<ParticipantsTimelineProps> = ({
                     return (
                       <div
                         key={pIdx}
+                        data-testid={p.isFounder ? `participant-founder-${p.name}` : `participant-non-founder-${p.name}`}
                         className={`px-4 py-2 rounded-lg border-2 cursor-pointer transition-all hover:shadow-md ${
                           p.enabled === false
                             ? 'opacity-50 bg-gray-100 border-gray-300 text-gray-600'

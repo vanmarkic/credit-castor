@@ -102,9 +102,11 @@ export function ParticipantDetailsPanel({
       })()
     : null;
 
+  const participant = participants[idx];
   return (
     <div
       id={`participant-${p.name}`}
+      data-testid={participant.isFounder ? `participant-founder-${p.name}` : `participant-non-founder-${p.name}`}
       className="px-6 pb-6 border-t border-gray-200 pt-4 relative transition-all duration-200"
     >
       {/* Pin button - top-right corner */}

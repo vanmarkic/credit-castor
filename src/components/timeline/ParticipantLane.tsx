@@ -48,6 +48,7 @@ export default function ParticipantLane({
                 monthlyPayment={snapshot.monthlyPayment}
                 isT0={snapshot.isT0}
                 isFounder={participant.isFounder === true}
+                participantName={participant.name}
                 colorZone={snapshot.colorZone}
                 transaction={snapshot.transaction}
                 onClick={() => onOpenParticipantDetails(snapshot.participantIndex)}

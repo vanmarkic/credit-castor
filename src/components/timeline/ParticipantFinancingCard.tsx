@@ -8,6 +8,7 @@ interface ParticipantFinancingCardProps {
   monthlyPayment: number;
   isT0: boolean;
   isFounder: boolean;
+  participantName: string;
   colorZone: number;
   transaction?: TimelineTransaction;
   onClick: () => void;
@@ -41,6 +42,7 @@ export default function ParticipantFinancingCard({
   monthlyPayment,
   isT0,
   isFounder,
+  participantName,
   colorZone,
   transaction,
   onClick,
@@ -57,6 +59,7 @@ export default function ParticipantFinancingCard({
     : 'Mensualité';
   return (
     <div
+      data-testid={isFounder ? `participant-founder-${participantName}` : `participant-non-founder-${participantName}`}
       className={`
         w-full p-4 rounded-lg border-2 transition-shadow hover:shadow-md cursor-pointer
         ${isT0 ? 'timeline-card-t0' : ''}
