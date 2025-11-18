@@ -202,81 +202,6 @@ export default function ParticipantDetailModal({
           />
         </button>
 
-        {/* Purchase Details (only for non-founders) */}
-        {!participant.isFounder && (
-          <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">💰 Sélection du Lot</p>
-
-            <div className="mb-4">
-              <AvailableLotsView
-                availableLots={getAvailableLotsForNewcomer(
-                  allParticipants,
-                  [
-                    { lotId: 999, surface: 300, acquiredDate: new Date(deedDate), soldDate: undefined }
-                  ],
-                  calculations
-                )}
-                deedDate={new Date(deedDate)}
-                formulaParams={formulaParams}
-                buyerEntryDate={participant.entryDate ? new Date(participant.entryDate) : undefined}
-                onSelectLot={(lot: AvailableLot, price: PortageLotPrice) => {
-                  onUpdateParticipant({
-                    ...participant,
-                    surface: lot.surface,
-                    capitalApporte: Math.min(participant.capitalApporte || 0, price.totalPrice),
-                    purchaseDetails: {
-                      buyingFrom: lot.fromParticipant || 'Copropriété',
-                      lotId: lot.lotId,
-                      purchasePrice: price.totalPrice,
-                      breakdown: {
-                        basePrice: price.basePrice,
-                        indexation: price.indexation,
-                        carryingCostRecovery: price.carryingCostRecovery,
-                        feesRecovery: price.feesRecovery || 0,
-                        renovations: 0 // Can be added if needed
-                      }
-                    }
-                  });
-                }}
-              />
-            </div>
-
-            {participant.purchaseDetails?.lotId && (
-              <div className="bg-green-50 border border-green-300 rounded-lg p-3 mt-3">
-                <div className="flex items-start justify-between mb-2">
-                  <p className="text-xs font-semibold text-green-800">✅ Lot sélectionné:</p>
-                  <button
-                    onClick={() => {
-                      onUpdateParticipant({
-                        ...participant,
-                        purchaseDetails: undefined,
-                        surface: 0
-                      });
-                    }}
-                    className="text-xs text-red-600 hover:text-red-800 font-semibold hover:underline"
-                  >
-                    ✕ Changer de lot
-                  </button>
-                </div>
-                <div className="grid grid-cols-3 gap-2 text-xs">
-                  <div>
-                    <span className="text-gray-600">Lot:</span>
-                    <span className="font-semibold ml-1">#{participant.purchaseDetails.lotId}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">De:</span>
-                    <span className="font-semibold ml-1">{participant.purchaseDetails.buyingFrom}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Prix:</span>
-                    <span className="font-semibold ml-1">€{participant.purchaseDetails.purchasePrice?.toLocaleString('fr-BE', { maximumFractionDigits: 0 })}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Configuration Section */}
         <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
           <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Configuration</p>
@@ -527,6 +452,81 @@ export default function ParticipantDetailModal({
             >
               Retirer ce·tte participant·e
             </button>
+          </div>
+        )}
+
+        {/* Purchase Details (only for non-founders) */}
+        {!participant.isFounder && (
+          <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">💰 Sélection du Lot</p>
+
+            <div className="mb-4">
+              <AvailableLotsView
+                availableLots={getAvailableLotsForNewcomer(
+                  allParticipants,
+                  [
+                    { lotId: 999, surface: 300, acquiredDate: new Date(deedDate), soldDate: undefined }
+                  ],
+                  calculations
+                )}
+                deedDate={new Date(deedDate)}
+                formulaParams={formulaParams}
+                buyerEntryDate={participant.entryDate ? new Date(participant.entryDate) : undefined}
+                onSelectLot={(lot: AvailableLot, price: PortageLotPrice) => {
+                  onUpdateParticipant({
+                    ...participant,
+                    surface: lot.surface,
+                    capitalApporte: Math.min(participant.capitalApporte || 0, price.totalPrice),
+                    purchaseDetails: {
+                      buyingFrom: lot.fromParticipant || 'Copropriété',
+                      lotId: lot.lotId,
+                      purchasePrice: price.totalPrice,
+                      breakdown: {
+                        basePrice: price.basePrice,
+                        indexation: price.indexation,
+                        carryingCostRecovery: price.carryingCostRecovery,
+                        feesRecovery: price.feesRecovery || 0,
+                        renovations: 0 // Can be added if needed
+                      }
+                    }
+                  });
+                }}
+              />
+            </div>
+
+            {participant.purchaseDetails?.lotId && (
+              <div className="bg-green-50 border border-green-300 rounded-lg p-3 mt-3">
+                <div className="flex items-start justify-between mb-2">
+                  <p className="text-xs font-semibold text-green-800">✅ Lot sélectionné:</p>
+                  <button
+                    onClick={() => {
+                      onUpdateParticipant({
+                        ...participant,
+                        purchaseDetails: undefined,
+                        surface: 0
+                      });
+                    }}
+                    className="text-xs text-red-600 hover:text-red-800 font-semibold hover:underline"
+                  >
+                    ✕ Changer de lot
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div>
+                    <span className="text-gray-600">Lot:</span>
+                    <span className="font-semibold ml-1">#{participant.purchaseDetails.lotId}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">De:</span>
+                    <span className="font-semibold ml-1">{participant.purchaseDetails.buyingFrom}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Prix:</span>
+                    <span className="font-semibold ml-1">€{participant.purchaseDetails.purchasePrice?.toLocaleString('fr-BE', { maximumFractionDigits: 0 })}</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

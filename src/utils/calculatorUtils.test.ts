@@ -25,6 +25,7 @@ import {
   calculateParticipantsAtEntryDate,
   calculateCommunCostsBreakdown,
   calculateCommunCostsWithPortageCopro,
+  calculateExpectedPaybacks,
   type Participant,
   type ProjectParams,
   type UnitDetails,
@@ -2586,5 +2587,360 @@ describe('calculateAll with two-loan financing', () => {
     expect(p.loanNeeded).toBeGreaterThan(0);
     expect(p.monthlyPayment).toBeGreaterThan(0);
     expect(p.totalInterest).toBeGreaterThan(0);
+  });
+});
+
+// ============================================
+// Expected Paybacks - Exclusion Rules
+// ============================================
+
+describe('Expected Paybacks - Self and Same-Day Exclusions', () => {
+  const deedDate = '2026-02-01';
+
+  describe('Non-founder should not receive redistribution from own purchase', () => {
+    it('should exclude non-founder from receiving redistribution from their own copro purchase', () => {
+      const founder: Participant = {
+        name: 'Founder Alice',
+        capitalApporte: 100000,
+        registrationFeesRate: 12.5,
+        interestRate: 4.5,
+        durationYears: 25,
+        quantity: 1,
+        unitId: 1,
+        surface: 100,
+        isFounder: true,
+        entryDate: new Date(deedDate)
+      };
+
+      const newcomerBob: Participant = {
+        name: 'Newcomer Bob',
+        capitalApporte: 50000,
+        registrationFeesRate: 12.5,
+        interestRate: 4.5,
+        durationYears: 25,
+        quantity: 1,
+        unitId: 1,
+        surface: 50,
+        isFounder: false,
+        entryDate: new Date('2027-02-01'), // 1 year later
+        purchaseDetails: {
+          buyingFrom: 'Copropriété',
+          lotId: 999,
+          purchasePrice: 100000 // Total price
+        }
+      };
+
+      // Calculate expected paybacks for Bob (the buyer)
+      // Bob should NOT receive redistribution from his own purchase
+      const paybacksBob = calculateExpectedPaybacks(
+        newcomerBob,
+        [founder, newcomerBob],
+        deedDate,
+        30 // coproReservesShare
+      );
+
+      // Bob should NOT have a payback from his own purchase
+      const selfRedistribution = paybacksBob.paybacks.find(
+        pb => pb.buyer === 'Newcomer Bob' && pb.type === 'copro'
+      );
+      expect(selfRedistribution).toBeUndefined();
+
+      // Bob should have 0 total recovered (no paybacks)
+      expect(paybacksBob.totalRecovered).toBe(0);
+      expect(paybacksBob.paybacks).toHaveLength(0);
+    });
+
+    it('founder should receive redistribution from newcomer purchase', () => {
+      const founder: Participant = {
+        name: 'Founder Alice',
+        capitalApporte: 100000,
+        registrationFeesRate: 12.5,
+        interestRate: 4.5,
+        durationYears: 25,
+        quantity: 1,
+        unitId: 1,
+        surface: 100,
+        isFounder: true,
+        entryDate: new Date(deedDate)
+      };
+
+      const newcomerBob: Participant = {
+        name: 'Newcomer Bob',
+        capitalApporte: 50000,
+        registrationFeesRate: 12.5,
+        interestRate: 4.5,
+        durationYears: 25,
+        quantity: 1,
+        unitId: 1,
+        surface: 50,
+        isFounder: false,
+        entryDate: new Date('2027-02-01'),
+        purchaseDetails: {
+          buyingFrom: 'Copropriété',
+          lotId: 999,
+          purchasePrice: 100000
+        }
+      };
+
+      // Founder should receive redistribution from Bob's purchase
+      const paybacksFounder = calculateExpectedPaybacks(
+        founder,
+        [founder, newcomerBob],
+        deedDate,
+        30 // coproReservesShare: 30% to reserves, 70% to participants
+      );
+
+      // Founder should have a payback from Bob's purchase
+      const redistribution = paybacksFounder.paybacks.find(
+        pb => pb.buyer === 'Newcomer Bob' && pb.type === 'copro'
+      );
+      expect(redistribution).toBeDefined();
+      
+      // Redistribution quotité is based on existing participants only (excluding the buyer)
+      // Only the founder exists before Bob's purchase, so founder's quotité: 100m² / 100m² = 100%
+      // 70% of 100,000€ = 70,000€ to participants
+      // Founder gets 100% of 70,000€ = 70,000€
+      const expectedAmount = 70000; // 100% of redistribution (only founder exists)
+      expect(redistribution?.amount).toBeCloseTo(expectedAmount, 2);
+      expect(paybacksFounder.totalRecovered).toBeCloseTo(expectedAmount, 2);
+    });
+  });
+
+  describe('Same-day buyers should not receive redistribution from each other', () => {
+    it('should exclude same-day buyers from each other redistributions', () => {
+      const founder: Participant = {
+        name: 'Founder Alice',
+        capitalApporte: 100000,
+        registrationFeesRate: 12.5,
+        interestRate: 4.5,
+        durationYears: 25,
+        quantity: 1,
+        unitId: 1,
+        surface: 100,
+        isFounder: true,
+        entryDate: new Date(deedDate)
+      };
+
+      const newcomerBob: Participant = {
+        name: 'Newcomer Bob',
+        capitalApporte: 50000,
+        registrationFeesRate: 12.5,
+        interestRate: 4.5,
+        durationYears: 25,
+        quantity: 1,
+        unitId: 1,
+        surface: 50,
+        isFounder: false,
+        entryDate: new Date('2027-02-01'), // Same day as Charlie
+        purchaseDetails: {
+          buyingFrom: 'Copropriété',
+          lotId: 999,
+          purchasePrice: 100000
+        }
+      };
+
+      const newcomerCharlie: Participant = {
+        name: 'Newcomer Charlie',
+        capitalApporte: 40000,
+        registrationFeesRate: 12.5,
+        interestRate: 4.5,
+        durationYears: 25,
+        quantity: 1,
+        unitId: 1,
+        surface: 40,
+        isFounder: false,
+        entryDate: new Date('2027-02-01'), // Same day as Bob
+        purchaseDetails: {
+          buyingFrom: 'Copropriété',
+          lotId: 998,
+          purchasePrice: 80000
+        }
+      };
+
+      // Bob should NOT receive redistribution from Charlie's purchase (same day)
+      const paybacksBob = calculateExpectedPaybacks(
+        newcomerBob,
+        [founder, newcomerBob, newcomerCharlie],
+        deedDate,
+        30
+      );
+
+      const charlieRedistribution = paybacksBob.paybacks.find(
+        pb => pb.buyer === 'Newcomer Charlie' && pb.type === 'copro'
+      );
+      expect(charlieRedistribution).toBeUndefined();
+
+      // Charlie should NOT receive redistribution from Bob's purchase (same day)
+      const paybacksCharlie = calculateExpectedPaybacks(
+        newcomerCharlie,
+        [founder, newcomerBob, newcomerCharlie],
+        deedDate,
+        30
+      );
+
+      const bobRedistribution = paybacksCharlie.paybacks.find(
+        pb => pb.buyer === 'Newcomer Bob' && pb.type === 'copro'
+      );
+      expect(bobRedistribution).toBeUndefined();
+
+      // Both should have 0 total recovered (no paybacks from each other)
+      expect(paybacksBob.totalRecovered).toBe(0);
+      expect(paybacksCharlie.totalRecovered).toBe(0);
+    });
+
+    it('same-day buyers should still allow founder to receive redistribution', () => {
+      const founder: Participant = {
+        name: 'Founder Alice',
+        capitalApporte: 100000,
+        registrationFeesRate: 12.5,
+        interestRate: 4.5,
+        durationYears: 25,
+        quantity: 1,
+        unitId: 1,
+        surface: 100,
+        isFounder: true,
+        entryDate: new Date(deedDate)
+      };
+
+      const newcomerBob: Participant = {
+        name: 'Newcomer Bob',
+        capitalApporte: 50000,
+        registrationFeesRate: 12.5,
+        interestRate: 4.5,
+        durationYears: 25,
+        quantity: 1,
+        unitId: 1,
+        surface: 50,
+        isFounder: false,
+        entryDate: new Date('2027-02-01'),
+        purchaseDetails: {
+          buyingFrom: 'Copropriété',
+          lotId: 999,
+          purchasePrice: 100000
+        }
+      };
+
+      const newcomerCharlie: Participant = {
+        name: 'Newcomer Charlie',
+        capitalApporte: 40000,
+        registrationFeesRate: 12.5,
+        interestRate: 4.5,
+        durationYears: 25,
+        quantity: 1,
+        unitId: 1,
+        surface: 40,
+        isFounder: false,
+        entryDate: new Date('2027-02-01'), // Same day as Bob
+        purchaseDetails: {
+          buyingFrom: 'Copropriété',
+          lotId: 998,
+          purchasePrice: 80000
+        }
+      };
+
+      // Founder should receive redistribution from BOTH purchases
+      const paybacksFounder = calculateExpectedPaybacks(
+        founder,
+        [founder, newcomerBob, newcomerCharlie],
+        deedDate,
+        30
+      );
+
+      // Founder should receive from Bob's purchase
+      const bobRedistribution = paybacksFounder.paybacks.find(
+        pb => pb.buyer === 'Newcomer Bob' && pb.type === 'copro'
+      );
+      expect(bobRedistribution).toBeDefined();
+
+      // Founder should receive from Charlie's purchase
+      const charlieRedistribution = paybacksFounder.paybacks.find(
+        pb => pb.buyer === 'Newcomer Charlie' && pb.type === 'copro'
+      );
+      expect(charlieRedistribution).toBeDefined();
+
+      // Founder should receive both redistributions
+      expect(paybacksFounder.paybacks).toHaveLength(2);
+      expect(paybacksFounder.totalRecovered).toBeGreaterThan(0);
+    });
+
+    it('earlier newcomer should receive redistribution from later newcomer', () => {
+      const founder: Participant = {
+        name: 'Founder Alice',
+        capitalApporte: 100000,
+        registrationFeesRate: 12.5,
+        interestRate: 4.5,
+        durationYears: 25,
+        quantity: 1,
+        unitId: 1,
+        surface: 100,
+        isFounder: true,
+        entryDate: new Date(deedDate)
+      };
+
+      const newcomerBob: Participant = {
+        name: 'Newcomer Bob',
+        capitalApporte: 50000,
+        registrationFeesRate: 12.5,
+        interestRate: 4.5,
+        durationYears: 25,
+        quantity: 1,
+        unitId: 1,
+        surface: 50,
+        isFounder: false,
+        entryDate: new Date('2027-02-01'), // Earlier
+        purchaseDetails: {
+          buyingFrom: 'Copropriété',
+          lotId: 999,
+          purchasePrice: 100000
+        }
+      };
+
+      const newcomerCharlie: Participant = {
+        name: 'Newcomer Charlie',
+        capitalApporte: 40000,
+        registrationFeesRate: 12.5,
+        interestRate: 4.5,
+        durationYears: 25,
+        quantity: 1,
+        unitId: 1,
+        surface: 40,
+        isFounder: false,
+        entryDate: new Date('2028-02-01'), // Later than Bob
+        purchaseDetails: {
+          buyingFrom: 'Copropriété',
+          lotId: 998,
+          purchasePrice: 80000
+        }
+      };
+
+      // Bob (earlier) should receive redistribution from Charlie (later)
+      const paybacksBob = calculateExpectedPaybacks(
+        newcomerBob,
+        [founder, newcomerBob, newcomerCharlie],
+        deedDate,
+        30
+      );
+
+      const charlieRedistribution = paybacksBob.paybacks.find(
+        pb => pb.buyer === 'Newcomer Charlie' && pb.type === 'copro'
+      );
+      expect(charlieRedistribution).toBeDefined();
+      expect(charlieRedistribution?.amount).toBeGreaterThan(0);
+
+      // But Charlie (later) should NOT receive from Bob (earlier) - Bob entered before Charlie
+      const paybacksCharlie = calculateExpectedPaybacks(
+        newcomerCharlie,
+        [founder, newcomerBob, newcomerCharlie],
+        deedDate,
+        30
+      );
+
+      const bobRedistribution = paybacksCharlie.paybacks.find(
+        pb => pb.buyer === 'Newcomer Bob' && pb.type === 'copro'
+      );
+      // Charlie entered AFTER Bob, so Bob's purchase happened before Charlie existed
+      // This should be undefined (Charlie didn't exist when Bob purchased)
+      expect(bobRedistribution).toBeUndefined();
+    });
   });
 });

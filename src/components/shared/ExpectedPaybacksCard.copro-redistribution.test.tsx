@@ -380,5 +380,209 @@ describe('ExpectedPaybacksCard - Copro Redistribution with Renovation Costs', ()
 
     expect(redistributionAfter).toBeGreaterThan(redistributionBefore);
   });
+
+  it('should NOT show self-redistribution for non-founder buying from copropriété', () => {
+    const founder: Participant = {
+      name: 'Founder Alice',
+      capitalApporte: 150000,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      isFounder: true,
+      entryDate: new Date(deedDate),
+      surface: 200,
+      quantity: 1,
+      unitId: 1,
+      lotsOwned: []
+    };
+
+    const newcomerBob: Participant = {
+      name: 'Newcomer Bob',
+      capitalApporte: 50000,
+      registrationFeesRate: 3,
+      interestRate: 4.5,
+      durationYears: 25,
+      isFounder: false,
+      entryDate: new Date('2027-02-01'),
+      surface: 50,
+      quantity: 1,
+      purchaseDetails: {
+        buyingFrom: 'Copropriété',
+        purchasePrice: 100000,
+        lotId: 1
+      },
+      lotsOwned: []
+    };
+
+    const allParticipants = [founder, newcomerBob];
+
+    // Bob should NOT see a payback from his own purchase
+    render(
+      <Tooltip.Provider>
+        <ExpectedPaybacksCard
+          participant={newcomerBob}
+          allParticipants={allParticipants}
+          deedDate={deedDate}
+          coproReservesShare={coproReservesShare}
+        />
+      </Tooltip.Provider>
+    );
+
+    // Bob should NOT appear as a buyer in his own paybacks
+    const bobPaybacks = screen.queryByText('Newcomer Bob');
+    // If the card renders at all, Bob's name should not appear as a buyer
+    // If there are no paybacks, the card should not render
+    if (bobPaybacks) {
+      // Check that it's not showing a payback from Bob's own purchase
+      const selfRedistribution = screen.queryByText(/Redistribution vente copropriété.*Bob/i);
+      expect(selfRedistribution).not.toBeInTheDocument();
+    }
+  });
+
+  it('should NOT show redistribution between same-day buyers', () => {
+    const founder: Participant = {
+      name: 'Founder Alice',
+      capitalApporte: 150000,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      isFounder: true,
+      entryDate: new Date(deedDate),
+      surface: 200,
+      quantity: 1,
+      unitId: 1,
+      lotsOwned: []
+    };
+
+    const newcomerBob: Participant = {
+      name: 'Newcomer Bob',
+      capitalApporte: 50000,
+      registrationFeesRate: 3,
+      interestRate: 4.5,
+      durationYears: 25,
+      isFounder: false,
+      entryDate: new Date('2027-02-01'), // Same day as Charlie
+      surface: 50,
+      quantity: 1,
+      purchaseDetails: {
+        buyingFrom: 'Copropriété',
+        purchasePrice: 100000,
+        lotId: 1
+      },
+      lotsOwned: []
+    };
+
+    const newcomerCharlie: Participant = {
+      name: 'Newcomer Charlie',
+      capitalApporte: 40000,
+      registrationFeesRate: 3,
+      interestRate: 4.5,
+      durationYears: 25,
+      isFounder: false,
+      entryDate: new Date('2027-02-01'), // Same day as Bob
+      surface: 40,
+      quantity: 1,
+      purchaseDetails: {
+        buyingFrom: 'Copropriété',
+        purchasePrice: 80000,
+        lotId: 2
+      },
+      lotsOwned: []
+    };
+
+    const allParticipants = [founder, newcomerBob, newcomerCharlie];
+
+    // Bob should NOT see a payback from Charlie's purchase (same day)
+    render(
+      <Tooltip.Provider>
+        <ExpectedPaybacksCard
+          participant={newcomerBob}
+          allParticipants={allParticipants}
+          deedDate={deedDate}
+          coproReservesShare={coproReservesShare}
+        />
+      </Tooltip.Provider>
+    );
+
+    // Bob should NOT see Charlie's purchase as a payback
+    const charliePayback = screen.queryByText('Newcomer Charlie');
+    // If the card renders, Charlie should not appear as a buyer for Bob
+    // If there are no paybacks, the card should not render
+    if (charliePayback) {
+      // Check that it's not showing a redistribution from Charlie
+      const charlieRedistribution = screen.queryByText(/Redistribution vente copropriété.*Charlie/i);
+      expect(charlieRedistribution).not.toBeInTheDocument();
+    }
+  });
+
+  it('founder should still receive redistribution from same-day buyers', () => {
+    const founder: Participant = {
+      name: 'Founder Alice',
+      capitalApporte: 150000,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      isFounder: true,
+      entryDate: new Date(deedDate),
+      surface: 200,
+      quantity: 1,
+      unitId: 1,
+      lotsOwned: []
+    };
+
+    const newcomerBob: Participant = {
+      name: 'Newcomer Bob',
+      capitalApporte: 50000,
+      registrationFeesRate: 3,
+      interestRate: 4.5,
+      durationYears: 25,
+      isFounder: false,
+      entryDate: new Date('2027-02-01'),
+      surface: 50,
+      quantity: 1,
+      purchaseDetails: {
+        buyingFrom: 'Copropriété',
+        purchasePrice: 100000,
+        lotId: 1
+      },
+      lotsOwned: []
+    };
+
+    const newcomerCharlie: Participant = {
+      name: 'Newcomer Charlie',
+      capitalApporte: 40000,
+      registrationFeesRate: 3,
+      interestRate: 4.5,
+      durationYears: 25,
+      isFounder: false,
+      entryDate: new Date('2027-02-01'), // Same day as Bob
+      surface: 40,
+      quantity: 1,
+      purchaseDetails: {
+        buyingFrom: 'Copropriété',
+        purchasePrice: 80000,
+        lotId: 2
+      },
+      lotsOwned: []
+    };
+
+    const allParticipants = [founder, newcomerBob, newcomerCharlie];
+
+    // Founder should receive redistribution from BOTH Bob and Charlie
+    render(
+      <Tooltip.Provider>
+        <ExpectedPaybacksCard
+          participant={founder}
+          allParticipants={allParticipants}
+          deedDate={deedDate}
+          coproReservesShare={coproReservesShare}
+        />
+      </Tooltip.Provider>
+    );
+
+    // Founder should see both paybacks
+    expect(screen.getByText('Newcomer Bob')).toBeInTheDocument();
+    expect(screen.getByText('Newcomer Charlie')).toBeInTheDocument();
+  });
 });
 

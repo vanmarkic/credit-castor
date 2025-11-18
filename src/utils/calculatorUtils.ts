@@ -4,7 +4,8 @@
  */
 
 import type { Lot } from '../types/timeline';
-import { calculateIndexation } from './portageCalculations';
+import { calculateIndexation, calculateCoproSalePrice } from './portageCalculations';
+import { calculateCoproRedistribution } from './coproRedistribution';
 
 export interface Participant {
   name: string;
@@ -1285,5 +1286,252 @@ export function calculateCommunCostsWithPortageCopro(
     indexation,
     total,
     yearsHeld: Math.max(0, yearsHeld)
+  };
+}
+
+// ============================================
+// Expected Paybacks Calculation
+// ============================================
+
+export interface Payback {
+  date: Date;
+  buyer: string;
+  amount: number;
+  type: 'portage' | 'copro';
+  description: string;
+}
+
+export interface ExpectedPaybacksResult {
+  paybacks: Payback[];
+  totalRecovered: number;
+}
+
+/**
+ * Helper to normalize dates to Date objects
+ */
+function ensureDate(date: Date | string | undefined, fallback: Date): Date {
+  if (!date) return fallback;
+  if (date instanceof Date) return date;
+  return new Date(date);
+}
+
+/**
+ * Compare two dates by ISO date string (ignoring time)
+ * Returns true if dates are on the same calendar day
+ */
+function isSameDay(date1: Date, date2: Date): boolean {
+  const str1 = date1.toISOString().split('T')[0];
+  const str2 = date2.toISOString().split('T')[0];
+  return str1 === str2;
+}
+
+/**
+ * Calculate expected paybacks for a participant
+ * Includes both portage lot sales and copropriété redistributions
+ * 
+ * Exclusion rules:
+ * 1. Non-founders do NOT receive redistribution from their own purchase
+ * 2. Non-founders buying on the same day do NOT receive redistribution from each other
+ * 
+ * @param participant - The participant to calculate paybacks for
+ * @param allParticipants - All participants in the project
+ * @param deedDate - Date of the initial purchase (deed date)
+ * @param coproReservesShare - Percentage of copro sale proceeds going to reserves (default: 30%)
+ * @param projectParams - Optional project parameters (for renovationStartDate logic)
+ * @param calculations - Optional calculation results (for recalculating copro sale prices)
+ * @param formulaParams - Optional portage formula parameters
+ * @returns Paybacks result with array of paybacks and total recovered amount
+ */
+export function calculateExpectedPaybacks(
+  participant: Participant,
+  allParticipants: Participant[],
+  deedDate: string,
+  coproReservesShare: number = 30,
+  projectParams?: ProjectParams,
+  calculations?: CalculationResults,
+  formulaParams?: PortageFormulaParams
+): ExpectedPaybacksResult {
+  const deedDateObj = new Date(deedDate);
+  const effectiveFormulaParams = formulaParams || DEFAULT_PORTAGE_FORMULA;
+  const participantsShare = 1 - (coproReservesShare / 100);
+
+  // 1. Calculate portage paybacks (participants buying from this participant)
+  const portagePaybacks: Payback[] = allParticipants
+    .filter((buyer) => buyer.purchaseDetails?.buyingFrom === participant.name)
+    .map((buyer) => ({
+      date: ensureDate(buyer.entryDate || deedDateObj, deedDateObj),
+      buyer: buyer.name,
+      amount: buyer.purchaseDetails?.purchasePrice || 0,
+      type: 'portage' as const,
+      description: 'Achat de lot portage'
+    }));
+
+  // 2. Calculate copropriété redistributions for this participant
+  // Prepare data for recalculation (if available)
+  const totalProjectCost = calculations?.totals
+    ? (calculations.totals.purchase || 0) +
+      (calculations.totals.totalDroitEnregistrements || 0) +
+      (calculations.totals.construction || 0)
+    : 0;
+  const totalBuildingSurface = calculations?.totalSurface || 0;
+  const renovationStartDate = projectParams?.renovationStartDate;
+  
+  // Calculate total renovation costs (CASCO + parachèvements) from all participants
+  const totalRenovationCosts = calculations?.participantBreakdown
+    ? calculations.participantBreakdown.reduce(
+        (sum, p) => sum + (p.personalRenovationCost || 0),
+        0
+      )
+    : 0;
+
+  // Normalize participant entry date
+  const participantEntryDate = ensureDate(
+    participant.entryDate || (participant.isFounder ? deedDateObj : undefined),
+    participant.isFounder ? deedDateObj : new Date()
+  );
+
+  // Process copro sales
+  const coproPaybacks: Payback[] = [];
+  const coproSales = allParticipants.filter(
+    (buyer) => buyer.purchaseDetails?.buyingFrom === 'Copropriété'
+  );
+
+  // Sort copro sales by entry date
+  const sortedCoproSales = [...coproSales].sort((a, b) => {
+    const dateA = ensureDate(a.entryDate || deedDateObj, deedDateObj);
+    const dateB = ensureDate(b.entryDate || deedDateObj, deedDateObj);
+    return dateA.getTime() - dateB.getTime();
+  });
+
+  for (const buyer of sortedCoproSales) {
+    const saleDate = ensureDate(buyer.entryDate || deedDateObj, deedDateObj);
+    const buyerName = buyer.name;
+    const surfacePurchased = buyer.surface || 0;
+
+    // Exclusion Rule 1: Participant does NOT receive redistribution from their own purchase
+    if (buyerName === participant.name) {
+      continue;
+    }
+
+    // Exclusion Rule 2: Participants buying on the same day do NOT receive redistribution from each other
+    // Check if this buyer bought on the same day as the participant
+    if (!participant.isFounder && isSameDay(saleDate, participantEntryDate)) {
+      continue;
+    }
+
+    // Only calculate if this participant existed before the sale
+    if (participantEntryDate > saleDate) {
+      continue; // Participant didn't exist yet, skip this sale
+    }
+
+    // Skip if participant has no surface
+    const participantSurface = participant.surface || 0;
+    if (participantSurface <= 0) {
+      continue;
+    }
+
+    // Calculate amount to participants for this sale
+    let amountToParticipants: number;
+    
+    if (
+      totalProjectCost > 0 &&
+      totalBuildingSurface > 0 &&
+      surfacePurchased > 0 &&
+      renovationStartDate &&
+      totalRenovationCosts > 0
+    ) {
+      // Recalculate copro sale price with renovation cost exclusion logic
+      const yearsHeld = (saleDate.getTime() - deedDateObj.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+      
+      const coproSalePricing = calculateCoproSalePrice(
+        surfacePurchased,
+        totalProjectCost,
+        totalBuildingSurface,
+        yearsHeld,
+        effectiveFormulaParams,
+        0, // Carrying costs - simplified
+        renovationStartDate,
+        saleDate,
+        totalRenovationCosts
+      );
+      
+      amountToParticipants = coproSalePricing.distribution.toParticipants;
+    } else {
+      // Fallback to stored purchasePrice if we don't have enough data to recalculate
+      const totalPrice = buyer.purchaseDetails?.purchasePrice || 0;
+      amountToParticipants = totalPrice * participantsShare;
+    }
+
+    // Get all participants who existed before this sale (excluding the buyer and same-day buyers)
+    const existingParticipants = allParticipants
+      .filter(p => {
+        const pEntryDate = ensureDate(
+          p.entryDate || (p.isFounder ? deedDateObj : undefined),
+          p.isFounder ? deedDateObj : new Date()
+        );
+        const pSurface = p.surface || 0;
+        
+        // Must exist before the sale
+        if (pEntryDate > saleDate) {
+          return false;
+        }
+        
+        // Must have surface
+        if (pSurface <= 0) {
+          return false;
+        }
+        
+        // Exclusion Rule 1: Exclude the buyer from their own purchase
+        if (p.name === buyerName) {
+          return false;
+        }
+        
+        // Exclusion Rule 2: Exclude same-day buyers (non-founders who entered on the same day as the buyer)
+        if (!p.isFounder && isSameDay(pEntryDate, saleDate) && p.name !== participant.name) {
+          return false;
+        }
+        
+        return true;
+      })
+      .map(p => ({
+        name: p.name,
+        surface: p.surface || 0,
+        isFounder: p.isFounder || false,
+        entryDate: ensureDate(
+          p.entryDate || (p.isFounder ? deedDateObj : undefined),
+          p.isFounder ? deedDateObj : new Date()
+        )
+      }));
+
+    // Calculate redistribution for this sale
+    const redistribution = calculateCoproRedistribution(
+      amountToParticipants,
+      existingParticipants,
+      saleDate
+    );
+
+    // Find this participant's share
+    const participantShare = redistribution.find(r => r.participantName === participant.name);
+    if (participantShare && participantShare.share > 0) {
+      coproPaybacks.push({
+        date: saleDate,
+        buyer: buyerName,
+        amount: participantShare.share,
+        type: 'copro' as const,
+        description: `Redistribution vente copropriété (quotité: ${(participantShare.quotite * 100).toFixed(1)}%)`
+      });
+    }
+  }
+
+  // 3. Combine and sort all paybacks by date
+  const allPaybacks = [...portagePaybacks, ...coproPaybacks]
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  // 4. Calculate total
+  const totalRecovered = allPaybacks.reduce((sum, pb) => sum + pb.amount, 0);
+
+  return {
+    paybacks: allPaybacks,
+    totalRecovered
   };
 }
