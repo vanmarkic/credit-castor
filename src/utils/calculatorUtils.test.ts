@@ -2050,6 +2050,233 @@ describe('calculateTwoLoanFinancing', () => {
 // Task 5: calculateAll with two-loan financing
 // ============================================
 
+describe('calculateAll - Non-founder purchase share calculation', () => {
+  it('should calculate purchase share correctly for non-founder buying from Copropriété with string dates', () => {
+    // This test verifies the fix for the date comparison bug where dates might be strings
+    // from JSON/localStorage, causing incorrect filtering of existingParticipants
+    const deedDate = '2026-02-01';
+    const formulaParams: PortageFormulaParams = {
+      indexationRate: 2,
+      carryingCostRecovery: 100,
+      averageInterestRate: 4.5,
+      coproReservesShare: 30
+    };
+
+    const participants: Participant[] = [
+      {
+        name: 'Founder 1',
+        capitalApporte: 150000,
+        registrationFeesRate: 3,
+        unitId: 1,
+        surface: 140,
+        interestRate: 4,
+        durationYears: 25,
+        quantity: 1,
+        isFounder: true,
+        entryDate: '2026-02-01T00:00:00.000Z' as any, // String date as from JSON
+      },
+      {
+        name: 'Founder 2',
+        capitalApporte: 450000,
+        registrationFeesRate: 3,
+        unitId: 3,
+        surface: 225,
+        interestRate: 4.5,
+        durationYears: 25,
+        quantity: 1,
+        isFounder: true,
+        entryDate: '2026-02-01T00:00:00.000Z' as any, // String date
+      },
+      {
+        name: 'Non-Founder',
+        capitalApporte: 40000,
+        registrationFeesRate: 12.5,
+        unitId: 7,
+        surface: 100,
+        interestRate: 4,
+        durationYears: 25,
+        quantity: 1,
+        isFounder: false,
+        entryDate: '2027-02-01T00:00:00.000Z' as any, // String date - 1 year after deed
+        purchaseDetails: {
+          buyingFrom: 'Copropriété',
+          lotId: 999,
+          purchasePrice: 147332.38, // Stored price as fallback
+        },
+      },
+    ];
+
+    const projectParams: ProjectParams = {
+      totalPurchase: 650000,
+      mesuresConservatoires: 0,
+      demolition: 0,
+      infrastructures: 0,
+      etudesPreparatoires: 0,
+      fraisEtudesPreparatoires: 0,
+      fraisGeneraux3ans: 0,
+      batimentFondationConservatoire: 0,
+      batimentFondationComplete: 0,
+      batimentCoproConservatoire: 0,
+      globalCascoPerM2: 1590
+    };
+
+    const unitDetails: UnitDetails = {};
+
+    const results = calculateAll(participants, projectParams, unitDetails, deedDate, formulaParams);
+
+    const nonFounder = results.participantBreakdown.find(p => p.name === 'Non-Founder');
+    expect(nonFounder).toBeDefined();
+    
+    // Purchase share should be calculated using quotité formula, not 0
+    // Expected: quotité = 100 / (140 + 225 + 100) = 100 / 465 ≈ 0.215
+    // Base price = 0.215 × 650000 ≈ 139,750
+    // With indexation and carrying costs, should be > 0
+    expect(nonFounder!.purchaseShare).toBeGreaterThan(0);
+    expect(nonFounder!.purchaseShare).toBeGreaterThan(100000); // Should be substantial
+    
+    // Registration fees should also be > 0
+    expect(nonFounder!.droitEnregistrements).toBeGreaterThan(0);
+    expect(nonFounder!.droitEnregistrements).toBeCloseTo(
+      nonFounder!.purchaseShare * 0.125, // 12.5% registration fees
+      1
+    );
+  });
+
+  it('should fall back to stored purchasePrice if calculated price is 0', () => {
+    // Edge case: if calculation returns 0, should use stored purchasePrice
+    const deedDate = '2026-02-01';
+    const formulaParams: PortageFormulaParams = {
+      indexationRate: 2,
+      carryingCostRecovery: 100,
+      averageInterestRate: 4.5,
+      coproReservesShare: 30
+    };
+
+    const participants: Participant[] = [
+      {
+        name: 'Founder 1',
+        capitalApporte: 150000,
+        registrationFeesRate: 3,
+        unitId: 1,
+        surface: 140,
+        interestRate: 4,
+        durationYears: 25,
+        quantity: 1,
+        isFounder: true,
+        entryDate: '2026-02-01T00:00:00.000Z' as any,
+      },
+      {
+        name: 'Non-Founder',
+        capitalApporte: 40000,
+        registrationFeesRate: 12.5,
+        unitId: 7,
+        surface: 0, // Surface is 0 - would cause quotité to be 0
+        interestRate: 4,
+        durationYears: 25,
+        quantity: 1,
+        isFounder: false,
+        entryDate: '2027-02-01T00:00:00.000Z' as any,
+        purchaseDetails: {
+          buyingFrom: 'Copropriété',
+          lotId: 999,
+          purchasePrice: 147332.38, // Should use this as fallback
+        },
+      },
+    ];
+
+    const projectParams: ProjectParams = {
+      totalPurchase: 650000,
+      mesuresConservatoires: 0,
+      demolition: 0,
+      infrastructures: 0,
+      etudesPreparatoires: 0,
+      fraisEtudesPreparatoires: 0,
+      fraisGeneraux3ans: 0,
+      batimentFondationConservatoire: 0,
+      batimentFondationComplete: 0,
+      batimentCoproConservatoire: 0,
+      globalCascoPerM2: 1590
+    };
+
+    const unitDetails: UnitDetails = {};
+
+    const results = calculateAll(participants, projectParams, unitDetails, deedDate, formulaParams);
+
+    const nonFounder = results.participantBreakdown.find(p => p.name === 'Non-Founder');
+    expect(nonFounder).toBeDefined();
+    
+    // Should use stored purchasePrice as fallback when calculated price is 0
+    expect(nonFounder!.purchaseShare).toBe(147332.38);
+    expect(nonFounder!.droitEnregistrements).toBeCloseTo(147332.38 * 0.125, 1);
+  });
+
+  it('should handle Date objects correctly in date comparison', () => {
+    // Test that Date objects (not just strings) work correctly
+    const deedDate = '2026-02-01';
+    const formulaParams: PortageFormulaParams = {
+      indexationRate: 2,
+      carryingCostRecovery: 100,
+      averageInterestRate: 4.5,
+      coproReservesShare: 30
+    };
+
+    const participants: Participant[] = [
+      {
+        name: 'Founder 1',
+        capitalApporte: 150000,
+        registrationFeesRate: 3,
+        unitId: 1,
+        surface: 140,
+        interestRate: 4,
+        durationYears: 25,
+        quantity: 1,
+        isFounder: true,
+        entryDate: new Date('2026-02-01T00:00:00.000Z'), // Date object
+      },
+      {
+        name: 'Non-Founder',
+        capitalApporte: 40000,
+        registrationFeesRate: 12.5,
+        unitId: 7,
+        surface: 100,
+        interestRate: 4,
+        durationYears: 25,
+        quantity: 1,
+        isFounder: false,
+        entryDate: new Date('2027-02-01T00:00:00.000Z'), // Date object
+        purchaseDetails: {
+          buyingFrom: 'Copropriété',
+          lotId: 999,
+          purchasePrice: 147332.38,
+        },
+      },
+    ];
+
+    const projectParams: ProjectParams = {
+      totalPurchase: 650000,
+      mesuresConservatoires: 0,
+      demolition: 0,
+      infrastructures: 0,
+      etudesPreparatoires: 0,
+      fraisEtudesPreparatoires: 0,
+      fraisGeneraux3ans: 0,
+      batimentFondationConservatoire: 0,
+      batimentFondationComplete: 0,
+      batimentCoproConservatoire: 0,
+      globalCascoPerM2: 1590
+    };
+
+    const unitDetails: UnitDetails = {};
+
+    const results = calculateAll(participants, projectParams, unitDetails, deedDate, formulaParams);
+
+    const nonFounder = results.participantBreakdown.find(p => p.name === 'Non-Founder');
+    expect(nonFounder).toBeDefined();
+    expect(nonFounder!.purchaseShare).toBeGreaterThan(0);
+    expect(nonFounder!.droitEnregistrements).toBeGreaterThan(0);
+  });
+});
+
 describe('calculateAll with two-loan financing', () => {
   it('should use two-loan calculations when useTwoLoans is true', () => {
     const participants: Participant[] = [

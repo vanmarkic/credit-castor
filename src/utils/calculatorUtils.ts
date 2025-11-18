@@ -788,14 +788,17 @@ export function calculateAll(
       // Use quotité-based calculation for newcomers buying from copropriété
       // Calculate quotité based on ALL participants who entered on or before this buyer's entry date
       // This includes the buyer themselves in the total surface
+      const buyerEntryDate = p.entryDate 
+        ? (p.entryDate instanceof Date ? p.entryDate : new Date(p.entryDate))
+        : new Date(deedDate);
+      
       const existingParticipants = participants.filter(existing => {
         // Include all participants who entered before or on the same day as this buyer (including the buyer)
-        const existingEntryDate = existing.entryDate || (existing.isFounder ? new Date(deedDate) : null);
+        const existingEntryDate = existing.entryDate 
+          ? (existing.entryDate instanceof Date ? existing.entryDate : new Date(existing.entryDate))
+          : (existing.isFounder ? new Date(deedDate) : null);
         if (!existingEntryDate) return false;
         
-        const buyerEntryDate = p.entryDate 
-          ? (p.entryDate instanceof Date ? p.entryDate : new Date(p.entryDate))
-          : new Date(deedDate);
         return existingEntryDate <= buyerEntryDate;
       });
       
@@ -808,7 +811,10 @@ export function calculateAll(
           p.entryDate,
           formulaParams
         );
-        purchaseShare = newcomerPrice.totalPrice;
+        // Use calculated price if valid (> 0), otherwise fall back to stored price
+        purchaseShare = newcomerPrice.totalPrice > 0 
+          ? newcomerPrice.totalPrice 
+          : (p.purchaseDetails?.purchasePrice ?? calculatePurchaseShare(surface, pricePerM2));
       } catch (error) {
         console.error('Error calculating newcomer price, falling back to standard calculation:', error);
         purchaseShare = p.purchaseDetails?.purchasePrice ?? calculatePurchaseShare(surface, pricePerM2);
