@@ -109,16 +109,32 @@ export function CostBreakdownGrid({ participant, participantCalc: p, projectPara
       // Calculate total surface of filtered participants for display
       existingParticipantsTotal = existingParticipants.reduce((sum, p) => sum + (p.surface || 0), 0);
       
-      newcomerPriceCalculation = calculateNewcomerPurchasePrice(
-        participant.surface || 0,
-        existingParticipants, // All participants up to and including the buyer's entry date
-        projectParams.totalPurchase,
-        deedDate,
-        participant.entryDate,
-        formulaParams
-      );
+      const participantSurface = participant.surface || 0;
+      
+      // Defensive check: if participant surface is 0, we can't calculate quotité properly
+      if (participantSurface <= 0) {
+        console.warn(`Participant ${participant.name} has surface ${participantSurface}, cannot calculate quotité-based price.`);
+      } else if (existingParticipantsTotal <= 0) {
+        console.warn(`Total surface is ${existingParticipantsTotal} for participant ${participant.name}, cannot calculate quotité.`);
+      } else {
+        newcomerPriceCalculation = calculateNewcomerPurchasePrice(
+          participantSurface,
+          existingParticipants, // All participants up to and including the buyer's entry date
+          projectParams.totalPurchase,
+          deedDate,
+          participant.entryDate,
+          formulaParams
+        );
+        
+        // If quotité is 0, the calculation is invalid - don't use it
+        if (newcomerPriceCalculation.quotite <= 0) {
+          console.warn(`Quotité is ${newcomerPriceCalculation.quotite} for participant ${participant.name}, calculation may be invalid. Using fallback.`);
+          newcomerPriceCalculation = undefined;
+        }
+      }
     } catch (error) {
       console.error('Error calculating newcomer price:', error);
+      newcomerPriceCalculation = undefined;
     }
   }
 
@@ -223,8 +239,10 @@ export function CostBreakdownGrid({ participant, participantCalc: p, projectPara
         <div className="bg-white rounded-lg p-3 border border-gray-200" data-testid="purchase-share-card">
           <p className="text-xs text-gray-500 mb-1.5">Part d'achat</p>
           <p className="text-lg font-bold text-gray-900" data-testid="purchase-share-amount">
-            {/* Use calculated newcomer price if available, otherwise use stored value */}
-            {newcomerPriceCalculation ? formatCurrency(newcomerPriceCalculation.totalPrice) : formatCurrency(p.purchaseShare ?? 0)}
+            {/* Use calculated newcomer price if available and > 0, otherwise use stored value */}
+            {newcomerPriceCalculation && newcomerPriceCalculation.totalPrice > 0 
+              ? formatCurrency(newcomerPriceCalculation.totalPrice) 
+              : formatCurrency(p.purchaseShare ?? 0)}
           </p>
           {(p.surface ?? 0) > 0 && (
             <p className="text-xs text-blue-600 mt-1" data-testid="purchase-share-surface">{p.surface}m²</p>

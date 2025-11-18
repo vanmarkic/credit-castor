@@ -803,18 +803,31 @@ export function calculateAll(
       });
       
       try {
-        const newcomerPrice = calculateNewcomerPurchasePrice(
-          surface,
-          existingParticipants, // All participants up to and including the buyer's entry date
-          projectParams.totalPurchase,
-          deedDate,
-          p.entryDate,
-          formulaParams
-        );
-        // Use calculated price if valid (> 0), otherwise fall back to stored price
-        purchaseShare = newcomerPrice.totalPrice > 0 
-          ? newcomerPrice.totalPrice 
-          : (p.purchaseDetails?.purchasePrice ?? calculatePurchaseShare(surface, pricePerM2));
+        // Defensive check: if surface is 0, we can't calculate quotité properly
+        if (surface <= 0) {
+          console.warn(`Newcomer ${p.name} has surface ${surface}, cannot calculate quotité-based price. Using fallback.`);
+          purchaseShare = p.purchaseDetails?.purchasePrice ?? calculatePurchaseShare(surface, pricePerM2);
+        } else {
+          // Verify existingParticipants includes participants with surface > 0
+          const totalSurface = existingParticipants.reduce((sum, ep) => sum + (ep.surface || 0), 0);
+          if (totalSurface <= 0) {
+            console.warn(`Total surface is ${totalSurface} for newcomer ${p.name}, cannot calculate quotité. Using fallback.`);
+            purchaseShare = p.purchaseDetails?.purchasePrice ?? calculatePurchaseShare(surface, pricePerM2);
+          } else {
+            const newcomerPrice = calculateNewcomerPurchasePrice(
+              surface,
+              existingParticipants, // All participants up to and including the buyer's entry date
+              projectParams.totalPurchase,
+              deedDate,
+              p.entryDate,
+              formulaParams
+            );
+            // Use calculated price if valid (> 0), otherwise fall back to stored price
+            purchaseShare = newcomerPrice.totalPrice > 0 
+              ? newcomerPrice.totalPrice 
+              : (p.purchaseDetails?.purchasePrice ?? calculatePurchaseShare(surface, pricePerM2));
+          }
+        }
       } catch (error) {
         console.error('Error calculating newcomer price, falling back to standard calculation:', error);
         purchaseShare = p.purchaseDetails?.purchasePrice ?? calculatePurchaseShare(surface, pricePerM2);
@@ -960,6 +973,11 @@ export function calculateNewcomerQuotite(
   newcomerSurface: number,
   allParticipants: Participant[]
 ): number {
+  // Defensive check: if newcomerSurface is 0 or negative, quotité is 0
+  if (newcomerSurface <= 0) {
+    return 0;
+  }
+  
   const totalBuildingSurface = allParticipants.reduce((sum, p) => sum + (p.surface || 0), 0);
   
   if (totalBuildingSurface <= 0) {
