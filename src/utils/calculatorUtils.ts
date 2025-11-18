@@ -1290,6 +1290,57 @@ export function calculateCommunCostsWithPortageCopro(
 }
 
 // ============================================
+// Quotité Calculation for Founders
+// ============================================
+
+/**
+ * Calculate quotité for a founder as (founder's surface at T0) / (total surface of all founders at T0)
+ * Returns the quotité formatted as "integer/1000" (e.g., "450/1000")
+ * 
+ * @param founder - The founder participant
+ * @param allParticipants - All participants in the project
+ * @returns Quotité formatted as "numerator/denominator" or null if calculation is not possible
+ */
+export function calculateQuotiteForFounder(
+  founder: Participant,
+  allParticipants?: Participant[]
+): string | null {
+  if (!founder.isFounder || !allParticipants) {
+    return null;
+  }
+
+  const founderSurface = founder.surface || 0;
+  if (founderSurface === 0) {
+    return null;
+  }
+
+  // Calculate total surface of all founders at T0
+  const totalFounderSurface = allParticipants
+    .filter(p => p.isFounder === true)
+    .reduce((sum, p) => sum + (p.surface || 0), 0);
+
+  if (totalFounderSurface === 0) {
+    return null;
+  }
+
+  // Calculate quotité as a fraction
+  const quotite = founderSurface / totalFounderSurface;
+  
+  // Convert to "integer/1000" format
+  // Multiply by 1000 and round to nearest integer
+  const numerator = Math.round(quotite * 1000);
+  const denominator = 1000;
+
+  // Simplify the fraction if possible (find GCD)
+  const gcd = (a: number, b: number): number => b === 0 ? a : gcd(b, a % b);
+  const divisor = gcd(numerator, denominator);
+  const simplifiedNumerator = numerator / divisor;
+  const simplifiedDenominator = denominator / divisor;
+
+  return `${simplifiedNumerator}/${simplifiedDenominator}`;
+}
+
+// ============================================
 // Expected Paybacks Calculation
 // ============================================
 

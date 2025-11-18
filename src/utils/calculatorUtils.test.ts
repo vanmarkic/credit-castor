@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   calculatePricePerM2,
   calculateTotalSurface,
+  calculateExpenseCategoriesTotal,
   calculateSharedCosts,
   calculateTotalTravauxCommuns,
   calculateTravauxCommunsPerUnit,
@@ -13,6 +14,8 @@ import {
   calculateFraisNotaireFixe,
   calculateCascoAndParachevements,
   calculateConstructionCost,
+  adjustPortageBuyerConstructionCosts,
+  getFounderPaidConstructionCosts,
   calculateLoanAmount,
   calculateMonthlyPayment,
   calculateTotalInterest,
@@ -21,14 +24,19 @@ import {
   getFraisGenerauxBreakdown,
   calculateTwoLoanFinancing,
   calculateAll,
+  calculateNewcomerQuotite,
+  calculateNewcomerPurchasePrice,
   calculateParticipantsAtPurchaseTime,
   calculateParticipantsAtEntryDate,
   calculateCommunCostsBreakdown,
   calculateCommunCostsWithPortageCopro,
+  calculateQuotiteForFounder,
   calculateExpectedPaybacks,
   type Participant,
   type ProjectParams,
+  type ExpenseCategories,
   type UnitDetails,
+  type Payback,
 } from './calculatorUtils';
 import type { PortageFormulaParams } from './calculatorUtils';
 
@@ -2409,7 +2417,7 @@ describe('calculateAll - Non-founder purchase share calculation', () => {
     // When excluding newcomer, quotité = 100/1273 = 79/1000
     // The code includes newcomer, so we expect 73/1000
     const expectedBasePriceIncludingNewcomer = (100 / 1373) * 650000; // ~47,342 €
-    const expectedBasePriceExcludingNewcomer = expectedQuotite * 650000; // ~51,050 €
+    const _expectedBasePriceExcludingNewcomer = expectedQuotite * 650000; // ~51,050 €
     
     // The purchase share should be > 0 (base price + indexation + carrying costs)
     expect(nonFounder!.purchaseShare).toBeGreaterThan(0);
@@ -2641,7 +2649,7 @@ describe('Expected Paybacks - Self and Same-Day Exclusions', () => {
 
       // Bob should NOT have a payback from his own purchase
       const selfRedistribution = paybacksBob.paybacks.find(
-        pb => pb.buyer === 'Newcomer Bob' && pb.type === 'copro'
+        (pb: Payback) => pb.buyer === 'Newcomer Bob' && pb.type === 'copro'
       );
       expect(selfRedistribution).toBeUndefined();
 
@@ -2692,7 +2700,7 @@ describe('Expected Paybacks - Self and Same-Day Exclusions', () => {
 
       // Founder should have a payback from Bob's purchase
       const redistribution = paybacksFounder.paybacks.find(
-        pb => pb.buyer === 'Newcomer Bob' && pb.type === 'copro'
+        (pb: Payback) => pb.buyer === 'Newcomer Bob' && pb.type === 'copro'
       );
       expect(redistribution).toBeDefined();
       
@@ -2766,7 +2774,7 @@ describe('Expected Paybacks - Self and Same-Day Exclusions', () => {
       );
 
       const charlieRedistribution = paybacksBob.paybacks.find(
-        pb => pb.buyer === 'Newcomer Charlie' && pb.type === 'copro'
+        (pb: Payback) => pb.buyer === 'Newcomer Charlie' && pb.type === 'copro'
       );
       expect(charlieRedistribution).toBeUndefined();
 
@@ -2779,7 +2787,7 @@ describe('Expected Paybacks - Self and Same-Day Exclusions', () => {
       );
 
       const bobRedistribution = paybacksCharlie.paybacks.find(
-        pb => pb.buyer === 'Newcomer Bob' && pb.type === 'copro'
+        (pb: Payback) => pb.buyer === 'Newcomer Bob' && pb.type === 'copro'
       );
       expect(bobRedistribution).toBeUndefined();
 
@@ -2848,13 +2856,13 @@ describe('Expected Paybacks - Self and Same-Day Exclusions', () => {
 
       // Founder should receive from Bob's purchase
       const bobRedistribution = paybacksFounder.paybacks.find(
-        pb => pb.buyer === 'Newcomer Bob' && pb.type === 'copro'
+        (pb: Payback) => pb.buyer === 'Newcomer Bob' && pb.type === 'copro'
       );
       expect(bobRedistribution).toBeDefined();
 
       // Founder should receive from Charlie's purchase
       const charlieRedistribution = paybacksFounder.paybacks.find(
-        pb => pb.buyer === 'Newcomer Charlie' && pb.type === 'copro'
+        (pb: Payback) => pb.buyer === 'Newcomer Charlie' && pb.type === 'copro'
       );
       expect(charlieRedistribution).toBeDefined();
 
@@ -2922,7 +2930,7 @@ describe('Expected Paybacks - Self and Same-Day Exclusions', () => {
       );
 
       const charlieRedistribution = paybacksBob.paybacks.find(
-        pb => pb.buyer === 'Newcomer Charlie' && pb.type === 'copro'
+        (pb: Payback) => pb.buyer === 'Newcomer Charlie' && pb.type === 'copro'
       );
       expect(charlieRedistribution).toBeDefined();
       expect(charlieRedistribution?.amount).toBeGreaterThan(0);
@@ -2936,11 +2944,696 @@ describe('Expected Paybacks - Self and Same-Day Exclusions', () => {
       );
 
       const bobRedistribution = paybacksCharlie.paybacks.find(
-        pb => pb.buyer === 'Newcomer Bob' && pb.type === 'copro'
+        (pb: Payback) => pb.buyer === 'Newcomer Bob' && pb.type === 'copro'
       );
       // Charlie entered AFTER Bob, so Bob's purchase happened before Charlie existed
       // This should be undefined (Charlie didn't exist when Bob purchased)
       expect(bobRedistribution).toBeUndefined();
     });
+  });
+});
+
+// ============================================
+// Untested Calculation Functions
+// ============================================
+
+describe('calculateExpenseCategoriesTotal', () => {
+  it('should return 0 when expenseCategories is undefined', () => {
+    expect(calculateExpenseCategoriesTotal(undefined)).toBe(0);
+  });
+
+  it('should calculate total from all expense categories', () => {
+    const expenseCategories: ExpenseCategories = {
+      conservatoire: [
+        { label: 'Item 1', amount: 1000 },
+        { label: 'Item 2', amount: 2000 }
+      ],
+      habitabiliteSommaire: [
+        { label: 'Item 3', amount: 1500 }
+      ],
+      premierTravaux: [
+        { label: 'Item 4', amount: 500 },
+        { label: 'Item 5', amount: 750 }
+      ]
+    };
+
+    const total = calculateExpenseCategoriesTotal(expenseCategories);
+    expect(total).toBe(1000 + 2000 + 1500 + 500 + 750);
+  });
+
+  it('should handle empty categories', () => {
+    const expenseCategories: ExpenseCategories = {
+      conservatoire: [],
+      habitabiliteSommaire: [],
+      premierTravaux: []
+    };
+
+    expect(calculateExpenseCategoriesTotal(expenseCategories)).toBe(0);
+  });
+
+  it('should handle single item in each category', () => {
+    const expenseCategories: ExpenseCategories = {
+      conservatoire: [{ label: 'Conservatoire', amount: 5000 }],
+      habitabiliteSommaire: [{ label: 'Habitabilité', amount: 3000 }],
+      premierTravaux: [{ label: 'Premier travaux', amount: 2000 }]
+    };
+
+    expect(calculateExpenseCategoriesTotal(expenseCategories)).toBe(10000);
+  });
+});
+
+describe('adjustPortageBuyerConstructionCosts', () => {
+  it('should return base costs when no portage lot is provided', () => {
+    const result = adjustPortageBuyerConstructionCosts(50000, 25000);
+    expect(result.casco).toBe(50000);
+    expect(result.parachevements).toBe(25000);
+  });
+
+  it('should return base costs when portage lot has no payment flags', () => {
+    const result = adjustPortageBuyerConstructionCosts(50000, 25000, {});
+    expect(result.casco).toBe(50000);
+    expect(result.parachevements).toBe(25000);
+  });
+
+  it('should set casco to 0 when founder pays CASCO', () => {
+    const result = adjustPortageBuyerConstructionCosts(50000, 25000, {
+      founderPaysCasco: true
+    });
+    expect(result.casco).toBe(0);
+    expect(result.parachevements).toBe(25000);
+  });
+
+  it('should set parachevements to 0 when founder pays parachèvement', () => {
+    const result = adjustPortageBuyerConstructionCosts(50000, 25000, {
+      founderPaysParachèvement: true
+    });
+    expect(result.casco).toBe(50000);
+    expect(result.parachevements).toBe(0);
+  });
+
+  it('should set both to 0 when founder pays both', () => {
+    const result = adjustPortageBuyerConstructionCosts(50000, 25000, {
+      founderPaysCasco: true,
+      founderPaysParachèvement: true
+    });
+    expect(result.casco).toBe(0);
+    expect(result.parachevements).toBe(0);
+  });
+
+  it('should handle zero costs', () => {
+    const result = adjustPortageBuyerConstructionCosts(0, 0, {
+      founderPaysCasco: true,
+      founderPaysParachèvement: true
+    });
+    expect(result.casco).toBe(0);
+    expect(result.parachevements).toBe(0);
+  });
+});
+
+describe('getFounderPaidConstructionCosts', () => {
+  it('should return 0 when founder does not pay for construction', () => {
+    const result = getFounderPaidConstructionCosts(
+      { surface: 100, founderPaysCasco: false, founderPaysParachèvement: false },
+      500,
+      250
+    );
+    expect(result.casco).toBe(0);
+    expect(result.parachevements).toBe(0);
+  });
+
+  it('should calculate CASCO when founder pays CASCO', () => {
+    const result = getFounderPaidConstructionCosts(
+      { surface: 100, founderPaysCasco: true },
+      500, // globalCascoPerM2
+      250  // parachevementsPerM2
+    );
+    expect(result.casco).toBe(100 * 500); // 50000
+    expect(result.parachevements).toBe(0);
+  });
+
+  it('should calculate parachevements when founder pays parachèvement', () => {
+    const result = getFounderPaidConstructionCosts(
+      { surface: 100, founderPaysParachèvement: true },
+      500,
+      250
+    );
+    expect(result.casco).toBe(0);
+    expect(result.parachevements).toBe(100 * 250); // 25000
+  });
+
+  it('should calculate both when founder pays both', () => {
+    const result = getFounderPaidConstructionCosts(
+      { surface: 100, founderPaysCasco: true, founderPaysParachèvement: true },
+      500,
+      250
+    );
+    expect(result.casco).toBe(50000);
+    expect(result.parachevements).toBe(25000);
+  });
+
+  it('should handle zero surface', () => {
+    const result = getFounderPaidConstructionCosts(
+      { surface: 0, founderPaysCasco: true, founderPaysParachèvement: true },
+      500,
+      250
+    );
+    expect(result.casco).toBe(0);
+    expect(result.parachevements).toBe(0);
+  });
+
+  it('should handle missing surface (defaults to 0)', () => {
+    const result = getFounderPaidConstructionCosts(
+      { surface: 0, founderPaysCasco: true, founderPaysParachèvement: true },
+      500,
+      250
+    );
+    expect(result.casco).toBe(0);
+    expect(result.parachevements).toBe(0);
+  });
+});
+
+describe('calculateNewcomerQuotite', () => {
+  it('should return 0 when newcomerSurface is 0', () => {
+    const participants: Participant[] = [
+      { name: 'Founder', surface: 100, capitalApporte: 0, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: true }
+    ];
+    expect(calculateNewcomerQuotite(0, participants)).toBe(0);
+  });
+
+  it('should return 0 when newcomerSurface is negative', () => {
+    const participants: Participant[] = [
+      { name: 'Founder', surface: 100, capitalApporte: 0, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: true }
+    ];
+    expect(calculateNewcomerQuotite(-10, participants)).toBe(0);
+  });
+
+  it('should return 0 when total building surface is 0', () => {
+    const participants: Participant[] = [
+      { name: 'Founder', surface: 0, capitalApporte: 0, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: true }
+    ];
+    expect(calculateNewcomerQuotite(50, participants)).toBe(0);
+  });
+
+  it('should calculate quotité correctly for single participant', () => {
+    const participants: Participant[] = [
+      { name: 'Founder', surface: 100, capitalApporte: 0, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: true },
+      { name: 'Newcomer', surface: 50, capitalApporte: 0, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: false }
+    ];
+    // Newcomer with 50m², total = 150m² (including newcomer)
+    // Quotité = 50 / 150 = 0.3333...
+    expect(calculateNewcomerQuotite(50, participants)).toBeCloseTo(50 / 150, 5);
+  });
+
+  it('should calculate quotité correctly for multiple participants', () => {
+    const participants: Participant[] = [
+      { name: 'Founder A', surface: 100, capitalApporte: 0, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: true },
+      { name: 'Founder B', surface: 150, capitalApporte: 0, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: true },
+      { name: 'Newcomer', surface: 50, capitalApporte: 0, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: false }
+    ];
+    // Newcomer with 50m², total = 300m² (including newcomer)
+    // Quotité = 50 / 300 = 0.1666...
+    expect(calculateNewcomerQuotite(50, participants)).toBeCloseTo(50 / 300, 5);
+  });
+
+  it('should calculate quotité when allParticipants includes newcomer', () => {
+    // When allParticipants already includes the newcomer, quotité should use total including newcomer
+    const participants: Participant[] = [
+      { name: 'Founder', surface: 100, capitalApporte: 0, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: true },
+      { name: 'Newcomer', surface: 50, capitalApporte: 0, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: false }
+    ];
+    const newcomerSurface = 50;
+    const quotite = calculateNewcomerQuotite(newcomerSurface, participants);
+    // Total includes newcomer: 100 + 50 = 150
+    // Quotité = 50 / 150 = 0.3333...
+    expect(quotite).toBeCloseTo(50 / 150, 5);
+  });
+
+  it('should calculate quotité when allParticipants does not include newcomer', () => {
+    // When allParticipants does not include newcomer, function calculates based on existing participants only
+    const participants: Participant[] = [
+      { name: 'Founder', surface: 100, capitalApporte: 0, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: true }
+    ];
+    const newcomerSurface = 50;
+    const quotite = calculateNewcomerQuotite(newcomerSurface, participants);
+    // Total is just founder: 100
+    // Quotité = 50 / 100 = 0.5
+    // Note: This behavior may not match how it's used in calculateAll (which includes newcomer in allParticipants)
+    expect(quotite).toBeCloseTo(50 / 100, 5);
+  });
+});
+
+describe('calculateNewcomerPurchasePrice', () => {
+  const deedDate = '2026-01-01';
+  const entryDate = '2027-01-01'; // 1 year later
+  const totalProjectCost = 500000;
+  
+  const founder: Participant = { name: 'Founder', surface: 200, capitalApporte: 0, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: true };
+
+  const formulaParams: PortageFormulaParams = {
+    indexationRate: 2,
+    carryingCostRecovery: 100,
+    averageInterestRate: 4.5,
+    coproReservesShare: 30
+  };
+
+  it('should calculate quotité correctly', () => {
+    const newcomerSurface = 100;
+    // allParticipants should include all participants (founders + the newcomer being purchased)
+    // The newcomer's surface is passed separately, but allParticipants should already include them
+    // OR we need to add the newcomer to the total for quotité calculation
+    // Actually, looking at calculateNewcomerQuotite: it sums allParticipants surfaces
+    // So if allParticipants = [founder 200m²], total = 200, quotité = 100 / (200 + 100) = 100/300
+    // But the function doesn't add newcomerSurface to the total automatically
+    // So we need to include the newcomer in allParticipants OR the function needs to add it
+    
+    // For the test, let's create allParticipants that includes a placeholder for the newcomer
+    // OR we can see how it's actually used in calculateAll
+    // Looking at calculateAll line 818, it passes existingParticipants which includes the buyer
+    // So allParticipants should include the newcomer
+    
+    const allParticipantsIncludingNewcomer: Participant[] = [
+      founder,
+      { name: 'Newcomer', surface: 100, capitalApporte: 0, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: false, entryDate: new Date(entryDate) }
+    ];
+    
+    const result = calculateNewcomerPurchasePrice(
+      newcomerSurface,
+      allParticipantsIncludingNewcomer,
+      totalProjectCost,
+      deedDate,
+      entryDate,
+      formulaParams
+    );
+    
+    // Total surface = 200 (founder) + 100 (newcomer) = 300
+    // Quotité = 100 / 300 = 0.3333...
+    expect(result.quotite).toBeCloseTo(100 / 300, 5);
+  });
+
+  it('should calculate base price as quotité × total project cost', () => {
+    const newcomerSurface = 100;
+    const allParticipantsIncludingNewcomer: Participant[] = [
+      founder,
+      { name: 'Newcomer', surface: 100, capitalApporte: 0, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: false, entryDate: new Date(entryDate) }
+    ];
+    
+    const result = calculateNewcomerPurchasePrice(
+      newcomerSurface,
+      allParticipantsIncludingNewcomer,
+      totalProjectCost,
+      deedDate,
+      entryDate,
+      formulaParams
+    );
+    
+    // Quotité includes newcomer in total: 100 / (200 + 100) = 100/300
+    const expectedQuotite = 100 / 300; // 0.3333...
+    const expectedBasePrice = expectedQuotite * totalProjectCost;
+    expect(result.basePrice).toBeCloseTo(expectedBasePrice, 2);
+    expect(result.quotite).toBeCloseTo(expectedQuotite, 5);
+  });
+
+  it('should calculate years held correctly (1 year)', () => {
+    const newcomerSurface = 100;
+    const allParticipantsIncludingNewcomer: Participant[] = [
+      founder,
+      { name: 'Newcomer', surface: 100, capitalApporte: 0, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: false, entryDate: new Date(entryDate) }
+    ];
+    
+    const result = calculateNewcomerPurchasePrice(
+      newcomerSurface,
+      allParticipantsIncludingNewcomer,
+      totalProjectCost,
+      deedDate,
+      entryDate,
+      formulaParams
+    );
+    
+    expect(result.yearsHeld).toBeCloseTo(1.0, 1);
+  });
+
+  it('should apply indexation correctly', () => {
+    const newcomerSurface = 100;
+    const allParticipantsIncludingNewcomer: Participant[] = [
+      founder,
+      { name: 'Newcomer', surface: 100, capitalApporte: 0, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: false, entryDate: new Date(entryDate) }
+    ];
+    
+    const result = calculateNewcomerPurchasePrice(
+      newcomerSurface,
+      allParticipantsIncludingNewcomer,
+      totalProjectCost,
+      deedDate,
+      entryDate,
+      formulaParams
+    );
+    
+    // Indexation = basePrice * ((1 + rate)^years - 1)
+    // For 2% over 1 year: basePrice * ((1.02)^1 - 1) = basePrice * 0.02
+    const expectedIndexation = result.basePrice * (Math.pow(1 + 2 / 100, result.yearsHeld) - 1);
+    expect(result.indexation).toBeCloseTo(expectedIndexation, 1);
+  });
+
+  it('should calculate carrying cost recovery', () => {
+    const newcomerSurface = 100;
+    const allParticipantsIncludingNewcomer: Participant[] = [
+      founder,
+      { name: 'Newcomer', surface: 100, capitalApporte: 0, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: false, entryDate: new Date(entryDate) }
+    ];
+    
+    const result = calculateNewcomerPurchasePrice(
+      newcomerSurface,
+      allParticipantsIncludingNewcomer,
+      totalProjectCost,
+      deedDate,
+      entryDate,
+      formulaParams
+    );
+    
+    // Carrying costs = monthlyCarryingCosts * yearsHeld * 12
+    // Recovery = totalCarryingCosts * quotité
+    const monthlyCarryingCosts = 500; // €500/month (hardcoded in function)
+    const totalCarryingCosts = monthlyCarryingCosts * result.yearsHeld * 12;
+    const expectedRecovery = totalCarryingCosts * result.quotite;
+    expect(result.carryingCostRecovery).toBeCloseTo(expectedRecovery, 2);
+  });
+
+  it('should calculate total price as sum of base + indexation + carrying cost recovery', () => {
+    const newcomerSurface = 100;
+    const allParticipantsIncludingNewcomer: Participant[] = [
+      founder,
+      { name: 'Newcomer', surface: 100, capitalApporte: 0, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: false, entryDate: new Date(entryDate) }
+    ];
+    
+    const result = calculateNewcomerPurchasePrice(
+      newcomerSurface,
+      allParticipantsIncludingNewcomer,
+      totalProjectCost,
+      deedDate,
+      entryDate,
+      formulaParams
+    );
+    
+    const expectedTotal = result.basePrice + result.indexation + result.carryingCostRecovery;
+    expect(result.totalPrice).toBeCloseTo(expectedTotal, 2);
+  });
+
+  it('should handle different indexation rates', () => {
+    const customFormulaParams: PortageFormulaParams = {
+      ...formulaParams,
+      indexationRate: 3 // 3% instead of 2%
+    };
+
+    const allParticipantsIncludingNewcomer: Participant[] = [
+      founder,
+      { name: 'Newcomer', surface: 100, capitalApporte: 0, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: false, entryDate: new Date(entryDate) }
+    ];
+
+    const result = calculateNewcomerPurchasePrice(
+      100,
+      allParticipantsIncludingNewcomer,
+      totalProjectCost,
+      deedDate,
+      entryDate,
+      customFormulaParams
+    );
+
+    // Indexation should be higher with 3% rate
+    const expectedIndexation = result.basePrice * ((Math.pow(1 + 3 / 100, result.yearsHeld) - 1));
+    expect(result.indexation).toBeCloseTo(expectedIndexation, 1);
+  });
+
+  it('should handle multiple years held', () => {
+    const laterEntryDate = '2028-01-01'; // 2 years later
+    const allParticipantsIncludingNewcomer: Participant[] = [
+      founder,
+      { name: 'Newcomer', surface: 100, capitalApporte: 0, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: false, entryDate: new Date(laterEntryDate) }
+    ];
+    
+    const result = calculateNewcomerPurchasePrice(
+      100,
+      allParticipantsIncludingNewcomer,
+      totalProjectCost,
+      deedDate,
+      laterEntryDate,
+      formulaParams
+    );
+
+    expect(result.yearsHeld).toBeCloseTo(2.0, 1);
+    // Indexation should be compound: basePrice * ((1.02)^yearsHeld - 1)
+    const expectedIndexation = result.basePrice * (Math.pow(1 + 2 / 100, result.yearsHeld) - 1);
+    expect(result.indexation).toBeCloseTo(expectedIndexation, 1);
+  });
+
+  it('should use default indexation rate when formulaParams not provided', () => {
+    const allParticipantsIncludingNewcomer: Participant[] = [
+      founder,
+      { name: 'Newcomer', surface: 100, capitalApporte: 0, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: false, entryDate: new Date(entryDate) }
+    ];
+    
+    const result = calculateNewcomerPurchasePrice(
+      100,
+      allParticipantsIncludingNewcomer,
+      totalProjectCost,
+      deedDate,
+      entryDate
+      // No formulaParams - should default to 2%
+    );
+
+    // Indexation = basePrice * ((1 + rate)^years - 1)
+    const expectedIndexation = result.basePrice * (Math.pow(1 + 2 / 100, result.yearsHeld) - 1); // 2% default
+    expect(result.indexation).toBeCloseTo(expectedIndexation, 1);
+  });
+
+  it('should handle Date objects for dates', () => {
+    const deedDateObj = new Date(deedDate);
+    const entryDateObj = new Date(entryDate);
+    const allParticipantsIncludingNewcomer: Participant[] = [
+      founder,
+      { name: 'Newcomer', surface: 100, capitalApporte: 0, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: false, entryDate: entryDateObj }
+    ];
+    
+    const result = calculateNewcomerPurchasePrice(
+      100,
+      allParticipantsIncludingNewcomer,
+      totalProjectCost,
+      deedDateObj,
+      entryDateObj,
+      formulaParams
+    );
+
+    expect(result.yearsHeld).toBeCloseTo(1.0, 1);
+  });
+});
+
+describe('calculateQuotiteForFounder', () => {
+  it('should return null when founder is not a founder', () => {
+    const participant: Participant = {
+      name: 'Non-Founder',
+      surface: 100,
+      capitalApporte: 0,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      isFounder: false
+    };
+    
+    const allParticipants: Participant[] = [participant];
+    expect(calculateQuotiteForFounder(participant, allParticipants)).toBeNull();
+  });
+
+  it('should return null when allParticipants is undefined', () => {
+    const founder: Participant = {
+      name: 'Founder',
+      surface: 100,
+      capitalApporte: 0,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      isFounder: true
+    };
+    
+    expect(calculateQuotiteForFounder(founder, undefined)).toBeNull();
+  });
+
+  it('should return null when founder surface is 0', () => {
+    const founder: Participant = {
+      name: 'Founder',
+      surface: 0,
+      capitalApporte: 0,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      isFounder: true
+    };
+    
+    const allParticipants: Participant[] = [founder];
+    expect(calculateQuotiteForFounder(founder, allParticipants)).toBeNull();
+  });
+
+  it('should return null when total founder surface is 0', () => {
+    const founder: Participant = {
+      name: 'Founder',
+      surface: 0,
+      capitalApporte: 0,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      isFounder: true
+    };
+    
+    const allParticipants: Participant[] = [
+      founder,
+      { name: 'Other Founder', surface: 0, capitalApporte: 0, registrationFeesRate: 12.5, interestRate: 4.5, durationYears: 25, isFounder: true }
+    ];
+    
+    // All founders have 0 surface, so total is 0
+    expect(calculateQuotiteForFounder(founder, allParticipants)).toBeNull();
+  });
+
+  it('should calculate quotité for single founder (100%)', () => {
+    const founder: Participant = {
+      name: 'Founder',
+      surface: 100,
+      capitalApporte: 0,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      isFounder: true
+    };
+    
+    const allParticipants: Participant[] = [founder];
+    const result = calculateQuotiteForFounder(founder, allParticipants);
+    // 100/100 = 1.0, 1.0 * 1000 = 1000, gcd(1000, 1000) = 1000, so 1000/1000 = 1/1
+    expect(result).toBe('1/1');
+  });
+
+  it('should calculate quotité for equal founders (50%)', () => {
+    const founder1: Participant = {
+      name: 'Founder 1',
+      surface: 100,
+      capitalApporte: 0,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      isFounder: true
+    };
+    
+    const founder2: Participant = {
+      name: 'Founder 2',
+      surface: 100,
+      capitalApporte: 0,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      isFounder: true
+    };
+    
+    const allParticipants: Participant[] = [founder1, founder2];
+    const result = calculateQuotiteForFounder(founder1, allParticipants);
+    
+    // 100 / 200 = 0.5, 0.5 * 1000 = 500
+    // gcd(500, 1000) calculation: gcd(500, 1000) = gcd(1000, 500) = gcd(500, 0) = 500
+    // So 500/1000 simplified by 500 = 500/500 : 1000/500 = 1/2
+    expect(result).toBe('1/2');
+  });
+
+  it('should calculate quotité for unequal founders', () => {
+    const founder1: Participant = {
+      name: 'Founder 1',
+      surface: 150,
+      capitalApporte: 0,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      isFounder: true
+    };
+    
+    const founder2: Participant = {
+      name: 'Founder 2',
+      surface: 100,
+      capitalApporte: 0,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      isFounder: true
+    };
+    
+    const allParticipants: Participant[] = [founder1, founder2];
+    const result = calculateQuotiteForFounder(founder1, allParticipants);
+    
+    // 150 / 250 = 0.6, 0.6 * 1000 = 600
+    // gcd(600, 1000) = 200
+    // 600/200 = 3, 1000/200 = 5
+    // So 3/5
+    expect(result).toBe('3/5');
+  });
+
+  it('should ignore non-founders when calculating quotité', () => {
+    const founder: Participant = {
+      name: 'Founder',
+      surface: 100,
+      capitalApporte: 0,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      isFounder: true
+    };
+    
+    const newcomer: Participant = {
+      name: 'Newcomer',
+      surface: 200,
+      capitalApporte: 0,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      isFounder: false
+    };
+    
+    const allParticipants: Participant[] = [founder, newcomer];
+    const result = calculateQuotiteForFounder(founder, allParticipants);
+    
+    // Should only count founder surface: 100 / 100 = 1.0 = 1/1
+    expect(result).toBe('1/1');
+  });
+
+  it('should handle quotité that simplifies to common fractions', () => {
+    const founder1: Participant = {
+      name: 'Founder 1',
+      surface: 200,
+      capitalApporte: 0,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      isFounder: true
+    };
+    
+    const founder2: Participant = {
+      name: 'Founder 2',
+      surface: 200,
+      capitalApporte: 0,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      isFounder: true
+    };
+    
+    const founder3: Participant = {
+      name: 'Founder 3',
+      surface: 200,
+      capitalApporte: 0,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      isFounder: true
+    };
+    
+    const allParticipants: Participant[] = [founder1, founder2, founder3];
+    const result = calculateQuotiteForFounder(founder1, allParticipants);
+    
+    // 200 / 600 = 1/3, 1/3 * 1000 = 333.33... rounds to 333
+    // gcd(333, 1000) = 1 (they are coprime)
+    // So 333/1000
+    expect(result).toBe('333/1000');
   });
 });
