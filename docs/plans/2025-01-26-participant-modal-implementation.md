@@ -10,6 +10,42 @@
 
 ---
 
+## UX/Gestalt Design Principles Applied
+
+### Key Design Decisions
+
+1. **Timeline ends at Emménagement, not TOTAL**
+   - TOTAL is a summary, not a journey phase
+   - Position TOTAL below/right as a separate summary element
+   - Timeline dots: 3 phases only (●━━●━━●)
+
+2. **Summary bar answers key questions at a glance**
+   - Shows: TOTAL | À FINANCER | MENSUALITÉ
+   - Visible without expanding anything
+   - Answers "Can I afford this?" immediately
+
+3. **Financing section shows mini-summary when collapsed**
+   - Collapsed: "💰 Financement: €639/mois (2 prêts)"
+   - Expanded: Full configuration
+   - Monthly payment is too important to hide
+
+4. **Parachèvements choice reframed**
+   - Not "include in loan" (implies optional)
+   - Instead: "Comment payer?" with Cash vs Prêt options
+   - Clear that it's payment method, not whether to pay
+
+5. **Phase cards have subtle visual differentiation**
+   - Signature: Solid border (fixed, certain) - blue
+   - Construction: Standard border (spread over time) - orange
+   - Emménagement: Lighter/dashed (flexible timing) - green
+
+6. **Emotional journey subtitles**
+   - 🔑 Signature: "Je deviens propriétaire"
+   - 🏗️ Construction: "Mon logement prend forme"
+   - 🏠 Emménagement: "J'emménage chez moi"
+
+---
+
 ## Task 1: Create PhaseCosts Type and Calculation Function
 
 **Files:**
@@ -315,10 +351,12 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { PaymentPhaseCard } from './PaymentPhaseCard';
 
 describe('PaymentPhaseCard', () => {
-  it('should display phase label and total amount', () => {
+  it('should display phase label, subtitle, icon and total amount', () => {
     render(
       <PaymentPhaseCard
         label="SIGNATURE"
+        subtitle="Je deviens propriétaire"
+        icon="🔑"
         total={45200}
         items={[
           { label: "Part d'achat", amount: 35000 },
@@ -329,6 +367,8 @@ describe('PaymentPhaseCard', () => {
     );
 
     expect(screen.getByText('SIGNATURE')).toBeInTheDocument();
+    expect(screen.getByText('Je deviens propriétaire')).toBeInTheDocument();
+    expect(screen.getByText('🔑')).toBeInTheDocument();
     expect(screen.getByText('45 200 €')).toBeInTheDocument();
   });
 
@@ -336,6 +376,8 @@ describe('PaymentPhaseCard', () => {
     render(
       <PaymentPhaseCard
         label="SIGNATURE"
+        subtitle="Je deviens propriétaire"
+        icon="🔑"
         total={45200}
         items={[
           { label: "Part d'achat", amount: 35000 },
@@ -357,6 +399,8 @@ describe('PaymentPhaseCard', () => {
     render(
       <PaymentPhaseCard
         label="CONSTRUCTION"
+        subtitle="Mon logement prend forme"
+        icon="🏗️"
         total={60000}
         items={[
           { label: 'CASCO', amount: 60000 },
@@ -369,6 +413,22 @@ describe('PaymentPhaseCard', () => {
 
     expect(screen.getByText('CASCO')).toBeInTheDocument();
     expect(screen.queryByText('Travaux communs')).not.toBeInTheDocument();
+  });
+
+  it('should apply variant styling for different phases', () => {
+    const { container } = render(
+      <PaymentPhaseCard
+        label="EMMÉNAGEMENT"
+        subtitle="J'emménage chez moi"
+        icon="🏠"
+        total={25000}
+        variant="flexible"
+        items={[{ label: 'Parachèvements', amount: 25000 }]}
+      />
+    );
+
+    // Flexible variant should have dashed border
+    expect(container.querySelector('.border-dashed')).toBeInTheDocument();
   });
 });
 ```
@@ -386,28 +446,44 @@ import { useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatting';
 
+type PhaseVariant = 'fixed' | 'progressive' | 'flexible';
+
 interface PaymentPhaseCardProps {
   label: string;
+  subtitle: string;
+  icon: string;
   total: number;
   items: Array<{ label: string; amount: number }>;
+  variant?: PhaseVariant;
   className?: string;
 }
 
+const variantStyles: Record<PhaseVariant, string> = {
+  fixed: 'border-2 border-blue-300 bg-blue-50',      // Solid - certain
+  progressive: 'border-2 border-orange-300 bg-orange-50', // Standard - spread over time
+  flexible: 'border-2 border-dashed border-green-300 bg-green-50', // Dashed - flexible
+};
+
 export function PaymentPhaseCard({
   label,
+  subtitle,
+  icon,
   total,
   items,
+  variant = 'fixed',
   className = '',
 }: PaymentPhaseCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const nonZeroItems = items.filter((item) => item.amount > 0);
 
   return (
-    <div className={`bg-white rounded-lg border border-gray-200 ${className}`}>
+    <div className={`rounded-lg ${variantStyles[variant]} ${className}`}>
       <div className="p-4 text-center">
-        <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">
+        <div className="text-2xl mb-1">{icon}</div>
+        <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-1">
           {label}
         </p>
+        <p className="text-xs text-gray-400 italic mb-2">{subtitle}</p>
         <p className="text-2xl font-bold text-gray-900">{formatCurrency(total)}</p>
       </div>
 
@@ -416,7 +492,7 @@ export function PaymentPhaseCard({
           <button
             type="button"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="w-full flex items-center justify-center gap-1 py-2 text-xs text-blue-600 hover:text-blue-800 border-t border-gray-100"
+            className="w-full flex items-center justify-center gap-1 py-2 text-xs text-blue-600 hover:text-blue-800 border-t border-gray-200"
           >
             <span>Détails</span>
             {isExpanded ? (
@@ -427,7 +503,7 @@ export function PaymentPhaseCard({
           </button>
 
           {isExpanded && (
-            <div className="px-4 pb-4 space-y-2">
+            <div className="px-4 pb-4 space-y-2 bg-white/50 rounded-b-lg">
               {nonZeroItems.map((item, idx) => (
                 <div key={idx} className="flex justify-between text-sm">
                   <span className="text-gray-600">{item.label}</span>
@@ -495,29 +571,71 @@ describe('PaymentTimeline', () => {
     grandTotal: 157700,
   };
 
-  it('should display all three phases with totals', () => {
-    render(<PaymentTimeline phaseCosts={mockPhaseCosts} />);
+  it('should display all three phases with icons and subtitles', () => {
+    render(
+      <PaymentTimeline
+        phaseCosts={mockPhaseCosts}
+        capitalApporte={30000}
+        monthlyPayment={639}
+      />
+    );
 
     expect(screen.getByText('SIGNATURE')).toBeInTheDocument();
     expect(screen.getByText('CONSTRUCTION')).toBeInTheDocument();
     expect(screen.getByText('EMMÉNAGEMENT')).toBeInTheDocument();
+
+    // Emotional subtitles
+    expect(screen.getByText('Je deviens propriétaire')).toBeInTheDocument();
+    expect(screen.getByText('Mon logement prend forme')).toBeInTheDocument();
+    expect(screen.getByText("J'emménage chez moi")).toBeInTheDocument();
 
     expect(screen.getByText('45 200 €')).toBeInTheDocument();
     expect(screen.getByText('87 500 €')).toBeInTheDocument();
     expect(screen.getByText('25 000 €')).toBeInTheDocument();
   });
 
-  it('should display grand total', () => {
-    render(<PaymentTimeline phaseCosts={mockPhaseCosts} />);
+  it('should display summary bar with total, to finance, and monthly payment', () => {
+    render(
+      <PaymentTimeline
+        phaseCosts={mockPhaseCosts}
+        capitalApporte={30000}
+        monthlyPayment={639}
+      />
+    );
 
+    // Summary bar - answers key questions at a glance
     expect(screen.getByText('TOTAL')).toBeInTheDocument();
     expect(screen.getByText('157 700 €')).toBeInTheDocument();
+    expect(screen.getByText('À FINANCER')).toBeInTheDocument();
+    expect(screen.getByText('127 700 €')).toBeInTheDocument(); // 157700 - 30000
+    expect(screen.getByText('MENSUALITÉ')).toBeInTheDocument();
+    expect(screen.getByText('~639 €/mois')).toBeInTheDocument();
   });
 
   it('should display timeline header with title', () => {
-    render(<PaymentTimeline phaseCosts={mockPhaseCosts} />);
+    render(
+      <PaymentTimeline
+        phaseCosts={mockPhaseCosts}
+        capitalApporte={30000}
+        monthlyPayment={639}
+      />
+    );
 
     expect(screen.getByText('MON PARCOURS DE PAIEMENT')).toBeInTheDocument();
+  });
+
+  it('should only show 3 timeline dots (phases only, not total)', () => {
+    const { container } = render(
+      <PaymentTimeline
+        phaseCosts={mockPhaseCosts}
+        capitalApporte={30000}
+        monthlyPayment={639}
+      />
+    );
+
+    // Timeline should have exactly 3 dots for 3 phases
+    const dots = container.querySelectorAll('[data-testid="timeline-dot"]');
+    expect(dots).toHaveLength(3);
   });
 });
 ```
@@ -537,10 +655,17 @@ import type { PhaseCosts } from '../../utils/phaseCostsCalculation';
 
 interface PaymentTimelineProps {
   phaseCosts: PhaseCosts;
+  capitalApporte: number;
+  monthlyPayment: number;
 }
 
-export function PaymentTimeline({ phaseCosts }: PaymentTimelineProps) {
+export function PaymentTimeline({
+  phaseCosts,
+  capitalApporte,
+  monthlyPayment,
+}: PaymentTimelineProps) {
   const { signature, construction, emmenagement, grandTotal } = phaseCosts;
+  const toFinance = Math.max(0, grandTotal - capitalApporte);
 
   return (
     <div className="mb-6">
@@ -548,67 +673,93 @@ export function PaymentTimeline({ phaseCosts }: PaymentTimelineProps) {
         MON PARCOURS DE PAIEMENT
       </h3>
 
-      {/* Timeline connector line */}
+      {/* Timeline connector line - 3 dots only (phases, not total) */}
       <div className="relative mb-4">
-        <div className="absolute top-3 left-8 right-8 h-0.5 bg-gray-300" />
-        <div className="flex justify-between px-4">
-          <div className="w-6 h-6 rounded-full bg-blue-500 border-4 border-white shadow z-10" />
-          <div className="w-6 h-6 rounded-full bg-orange-500 border-4 border-white shadow z-10" />
-          <div className="w-6 h-6 rounded-full bg-green-500 border-4 border-white shadow z-10" />
-          <div className="w-6 h-6 rounded-full bg-gray-700 border-4 border-white shadow z-10" />
+        <div className="absolute top-3 left-[16%] right-[16%] h-0.5 bg-gray-300" />
+        <div className="flex justify-around px-8">
+          <div
+            data-testid="timeline-dot"
+            className="w-6 h-6 rounded-full bg-blue-500 border-4 border-white shadow z-10"
+          />
+          <div
+            data-testid="timeline-dot"
+            className="w-6 h-6 rounded-full bg-orange-500 border-4 border-white shadow z-10"
+          />
+          <div
+            data-testid="timeline-dot"
+            className="w-6 h-6 rounded-full bg-green-500 border-4 border-white shadow z-10"
+          />
         </div>
       </div>
 
-      {/* Phase cards grid */}
-      <div className="grid grid-cols-4 gap-3">
+      {/* Phase cards grid - 3 columns for phases */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
         <PaymentPhaseCard
           label="SIGNATURE"
+          subtitle="Je deviens propriétaire"
+          icon="🔑"
           total={signature.total}
+          variant="fixed"
           items={[
             { label: "Part d'achat", amount: signature.purchaseShare },
             { label: 'Enregistrement', amount: signature.registrationFees },
             { label: 'Notaire', amount: signature.notaryFees },
           ]}
-          className="border-blue-200"
         />
 
         <PaymentPhaseCard
           label="CONSTRUCTION"
+          subtitle="Mon logement prend forme"
+          icon="🏗️"
           total={construction.total}
+          variant="progressive"
           items={[
             { label: 'CASCO', amount: construction.casco },
             { label: 'Travaux communs', amount: construction.travauxCommuns },
             { label: 'Commun', amount: construction.commun },
           ]}
-          className="border-orange-200"
         />
 
         <PaymentPhaseCard
           label="EMMÉNAGEMENT"
+          subtitle="J'emménage chez moi"
+          icon="🏠"
           total={emmenagement.total}
+          variant="flexible"
           items={[
             { label: 'Parachèvements', amount: emmenagement.parachevements },
           ]}
-          className="border-green-200"
         />
-
-        {/* Grand Total */}
-        <div className="bg-gray-100 rounded-lg border-2 border-gray-300 p-4 text-center">
-          <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">
-            TOTAL
-          </p>
-          <p className="text-2xl font-bold text-gray-900">
-            {formatCurrency(grandTotal)}
-          </p>
-        </div>
       </div>
 
-      {/* Phase labels */}
-      <div className="grid grid-cols-4 gap-3 mt-2 text-center">
-        <p className="text-xs text-gray-500">(Acte)</p>
-        <p className="text-xs text-gray-500">(progressif)</p>
-        <p className="text-xs text-gray-500">(quand je veux)</p>
-        <p className="text-xs text-gray-500"></p>
+      {/* Summary bar - answers key questions at a glance */}
+      <div className="bg-gray-100 rounded-lg border border-gray-300 p-4">
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div>
+            <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-1">
+              TOTAL
+            </p>
+            <p className="text-xl font-bold text-gray-900">
+              {formatCurrency(grandTotal)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-1">
+              À FINANCER
+            </p>
+            <p className="text-xl font-bold text-red-700">
+              {formatCurrency(toFinance)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-1">
+              MENSUALITÉ
+            </p>
+            <p className="text-xl font-bold text-blue-700">
+              ~{monthlyPayment} €/mois
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -784,32 +935,40 @@ describe('FinancingSection', () => {
   const mockParticipantCalc: Partial<ParticipantCalculation> = {
     loanNeeded: 127700,
     monthlyPayment: 640,
+    loan1MonthlyPayment: 226,
+    loan2MonthlyPayment: 413,
   };
 
-  it('should display capital input and remaining to finance', () => {
+  it('should show collapsed summary with monthly payment', () => {
     render(
       <FinancingSection
         phaseCosts={mockPhaseCosts}
         participant={mockParticipant as Participant}
         participantCalc={mockParticipantCalc as ParticipantCalculation}
         onUpdateParticipant={vi.fn()}
+        defaultExpanded={false}
       />
     );
 
-    expect(screen.getByText('Capital apporté:')).toBeInTheDocument();
-    expect(screen.getByText(/Reste à financer/)).toBeInTheDocument();
+    // Collapsed state should show mini-summary
+    expect(screen.getByText(/Financement/)).toBeInTheDocument();
+    expect(screen.getByText(/640 €\/mois/)).toBeInTheDocument();
   });
 
-  it('should show single vs two loans toggle', () => {
+  it('should expand to show full configuration when clicked', () => {
     render(
       <FinancingSection
         phaseCosts={mockPhaseCosts}
         participant={mockParticipant as Participant}
         participantCalc={mockParticipantCalc as ParticipantCalculation}
         onUpdateParticipant={vi.fn()}
+        defaultExpanded={false}
       />
     );
 
+    fireEvent.click(screen.getByRole('button'));
+
+    expect(screen.getByText('Capital apporté:')).toBeInTheDocument();
     expect(screen.getByText('Un seul prêt')).toBeInTheDocument();
     expect(screen.getByText('Deux prêts')).toBeInTheDocument();
   });
@@ -823,11 +982,31 @@ describe('FinancingSection', () => {
         participant={participantWithTwoLoans as Participant}
         participantCalc={mockParticipantCalc as ParticipantCalculation}
         onUpdateParticipant={vi.fn()}
+        defaultExpanded={true}
       />
     );
 
     expect(screen.getByText('PRÊT 1 (Signature)')).toBeInTheDocument();
     expect(screen.getByText('PRÊT 2 (Construction)')).toBeInTheDocument();
+  });
+
+  it('should reframe parachèvements as payment method choice', () => {
+    const participantWithTwoLoans = { ...mockParticipant, useTwoLoans: true };
+
+    render(
+      <FinancingSection
+        phaseCosts={mockPhaseCosts}
+        participant={participantWithTwoLoans as Participant}
+        participantCalc={mockParticipantCalc as ParticipantCalculation}
+        onUpdateParticipant={vi.fn()}
+        defaultExpanded={true}
+      />
+    );
+
+    // Should ask HOW to pay, not WHETHER to include
+    expect(screen.getByText('Comment payer les parachèvements?')).toBeInTheDocument();
+    expect(screen.getByText('Cash (payer plus tard)')).toBeInTheDocument();
+    expect(screen.getByText(/Ajouter au prêt 2/)).toBeInTheDocument();
   });
 });
 ```
@@ -841,7 +1020,8 @@ Expected: FAIL with "Cannot find module './FinancingSection'"
 
 ```typescript
 // src/components/shared/FinancingSection.tsx
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatting';
 import { suggestLoanAllocation, type PhaseCosts } from '../../utils/phaseCostsCalculation';
 import type { Participant, ParticipantCalculation } from '../../utils/calculatorUtils';
@@ -851,6 +1031,7 @@ interface FinancingSectionProps {
   participant: Participant;
   participantCalc: ParticipantCalculation;
   onUpdateParticipant: (updated: Participant) => void;
+  defaultExpanded?: boolean;
 }
 
 export function FinancingSection({
@@ -858,7 +1039,10 @@ export function FinancingSection({
   participant,
   participantCalc,
   onUpdateParticipant,
+  defaultExpanded = false,
 }: FinancingSectionProps) {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+
   const capitalApporte = participant.capitalApporte ?? 0;
   const useTwoLoans = participant.useTwoLoans ?? false;
   const includeParachevements = participant.loan2IncludesParachevements ?? false;
@@ -870,123 +1054,193 @@ export function FinancingSection({
 
   const remainingToFinance = phaseCosts.grandTotal - capitalApporte;
 
+  // Calculate combined monthly payment for summary
+  const monthlyPayment = useTwoLoans
+    ? (participantCalc.loan1MonthlyPayment ?? 0) + (participantCalc.loan2MonthlyPayment ?? 0)
+    : participantCalc.monthlyPayment;
+
+  const loanTypeLabel = useTwoLoans ? '2 prêts' : '1 prêt';
+
   return (
-    <div className="bg-gray-50 rounded-lg border border-gray-200 p-4">
-      {/* Capital and remaining */}
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-gray-50 rounded-lg border border-gray-200">
+      {/* Collapsed header with mini-summary */}
+      <button
+        type="button"
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between p-4 hover:bg-gray-100 transition-colors"
+      >
         <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">Capital apporté:</span>
-          <input
-            type="number"
-            value={capitalApporte}
-            onChange={(e) =>
-              onUpdateParticipant({
-                ...participant,
-                capitalApporte: parseFloat(e.target.value) || 0,
-              })
-            }
-            className="w-32 px-2 py-1 border border-gray-300 rounded text-right font-medium"
-            step="1000"
-          />
+          <span>💰</span>
+          <span className="font-medium text-gray-700">Financement</span>
+          <span className="text-sm text-gray-500">
+            ({loanTypeLabel})
+          </span>
         </div>
-        <div className="text-sm">
-          <span className="text-gray-600">Reste à financer: </span>
-          <span className="font-bold text-red-700">{formatCurrency(Math.max(0, remainingToFinance))}</span>
+        <div className="flex items-center gap-3">
+          <span className="font-bold text-blue-700">{monthlyPayment} €/mois</span>
+          {isExpanded ? (
+            <ChevronDown className="w-4 h-4 text-gray-400" />
+          ) : (
+            <ChevronRight className="w-4 h-4 text-gray-400" />
+          )}
         </div>
-      </div>
+      </button>
 
-      {/* Loan type toggle */}
-      <div className="flex items-center gap-4 mb-4">
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="radio"
-            name="loanType"
-            checked={!useTwoLoans}
-            onChange={() => onUpdateParticipant({ ...participant, useTwoLoans: false })}
-            className="w-4 h-4"
-          />
-          <span className="text-sm">Un seul prêt</span>
-        </label>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="radio"
-            name="loanType"
-            checked={useTwoLoans}
-            onChange={() => onUpdateParticipant({ ...participant, useTwoLoans: true })}
-            className="w-4 h-4"
-          />
-          <span className="text-sm">Deux prêts</span>
-          <span className="text-xs text-gray-500">(recommandé)</span>
-        </label>
-      </div>
-
-      {/* Two loans configuration */}
-      {useTwoLoans && (
-        <div className="grid grid-cols-2 gap-4">
-          {/* Loan 1 */}
-          <div className="bg-white rounded-lg p-4 border-2 border-blue-200">
-            <p className="text-xs font-semibold text-blue-700 mb-2">PRÊT 1 (Signature)</p>
-            <p className="text-lg font-bold text-gray-900">{formatCurrency(loanSuggestion.loan1Amount)}</p>
-            <p className="text-xs text-gray-500 mt-1">
-              {participant.durationYears} ans @ {participant.interestRate}%
-            </p>
-            {participantCalc.loan1MonthlyPayment && (
-              <p className="text-sm font-medium text-blue-700 mt-2">
-                {formatCurrency(participantCalc.loan1MonthlyPayment)}/mois
-              </p>
-            )}
-          </div>
-
-          {/* Loan 2 */}
-          <div className="bg-white rounded-lg p-4 border-2 border-orange-200">
-            <p className="text-xs font-semibold text-orange-700 mb-2">PRÊT 2 (Construction)</p>
-            <p className="text-lg font-bold text-gray-900">{formatCurrency(loanSuggestion.loan2Amount)}</p>
-            <p className="text-xs text-gray-500 mt-1">
-              Démarre après {participant.loan2DelayYears ?? 2} an(s)
-            </p>
-            {participantCalc.loan2MonthlyPayment && (
-              <p className="text-sm font-medium text-orange-700 mt-2">
-                {formatCurrency(participantCalc.loan2MonthlyPayment)}/mois
-              </p>
-            )}
-
-            {/* Parachèvements toggle */}
-            <label className="flex items-center gap-2 mt-3 cursor-pointer">
+      {/* Expanded content */}
+      {isExpanded && (
+        <div className="p-4 pt-0 border-t border-gray-200">
+          {/* Capital and remaining */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Capital apporté:</span>
               <input
-                type="checkbox"
-                checked={includeParachevements}
+                type="number"
+                value={capitalApporte}
                 onChange={(e) =>
                   onUpdateParticipant({
                     ...participant,
-                    loan2IncludesParachevements: e.target.checked,
+                    capitalApporte: parseFloat(e.target.value) || 0,
                   })
                 }
+                className="w-32 px-2 py-1 border border-gray-300 rounded text-right font-medium"
+                step="1000"
+              />
+            </div>
+            <div className="text-sm">
+              <span className="text-gray-600">Reste à financer: </span>
+              <span className="font-bold text-red-700">
+                {formatCurrency(Math.max(0, remainingToFinance))}
+              </span>
+            </div>
+          </div>
+
+          {/* Loan type toggle */}
+          <div className="flex items-center gap-4 mb-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="loanType"
+                checked={!useTwoLoans}
+                onChange={() => onUpdateParticipant({ ...participant, useTwoLoans: false })}
                 className="w-4 h-4"
               />
-              <span className="text-xs text-gray-600">
-                Inclure parachèvements (+{formatCurrency(phaseCosts.emmenagement.total)})
-              </span>
+              <span className="text-sm">Un seul prêt</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="loanType"
+                checked={useTwoLoans}
+                onChange={() => onUpdateParticipant({ ...participant, useTwoLoans: true })}
+                className="w-4 h-4"
+              />
+              <span className="text-sm">Deux prêts</span>
+              <span className="text-xs text-gray-500">(recommandé)</span>
             </label>
           </div>
-        </div>
-      )}
 
-      {/* Single loan display */}
-      {!useTwoLoans && (
-        <div className="bg-white rounded-lg p-4 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Montant à emprunter</p>
-              <p className="text-xl font-bold text-gray-900">{formatCurrency(participantCalc.loanNeeded)}</p>
+          {/* Two loans configuration */}
+          {useTwoLoans && (
+            <>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                {/* Loan 1 */}
+                <div className="bg-white rounded-lg p-4 border-2 border-blue-200">
+                  <p className="text-xs font-semibold text-blue-700 mb-2">PRÊT 1 (Signature)</p>
+                  <p className="text-lg font-bold text-gray-900">
+                    {formatCurrency(loanSuggestion.loan1Amount)}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {participant.durationYears} ans @ {participant.interestRate}%
+                  </p>
+                  {participantCalc.loan1MonthlyPayment && (
+                    <p className="text-sm font-medium text-blue-700 mt-2">
+                      {formatCurrency(participantCalc.loan1MonthlyPayment)}/mois
+                    </p>
+                  )}
+                </div>
+
+                {/* Loan 2 */}
+                <div className="bg-white rounded-lg p-4 border-2 border-orange-200">
+                  <p className="text-xs font-semibold text-orange-700 mb-2">PRÊT 2 (Construction)</p>
+                  <p className="text-lg font-bold text-gray-900">
+                    {formatCurrency(loanSuggestion.loan2Amount)}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Démarre après {participant.loan2DelayYears ?? 2} an(s)
+                  </p>
+                  {participantCalc.loan2MonthlyPayment && (
+                    <p className="text-sm font-medium text-orange-700 mt-2">
+                      {formatCurrency(participantCalc.loan2MonthlyPayment)}/mois
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Parachèvements payment choice - reframed as HOW to pay */}
+              <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                <p className="text-sm font-medium text-gray-700 mb-3">
+                  Comment payer les parachèvements?
+                </p>
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="parachevementPayment"
+                      checked={!includeParachevements}
+                      onChange={() =>
+                        onUpdateParticipant({
+                          ...participant,
+                          loan2IncludesParachevements: false,
+                        })
+                      }
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">Cash (payer plus tard)</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="parachevementPayment"
+                      checked={includeParachevements}
+                      onChange={() =>
+                        onUpdateParticipant({
+                          ...participant,
+                          loan2IncludesParachevements: true,
+                        })
+                      }
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm">
+                      Ajouter au prêt 2 (+{formatCurrency(phaseCosts.emmenagement.total)})
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Single loan display */}
+          {!useTwoLoans && (
+            <div className="bg-white rounded-lg p-4 border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Montant à emprunter</p>
+                  <p className="text-xl font-bold text-gray-900">
+                    {formatCurrency(participantCalc.loanNeeded)}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-gray-600">Mensualité</p>
+                  <p className="text-xl font-bold text-red-700">
+                    {formatCurrency(participantCalc.monthlyPayment)}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {participant.durationYears} ans @ {participant.interestRate}%
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="text-right">
-              <p className="text-sm text-gray-600">Mensualité</p>
-              <p className="text-xl font-bold text-red-700">{formatCurrency(participantCalc.monthlyPayment)}</p>
-              <p className="text-xs text-gray-500">
-                {participant.durationYears} ans @ {participant.interestRate}%
-              </p>
-            </div>
-          </div>
+          )}
         </div>
       )}
     </div>
@@ -1188,18 +1442,26 @@ git commit -m "docs: mark modal redesign implementation complete"
 
 ## Summary
 
-| Task | Component | Description |
-|------|-----------|-------------|
-| 1 | `phaseCostsCalculation.ts` | Pure function to group costs by phase |
-| 2 | `CollapsibleSection.tsx` | Reusable collapsible wrapper |
-| 3 | `PaymentPhaseCard.tsx` | Card showing phase total + expandable details |
-| 4 | `PaymentTimeline.tsx` | Hero component with 3 phases + total |
-| 5 | `suggestLoanAllocation()` | Auto-suggest loan split based on timing |
-| 6 | `FinancingSection.tsx` | Loan configuration with auto-suggest |
-| 7 | `ParticipantDetailModal.tsx` | Refactor layout to new structure |
-| 8 | Visual polish | Responsive + color coding |
-| 9 | Integration tests | End-to-end modal behavior |
-| 10 | Documentation | Update design doc |
+| Task | Component | Description | UX Principle |
+|------|-----------|-------------|--------------|
+| 1 | `phaseCostsCalculation.ts` | Pure function to group costs by phase | - |
+| 2 | `CollapsibleSection.tsx` | Reusable collapsible wrapper | Progressive disclosure |
+| 3 | `PaymentPhaseCard.tsx` | Card with icon, subtitle, variant styling | Gestalt Similarity, emotional journey |
+| 4 | `PaymentTimeline.tsx` | 3-phase timeline + summary bar | Gestalt Continuity, key questions visible |
+| 5 | `suggestLoanAllocation()` | Auto-suggest loan split based on timing | - |
+| 6 | `FinancingSection.tsx` | Collapsible with mini-summary, reframed parachèvements | Monthly payment always visible |
+| 7 | `ParticipantDetailModal.tsx` | Refactor layout to new structure | Information hierarchy |
+| 8 | Visual polish | Responsive + phase-specific borders | Gestalt Figure-Ground |
+| 9 | Integration tests | End-to-end modal behavior | - |
+| 10 | Documentation | Update design doc | - |
+
+**UX Improvements Applied:**
+- Timeline ends at Emménagement (3 dots), TOTAL in summary bar below
+- Summary bar answers: TOTAL | À FINANCER | MENSUALITÉ
+- Financing shows "💰 Financement: €639/mois" when collapsed
+- Parachèvements reframed as "Comment payer?" (Cash vs Prêt)
+- Phase cards have emotional subtitles and icons (🔑🏗️🏠)
+- Variant borders: solid (fixed), standard (progressive), dashed (flexible)
 
 **Estimated commits:** 10
 **Test coverage:** Unit tests for each new function/component + integration tests
