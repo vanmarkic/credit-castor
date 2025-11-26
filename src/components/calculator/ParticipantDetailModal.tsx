@@ -205,6 +205,19 @@ export default function ParticipantDetailModal({
         {/* Configuration Section */}
         <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
           <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Configuration</p>
+
+          {/* Construction Detail - moved here */}
+          <div className="mb-4">
+            <ConstructionDetailSection
+              participant={participant}
+              participantCalc={p}
+              projectParams={projectParams}
+              onUpdateParachevementsPerM2={onUpdateParachevementsPerM2}
+              onUpdateCascoSqm={onUpdateCascoSqm}
+              onUpdateParachevementsSqm={onUpdateParachevementsSqm}
+            />
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-gray-600 mb-1">
@@ -288,18 +301,6 @@ export default function ParticipantDetailModal({
               </div>
             </div>
 
-            {participant.isFounder && (
-              <PortageLotConfig
-                portageLots={participant.lotsOwned?.filter((lot) => lot.isPortage) || []}
-                onAddLot={onAddPortageLot}
-                onRemoveLot={onRemovePortageLot}
-                onUpdateSurface={onUpdatePortageLotSurface}
-                onUpdateConstructionPayment={onUpdatePortageLotConstructionPayment}
-                deedDate={new Date(deedDate)}
-                formulaParams={formulaParams}
-              />
-            )}
-
             <div>
               <label className="block text-xs text-gray-600 mb-1">Taux d'intérêt (%)</label>
               <input
@@ -320,6 +321,21 @@ export default function ParticipantDetailModal({
               />
             </div>
           </div>
+
+          {/* Portage Lot Configuration (only for founders) */}
+          {participant.isFounder && (
+            <div className="mt-4 pt-4 border-t border-gray-300">
+              <PortageLotConfig
+                portageLots={participant.lotsOwned?.filter((lot) => lot.isPortage) || []}
+                onAddLot={onAddPortageLot}
+                onRemoveLot={onRemovePortageLot}
+                onUpdateSurface={onUpdatePortageLotSurface}
+                onUpdateConstructionPayment={onUpdatePortageLotConstructionPayment}
+                deedDate={new Date(deedDate)}
+                formulaParams={formulaParams}
+              />
+            </div>
+          )}
 
           {/* Two-Loan Financing Section */}
           <TwoLoanFinancingSection
@@ -342,15 +358,6 @@ export default function ParticipantDetailModal({
           formulaParams={formulaParams}
         />
 
-        {/* Construction Detail */}
-        <ConstructionDetailSection
-          participant={participant}
-          participantCalc={p}
-          projectParams={projectParams}
-          onUpdateParachevementsPerM2={onUpdateParachevementsPerM2}
-          onUpdateCascoSqm={onUpdateCascoSqm}
-          onUpdateParachevementsSqm={onUpdateParachevementsSqm}
-        />
 
         {/* Financing Result */}
         <FinancingResultCard 
