@@ -3637,3 +3637,119 @@ describe('calculateQuotiteForFounder', () => {
     expect(result).toBe('333/1000');
   });
 });
+
+// ============================================
+// Invalid Date Handling (Poka-yoke)
+// ============================================
+
+describe('calculateExpectedPaybacks - invalid date handling', () => {
+  it('should not crash when entryDate is a Firestore timestamp object instead of string', () => {
+    // This is the ACTUAL crash scenario from scenario_2025-11-26_19-57.json
+    // Participant·e 11 has entryDate as a Firestore timestamp object
+    const founder: Participant = {
+      name: 'Manuela/Dragan',
+      surface: 140,
+      capitalApporte: 150000,
+      registrationFeesRate: 3,
+      interestRate: 4,
+      durationYears: 25,
+      isFounder: true,
+      entryDate: '2026-02-01T00:00:00.000Z',
+    };
+
+    // Another founder
+    const founder2: Participant = {
+      name: 'Julie/Séverin',
+      surface: 150,
+      capitalApporte: 245000,
+      registrationFeesRate: 3,
+      interestRate: 4,
+      durationYears: 25,
+      isFounder: true,
+      entryDate: '2026-02-01T00:00:00.000Z',
+    };
+
+    // Newcomer with Firestore timestamp object (the crash trigger!)
+    // This is what Firestore returns - an object, not a string!
+    const participantWithFirestoreTimestamp = {
+      name: 'Participant·e 11',
+      surface: 100,
+      capitalApporte: 100000,
+      registrationFeesRate: 3,
+      interestRate: 4.5,
+      durationYears: 25,
+      isFounder: false,
+      entryDate: {
+        type: 'firestore/timestamp/1.0',
+        seconds: 1769990400,
+        nanoseconds: 0,
+      },
+      purchaseDetails: {
+        buyingFrom: 'Copropriété',
+        purchasePrice: 0,
+        lotId: 15,
+      },
+    } as unknown as Participant;
+
+    const allParticipants = [founder, founder2, participantWithFirestoreTimestamp];
+
+    // Crash happens when clicking on founder's card (calculating their paybacks)
+    // The isSameDay function is called with Invalid Date from the Firestore timestamp
+    expect(() => {
+      calculateExpectedPaybacks(founder, allParticipants, '2026-02-01');
+    }).not.toThrow();
+  });
+
+  it('should not crash when calculating paybacks for non-founder with another non-founder having invalid entryDate', () => {
+    const founder: Participant = {
+      name: 'Founder',
+      surface: 100,
+      capitalApporte: 50000,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      isFounder: true,
+    };
+
+    // First newcomer with valid date
+    const newcomer1: Participant = {
+      name: 'Newcomer1',
+      surface: 50,
+      capitalApporte: 0,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      isFounder: false,
+      entryDate: '2026-06-01',
+      purchaseDetails: {
+        buyingFrom: 'Copropriété',
+        purchasePrice: 50000,
+      },
+    };
+
+    // Second newcomer with INVALID date - this triggers the crash
+    const newcomer2WithBadDate: Participant = {
+      name: 'Newcomer2',
+      surface: 50,
+      capitalApporte: 0,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      isFounder: false,
+      entryDate: 'invalid-date-string', // This causes Invalid Date
+      purchaseDetails: {
+        buyingFrom: 'Copropriété',
+        purchasePrice: 50000,
+      },
+    };
+
+    const allParticipants = [founder, newcomer1, newcomer2WithBadDate];
+
+    // The crash happens when calculating paybacks for a non-founder (newcomer1)
+    // because isSameDay is called to check if newcomer2's sale date matches newcomer1's entry
+    // Should NOT throw - should handle gracefully
+    expect(() => {
+      calculateExpectedPaybacks(newcomer1, allParticipants, '2026-02-01');
+    }).not.toThrow();
+  });
+});

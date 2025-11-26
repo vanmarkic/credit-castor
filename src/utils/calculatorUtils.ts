@@ -1358,19 +1358,52 @@ export interface ExpectedPaybacksResult {
 }
 
 /**
+ * Check if a Date object is valid (not Invalid Date)
+ * Poka-yoke: Prevents crashes from invalid date operations
+ */
+function isValidDate(date: Date): boolean {
+  return date instanceof Date && !isNaN(date.getTime());
+}
+
+/**
  * Helper to normalize dates to Date objects
+ * Poka-yoke: Returns fallback if the result would be an Invalid Date
+ *
+ * Handles edge cases:
+ * - Firestore timestamp objects: { seconds, nanoseconds }
+ * - Invalid date strings: "invalid-date-string"
+ * - Empty strings: ""
+ * - Already invalid Date objects
  */
 function ensureDate(date: Date | string | undefined, fallback: Date): Date {
   if (!date) return fallback;
-  if (date instanceof Date) return date;
-  return new Date(date);
+
+  // Handle Firestore timestamp objects: { type, seconds, nanoseconds }
+  if (typeof date === 'object' && 'seconds' in date && typeof (date as { seconds: number }).seconds === 'number') {
+    const firestoreTimestamp = date as { seconds: number; nanoseconds?: number };
+    const result = new Date(firestoreTimestamp.seconds * 1000);
+    return isValidDate(result) ? result : fallback;
+  }
+
+  if (date instanceof Date) {
+    return isValidDate(date) ? date : fallback;
+  }
+
+  // Parse string dates
+  const parsed = new Date(date);
+  return isValidDate(parsed) ? parsed : fallback;
 }
 
 /**
  * Compare two dates by ISO date string (ignoring time)
  * Returns true if dates are on the same calendar day
+ * Poka-yoke: Returns false if either date is invalid (fail-safe)
  */
 function isSameDay(date1: Date, date2: Date): boolean {
+  // Fail-safe: if either date is invalid, they can't be the same day
+  if (!isValidDate(date1) || !isValidDate(date2)) {
+    return false;
+  }
   const str1 = date1.toISOString().split('T')[0];
   const str2 = date2.toISOString().split('T')[0];
   return str1 === str2;

@@ -92,6 +92,55 @@ export default function EnDivisionCorrect() {
   // Copropriété modal state
   const [coproSnapshot, setCoproSnapshot] = useState<CoproSnapshot | null>(null);
 
+  // URL hash routing for participant modals
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      const match = hash.match(/^#participant\/(\d+)$/);
+      if (match) {
+        const index = parseInt(match[1], 10);
+        if (index >= 0 && index < participants.length) {
+          setFullscreenParticipantIndex(index);
+        }
+      } else if (!hash || hash === '#') {
+        setFullscreenParticipantIndex(null);
+      }
+    };
+
+    // Handle initial hash on mount
+    handleHashChange();
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [participants.length, setFullscreenParticipantIndex]);
+
+  // Sync URL hash when fullscreenParticipantIndex changes programmatically
+  useEffect(() => {
+    const expectedHash = fullscreenParticipantIndex !== null
+      ? `#participant/${fullscreenParticipantIndex}`
+      : '';
+
+    if (window.location.hash !== expectedHash) {
+      if (fullscreenParticipantIndex !== null) {
+        window.history.pushState(null, '', `#participant/${fullscreenParticipantIndex}`);
+      } else if (window.location.hash.startsWith('#participant/')) {
+        window.history.pushState(null, '', window.location.pathname + window.location.search);
+      }
+    }
+  }, [fullscreenParticipantIndex]);
+
+  // Keyboard handler for Escape key to close modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && fullscreenParticipantIndex !== null) {
+        setFullscreenParticipantIndex(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [fullscreenParticipantIndex, setFullscreenParticipantIndex]);
+
   // Presence detection and change notifications (for toast UI)
   const { unlockedBy } = useUnlock();
   const { changes, clearChanges } = useChangeNotifications();
