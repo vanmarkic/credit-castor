@@ -199,7 +199,6 @@ describe('Copro Redistribution Display - Main View and Detail Modal', () => {
             onUnpinParticipant={() => {}}
             onUpdateParticipant={() => {}}
             onUpdateParticipantSurface={() => {}}
-            onUpdateCapital={() => {}}
             onUpdateNotaryRate={() => {}}
             onUpdateQuantity={() => {}}
             onUpdateParachevementsPerM2={() => {}}
@@ -340,7 +339,6 @@ describe('Copro Redistribution Display - Main View and Detail Modal', () => {
           onUnpin={() => {}}
           onUpdateName={() => {}}
           onUpdateSurface={() => {}}
-          onUpdateCapital={() => {}}
           onUpdateNotaryRate={() => {}}
           onUpdateInterestRate={() => {}}
           onUpdateDuration={() => {}}
@@ -519,7 +517,6 @@ describe('Copro Redistribution Display - Main View and Detail Modal', () => {
             onUnpinParticipant={() => {}}
             onUpdateParticipant={() => {}}
             onUpdateParticipantSurface={() => {}}
-            onUpdateCapital={() => {}}
             onUpdateNotaryRate={() => {}}
             onUpdateQuantity={() => {}}
             onUpdateParachevementsPerM2={() => {}}

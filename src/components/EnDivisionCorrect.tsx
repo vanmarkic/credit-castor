@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import * as Tooltip from '@radix-ui/react-tooltip';
-import { type Participant, calculateTotalTravauxCommuns } from '../utils/calculatorUtils';
+import { calculateTotalTravauxCommuns } from '../utils/calculatorUtils';
 import { ParticipantsTimeline } from './calculator/ParticipantsTimeline';
 import { ProjectHeader } from './calculator/ProjectHeader';
 import { VerticalToolbar } from './calculator/VerticalToolbar';
@@ -235,15 +235,6 @@ export default function EnDivisionCorrect() {
   };
 
   // Participant detail operations (wrappers for provider actions)
-  const updateCapital = (index: number, value: number) => {
-    const participantOps = { updateCapital: (ps: Participant[], i: number, v: number) => {
-      const updated = [...ps];
-      updated[i] = { ...updated[i], capitalApporte: v };
-      return updated;
-    }};
-    setParticipants(participantOps.updateCapital(participants, index, value));
-  };
-
   const updateNotaryRate = (index: number, value: number) => {
     const newParticipants = [...participants];
     newParticipants[index] = { ...newParticipants[index], registrationFeesRate: value };
@@ -595,7 +586,6 @@ export default function EnDivisionCorrect() {
               onUnpin={handleUnpinParticipant}
               onUpdateName={(name) => updateParticipantName(idx, name)}
               onUpdateSurface={(surface) => updateParticipantSurface(idx, surface)}
-              onUpdateCapital={(value) => updateCapital(idx, value)}
               onUpdateNotaryRate={(rate) => updateNotaryRate(idx, rate)}
               onUpdateInterestRate={(rate) => updateInterestRate(idx, rate)}
               onUpdateDuration={(years) => updateDuration(idx, years)}

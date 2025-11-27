@@ -124,7 +124,6 @@ describe('ParticipantDetailModal Integration', () => {
     onUnpin: vi.fn(),
     onUpdateName: vi.fn(),
     onUpdateSurface: vi.fn(),
-    onUpdateCapital: vi.fn(),
     onUpdateNotaryRate: vi.fn(),
     onUpdateInterestRate: vi.fn(),
     onUpdateDuration: vi.fn(),

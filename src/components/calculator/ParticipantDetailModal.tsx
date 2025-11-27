@@ -5,10 +5,10 @@ import { formatDateForInput } from '../../utils/dateValidation';
 import AvailableLotsView from '../AvailableLotsView';
 import PortageLotConfig from '../PortageLotConfig';
 import { ExpectedPaybacksCard } from '../shared/ExpectedPaybacksCard';
-import { TwoLoanFinancingSection } from '../shared/TwoLoanFinancingSection';
-import { ConstructionDetailSection } from '../shared/ConstructionDetailSection';
 import { PaymentTimeline } from '../shared/PaymentTimeline';
 import { FinancingSection } from '../shared/FinancingSection';
+import { PropertySection } from '../shared/PropertySection';
+import { LoanParametersSection } from '../shared/LoanParametersSection';
 import { CollapsibleSection } from '../shared/CollapsibleSection';
 import { getAvailableLotsForNewcomer, type AvailableLot } from '../../utils/availableLots';
 import type { PortageLotPrice } from '../../utils/portageCalculations';
@@ -33,7 +33,6 @@ interface ParticipantDetailModalProps {
   onUnpin: () => void;
   onUpdateName: (name: string) => void;
   onUpdateSurface: (surface: number) => void;
-  onUpdateCapital: (value: number) => void;
   onUpdateNotaryRate: (rate: number) => void;
   onUpdateInterestRate: (rate: number) => void;
   onUpdateDuration: (years: number) => void;
@@ -66,7 +65,6 @@ export default function ParticipantDetailModal({
   onUnpin,
   onUpdateName,
   onUpdateSurface,
-  onUpdateCapital,
   onUpdateNotaryRate,
   onUpdateInterestRate,
   onUpdateDuration,
@@ -230,148 +228,50 @@ export default function ParticipantDetailModal({
           />
         </div>
 
-        {/* 3. CollapsibleSection: Paramètres - Configuration */}
-        <CollapsibleSection title="Paramètres" icon="⚙️" defaultOpen={false}>
-          {/* Construction Detail */}
-          <div className="mb-4">
-            <ConstructionDetailSection
-              participant={participant}
-              participantCalc={p}
-              projectParams={projectParams}
-              onUpdateParachevementsPerM2={onUpdateParachevementsPerM2}
-              onUpdateCascoSqm={onUpdateCascoSqm}
-              onUpdateParachevementsSqm={onUpdateParachevementsSqm}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-gray-600 mb-1">
-                Surface totale (m²)
-                {!participant.isFounder && participant.purchaseDetails?.buyingFrom &&
-                 participant.purchaseDetails?.buyingFrom !== 'Copropriété' && (
-                  <span className="ml-2 text-orange-600 font-semibold">🔒 Imposée par portage</span>
-                )}
-              </label>
-              <input
-                type="number"
-                step="1"
-                value={p.surface}
-                onChange={(e) => onUpdateSurface(parseFloat(e.target.value) || 0)}
-                disabled={!participant.isFounder && !!participant.purchaseDetails?.buyingFrom &&
-                          participant.purchaseDetails?.buyingFrom !== 'Copropriété'}
-                className={`w-full px-3 py-2 font-medium border rounded-lg focus:outline-none ${
-                  !participant.isFounder && !!participant.purchaseDetails?.buyingFrom &&
-                  participant.purchaseDetails?.buyingFrom !== 'Copropriété'
-                    ? 'border-orange-300 bg-orange-50 text-gray-700 cursor-not-allowed'
-                    : 'border-gray-300 bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500'
-                }`}
-              />
-              <p className="text-xs text-gray-500 mt-1">Total pour {p.quantity || 1} {(p.quantity || 1) > 1 ? 'unités' : 'unité'}</p>
-            </div>
-            <div>
-              <label className="block text-xs text-gray-600 mb-1">Quantité</label>
-              <input
-                type="number"
-                step="1"
-                min="1"
-                value={p.quantity}
-                onChange={(e) => onUpdateQuantity(parseInt(e.target.value) || 1)}
-                className="w-full px-3 py-2 font-medium border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none bg-white"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-600 mb-1">Capital apporté</label>
-              <input
-                type="number"
-                step="10000"
-                value={p.capitalApporte}
-                onChange={(e) => onUpdateCapital(parseFloat(e.target.value) || 0)}
-                className="w-full px-3 py-2 text-base font-semibold border border-green-300 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-500 focus:outline-none bg-white text-green-700"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-600 mb-1">Frais d'enregistrement</label>
-              <div className="flex items-center gap-2 mb-1">
-                <label className="flex items-center gap-1.5 cursor-pointer px-3 py-2 border rounded-lg transition-colors hover:bg-gray-100" style={{
-                  borderColor: p.registrationFeesRate === 3 ? '#9ca3af' : '#e5e7eb',
-                  backgroundColor: p.registrationFeesRate === 3 ? '#f3f4f6' : 'white'
-                }}>
-                  <input
-                    type="radio"
-                    name={`notaryRate-fullscreen-${idx}`}
-                    value="3"
-                    checked={p.registrationFeesRate === 3}
-                    onChange={(e) => onUpdateNotaryRate(parseFloat(e.target.value))}
-                    className="w-4 h-4"
-                  />
-                  <span className="font-medium text-gray-700 text-sm">3%</span>
-                </label>
-                <label className="flex items-center gap-1.5 cursor-pointer px-3 py-2 border rounded-lg transition-colors hover:bg-gray-100" style={{
-                  borderColor: p.registrationFeesRate === 12.5 ? '#9ca3af' : '#e5e7eb',
-                  backgroundColor: p.registrationFeesRate === 12.5 ? '#f3f4f6' : 'white'
-                }}>
-                  <input
-                    type="radio"
-                    name={`notaryRate-fullscreen-${idx}`}
-                    value="12.5"
-                    checked={p.registrationFeesRate === 12.5}
-                    onChange={(e) => onUpdateNotaryRate(parseFloat(e.target.value))}
-                    className="w-4 h-4"
-                  />
-                  <span className="font-medium text-gray-700 text-sm">12.5%</span>
-                </label>
-              </div>
-              <div className="text-sm text-gray-600">
-                = {formatCurrency(p.droitEnregistrements)}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs text-gray-600 mb-1">Taux d'intérêt (%)</label>
-              <input
-                type="number"
-                step="0.1"
-                value={p.interestRate}
-                onChange={(e) => onUpdateInterestRate(parseFloat(e.target.value) || 0)}
-                className="w-full px-3 py-2 font-medium border border-gray-300 rounded-lg focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none bg-white"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-gray-600 mb-1">Durée (années)</label>
-              <input
-                type="number"
-                value={p.durationYears}
-                onChange={(e) => onUpdateDuration(parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 font-medium border border-gray-300 rounded-lg focus:border-gray-500 focus:ring-1 focus:ring-gray-500 focus:outline-none bg-white"
-              />
-            </div>
-          </div>
-
-          {/* Portage Lot Configuration (only for founders) */}
-          {participant.isFounder && (
-            <div className="mt-4 pt-4 border-t border-gray-300">
-              <PortageLotConfig
-                portageLots={participant.lotsOwned?.filter((lot) => lot.isPortage) || []}
-                onAddLot={onAddPortageLot}
-                onRemoveLot={onRemovePortageLot}
-                onUpdateSurface={onUpdatePortageLotSurface}
-                onUpdateConstructionPayment={onUpdatePortageLotConstructionPayment}
-                deedDate={new Date(deedDate)}
-                formulaParams={formulaParams}
-              />
-            </div>
-          )}
-
-          {/* Two-Loan Financing Section */}
-          <TwoLoanFinancingSection
+        {/* 3. PropertySection - Surface, quantity, construction costs */}
+        <div className="mb-4">
+          <PropertySection
             participant={participant}
             participantCalc={p}
-            personalRenovationCost={p.personalRenovationCost || 0}
-            validationErrors={validationErrors}
-            onUpdateParticipant={onUpdateParticipant}
+            projectParams={projectParams}
+            onUpdateSurface={onUpdateSurface}
+            onUpdateQuantity={onUpdateQuantity}
+            onUpdateParachevementsPerM2={onUpdateParachevementsPerM2}
+            onUpdateCascoSqm={onUpdateCascoSqm}
+            onUpdateParachevementsSqm={onUpdateParachevementsSqm}
+            defaultExpanded={false}
           />
-        </CollapsibleSection>
+        </div>
+
+        {/* 4. LoanParametersSection - Interest rate, duration, two-loan config */}
+        <div className="mb-4">
+          <LoanParametersSection
+            participant={participant}
+            participantCalc={p}
+            participantIndex={idx}
+            validationErrors={validationErrors}
+            onUpdateNotaryRate={onUpdateNotaryRate}
+            onUpdateInterestRate={onUpdateInterestRate}
+            onUpdateDuration={onUpdateDuration}
+            onUpdateParticipant={onUpdateParticipant}
+            defaultExpanded={false}
+          />
+        </div>
+
+        {/* 5. Portage Lot Configuration (only for founders) */}
+        {participant.isFounder && (
+          <CollapsibleSection title="Lots en portage" icon="📦" defaultOpen={false}>
+            <PortageLotConfig
+              portageLots={participant.lotsOwned?.filter((lot) => lot.isPortage) || []}
+              onAddLot={onAddPortageLot}
+              onRemoveLot={onRemovePortageLot}
+              onUpdateSurface={onUpdatePortageLotSurface}
+              onUpdateConstructionPayment={onUpdatePortageLotConstructionPayment}
+              deedDate={new Date(deedDate)}
+              formulaParams={formulaParams}
+            />
+          </CollapsibleSection>
+        )}
 
         {/* 4. CollapsibleSection: Remboursements attendus (only for founders) */}
         {participant.isFounder && (
