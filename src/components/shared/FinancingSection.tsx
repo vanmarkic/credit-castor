@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { formatCurrency } from '../../utils/formatting';
-import { suggestLoanAllocation, type PhaseCosts } from '../../utils/phaseCostsCalculation';
+import type { PhaseCosts } from '../../utils/phaseCostsCalculation';
 import type { Participant, ParticipantCalculation } from '../../utils/calculatorUtils';
 
 interface FinancingSectionProps {
@@ -24,11 +24,6 @@ export function FinancingSection({
   const capitalApporte = participant.capitalApporte ?? 0;
   const useTwoLoans = participant.useTwoLoans ?? false;
   const includeParachevements = participant.loan2IncludesParachevements ?? false;
-
-  const loanSuggestion = useMemo(
-    () => suggestLoanAllocation(phaseCosts, capitalApporte, includeParachevements),
-    [phaseCosts, capitalApporte, includeParachevements]
-  );
 
   const remainingToFinance = phaseCosts.grandTotal - capitalApporte;
 
@@ -121,11 +116,11 @@ export function FinancingSection({
           {useTwoLoans && (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                {/* Loan 1 */}
+                {/* Loan 1 - Use actual calculated amounts, not suggestions */}
                 <div className="bg-white rounded-lg p-4 border-2 border-blue-200">
                   <p className="text-xs font-semibold text-blue-700 mb-2">PRÊT 1 (Signature)</p>
                   <p className="text-lg font-bold text-gray-900">
-                    {formatCurrency(loanSuggestion.loan1Amount)}
+                    {formatCurrency(participantCalc.loan1Amount ?? 0)}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
                     {participant.durationYears} ans @ {participant.interestRate}%
@@ -137,11 +132,11 @@ export function FinancingSection({
                   )}
                 </div>
 
-                {/* Loan 2 */}
+                {/* Loan 2 - Use actual calculated amounts */}
                 <div className="bg-white rounded-lg p-4 border-2 border-orange-200">
                   <p className="text-xs font-semibold text-orange-700 mb-2">PRÊT 2 (Construction)</p>
                   <p className="text-lg font-bold text-gray-900">
-                    {formatCurrency(loanSuggestion.loan2Amount)}
+                    {formatCurrency(participantCalc.loan2Amount ?? 0)}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
                     Démarre après {participant.loan2DelayYears ?? 2} an(s)
