@@ -20,6 +20,13 @@ export interface PhaseCosts {
   grandTotal: number;
 }
 
+export interface LoanAllocation {
+  loan1Amount: number;
+  loan2Amount: number;
+  includeParachevements: boolean;
+  totalToFinance: number;
+}
+
 /**
  * Groups participant costs by payment phase timing
  * - Signature: Paid at deed signing (purchase + notary + registration)
@@ -54,5 +61,37 @@ export function calculatePhaseCosts(p: ParticipantCalculation): PhaseCosts {
     construction,
     emmenagement,
     grandTotal: signature.total + construction.total + emmenagement.total,
+  };
+}
+
+/**
+ * Suggests how to split financing between two loans based on payment timing
+ * - Loan 1: Signature costs (after deducting capital)
+ * - Loan 2: Construction costs (+ optional parachèvements)
+ *
+ * Capital is first applied to signature costs, excess goes to construction
+ */
+export function suggestLoanAllocation(
+  phaseCosts: PhaseCosts,
+  capitalApporte: number,
+  includeParachevements: boolean
+): LoanAllocation {
+  const signatureCosts = phaseCosts.signature.total;
+  const constructionCosts = phaseCosts.construction.total;
+  const parachevementsCosts = includeParachevements ? phaseCosts.emmenagement.total : 0;
+
+  // Apply capital first to signature costs
+  let remainingCapital = capitalApporte;
+  const loan1Amount = Math.max(0, signatureCosts - remainingCapital);
+  remainingCapital = Math.max(0, remainingCapital - signatureCosts);
+
+  // Apply remaining capital to construction costs
+  const loan2Amount = Math.max(0, constructionCosts + parachevementsCosts - remainingCapital);
+
+  return {
+    loan1Amount,
+    loan2Amount,
+    includeParachevements,
+    totalToFinance: loan1Amount + loan2Amount,
   };
 }

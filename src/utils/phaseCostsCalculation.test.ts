@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculatePhaseCosts, type PhaseCosts } from './phaseCostsCalculation';
+import { calculatePhaseCosts, suggestLoanAllocation, type PhaseCosts } from './phaseCostsCalculation';
 import type { ParticipantCalculation } from './calculatorUtils';
 
 describe('calculatePhaseCosts', () => {
@@ -63,5 +63,50 @@ describe('calculatePhaseCosts', () => {
     expect(result.construction.total).toBe(0);
     expect(result.emmenagement.total).toBe(0);
     expect(result.grandTotal).toBe(0);
+  });
+});
+
+describe('suggestLoanAllocation', () => {
+  it('should allocate signature costs to loan 1 minus capital', () => {
+    const phaseCosts: PhaseCosts = {
+      signature: { purchaseShare: 35000, registrationFees: 5200, notaryFees: 5000, total: 45200 },
+      construction: { casco: 60000, travauxCommuns: 12500, commun: 15000, total: 87500 },
+      emmenagement: { parachevements: 25000, total: 25000 },
+      grandTotal: 157700,
+    };
+
+    const result = suggestLoanAllocation(phaseCosts, 20000, false);
+
+    expect(result.loan1Amount).toBe(25200); // 45200 - 20000 capital
+    expect(result.loan2Amount).toBe(87500); // construction costs
+    expect(result.includeParachevements).toBe(false);
+  });
+
+  it('should include parachevements in loan 2 when toggled', () => {
+    const phaseCosts: PhaseCosts = {
+      signature: { purchaseShare: 35000, registrationFees: 5200, notaryFees: 5000, total: 45200 },
+      construction: { casco: 60000, travauxCommuns: 12500, commun: 15000, total: 87500 },
+      emmenagement: { parachevements: 25000, total: 25000 },
+      grandTotal: 157700,
+    };
+
+    const result = suggestLoanAllocation(phaseCosts, 20000, true);
+
+    expect(result.loan2Amount).toBe(112500); // 87500 + 25000
+    expect(result.includeParachevements).toBe(true);
+  });
+
+  it('should not go negative if capital exceeds signature costs', () => {
+    const phaseCosts: PhaseCosts = {
+      signature: { purchaseShare: 35000, registrationFees: 5200, notaryFees: 5000, total: 45200 },
+      construction: { casco: 60000, travauxCommuns: 0, commun: 15000, total: 75000 },
+      emmenagement: { parachevements: 25000, total: 25000 },
+      grandTotal: 145200,
+    };
+
+    const result = suggestLoanAllocation(phaseCosts, 50000, false);
+
+    expect(result.loan1Amount).toBe(0); // Capital covers signature
+    expect(result.loan2Amount).toBe(70200); // 75000 - (50000 - 45200) excess capital
   });
 });
