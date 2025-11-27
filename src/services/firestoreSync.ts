@@ -20,6 +20,54 @@ import { DEFAULT_MAX_TOTAL_LOTS } from '../utils/lotValidation';
 import { migrateProjectParams } from '../utils/projectParamsMigration';
 
 /**
+ * Read-only mode detection for local development
+ *
+ * By default, Firestore writes are BLOCKED in local development (import.meta.env.DEV)
+ * to prevent accidental data corruption when testing locally.
+ *
+ * To enable writes in dev mode, set: PUBLIC_ENABLE_FIRESTORE_WRITES=true
+ */
+function isFirestoreReadOnly(): boolean {
+  // In production, always allow writes
+  if (!import.meta.env.DEV) {
+    return false;
+  }
+
+  // In dev mode, writes are blocked unless explicitly enabled
+  const enableWrites = import.meta.env.PUBLIC_ENABLE_FIRESTORE_WRITES;
+  const isWriteEnabled = enableWrites === 'true' || enableWrites === '1';
+
+  return !isWriteEnabled;
+}
+
+/**
+ * Check if Firestore writes are currently allowed
+ */
+export function isFirestoreWriteAllowed(): boolean {
+  return !isFirestoreReadOnly();
+}
+
+/**
+ * Get a descriptive message about the current Firestore mode
+ */
+export function getFirestoreModeMessage(): string {
+  if (!import.meta.env.DEV) {
+    return '🟢 Production mode: Firestore writes enabled';
+  }
+
+  if (isFirestoreReadOnly()) {
+    return '🔒 Dev mode (read-only): Firestore writes blocked. Set PUBLIC_ENABLE_FIRESTORE_WRITES=true to enable.';
+  }
+
+  return '⚠️ Dev mode (write-enabled): PUBLIC_ENABLE_FIRESTORE_WRITES=true';
+}
+
+// Log Firestore mode on module load
+if (import.meta.env.DEV) {
+  console.log(getFirestoreModeMessage());
+}
+
+/**
  * Default values for new/optional projectParams fields
  * These are initialized only when creating a new document (runs once)
  * 
@@ -217,6 +265,15 @@ export async function saveScenarioToFirestore(
   userEmail: string
 ): Promise<{ success: boolean; error?: string; savedData?: FirestoreScenarioData }> {
   try {
+    // Block writes in dev mode unless explicitly enabled
+    if (isFirestoreReadOnly()) {
+      console.log('🔒 Firestore write blocked (dev read-only mode)');
+      return {
+        success: false,
+        error: 'Mode lecture seule (dev). Sauvegarde locale uniquement.',
+      };
+    }
+
     const db = getDb();
     if (!db) {
       return {
@@ -567,6 +624,16 @@ export async function updateScenarioFields(
   baseVersion: number
 ): Promise<FieldUpdateResult> {
   try {
+    // Block writes in dev mode unless explicitly enabled
+    if (isFirestoreReadOnly()) {
+      console.log('🔒 Firestore write blocked (dev read-only mode)');
+      return {
+        success: false,
+        error: 'Mode lecture seule (dev). Sauvegarde locale uniquement.',
+        updatedFields: [],
+      };
+    }
+
     const db = getDb();
     if (!db) {
       return {
@@ -910,6 +977,15 @@ export async function saveParticipantToSubcollection(
   userEmail: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    // Block writes in dev mode unless explicitly enabled
+    if (isFirestoreReadOnly()) {
+      console.log('🔒 Firestore write blocked (dev read-only mode)');
+      return {
+        success: false,
+        error: 'Mode lecture seule (dev). Sauvegarde locale uniquement.',
+      };
+    }
+
     const db = getDb();
     if (!db) {
       return {
@@ -968,6 +1044,15 @@ export async function updateParticipantFields(
   baseVersion?: number
 ): Promise<{ success: boolean; error?: string; updatedFields?: string[] }> {
   try {
+    // Block writes in dev mode unless explicitly enabled
+    if (isFirestoreReadOnly()) {
+      console.log('🔒 Firestore write blocked (dev read-only mode)');
+      return {
+        success: false,
+        error: 'Mode lecture seule (dev). Sauvegarde locale uniquement.',
+      };
+    }
+
     const db = getDb();
     if (!db) {
       return {
@@ -1084,6 +1169,15 @@ export async function deleteParticipantFromSubcollection(
   projectId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    // Block writes in dev mode unless explicitly enabled
+    if (isFirestoreReadOnly()) {
+      console.log('🔒 Firestore write blocked (dev read-only mode)');
+      return {
+        success: false,
+        error: 'Mode lecture seule (dev). Sauvegarde locale uniquement.',
+      };
+    }
+
     const db = getDb();
     if (!db) {
       return {
@@ -1120,6 +1214,15 @@ export async function migrateParticipantsToSubcollection(
   userEmail: string
 ): Promise<{ success: boolean; error?: string; migratedCount?: number }> {
   try {
+    // Block writes in dev mode unless explicitly enabled
+    if (isFirestoreReadOnly()) {
+      console.log('🔒 Firestore write blocked (dev read-only mode)');
+      return {
+        success: false,
+        error: 'Mode lecture seule (dev). Migration bloquée.',
+      };
+    }
+
     const db = getDb();
     if (!db) {
       return {
