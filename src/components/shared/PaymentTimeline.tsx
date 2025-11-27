@@ -83,7 +83,7 @@ export function PaymentTimeline({
 
       {/* Summary bar - answers key questions at a glance */}
       <div className="bg-gray-100 rounded-lg border border-gray-300 p-4">
-        <div className="grid grid-cols-3 gap-4 text-center">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-1">
               TOTAL

@@ -120,7 +120,7 @@ export function FinancingSection({
           {/* Two loans configuration */}
           {useTwoLoans && (
             <>
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 {/* Loan 1 */}
                 <div className="bg-white rounded-lg p-4 border-2 border-blue-200">
                   <p className="text-xs font-semibold text-blue-700 mb-2">PRÊT 1 (Signature)</p>
