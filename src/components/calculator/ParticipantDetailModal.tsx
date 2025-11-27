@@ -7,12 +7,14 @@ import PortageLotConfig from '../PortageLotConfig';
 import { ExpectedPaybacksCard } from '../shared/ExpectedPaybacksCard';
 import { TwoLoanFinancingSection } from '../shared/TwoLoanFinancingSection';
 import { ConstructionDetailSection } from '../shared/ConstructionDetailSection';
-import { CostBreakdownGrid } from '../shared/CostBreakdownGrid';
-import { FinancingResultCard } from '../shared/FinancingResultCard';
+import { PaymentTimeline } from '../shared/PaymentTimeline';
+import { FinancingSection } from '../shared/FinancingSection';
+import { CollapsibleSection } from '../shared/CollapsibleSection';
 import { getAvailableLotsForNewcomer, type AvailableLot } from '../../utils/availableLots';
 import type { PortageLotPrice } from '../../utils/portageCalculations';
 import type { Participant, ParticipantCalculation, CalculationResults, ProjectParams, PortageFormulaParams, UnitDetails } from '../../utils/calculatorUtils';
 import { validateTwoLoanFinancing } from '../../utils/twoLoanValidation';
+import { calculatePhaseCosts } from '../../utils/phaseCostsCalculation';
 
 interface ParticipantDetailModalProps {
   isOpen: boolean;
@@ -58,7 +60,6 @@ export default function ParticipantDetailModal({
   allParticipants,
   calculations,
   projectParams,
-  unitDetails,
   formulaParams,
   isPinned,
   onPin,
@@ -89,6 +90,11 @@ export default function ParticipantDetailModal({
     }
     return validateTwoLoanFinancing(participant, p.personalRenovationCost || 0);
   }, [participant, p.personalRenovationCost]);
+
+  const phaseCosts = useMemo(
+    () => calculatePhaseCosts(p),
+    [p]
+  );
 
   if (!isOpen) return null;
 
@@ -202,11 +208,31 @@ export default function ParticipantDetailModal({
           />
         </button>
 
-        {/* Configuration Section */}
-        <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Configuration</p>
+        {/* 1. PaymentTimeline - The hero component */}
+        <PaymentTimeline
+          phaseCosts={phaseCosts}
+          capitalApporte={p.capitalApporte}
+          monthlyPayment={
+            participant.useTwoLoans && p.loan1MonthlyPayment && p.loan2MonthlyPayment
+              ? Math.round(p.loan1MonthlyPayment + p.loan2MonthlyPayment)
+              : Math.round(p.monthlyPayment)
+          }
+        />
 
-          {/* Construction Detail - moved here */}
+        {/* 2. FinancingSection - Collapsed by default */}
+        <div className="mb-6">
+          <FinancingSection
+            phaseCosts={phaseCosts}
+            participant={participant}
+            participantCalc={p}
+            onUpdateParticipant={onUpdateParticipant}
+            defaultExpanded={false}
+          />
+        </div>
+
+        {/* 3. CollapsibleSection: Paramètres - Configuration */}
+        <CollapsibleSection title="Paramètres" icon="⚙️" defaultOpen={false}>
+          {/* Construction Detail */}
           <div className="mb-4">
             <ConstructionDetailSection
               participant={participant}
@@ -345,122 +371,84 @@ export default function ParticipantDetailModal({
             validationErrors={validationErrors}
             onUpdateParticipant={onUpdateParticipant}
           />
-        </div>
+        </CollapsibleSection>
 
-        {/* Cost Breakdown */}
-        <CostBreakdownGrid
-          participant={participant}
-          participantCalc={p}
-          projectParams={projectParams}
-          allParticipants={allParticipants}
-          unitDetails={unitDetails}
-          deedDate={deedDate}
-          formulaParams={formulaParams}
-        />
+        {/* 4. CollapsibleSection: Remboursements attendus (only for founders) */}
+        {participant.isFounder && (
+          <CollapsibleSection title="Remboursements attendus" icon="💰" defaultOpen={false}>
+            <ExpectedPaybacksCard
+              participant={participant}
+              allParticipants={allParticipants}
+              deedDate={deedDate}
+              coproReservesShare={formulaParams.coproReservesShare}
+              projectParams={projectParams}
+              calculations={calculations}
+              formulaParams={formulaParams}
+            />
+          </CollapsibleSection>
+        )}
 
-
-        {/* Financing Result */}
-        <FinancingResultCard 
-          participantCalc={p}
-          projectParams={projectParams}
-          allParticipants={allParticipants}
-          unitDetails={unitDetails}
-          deedDate={deedDate}
-        />
-
-        {/* Expected Paybacks */}
-        <ExpectedPaybacksCard
-          participant={participant}
-          allParticipants={allParticipants}
-          deedDate={deedDate}
-          coproReservesShare={formulaParams.coproReservesShare}
-          projectParams={projectParams}
-          calculations={calculations}
-          formulaParams={formulaParams}
-        />
-
-        {/* Entry Date Section */}
-        <div className="max-w-7xl mx-auto px-6 mt-8">
-          <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
-            <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">📅 Date d'entrée</p>
-
-            <div className="mb-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={participant.isFounder || false}
-                  onChange={(e) => {
-                    const defaultNewcomerDate = new Date(deedDate);
-                    defaultNewcomerDate.setFullYear(defaultNewcomerDate.getFullYear() + 1);
-
-                    onUpdateParticipant({
-                      ...participant,
-                      isFounder: e.target.checked,
-                      entryDate: e.target.checked
-                        ? new Date(deedDate)
-                        : (participant.entryDate || defaultNewcomerDate),
-                      purchaseDetails: e.target.checked ? undefined : participant.purchaseDetails
-                    });
-                  }}
-                  className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
-                />
-                <span className="text-sm font-medium text-gray-700">
-                  Fondateur·rice (entre à la date de l'acte)
-                </span>
-              </label>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Date d'entrée dans le projet
-              </label>
+        {/* 5. CollapsibleSection: Statut - Entry date and founder checkbox */}
+        <CollapsibleSection title="Statut" icon="📋" defaultOpen={false}>
+          <div className="mb-4">
+            <label className="flex items-center gap-2 cursor-pointer">
               <input
-                type="date"
-                value={formatDateForInput(participant.entryDate, deedDate)}
+                type="checkbox"
+                checked={participant.isFounder || false}
                 onChange={(e) => {
-                  const newDate = new Date(e.target.value);
-                  if (newDate < new Date(deedDate)) {
-                    alert(`La date d'entrée ne peut pas être avant la date de l'acte (${deedDate})`);
-                    return;
-                  }
+                  const defaultNewcomerDate = new Date(deedDate);
+                  defaultNewcomerDate.setFullYear(defaultNewcomerDate.getFullYear() + 1);
+
                   onUpdateParticipant({
                     ...participant,
-                    entryDate: newDate
+                    isFounder: e.target.checked,
+                    entryDate: e.target.checked
+                      ? new Date(deedDate)
+                      : (participant.entryDate || defaultNewcomerDate),
+                    purchaseDetails: e.target.checked ? undefined : participant.purchaseDetails
                   });
                 }}
-                disabled={participant.isFounder}
-                min={deedDate}
-                className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none ${
-                  participant.isFounder
-                    ? 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-white border-green-300 focus:border-green-500 focus:ring-2 focus:ring-green-500'
-                }`}
+                className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
               />
-              <p className="text-xs text-gray-600 mt-1">
-                {participant.isFounder
-                  ? 'Les fondateur·rice·s entrent tous·tes à la date de l\'acte'
-                  : 'Date à laquelle ce·tte participant·e rejoint le projet (doit être >= date de l\'acte)'}
-              </p>
-            </div>
+              <span className="text-sm font-medium text-gray-700">
+                Fondateur·rice (entre à la date de l'acte)
+              </span>
+            </label>
           </div>
-        </div>
 
-        {/* Remove participant button (when there's more than 1 participant) */}
-        {totalParticipants > 1 && onRemove && (
-          <div className="max-w-7xl mx-auto px-6 pb-6">
-            <button
-              onClick={() => {
-                if (confirm(`Êtes-vous sûr de vouloir retirer ${participant.name} ?`)) {
-                  onRemove();
-                  onClose();
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Date d'entrée dans le projet
+            </label>
+            <input
+              type="date"
+              value={formatDateForInput(participant.entryDate, deedDate)}
+              onChange={(e) => {
+                const newDate = new Date(e.target.value);
+                if (newDate < new Date(deedDate)) {
+                  alert(`La date d'entrée ne peut pas être avant la date de l'acte (${deedDate})`);
+                  return;
                 }
+                onUpdateParticipant({
+                  ...participant,
+                  entryDate: newDate
+                });
               }}
-              className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors"
-            >
-              Retirer ce·tte participant·e
-            </button>
+              disabled={participant.isFounder}
+              min={deedDate}
+              className={`w-full px-4 py-2 border-2 rounded-lg focus:outline-none ${
+                participant.isFounder
+                  ? 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-white border-green-300 focus:border-green-500 focus:ring-2 focus:ring-green-500'
+              }`}
+            />
+            <p className="text-xs text-gray-600 mt-1">
+              {participant.isFounder
+                ? 'Les fondateur·rice·s entrent tous·tes à la date de l\'acte'
+                : 'Date à laquelle ce·tte participant·e rejoint le projet (doit être >= date de l\'acte)'}
+            </p>
           </div>
-        )}
+        </CollapsibleSection>
 
         {/* Purchase Details (only for non-founders) */}
         {!participant.isFounder && (
@@ -534,6 +522,23 @@ export default function ParticipantDetailModal({
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* 6. Remove button - Bottom: destructive action */}
+        {totalParticipants > 1 && onRemove && (
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <button
+              onClick={() => {
+                if (confirm(`Êtes-vous sûr de vouloir retirer ${participant.name} ?`)) {
+                  onRemove();
+                  onClose();
+                }
+              }}
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors"
+            >
+              Retirer ce·tte participant·e
+            </button>
           </div>
         )}
       </div>

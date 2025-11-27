@@ -18,6 +18,7 @@ export interface Participant {
   useTwoLoans?: boolean;  // Checkbox: enable 2-loan financing
   loan2DelayYears?: number;  // Default: 2 (when loan 2 starts after loan 1)
   loan2RenovationAmount?: number;  // Absolute € amount of (casco+parachevements) in loan 2
+  loan2IncludesParachevements?: boolean;  // Whether to include parachevements in loan 2
   capitalForLoan1?: number;  // How much of capitalApporte goes to loan 1
   capitalForLoan2?: number;  // How much of capitalApporte goes to loan 2
 
