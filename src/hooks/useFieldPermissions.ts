@@ -27,16 +27,16 @@ import {
  * ```
  */
 export function useFieldPermissions(fieldPath: string) {
-  const { isUnlocked } = useUnlock();
+  const { isUnlocked, isReadonlyMode } = useUnlock();
 
   const canEdit = useMemo(
-    () => isFieldEditable(fieldPath, isUnlocked),
-    [fieldPath, isUnlocked]
+    () => isFieldEditable(fieldPath, isUnlocked, isReadonlyMode),
+    [fieldPath, isUnlocked, isReadonlyMode]
   );
 
   const lockReason = useMemo(
-    () => getLockReason(fieldPath, isUnlocked),
-    [fieldPath, isUnlocked]
+    () => getLockReason(fieldPath, isUnlocked, isReadonlyMode),
+    [fieldPath, isUnlocked, isReadonlyMode]
   );
 
   const isCollective = useMemo(
@@ -50,8 +50,8 @@ export function useFieldPermissions(fieldPath: string) {
   );
 
   const isLocked = useMemo(
-    () => isCollective && !isUnlocked,
-    [isCollective, isUnlocked]
+    () => isReadonlyMode || (isCollective && !isUnlocked),
+    [isReadonlyMode, isCollective, isUnlocked]
   );
 
   return {
@@ -69,6 +69,9 @@ export function useFieldPermissions(fieldPath: string) {
 
     /** Whether this field is currently locked */
     isLocked,
+
+    /** Whether readonly mode is enabled */
+    isReadonlyMode,
   };
 }
 

@@ -8,6 +8,7 @@ interface UnlockContextValue extends UnlockState {
   unlock: (password: string, userEmail: string) => Promise<boolean>;
   lock: () => Promise<void>;
   validatePassword: (password: string) => boolean;
+  setReadonlyMode: (isReadonly: boolean) => void;
   isLoading: boolean;
 }
 

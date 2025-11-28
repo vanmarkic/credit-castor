@@ -102,12 +102,18 @@ export function isIndividualField(path: string): boolean {
 }
 
 /**
- * Check if a field is editable given the current unlock state.
+ * Check if a field is editable given the current unlock state and readonly mode.
  * @param path Field path (e.g., 'projectParams.totalPurchase', 'participants.0.capitalApporte')
  * @param isUnlocked Whether the admin has unlocked collective fields
+ * @param isReadonlyMode Whether readonly mode is enabled (all fields disabled)
  * @returns true if the field can be edited
  */
-export function isFieldEditable(path: string, isUnlocked: boolean): boolean {
+export function isFieldEditable(path: string, isUnlocked: boolean, isReadonlyMode: boolean = false): boolean {
+  // In readonly mode, no fields are editable
+  if (isReadonlyMode) {
+    return false;
+  }
+
   // Individual fields are always editable
   if (isIndividualField(path)) {
     return true;
@@ -125,9 +131,13 @@ export function isFieldEditable(path: string, isUnlocked: boolean): boolean {
 /**
  * Get a human-readable description of why a field is locked.
  */
-export function getLockReason(path: string, isUnlocked: boolean): string | null {
-  if (isFieldEditable(path, isUnlocked)) {
+export function getLockReason(path: string, isUnlocked: boolean, isReadonlyMode: boolean = false): string | null {
+  if (isFieldEditable(path, isUnlocked, isReadonlyMode)) {
     return null;
+  }
+
+  if (isReadonlyMode) {
+    return 'Mode lecture seule activé. Désactivez-le pour modifier les données.';
   }
 
   return 'Ce champ est verrouillé. Demandez à un administrateur de déverrouiller les champs collectifs.';

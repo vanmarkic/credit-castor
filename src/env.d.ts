@@ -5,6 +5,9 @@ interface ImportMetaEnv {
   readonly PUBLIC_APP_PASSWORD?: string;
   readonly PUBLIC_ADMIN_PASSWORD?: string;
 
+  // Readonly mode - when 'true', all fields are readonly by default
+  readonly PUBLIC_READONLY_MODE?: string;
+
   // Firebase configuration
   readonly PUBLIC_FIREBASE_API_KEY?: string;
   readonly PUBLIC_FIREBASE_AUTH_DOMAIN?: string;

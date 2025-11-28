@@ -12,10 +12,43 @@ export interface UnlockState {
 
   /** Email of the user who unlocked the fields */
   unlockedBy: string | null;
+
+  /** Whether readonly mode is enabled (all fields disabled) */
+  isReadonlyMode: boolean;
 }
 
 const UNLOCK_STATE_KEY = 'credit-castor-unlock-state';
+const READONLY_MODE_KEY = 'credit-castor-readonly-mode';
 const ADMIN_PASSWORD = import.meta.env.PUBLIC_ADMIN_PASSWORD || 'admin2025';
+
+// Default readonly mode from env (true unless explicitly set to 'false')
+const DEFAULT_READONLY_MODE = import.meta.env.PUBLIC_READONLY_MODE !== 'false';
+
+/**
+ * Load readonly mode from localStorage (defaults to env setting).
+ */
+function loadReadonlyMode(): boolean {
+  try {
+    const stored = localStorage.getItem(READONLY_MODE_KEY);
+    if (stored === null) {
+      return DEFAULT_READONLY_MODE;
+    }
+    return stored === 'true';
+  } catch {
+    return DEFAULT_READONLY_MODE;
+  }
+}
+
+/**
+ * Save readonly mode to localStorage.
+ */
+function saveReadonlyMode(isReadonly: boolean): void {
+  try {
+    localStorage.setItem(READONLY_MODE_KEY, String(isReadonly));
+  } catch (error) {
+    console.error('Failed to save readonly mode:', error);
+  }
+}
 
 /**
  * Load unlock state from localStorage.
@@ -23,11 +56,14 @@ const ADMIN_PASSWORD = import.meta.env.PUBLIC_ADMIN_PASSWORD || 'admin2025';
 function loadUnlockState(): UnlockState {
   try {
     const stored = localStorage.getItem(UNLOCK_STATE_KEY);
+    const isReadonlyMode = loadReadonlyMode();
+
     if (!stored) {
       return {
         isUnlocked: false,
         unlockedAt: null,
         unlockedBy: null,
+        isReadonlyMode,
       };
     }
 
@@ -36,6 +72,7 @@ function loadUnlockState(): UnlockState {
       isUnlocked: parsed.isUnlocked || false,
       unlockedAt: parsed.unlockedAt ? new Date(parsed.unlockedAt) : null,
       unlockedBy: parsed.unlockedBy || null,
+      isReadonlyMode,
     };
   } catch (error) {
     console.error('Failed to load unlock state:', error);
@@ -43,6 +80,7 @@ function loadUnlockState(): UnlockState {
       isUnlocked: false,
       unlockedAt: null,
       unlockedBy: null,
+      isReadonlyMode: DEFAULT_READONLY_MODE,
     };
   }
 }
@@ -92,6 +130,7 @@ export function useUnlockState(
           isUnlocked: false,
           unlockedAt: null,
           unlockedBy: null,
+          isReadonlyMode: state.isReadonlyMode,
         };
         saveUnlockState(lockedState);
       }
@@ -102,7 +141,7 @@ export function useUnlockState(
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [state.isUnlocked]);
+  }, [state.isUnlocked, state.isReadonlyMode]);
 
   /**
    * Attempt to unlock collective fields with admin password.
@@ -117,13 +156,12 @@ export function useUnlockState(
     }
 
     // Update state
-    const newState: UnlockState = {
+    setState(prev => ({
+      ...prev,
       isUnlocked: true,
       unlockedAt: new Date(),
       unlockedBy: userEmail,
-    };
-
-    setState(newState);
+    }));
     return true;
   }, []);
 
@@ -131,13 +169,24 @@ export function useUnlockState(
    * Lock collective fields.
    */
   const lock = useCallback(async (): Promise<void> => {
-    const newState: UnlockState = {
+    setState(prev => ({
+      ...prev,
       isUnlocked: false,
       unlockedAt: null,
       unlockedBy: null,
-    };
+    }));
+  }, []);
 
-    setState(newState);
+  /**
+   * Set readonly mode.
+   * @param isReadonly Whether to enable readonly mode
+   */
+  const setReadonlyMode = useCallback((isReadonly: boolean): void => {
+    setState(prev => ({
+      ...prev,
+      isReadonlyMode: isReadonly,
+    }));
+    saveReadonlyMode(isReadonly);
   }, []);
 
   /**
@@ -152,6 +201,7 @@ export function useUnlockState(
     unlock,
     lock,
     validatePassword,
+    setReadonlyMode,
     isLoading: false,
   };
 }

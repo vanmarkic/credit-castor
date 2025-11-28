@@ -147,6 +147,7 @@ export function UnlockButton() {
     unlockedAt,
     unlock,
     lock,
+    isReadonlyMode,
   } = useUnlock();
 
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
@@ -180,28 +181,33 @@ export function UnlockButton() {
     <>
       <button
         onClick={handleToggle}
+        disabled={isReadonlyMode}
         className={`
           flex items-center gap-2 px-4 py-2 rounded-md font-medium transition-colors
-          ${isUnlocked
-            ? 'bg-green-100 text-green-700 border border-green-300 hover:bg-green-200'
-            : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
+          ${isReadonlyMode
+            ? 'bg-gray-50 text-gray-400 border border-gray-200 cursor-not-allowed'
+            : isUnlocked
+              ? 'bg-green-100 text-green-700 border border-green-300 hover:bg-green-200'
+              : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
           }
         `}
         title={
-          isUnlocked
-            ? `Déverrouillé par ${unlockedBy} le ${unlockedAt?.toLocaleString('fr-BE')}`
-            : 'Cliquez pour déverrouiller les champs collectifs'
+          isReadonlyMode
+            ? 'Désactivez le mode lecture seule pour déverrouiller'
+            : isUnlocked
+              ? `Déverrouillé par ${unlockedBy} le ${unlockedAt?.toLocaleString('fr-BE')}`
+              : 'Cliquez pour déverrouiller les valeurs générales'
         }
       >
         {isUnlocked ? (
           <>
             <Unlock className="w-4 h-4" />
-            <span>Verrouiller</span>
+            <span>Verrouiller valeurs générales</span>
           </>
         ) : (
           <>
             <Lock className="w-4 h-4" />
-            <span>Déverrouiller</span>
+            <span>Déverrouiller valeurs générales</span>
           </>
         )}
       </button>

@@ -28,6 +28,7 @@ import HorizontalSwimLaneTimeline from './HorizontalSwimLaneTimeline';
 import { updateBuyerWithRecalculatedPrice } from '../utils/portageRecalculation';
 import { UnlockProvider, useUnlock } from '../contexts/UnlockContext';
 import { UnlockButton } from './shared/UnlockButton';
+import { ReadonlyModeSwitch } from './shared/ReadonlyModeSwitch';
 import toast, { Toaster } from 'react-hot-toast';
 import { useChangeNotifications } from '../hooks/useChangeNotifications';
 import { ChangeNotificationToast, PresenceNotificationToast } from './shared/NotificationToast';
@@ -390,8 +391,9 @@ export default function EnDivisionCorrect() {
         )}
 
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-100 p-6">
-          {/* Floating Unlock Button */}
-          <div className="fixed top-6 left-6 z-40 no-print">
+          {/* Floating Mode Controls */}
+          <div className="fixed top-6 left-6 z-40 no-print flex flex-col gap-2">
+            <ReadonlyModeSwitch />
             <UnlockButton />
           </div>
 
@@ -459,18 +461,19 @@ export default function EnDivisionCorrect() {
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <button
             onClick={() => setIsCostBreakdownExpanded(!isCostBreakdownExpanded)}
-            className="flex items-center justify-between w-full mb-4 bg-white rounded p-1 -ml-1 transition-colors"
+            className="w-full text-left rounded transition-colors hover:bg-gray-50 cursor-pointer"
           >
-            <h2 className="text-xl font-bold text-gray-800">Décomposition des Coûts</h2>
-            <div className="flex items-center gap-2">
-              {isCostBreakdownExpanded ? (
-                <ChevronUp className="w-5 h-5 text-gray-500" />
-              ) : (
-                <ChevronDown className="w-5 h-5 text-gray-500" />
-              )}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-800">Décomposition des Coûts</h2>
+              <div className="flex items-center gap-2">
+                {isCostBreakdownExpanded ? (
+                  <ChevronUp className="w-5 h-5 text-gray-500" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-gray-500" />
+                )}
+              </div>
             </div>
-          </button>
-          <div className="flex items-center justify-center gap-3">
+            <div className="flex items-center justify-center gap-3">
                 <div className="p-3 bg-white rounded-lg border border-gray-200 flex-1">
                   <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Achat Total</p>
                   <p className="text-lg font-bold text-gray-900">{formatCurrency(calculations.totals.purchase)}</p>
@@ -527,6 +530,7 @@ export default function EnDivisionCorrect() {
                   </p>
                 </div>
               </div>
+          </button>
 
           {isCostBreakdownExpanded && (
               <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">

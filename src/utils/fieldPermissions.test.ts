@@ -125,6 +125,39 @@ describe('fieldPermissions', () => {
       expect(isFieldEditable('unknownField', false)).toBe(true);
       expect(isFieldEditable('someRandomPath', false)).toBe(true);
     });
+
+    describe('readonly mode', () => {
+      it('should block ALL fields when readonly mode is enabled', () => {
+        // Individual fields blocked
+        expect(isFieldEditable('participants.0.capitalApporte', false, true)).toBe(false);
+        expect(isFieldEditable('participants.0.capitalApporte', true, true)).toBe(false);
+        expect(isFieldEditable('participants.0.name', false, true)).toBe(false);
+        expect(isFieldEditable('participants.0.name', true, true)).toBe(false);
+
+        // Collective fields blocked
+        expect(isFieldEditable('projectParams.totalPurchase', false, true)).toBe(false);
+        expect(isFieldEditable('projectParams.totalPurchase', true, true)).toBe(false);
+
+        // Unknown fields blocked
+        expect(isFieldEditable('unknownField', false, true)).toBe(false);
+        expect(isFieldEditable('unknownField', true, true)).toBe(false);
+      });
+
+      it('should allow editing when readonly mode is disabled', () => {
+        // Individual fields editable
+        expect(isFieldEditable('participants.0.capitalApporte', false, false)).toBe(true);
+
+        // Collective fields follow unlock state
+        expect(isFieldEditable('projectParams.totalPurchase', false, false)).toBe(false);
+        expect(isFieldEditable('projectParams.totalPurchase', true, false)).toBe(true);
+      });
+
+      it('should default isReadonlyMode to false when not provided', () => {
+        // Should work the same as explicitly passing false
+        expect(isFieldEditable('participants.0.capitalApporte', false)).toBe(true);
+        expect(isFieldEditable('projectParams.totalPurchase', true)).toBe(true);
+      });
+    });
   });
 
   describe('getLockReason', () => {
@@ -138,6 +171,26 @@ describe('fieldPermissions', () => {
       expect(reason).toBeTruthy();
       expect(reason).toContain('verrouillé');
       expect(reason).toContain('administrateur');
+    });
+
+    describe('readonly mode', () => {
+      it('should return readonly mode message when readonly is enabled', () => {
+        const reason = getLockReason('participants.0.capitalApporte', false, true);
+        expect(reason).toBeTruthy();
+        expect(reason).toContain('lecture seule');
+      });
+
+      it('should return null for editable fields when readonly mode is disabled', () => {
+        expect(getLockReason('participants.0.capitalApporte', false, false)).toBeNull();
+        expect(getLockReason('projectParams.totalPurchase', true, false)).toBeNull();
+      });
+
+      it('should prioritize readonly mode message over collective lock message', () => {
+        // When readonly is on, it should show readonly message even for collective fields
+        const reason = getLockReason('projectParams.totalPurchase', false, true);
+        expect(reason).toContain('lecture seule');
+        expect(reason).not.toContain('administrateur');
+      });
     });
   });
 
