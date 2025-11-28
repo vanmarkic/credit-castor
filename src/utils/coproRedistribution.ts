@@ -9,6 +9,7 @@ export interface CoproSale {
   buyer: string;
   entryDate: Date | string; // Can be Date or string (from JSON/localStorage)
   amount: number; // Amount to participants (excluding reserves)
+  surface?: number; // Buyer's surface (included in quotité denominator, but buyer doesn't receive)
 }
 
 export interface ParticipantForRedistribution {
@@ -27,35 +28,44 @@ export interface RedistributionShare {
 
 /**
  * Calculate redistribution when a newcomer buys from copropriété
- * 
+ *
  * Formula:
- * 1. Calculate each existing participant's quotité = their surface / total surface of existing participants
+ * 1. Calculate each existing participant's quotité = their surface / total surface (including buyer)
  * 2. Each participant receives: newcomerPayment × their quotité
  * 3. Track years held for each participant (from their entry date to sale date)
- * 
- * @param newcomerPayment - Total amount the newcomer pays
- * @param existingParticipants - All participants who own shares before this sale
+ *
+ * Important: The buyer's surface is included in the denominator (totalSurface) but
+ * the buyer does not receive any redistribution. This follows the documented business rule:
+ * "Charlie: Included in denominator but receives nothing (is the buyer)"
+ *
+ * @param newcomerPayment - Total amount the newcomer pays (70% after reserves deduction)
+ * @param existingParticipants - All participants who own shares before this sale (excludes buyer)
  * @param saleDate - Date when the newcomer is buying
+ * @param buyerSurface - Surface being purchased by the newcomer (included in quotité denominator)
  * @returns Array of redistribution shares for each existing participant
  */
 export function calculateCoproRedistribution(
   newcomerPayment: number,
   existingParticipants: ParticipantForRedistribution[],
-  saleDate: Date
+  saleDate: Date,
+  buyerSurface: number = 0
 ): RedistributionShare[] {
   // Calculate total building surface from existing participants
-  const totalSurface = existingParticipants.reduce((sum, p) => sum + p.surface, 0);
-  
+  const existingSurface = existingParticipants.reduce((sum, p) => sum + p.surface, 0);
+
+  // Include buyer's surface in denominator (they're included in quotité calculation but don't receive anything)
+  const totalSurface = existingSurface + buyerSurface;
+
   if (totalSurface <= 0) {
     return [];
   }
-  
+
   // Calculate each participant's quotité and redistribution share
   return existingParticipants.map(p => {
     const quotite = p.surface / totalSurface;
     const share = newcomerPayment * quotite;
     const yearsHeld = (saleDate.getTime() - p.entryDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-    
+
     return {
       participantName: p.name,
       quotite,
@@ -106,14 +116,16 @@ export function calculateSequentialRedistributions(
   
   for (const purchase of newcomerPurchases) {
     // Calculate redistribution to existing participants
+    // Pass buyer's surface to include in quotité denominator
     const redistribution = calculateCoproRedistribution(
       purchase.payment,
       currentParticipants,
-      purchase.saleDate
+      purchase.saleDate,
+      purchase.newcomerSurface // Buyer's surface included in denominator per business rules
     );
-    
+
     redistributions.push(redistribution);
-    
+
     // Add this newcomer to the participants for the next iteration
     currentParticipants.push({
       name: purchase.newcomerName,
@@ -202,10 +214,12 @@ export function calculateCoproRedistributionForParticipant(
       }));
     
     // Calculate redistribution for this sale
+    // Pass buyer's surface to include in quotité denominator
     const redistribution = calculateCoproRedistribution(
       sale.amount,
       existingParticipants,
-      sale.entryDate
+      sale.entryDate,
+      sale.surface || 0 // Buyer's surface included in denominator per business rules
     );
     
     // Find this participant's share

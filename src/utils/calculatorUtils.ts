@@ -1588,10 +1588,12 @@ export function calculateExpectedPaybacks(
       }));
 
     // Calculate redistribution for this sale
+    // Pass buyer's surface to include in quotité denominator (buyer is in denominator but doesn't receive)
     const redistribution = calculateCoproRedistribution(
       amountToParticipants,
       existingParticipants,
-      saleDate
+      saleDate,
+      surfacePurchased // Buyer's surface included in denominator per business rules
     );
 
     // Find this participant's share
