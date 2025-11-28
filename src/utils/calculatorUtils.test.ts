@@ -2704,11 +2704,13 @@ describe('Expected Paybacks - Self and Same-Day Exclusions', () => {
       );
       expect(redistribution).toBeDefined();
       
-      // Redistribution quotité is based on existing participants only (excluding the buyer)
-      // Only the founder exists before Bob's purchase, so founder's quotité: 100m² / 100m² = 100%
+      // Redistribution quotité includes buyer's surface in the denominator per business rules:
+      // "Included in denominator but receives nothing (is the buyer)"
+      // Founder quotité: 100m² / (100m² + 50m²) = 66.67%
       // 70% of 100,000€ = 70,000€ to participants
-      // Founder gets 100% of 70,000€ = 70,000€
-      const expectedAmount = 70000; // 100% of redistribution (only founder exists)
+      // Founder gets 66.67% of 70,000€ = 46,666.67€
+      const founderQuotite = 100 / (100 + 50); // 0.6667
+      const expectedAmount = 70000 * founderQuotite; // ~46,666.67€
       expect(redistribution?.amount).toBeCloseTo(expectedAmount, 2);
       expect(paybacksFounder.totalRecovered).toBeCloseTo(expectedAmount, 2);
     });

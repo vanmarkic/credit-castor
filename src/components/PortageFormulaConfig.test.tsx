@@ -46,13 +46,14 @@ describe('PortageFormulaConfig', () => {
       coproReservesShare: 30
     };
 
-    // Mock localStorage to have unlocked state
+    // Mock localStorage to have unlocked state and disable readonly mode
     const unlockState = {
       isUnlocked: true,
       unlockedBy: 'test@example.com',
       unlockedAt: new Date().toISOString(),
     };
     localStorage.setItem('credit-castor-unlock-state', JSON.stringify(unlockState));
+    localStorage.setItem('credit-castor-readonly-mode', 'false');
 
     render(
       <UnlockProvider>
