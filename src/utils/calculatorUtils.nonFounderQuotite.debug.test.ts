@@ -5,8 +5,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { calculateNewcomerQuotite, calculateNewcomerPurchasePrice } from './calculatorUtils';
-import type { Participant } from '../types/participant';
-import type { PortageFormulaParams } from '../types/portage-config';
+import type { Participant, PortageFormulaParams } from './calculatorUtils';
 
 describe('Debug: Quotité calculation with actual user data', () => {
   // Actual data from user
@@ -19,24 +18,40 @@ describe('Debug: Quotité calculation with actual user data', () => {
       surface: 140,
       isFounder: true,
       entryDate: new Date('2026-02-01T00:00:00.000Z'),
+      capitalApporte: 150000,
+      registrationFeesRate: 3,
+      interestRate: 4,
+      durationYears: 25,
     },
     {
       name: 'Cathy/Jim',
       surface: 225,
       isFounder: true,
       entryDate: new Date('2026-02-01T00:00:00.000Z'),
+      capitalApporte: 450000,
+      registrationFeesRate: 3,
+      interestRate: 4.5,
+      durationYears: 25,
     },
     {
       name: 'Annabelle/Colin',
       surface: 200,
       isFounder: true,
       entryDate: new Date('2026-02-01T00:00:00.000Z'),
+      capitalApporte: 200000,
+      registrationFeesRate: 12.5,
+      interestRate: 4,
+      durationYears: 25,
     },
     {
       name: 'Julie/Séverin',
       surface: 108,
       isFounder: true,
       entryDate: new Date('2026-02-01T00:00:00.000Z'),
+      capitalApporte: 245000,
+      registrationFeesRate: 3,
+      interestRate: 4,
+      durationYears: 25,
     },
   ];
 
@@ -46,6 +61,10 @@ describe('Debug: Quotité calculation with actual user data', () => {
       surface: 100,
       isFounder: false,
       entryDate: new Date('2027-02-01T00:00:00.000Z'),
+      capitalApporte: 40000,
+      registrationFeesRate: 12.5,
+      interestRate: 4,
+      durationYears: 25,
       purchaseDetails: {
         buyingFrom: 'Copropriété',
         lotId: 999,
@@ -57,6 +76,10 @@ describe('Debug: Quotité calculation with actual user data', () => {
       surface: 100,
       isFounder: false,
       entryDate: new Date('2027-02-01T00:00:00.000Z'),
+      capitalApporte: 100000,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
       purchaseDetails: {
         buyingFrom: 'Copropriété',
         lotId: 999,
@@ -68,6 +91,10 @@ describe('Debug: Quotité calculation with actual user data', () => {
       surface: 100,
       isFounder: false,
       entryDate: new Date('2027-02-01T00:00:00.000Z'),
+      capitalApporte: 100000,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
       purchaseDetails: {
         buyingFrom: 'Copropriété',
         lotId: 999,
@@ -79,6 +106,10 @@ describe('Debug: Quotité calculation with actual user data', () => {
       surface: 100,
       isFounder: false,
       entryDate: new Date('2027-02-01T00:00:00.000Z'),
+      capitalApporte: 100000,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
       purchaseDetails: {
         buyingFrom: 'Copropriété',
         lotId: 999,
@@ -90,6 +121,10 @@ describe('Debug: Quotité calculation with actual user data', () => {
       surface: 100,
       isFounder: false,
       entryDate: new Date('2027-02-01T00:00:00.000Z'),
+      capitalApporte: 100000,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
       purchaseDetails: {
         buyingFrom: 'Copropriété',
         lotId: 999,
@@ -101,6 +136,10 @@ describe('Debug: Quotité calculation with actual user data', () => {
       surface: 100,
       isFounder: false,
       entryDate: new Date('2027-02-02T00:00:00.000Z'),
+      capitalApporte: 100000,
+      registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
       purchaseDetails: {
         buyingFrom: 'Copropriété',
         lotId: 999,
@@ -178,7 +217,7 @@ describe('Debug: Quotité calculation with actual user data', () => {
       existingParticipants,
       totalProjectCost,
       deedDate,
-      newcomer.entryDate,
+      newcomer.entryDate!,
       formulaParams
     );
 

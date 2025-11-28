@@ -3,7 +3,7 @@
  * Methodically traces each step of the calculation and display
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { CostBreakdownGrid } from './CostBreakdownGrid';
 import * as calculatorUtils from '../../utils/calculatorUtils';
@@ -26,6 +26,7 @@ describe('CostBreakdownGrid - Quotité Display Trace', () => {
       registrationFeesRate: 3,
       interestRate: 4,
       durationYears: 25,
+      capitalApporte: 150000,
     },
     {
       name: 'Founder 2',
@@ -37,6 +38,7 @@ describe('CostBreakdownGrid - Quotité Display Trace', () => {
       registrationFeesRate: 3,
       interestRate: 4.5,
       durationYears: 25,
+      capitalApporte: 450000,
     },
     {
       name: 'Founder 3',
@@ -48,6 +50,7 @@ describe('CostBreakdownGrid - Quotité Display Trace', () => {
       registrationFeesRate: 12.5,
       interestRate: 4,
       durationYears: 25,
+      capitalApporte: 200000,
     },
     {
       name: 'Founder 4',
@@ -59,6 +62,7 @@ describe('CostBreakdownGrid - Quotité Display Trace', () => {
       registrationFeesRate: 3,
       interestRate: 4,
       durationYears: 25,
+      capitalApporte: 245000,
     },
   ];
 
@@ -72,6 +76,7 @@ describe('CostBreakdownGrid - Quotité Display Trace', () => {
     registrationFeesRate: 12.5,
     interestRate: 4,
     durationYears: 25,
+    capitalApporte: 40000,
     purchaseDetails: {
       buyingFrom: 'Copropriété',
       lotId: 999,
@@ -91,6 +96,9 @@ describe('CostBreakdownGrid - Quotité Display Trace', () => {
       unitId: 8,
       quantity: 1,
       registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      capitalApporte: 100000,
       purchaseDetails: { buyingFrom: 'Copropriété', lotId: 999, purchasePrice: 147332.3837512903 },
     },
     {
@@ -101,6 +109,9 @@ describe('CostBreakdownGrid - Quotité Display Trace', () => {
       unitId: 9,
       quantity: 1,
       registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      capitalApporte: 100000,
       purchaseDetails: { buyingFrom: 'Copropriété', lotId: 999, purchasePrice: 147332.3837512903 },
     },
     {
@@ -111,6 +122,9 @@ describe('CostBreakdownGrid - Quotité Display Trace', () => {
       unitId: 10,
       quantity: 1,
       registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      capitalApporte: 100000,
       purchaseDetails: { buyingFrom: 'Copropriété', lotId: 999, purchasePrice: 147332.3837512903 },
     },
     {
@@ -121,6 +135,9 @@ describe('CostBreakdownGrid - Quotité Display Trace', () => {
       unitId: 11,
       quantity: 1,
       registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      capitalApporte: 100000,
       purchaseDetails: { buyingFrom: 'Copropriété', lotId: 999, purchasePrice: 147332.3837512903 },
     },
     {
@@ -131,6 +148,9 @@ describe('CostBreakdownGrid - Quotité Display Trace', () => {
       unitId: 14,
       quantity: 1,
       registrationFeesRate: 12.5,
+      interestRate: 4.5,
+      durationYears: 25,
+      capitalApporte: 100000,
       purchaseDetails: { buyingFrom: 'Copropriété', lotId: 999, purchasePrice: 147332.3837512903 },
     },
   ];
@@ -138,6 +158,15 @@ describe('CostBreakdownGrid - Quotité Display Trace', () => {
   const projectParams: ProjectParams = {
     totalPurchase: 650000,
     globalCascoPerM2: 1590,
+    mesuresConservatoires: 0,
+    demolition: 0,
+    infrastructures: 0,
+    etudesPreparatoires: 0,
+    fraisEtudesPreparatoires: 0,
+    fraisGeneraux3ans: 0,
+    batimentFondationConservatoire: 0,
+    batimentFondationComplete: 0,
+    batimentCoproConservatoire: 0,
   };
 
   const formulaParams: PortageFormulaParams = {
@@ -154,6 +183,10 @@ describe('CostBreakdownGrid - Quotité Display Trace', () => {
     unitId: 7,
     surface: 100,
     quantity: 1,
+    capitalApporte: 40000,
+    registrationFeesRate: 12.5,
+    interestRate: 4,
+    durationYears: 25,
     pricePerM2: 510.6048703849175,
     purchaseShare: 0,
     droitEnregistrements: 0,

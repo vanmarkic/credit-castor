@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { CostBreakdownGrid } from './CostBreakdownGrid';
 import { calculateNewcomerPurchasePrice } from '../../utils/calculatorUtils';
 import type { Participant, ParticipantCalculation, ProjectParams, PortageFormulaParams, UnitDetails } from '../../utils/calculatorUtils';
@@ -95,6 +95,15 @@ describe('CostBreakdownGrid - Prix Final Display', () => {
     totalPurchase: 650000,
     globalCascoPerM2: 1590,
     cascoTvaRate: 6,
+    mesuresConservatoires: 0,
+    demolition: 0,
+    infrastructures: 0,
+    etudesPreparatoires: 0,
+    fraisEtudesPreparatoires: 0,
+    fraisGeneraux3ans: 0,
+    batimentFondationConservatoire: 0,
+    batimentFondationComplete: 0,
+    batimentCoproConservatoire: 0,
   };
 
   const formulaParams: PortageFormulaParams = {
@@ -128,6 +137,10 @@ describe('CostBreakdownGrid - Prix Final Display', () => {
     unitId: 7,
     surface: 100,
     quantity: 1,
+    capitalApporte: 40000,
+    registrationFeesRate: 12.5,
+    interestRate: 4,
+    durationYears: 25,
     pricePerM2: 510.6048703849175,
     purchaseShare: expectedCalculation.totalPrice, // Use calculated value
     droitEnregistrements: expectedCalculation.totalPrice * 0.125,

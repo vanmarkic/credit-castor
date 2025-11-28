@@ -184,6 +184,15 @@ describe('CostBreakdownGrid - Non-Founder Quotité Display', () => {
     totalPurchase: 650000,
     globalCascoPerM2: 1590,
     cascoTvaRate: 6,
+    mesuresConservatoires: 0,
+    demolition: 0,
+    infrastructures: 0,
+    etudesPreparatoires: 0,
+    fraisEtudesPreparatoires: 0,
+    fraisGeneraux3ans: 0,
+    batimentFondationConservatoire: 0,
+    batimentFondationComplete: 0,
+    batimentCoproConservatoire: 0,
     travauxCommuns: {
       enabled: true,
       items: [
@@ -217,6 +226,10 @@ describe('CostBreakdownGrid - Non-Founder Quotité Display', () => {
     unitId: 7,
     surface: 100,
     quantity: 1,
+    capitalApporte: 40000,
+    registrationFeesRate: 12.5,
+    interestRate: 4,
+    durationYears: 25,
     pricePerM2: 510.6048703849175,
     purchaseShare: 0, // This is 0 in the calculations, but quotité should still be calculated
     droitEnregistrements: 0,

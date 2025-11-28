@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { calculateAll, type Participant, type ProjectParams, type UnitDetails } from './calculatorUtils';
+import { calculateAll, type Participant, type ProjectParams } from './calculatorUtils';
 import type { PortageFormulaParams } from './calculatorUtils';
 
 describe('Non-Founder Purchase Share - Specification-Based Corner Cases', () => {

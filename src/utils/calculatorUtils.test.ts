@@ -2350,6 +2350,7 @@ describe('calculateAll - Non-founder purchase share calculation', () => {
         purchaseDetails: {
           buyingFrom: 'Copropriété',
           lotId: 999,
+          purchasePrice: 0,
         },
       },
     ];
@@ -2417,7 +2418,7 @@ describe('calculateAll - Non-founder purchase share calculation', () => {
     // When excluding newcomer, quotité = 100/1273 = 79/1000
     // The code includes newcomer, so we expect 73/1000
     const expectedBasePriceIncludingNewcomer = (100 / 1373) * 650000; // ~47,342 €
-    const _expectedBasePriceExcludingNewcomer = expectedQuotite * 650000; // ~51,050 €
+    // const _expectedBasePriceExcludingNewcomer = expectedQuotite * 650000; // ~51,050 €
     
     // The purchase share should be > 0 (base price + indexation + carrying costs)
     expect(nonFounder!.purchaseShare).toBeGreaterThan(0);
@@ -3656,7 +3657,7 @@ describe('calculateExpectedPaybacks - invalid date handling', () => {
       interestRate: 4,
       durationYears: 25,
       isFounder: true,
-      entryDate: '2026-02-01T00:00:00.000Z',
+      entryDate: '2026-02-01T00:00:00.000Z' as unknown as Date, // Testing string-to-date coercion
     };
 
     // Another founder
@@ -3668,7 +3669,7 @@ describe('calculateExpectedPaybacks - invalid date handling', () => {
       interestRate: 4,
       durationYears: 25,
       isFounder: true,
-      entryDate: '2026-02-01T00:00:00.000Z',
+      entryDate: '2026-02-01T00:00:00.000Z' as unknown as Date, // Testing string-to-date coercion
     };
 
     // Newcomer with Firestore timestamp object (the crash trigger!)
@@ -3722,9 +3723,10 @@ describe('calculateExpectedPaybacks - invalid date handling', () => {
       interestRate: 4.5,
       durationYears: 25,
       isFounder: false,
-      entryDate: '2026-06-01',
+      entryDate: '2026-06-01' as unknown as Date, // Testing string-to-date coercion
       purchaseDetails: {
         buyingFrom: 'Copropriété',
+        lotId: 999,
         purchasePrice: 50000,
       },
     };
@@ -3738,9 +3740,10 @@ describe('calculateExpectedPaybacks - invalid date handling', () => {
       interestRate: 4.5,
       durationYears: 25,
       isFounder: false,
-      entryDate: 'invalid-date-string', // This causes Invalid Date
+      entryDate: 'invalid-date-string' as unknown as Date, // This causes Invalid Date
       purchaseDetails: {
         buyingFrom: 'Copropriété',
+        lotId: 999,
         purchasePrice: 50000,
       },
     };

@@ -80,6 +80,15 @@ describe('CostBreakdownGrid - Total Surface Calculation', () => {
     totalPurchase: 650000,
     globalCascoPerM2: 1590,
     cascoTvaRate: 6,
+    mesuresConservatoires: 0,
+    demolition: 0,
+    infrastructures: 0,
+    etudesPreparatoires: 0,
+    fraisEtudesPreparatoires: 0,
+    fraisGeneraux3ans: 0,
+    batimentFondationConservatoire: 0,
+    batimentFondationComplete: 0,
+    batimentCoproConservatoire: 0,
   };
 
   const formulaParams: PortageFormulaParams = {
@@ -96,6 +105,10 @@ describe('CostBreakdownGrid - Total Surface Calculation', () => {
     unitId: 7,
     surface: 100,
     quantity: 1,
+    capitalApporte: 40000,
+    registrationFeesRate: 12.5,
+    interestRate: 4,
+    durationYears: 25,
     pricePerM2: 510.6048703849175,
     purchaseShare: 147332.3837512903,
     droitEnregistrements: 18416.54796891129,
@@ -403,7 +416,7 @@ describe('CostBreakdownGrid - Total Surface Calculation', () => {
       enabled: true,
     };
 
-    const allBuggyParticipants = [...founders, buggyNewcomer];
+    const allBuggyParticipants = [...buggyFounders, buggyNewcomer];
 
     // Debug: Log what's happening in the filter
     const existingParticipants = allBuggyParticipants.filter(existing => {
