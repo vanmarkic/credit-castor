@@ -90,9 +90,9 @@ describe('ExpectedPaybacksCard - Copro Redistribution with Renovation Costs', ()
     const participantsShare = 1 - (coproReservesShare / 100);
     const amountToParticipants = coproSalePricing.totalPrice * participantsShare;
 
-    // Founder's share: quotité is calculated including ALL participants up to and including buyer
-    // Alice (200m²) / (Alice 200m² + Bob 50m²) = 200/250 = 80%
-    const founderQuotite = 200 / (200 + 50); // 0.8 or 80%
+    // Founder's share: quotité is calculated from EXISTING participants (excludes buyer)
+    // Alice is the only existing participant: 200m² / 200m² = 100%
+    const founderQuotite = 200 / 200; // 1.0 or 100%
     const expectedRedistribution = amountToParticipants * founderQuotite;
 
     const newcomer: Participant = {
@@ -205,9 +205,9 @@ describe('ExpectedPaybacksCard - Copro Redistribution with Renovation Costs', ()
     const participantsShare = 1 - (coproReservesShare / 100);
     const amountToParticipants = coproSalePricing.totalPrice * participantsShare;
 
-    // Founder's share: quotité is calculated including ALL participants up to and including buyer
-    // Alice (200m²) / (Alice 200m² + Bob 50m²) = 200/250 = 80%
-    const founderQuotite = 200 / (200 + 50); // 0.8 or 80%
+    // Founder's share: quotité is calculated from EXISTING participants (excludes buyer)
+    // Alice is the only existing participant: 200m² / 200m² = 100%
+    const founderQuotite = 200 / 200; // 1.0 or 100%
     const expectedRedistribution = amountToParticipants * founderQuotite;
 
     const newcomer: Participant = {

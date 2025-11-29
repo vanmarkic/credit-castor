@@ -197,6 +197,11 @@ describe('ParticipantDetailModal - Reactive Portage Price Recalculation', () => 
       />
     );
 
+    // The entry date input is inside the "Statut" CollapsibleSection - expand it first
+    const statutButton = screen.getByText('Statut').closest('button');
+    expect(statutButton).toBeInTheDocument();
+    fireEvent.click(statutButton!);
+
     // Find the entry date input
     const dateInput = screen.getByDisplayValue('2027-06-01');
     expect(dateInput).toBeInTheDocument();
@@ -260,6 +265,11 @@ describe('ParticipantDetailModal - Reactive Portage Price Recalculation', () => 
     // Initially no calls
     expect(onUpdateParticipant).not.toHaveBeenCalled();
 
+    // The entry date input is inside the "Statut" CollapsibleSection - expand it first
+    const statutButton = screen.getByText('Statut').closest('button');
+    expect(statutButton).toBeInTheDocument();
+    fireEvent.click(statutButton!);
+
     // Change date
     const dateInput = screen.getByDisplayValue('2027-06-01');
     fireEvent.change(dateInput, { target: { value: '2027-07-01' } });
@@ -315,6 +325,11 @@ describe('ParticipantDetailModal - Reactive Portage Price Recalculation', () => 
         totalParticipants={2}
       />
     );
+
+    // The entry date input is inside the "Statut" CollapsibleSection - expand it first
+    const statutButton = screen.getByText('Statut').closest('button');
+    expect(statutButton).toBeInTheDocument();
+    fireEvent.click(statutButton!);
 
     // Try to set date before deed date
     const dateInput = screen.getByDisplayValue('2027-06-01');

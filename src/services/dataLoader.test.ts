@@ -11,6 +11,9 @@ import { DEFAULT_PORTAGE_FORMULA } from '../utils/calculatorUtils';
 // Mock modules
 vi.mock('./firestoreSync');
 vi.mock('../utils/storage');
+vi.mock('./firebase', () => ({
+  getDb: vi.fn(() => null) // Return null to skip subcollection check
+}));
 
 describe('validateSchema', () => {
   it('should validate valid data structure', () => {

@@ -181,15 +181,15 @@ describe('ParticipantDetailModal Integration', () => {
     }
   });
 
-  it('should show paramètres section when expanded', () => {
+  it('should show property section when expanded', () => {
     render(<ParticipantDetailModal {...defaultProps} />);
 
-    // Find and click the Paramètres section
-    const paramsButton = screen.getByText('Paramètres').closest('button');
-    expect(paramsButton).toBeInTheDocument();
+    // Find and click the "Bien immobilier" section (renamed from Paramètres)
+    const propertyButton = screen.getByText('Bien immobilier').closest('button');
+    expect(propertyButton).toBeInTheDocument();
 
-    if (paramsButton) {
-      fireEvent.click(paramsButton);
+    if (propertyButton) {
+      fireEvent.click(propertyButton);
       // Should now see configuration fields (use getAllByText for multiple matches)
       expect(screen.getAllByText(/Surface totale/i).length).toBeGreaterThan(0);
       expect(screen.getByText(/Quantité/i)).toBeInTheDocument();
