@@ -5,7 +5,8 @@ name: Deploy Redirect Page to GitHub Pages
 # This workflow only deploys a static redirect page
 
 on:
-  # Allows you to run this workflow manually from the Actions tab on GitHub.
+  push:
+    branches: [master]
   workflow_dispatch:
 
 # Allow this job to clone the repo and create a page deployment
