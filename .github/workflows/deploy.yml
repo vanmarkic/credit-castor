@@ -1,9 +1,10 @@
-name: Deploy to GitHub Pages
+name: Deploy Redirect Page to GitHub Pages
+
+# This repository is ARCHIVED
+# The application has moved to: https://lafermedutemple.be/admin/credit
+# This workflow only deploys a static redirect page
 
 on:
-  # Trigger the workflow every time you push to the `master` branch
-  push:
-    branches: [master]
   # Allows you to run this workflow manually from the Actions tab on GitHub.
   workflow_dispatch:
 
@@ -14,62 +15,20 @@ permissions:
   id-token: write
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout your repository using git
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run unit tests
-        run: npm run test:run
-
-      - name: Run schema validation tests
-        run: npm run test:schema
-
-      - name: Run type checking
-        run: npx tsc --noEmit
-
-      - name: Run linting
-        run: npm run lint
-
-  build:
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout your repository using git
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build with Astro
-        run: npm run build
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./dist
-
   deploy:
-    needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Checkout your repository using git
+        uses: actions/checkout@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./docs
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
